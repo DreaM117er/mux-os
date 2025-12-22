@@ -3,6 +3,8 @@
 BASE_DIR="$HOME/mux-os"
 SYSTEM_MOD="$BASE_DIR/system.sh"
 APP_MOD="$BASE_DIR/app.sh"
+VENDOR_MOD="$BASE_DIR/vendor.sh"
+INSTALLER="$BASE_DIR/install.sh"
 
 if [ ! -d "$HOME/storage" ]; then
     echo "⚠️ Initializing Storage Permission..."
@@ -16,10 +18,28 @@ if ! command -v git &> /dev/null; then
     pkg update -y && pkg install git -y
 fi
 
+if [ ! -f "$VENDOR_MOD" ]; then
+    echo "⚙️ First time setup detected..."
+    
+    if [ -f "$INSTALLER" ]; then
+        echo " > Granting permission to installer..."
+        chmod +x "$INSTALLER"
+        
+        echo " > Running auto-configuration..."
+        "$INSTALLER"
+    else
+        echo "🚫 Error: install.sh not found!"
+    fi
+fi
+
 if [ -f "$SYSTEM_MOD" ]; then
     source "$SYSTEM_MOD"
 else
     echo -e "\033[1;31m🚫 Error: system.sh module missing!\033[0m"
+fi
+
+if [ -f "$VENDOR_MOD" ]; then
+    source "$VENDOR_MOD"
 fi
 
 if [ -f "$APP_MOD" ]; then
@@ -46,7 +66,7 @@ function _launch_android_app() {
         echo -e "\033[1;31m❌ Launch Failed: App not found. \033[0m"
         echo -e "    Target: $package_name"
         
-        read -p " 📥 Install from Google Play? (y/n): " choice
+        read -p -r " 📥 Install from Google Play? (y/n): " choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
             echo -e "\033[1;33m 🚀 Redirecting to Store... \033[0m"
@@ -69,7 +89,6 @@ function menu() {
         RESET="\033[0m"
     }
 
-    # 1. 抓取分類標題 (# === Title ===)
     /^# ===|^# ---/ {
         clean_header = $0;
         gsub(/^# |^#===|^#---|===|---|^-+|-+$|^\s+|\s+$/, "", clean_header);
@@ -78,7 +97,6 @@ function menu() {
         }
     }
     
-    # 2. 抓取函數名稱
     /^function / {
         match($0, /function ([a-zA-Z0-9_]+)/, arr);
         func_name = arr[1];
@@ -103,12 +121,12 @@ function menu() {
         }
     }
     { prev_line = $0 }
-    ' "$0" "$SYSTEM_MOD" "$APP_MOD"
+    ' "$0" "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD"
     
     echo -e "\n"
 }
 
 
-echo "✅ core.sh on setting."
-echo " > Input \"apklist\" to search installed Andioid apps."
+echo "✅ Mux-OS Loaded."
+echo " > Input \"apklist\" to search installed Android apps."
 echo " > Input \"menu\" to check all available commands."
