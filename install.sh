@@ -4,7 +4,7 @@ BASE_DIR="$HOME/mux-os"
 PLUGIN_DIR="$BASE_DIR/plugins"
 VENDOR_TARGET="$BASE_DIR/vendor.sh"
 
-echo "🔍 Detecting Device Identity..."
+echo " > Detecting Device Identity..."
 
 BRAND=$(getprop ro.product.brand | tr '[:upper:]' '[:lower:]' | xargs)
 
@@ -22,11 +22,11 @@ if [ -z "$BRAND" ]; then
 fi
 
 if [ -f "$TARGET_PLUGIN" ]; then
-    echo "✨ Found matching ecosystem: $BRAND.sh"
+    echo " > Found matching ecosystem: $BRAND.sh"
     echo " > Installing $BRAND specific apps..."
     cp "$TARGET_PLUGIN" "$VENDOR_TARGET"
 else
-    echo "⚠️  No specific plugin found for [$BRAND]."
+    echo " > No specific plugin found for [$BRAND]."
     echo " > Creating a generic empty vendor module."
     
     {
@@ -37,7 +37,7 @@ else
     } > "$VENDOR_TARGET"
 fi
 
-echo "🔐 Setting permissions for vendor module..."
+echo " > Setting permissions for vendor module..."
 chmod +x "$VENDOR_TARGET"
 
 echo "✅ Configuration Complete."
