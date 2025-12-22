@@ -1,5 +1,8 @@
 #!/bin/bash
 
+export MUX_VERSION="1.0.0"
+export MUX_ROOT="$HOME/mux-os"
+
 BASE_DIR="$HOME/mux-os"
 SYSTEM_MOD="$BASE_DIR/system.sh"
 APP_MOD="$BASE_DIR/app.sh"
@@ -7,19 +10,19 @@ VENDOR_MOD="$BASE_DIR/vendor.sh"
 INSTALLER="$BASE_DIR/install.sh"
 
 if [ ! -d "$HOME/storage" ]; then
-    echo "⚠️ Initializing Storage Permission..."
+    echo " > Initializing Storage Permission..."
     echo " > Please allow file access in the popup window."
     termux-setup-storage
     sleep 2
 fi
 
 if ! command -v git &> /dev/null; then
-    echo "⚠️ Installing Git..."
+    echo " > Installing Git..."
     pkg update -y && pkg install git -y
 fi
 
 if [ ! -f "$VENDOR_MOD" ]; then
-    echo "⚙️ First time setup detected..."
+    echo " > First time setup detected..."
     
     if [ -f "$INSTALLER" ]; then
         echo " > Granting permission to installer..."
@@ -28,14 +31,14 @@ if [ ! -f "$VENDOR_MOD" ]; then
         echo " > Running auto-configuration..."
         "$INSTALLER"
     else
-        echo "🚫 Error: install.sh not found!"
+        echo "❌ Error: install.sh not found!"
     fi
 fi
 
 if [ -f "$SYSTEM_MOD" ]; then
     source "$SYSTEM_MOD"
 else
-    echo -e "\033[1;31m🚫 Error: system.sh module missing!\033[0m"
+    echo -e "\033[1;31m❌ Error: system.sh module missing!\033[0m"
 fi
 
 if [ -f "$VENDOR_MOD" ]; then
@@ -79,7 +82,59 @@ function _launch_android_app() {
     fi
 }
 
-function menu() {
+function mux() {
+    local cmd="$1"
+    
+if [ -z "$cmd" ]; then
+        local responses=(
+            "Mux here, Commander."
+            "Systems nominal. Ready for input."
+            "Awaiting instructions."
+            "Termux uplink established."
+            "At your service."
+            "What is your command?"
+            "Mux standing by."
+        )
+        
+        local rand_index=$(( RANDOM % ${#responses[@]} ))
+        
+        echo -e "\033[1;36m🤖 ${responses[$rand_index]}\033[0m"
+        return
+    fi
+
+    case "$cmd" in
+        "menu"|"m")
+            # 呼叫原本的 menu 顯示介面
+            _show_menu_dashboard
+            ;;
+            
+        "version"|"v")
+            # 3. 顯示版本號
+            echo -e "🤖 \033[1;33mMux-OS Core\033[0m"
+            echo -e "   Version: \033[1;32mv$MUX_VERSION\033[0m"
+            ;;
+            
+        "update"|"up")
+            # 4. 更新系統 (檢查 Git)
+            _mux_update_system
+            ;;
+            
+        "help"|"h")
+            echo "Available commands:"
+            echo "  mux           : Acknowledge presence"
+            echo "  mux menu      : Show command dashboard"
+            echo "  mux version   : Show current version"
+            echo "  mux update    : Check for updates"
+            ;;
+            
+        *)
+            echo "Unknown command: $cmd"
+            echo "Try 'mux help'"
+            ;;
+    esac
+}
+
+function _show_menu_dashboard() {
     echo -e "\n\033[1;33m" [" Mux-OS Command Center "]"\033[0m"
     
     awk '
@@ -126,7 +181,36 @@ function menu() {
     echo -e "\n"
 }
 
+function menu() {
+    mux menu
+}
 
-echo "✅ Mux-OS Loaded."
+function _mux_update_system() {
+    echo "🔍 Checking for updates..."
+    cd "$BASE_DIR" || return
+
+    git fetch origin
+    
+    local LOCAL=$(git rev-parse HEAD)
+    local REMOTE=$(git rev-parse @{u})
+
+    if [ "$LOCAL" = "$REMOTE" ]; then
+        echo "✅ System is up-to-date (v$MUX_VERSION)."
+    else
+        echo "🚀 New version available!"
+        read -p -r " 📥 Update Mux-OS now? (y/n): " choice
+        if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+            echo " > Updating..."
+            git pull
+            echo "✅ Update complete. Reloading..."
+            source "$BASE_DIR/core.sh"
+        else
+            echo " > Update cancelled."
+        fi
+    fi
+}
+
+
+echo "✅ Mux-OS v$MUX_VERSION Loaded."
 echo " > Input \"apklist\" to search installed Android apps."
 echo " > Input \"menu\" to check all available commands."
