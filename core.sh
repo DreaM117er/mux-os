@@ -60,7 +60,7 @@ function _launch_android_app() {
 }
 
 function menu() {
-    echo -e "\n\033[1;33m 🔥 S24 FE Command Center 🔥 \033[0m"
+    echo -e "\n\033[1;33m" [" Mux-OS Command Center "]"\033[0m"
     
     awk '
     BEGIN {
