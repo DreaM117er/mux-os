@@ -1,8 +1,20 @@
 #!/bin/bash
 
-BASE_DIR="$HOME/android-phone-shell/shell"
+BASE_DIR="$HOME/mux-os"
 SYSTEM_MOD="$BASE_DIR/system.sh"
 APP_MOD="$BASE_DIR/app.sh"
+
+if [ ! -d "$HOME/storage" ]; then
+    echo "⚠️ Initializing Storage Permission..."
+    echo " > Please allow file access in the popup window."
+    termux-setup-storage
+    sleep 2
+fi
+
+if ! command -v git &> /dev/null; then
+    echo "⚠️ Installing Git..."
+    pkg update -y && pkg install git -y
+fi
 
 if [ -f "$SYSTEM_MOD" ]; then
     source "$SYSTEM_MOD"
@@ -97,6 +109,6 @@ function menu() {
 }
 
 
-echo "✅ termuxaction.sh on setting."
+echo "✅ core.sh on setting."
 echo " > Input \"apklist\" to search installed Andioid apps."
 echo " > Input \"menu\" to check all available commands."
