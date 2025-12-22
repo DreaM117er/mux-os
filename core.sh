@@ -225,7 +225,6 @@ function _mux_update_system() {
         fi
     fi
 }
-}
 
 
 echo "✅ Mux-OS Loaded."
