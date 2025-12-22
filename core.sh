@@ -121,6 +121,7 @@ if [ -z "$cmd" ]; then
             echo "  mux menu      : Show command dashboard"
             echo "  mux version   : Show current version"
             echo "  mux update    : Check for updates"
+            echo "  mux reload    : Reload system modules"
             ;;
 
         "reload"|"r")
