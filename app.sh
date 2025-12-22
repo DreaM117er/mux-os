@@ -2,6 +2,11 @@
 
 # === Network & Cloud ===
 
+# : Google Play Store
+function play() {
+    _launch_android_app "Play Store" "com.android.vending" "com.android.vending.AssetBrowserActivity"
+}
+
 # : Edge & Bing search
 function edge() {
     if [ -z "$1" ]; then
@@ -104,6 +109,13 @@ function mapgo() {
 }
 
 
+# === Office ===
+
+# : Microsoft 365 Copilot
+function ms365() {
+    _launch_android_app "M365 Copilot" "com.microsoft.office.officehubrow" "com.microsoft.office.officesuite.OfficeSuiteActivity"
+}
+
 # === Engineering ===
 
 # : GitHub
@@ -163,9 +175,9 @@ function dc() {
     _launch_android_app "Discord" "com.discord" "com.discord.main.MainDefault"
 }
 
-# : Microsoft 365 Copilot
-function ms365() {
-    _launch_android_app "M365 Copilot" "com.microsoft.office.officehubrow" "com.microsoft.office.officesuite.OfficeSuiteActivity"
+# : Reddit
+function reddit() {
+    _launch_android_app "Reddit" "com.reddit.frontpage" "launcher.default"
 }
 
 
@@ -180,12 +192,6 @@ function bhani() {
 function mihon() {
     _launch_android_app "Mihon" "app.mihon" "eu.kanade.tachiyomi.ui.main.MainActivity"
 }
-
-# : Samsung Gaming Hub
-function gamehub() {
-    _launch_android_app "Gaming Hub" "com.samsung.android.game.gamehome" "com.samsung.android.game.gamehome.app.MainActivity"
-}
-
 
 # === Lifestyle ===
 

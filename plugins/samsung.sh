@@ -1,5 +1,22 @@
 # samsung.sh - 三星全家桶
 
+# === Samsung Utilities ===
+
+# : My Files (我的檔案)
+function files() {
+    _launch_android_app "My Files" "com.sec.android.app.myfiles" "com.sec.android.app.myfiles.ui.MainActivity"
+}
+
+# : Samsung Clock (時鐘)
+function clock() {
+    _launch_android_app "Clock" "com.sec.android.app.clockpackage" "com.sec.android.app.clockpackage.ClockPackage"
+}
+
+# : Samsung Calendar (行事曆)
+function calendar() {
+    _launch_android_app "Calendar" "com.samsung.android.calendar" "com.samsung.android.app.calendar.activity.MainActivity"
+}
+
 # === Samsung Life ===
 
 # : Samsung Health
@@ -17,11 +34,6 @@ function members() {
     _launch_android_app "Members" "com.samsung.android.voc" "com.samsung.android.voc.LauncherActivity"
 }
 
-# : Samsung Kids
-function kids() {
-    _launch_android_app "Samsung Kids" "com.sec.android.app.kidshome" ""
-}
-
 # === Samsung Media ===
 
 # : Samsung Music
@@ -32,6 +44,11 @@ function music() {
 # : Samsung News
 function news() {
     _launch_android_app "Samsung News" "com.samsung.android.app.spage" "com.samsung.android.app.spage.main.LauncherActivity"
+}
+
+# : Samsung Gaming Hub
+function gamehub() {
+    _launch_android_app "Gaming Hub" "com.samsung.android.game.gamehome" "com.samsung.android.game.gamehome.app.MainActivity"
 }
 
 # === Devices & IoT ===
