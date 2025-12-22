@@ -69,13 +69,13 @@ function _launch_android_app() {
         echo -e "\033[1;31m❌ Launch Failed: App not found. \033[0m"
         echo -e "    Target: $package_name"
         
-        read -p -r " 📥 Install from Google Play? (y/n): " choice
+        read -p "📥 Install from Google Play? (y/n): " choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
             echo -e "\033[1;33m 🚀 Redirecting to Store... \033[0m"
             am start -a android.intent.action.VIEW -d "market://details?id=$package_name" >/dev/null 2>&1
         else
-            echo -e "🚫 Canceled."
+            echo -e "❌ Canceled."
             return 1
         fi
         return 1
@@ -125,18 +125,7 @@ if [ -z "$cmd" ]; then
             ;;
 
         "reload"|"r")
-            echo -e "\033[1;33m🔄 System Hot-Swap Initiated...\033[0m"
-            
-            if [ -f "$INSTALLER" ]; then
-                echo " > Re-calibrating vendor ecosystem..."
-                chmod +x "$INSTALLER"
-                "$INSTALLER"
-            else
-                echo "⚠️ Installer module not found. Skipping vendor config."
-            fi
-            
-            echo " > Reloading Kernel..."
-            source "$BASE_DIR/core.sh"
+            _mux_reload_kernel
             ;;
         *)
             echo "Unknown command: $cmd"
@@ -196,6 +185,22 @@ function menu() {
     mux menu
 }
 
+function _mux_reload_kernel() {
+    echo -e "\033[1;33m > System Reload Initiated...\033[0m"
+    
+    if [ -f "$INSTALLER" ]; then
+        echo " > Re-calibrating vendor ecosystem..."
+        chmod +x "$INSTALLER"
+        "$INSTALLER"
+    else
+        echo "❌ Installer module not found. Skipping vendor config."
+    fi
+    
+    echo " > Reloading Kernel..."
+    source "$BASE_DIR/core.sh"
+}
+
+function _mux_update_system() {
 function _mux_update_system() {
     echo " > Checking for updates..."
     cd "$BASE_DIR" || return
@@ -209,22 +214,18 @@ function _mux_update_system() {
         echo "✅ System is up-to-date (v$MUX_VERSION)."
     else
         echo " > New version available!"
-        
         read -p "📥 Update Mux-OS now? (y/n): " choice
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
             echo " > Updating..."
-            git reset --hard @{u}
-            chmod +x "$BASE_DIR"/*.sh
-            if [ -d "$BASE_DIR/plugins" ]; then
-                chmod +x "$BASE_DIR/plugins"/*.sh
-            fi
-            echo "✅ Update complete. Reloading..."
-            source "$BASE_DIR/core.sh"
-            mux version
+            git pull
+            
+            echo "✅ Update complete."
+            _mux_reload_kernel
         else
             echo " > Update cancelled."
         fi
     fi
+}
 }
 
 
