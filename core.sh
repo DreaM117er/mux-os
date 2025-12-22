@@ -201,7 +201,6 @@ function _mux_reload_kernel() {
 }
 
 function _mux_update_system() {
-function _mux_update_system() {
     echo " > Checking for updates..."
     cd "$BASE_DIR" || return
 
