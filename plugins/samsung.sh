@@ -2,17 +2,17 @@
 
 # === Samsung Utilities ===
 
-# : My Files (我的檔案)
+# : My Files
 function files() {
     _launch_android_app "My Files" "com.sec.android.app.myfiles" "com.sec.android.app.myfiles.ui.MainActivity"
 }
 
-# : Samsung Clock (時鐘)
+# : Samsung Clock
 function clock() {
     _launch_android_app "Clock" "com.sec.android.app.clockpackage" "com.sec.android.app.clockpackage.ClockPackage"
 }
 
-# : Samsung Calendar (行事曆)
+# : Samsung Calendar
 function calendar() {
     _launch_android_app "Calendar" "com.samsung.android.calendar" "com.samsung.android.app.calendar.activity.MainActivity"
 }
