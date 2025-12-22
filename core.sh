@@ -186,7 +186,7 @@ function menu() {
 }
 
 function _mux_update_system() {
-    echo "🔍 Checking for updates..."
+    echo " > Checking for updates..."
     cd "$BASE_DIR" || return
 
     git fetch origin
@@ -197,7 +197,7 @@ function _mux_update_system() {
     if [ "$LOCAL" = "$REMOTE" ]; then
         echo "✅ System is up-to-date (v$MUX_VERSION)."
     else
-        echo "🚀 New version available!"
+        echo " > New version available!"
         read -p -r " 📥 Update Mux-OS now? (y/n): " choice
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
             echo " > Updating..."
