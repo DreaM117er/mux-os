@@ -198,12 +198,18 @@ function _mux_update_system() {
         echo "✅ System is up-to-date (v$MUX_VERSION)."
     else
         echo " > New version available!"
+        
         read -p " 📥 Update Mux-OS now? (y/n): " choice
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
             echo " > Updating..."
-            git pull
+            git reset --hard @{u}
+            chmod +x "$BASE_DIR"/*.sh
+            if [ -d "$BASE_DIR/plugins" ]; then
+                chmod +x "$BASE_DIR/plugins"/*.sh
+            fi
             echo "✅ Update complete. Reloading..."
             source "$BASE_DIR/core.sh"
+            mux version
         else
             echo " > Update cancelled."
         fi
