@@ -230,3 +230,4 @@ function _mux_update_system() {
 echo "✅ Mux-OS Loaded."
 echo " > Input \"apklist\" to search installed Android apps."
 echo " > Input \"menu\" to check all available commands."
+mux version
