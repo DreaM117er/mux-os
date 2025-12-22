@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export MUX_VERSION="1.0.0"
+export MUX_VERSION="1.0.1"
 export MUX_ROOT="$HOME/mux-os"
 
 BASE_DIR="$HOME/mux-os"
@@ -104,18 +104,15 @@ if [ -z "$cmd" ]; then
 
     case "$cmd" in
         "menu"|"m")
-            # 呼叫原本的 menu 顯示介面
             _show_menu_dashboard
             ;;
             
         "version"|"v")
-            # 3. 顯示版本號
             echo -e "🤖 \033[1;33mMux-OS Core\033[0m"
             echo -e "   Version: \033[1;32mv$MUX_VERSION\033[0m"
             ;;
             
         "update"|"up")
-            # 4. 更新系統 (檢查 Git)
             _mux_update_system
             ;;
             
@@ -199,7 +196,7 @@ function _mux_update_system() {
     else
         echo " > New version available!"
         
-        read -p " 📥 Update Mux-OS now? (y/n): " choice
+        read -p "📥 Update Mux-OS now? (y/n): " choice
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
             echo " > Updating..."
             git reset --hard @{u}
