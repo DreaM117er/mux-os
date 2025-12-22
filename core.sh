@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export MUX_VERSION="1.0.1"
+export MUX_VERSION="1.0.2"
 export MUX_ROOT="$HOME/mux-os"
 
 BASE_DIR="$HOME/mux-os"
@@ -108,8 +108,7 @@ if [ -z "$cmd" ]; then
             ;;
             
         "version"|"v")
-            echo -e "🤖 \033[1;33mMux-OS Core\033[0m"
-            echo -e "   Version: \033[1;32mv$MUX_VERSION\033[0m"
+            echo -e "🤖 \033[1;33mMux-OS Core v$MUX_VERSION\033[0m"
             ;;
             
         "update"|"up")
@@ -123,7 +122,21 @@ if [ -z "$cmd" ]; then
             echo "  mux version   : Show current version"
             echo "  mux update    : Check for updates"
             ;;
+
+        "reload"|"r")
+            echo -e "\033[1;33m🔄 System Hot-Swap Initiated...\033[0m"
             
+            if [ -f "$INSTALLER" ]; then
+                echo " > Re-calibrating vendor ecosystem..."
+                chmod +x "$INSTALLER"
+                "$INSTALLER"
+            else
+                echo "⚠️ Installer module not found. Skipping vendor config."
+            fi
+            
+            echo " > Reloading Kernel..."
+            source "$BASE_DIR/core.sh"
+            ;;
         *)
             echo "Unknown command: $cmd"
             echo "Try 'mux help'"

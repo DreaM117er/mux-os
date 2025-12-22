@@ -182,7 +182,7 @@ function mihon() {
 }
 
 # : Samsung Gaming Hub
-function game() {
+function gamehub() {
     _launch_android_app "Gaming Hub" "com.samsung.android.game.gamehome" "com.samsung.android.game.gamehome.app.MainActivity"
 }
 
