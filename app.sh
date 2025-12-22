@@ -146,6 +146,9 @@ function phone() {
     _launch_android_app "Phone" "com.google.android.dialer" "com.google.android.dialer.extensions.GoogleDialtactsActivity"
 }
 
+
+# === Productivity ===
+
 # : Line
 function line() {
     _launch_android_app "Line" "jp.naver.line.android" "jp.naver.line.android.activity.SplashActivity"
@@ -181,7 +184,7 @@ function reddit() {
 }
 
 
-# === Entertainment ===
+# === Entertainment (Taiwan) ===
 
 # : 動畫瘋 (Bahamut Anime)
 function bhani() {
@@ -193,7 +196,8 @@ function mihon() {
     _launch_android_app "Mihon" "app.mihon" "eu.kanade.tachiyomi.ui.main.MainActivity"
 }
 
-# === Lifestyle ===
+
+# === Local / Lifestyle (Taiwan) ===
 
 # : Cashew (Budget Tracker)
 function cashew() {
@@ -207,7 +211,6 @@ function op() {
 
 # : Shopee
 function shopee() {
-    # 注意: 截圖顯示 Activity 結尾有底線 HomeActivity_
     _launch_android_app "Shopee" "com.shopee.tw" "com.shopee.app.ui.home.HomeActivity_"
 }
 
@@ -216,7 +219,7 @@ function taobao() {
     _launch_android_app "Taobao" "com.taobao.taobao" "com.taobao.tao.welcome.Welcome"
 }
 
-# : Invoice
+# : Invoice (Taiwan)
 function invoice() {
     _launch_android_app "Invoice" "tw.com.quickscanner.invoice" "tw.com.quickscanner.invoice.ui.launchscreen.LaunchScreenActivity"
 }

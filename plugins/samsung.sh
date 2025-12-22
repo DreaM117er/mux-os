@@ -17,6 +17,7 @@ function calendar() {
     _launch_android_app "Calendar" "com.samsung.android.calendar" "com.samsung.android.app.calendar.activity.MainActivity"
 }
 
+
 # === Samsung Life ===
 
 # : Samsung Health
@@ -33,6 +34,7 @@ function wallet() {
 function members() {
     _launch_android_app "Members" "com.samsung.android.voc" "com.samsung.android.voc.LauncherActivity"
 }
+
 
 # === Samsung Media ===
 
@@ -51,6 +53,7 @@ function gamehub() {
     _launch_android_app "Gaming Hub" "com.samsung.android.game.gamehome" "com.samsung.android.game.gamehome.app.MainActivity"
 }
 
+
 # === Devices & IoT ===
 
 # : SmartThings
@@ -67,6 +70,7 @@ function wear() {
 function tutor() {
     _launch_android_app "Smart Tutor" "com.rsupport.rs.activity.rsupport.aas2" "com.rsupport.rs.activity.edit.IntroActivity"
 }
+
 
 # === Productivity ===
 
