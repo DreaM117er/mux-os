@@ -44,13 +44,13 @@ Mux-OS 的誕生，源於我與 AI (Gemini) 的一場關於 Termux 的辯論。�
 
 **系統啟動與狀態檢查**
 *(Mux-OS 啟動時的綠色檢查清單，與版本號顯示)*
-<p align="center">
+<p align="left">
   <img src="pic/startup.png" alt="Mux-OS Startup" width="400" />
 </p>
 
 **自我修復機制 (Self-Healing in Action)**
 *(展示 Update 衝突後，系統建議 Reset 並成功修復的過程)*
-<p align="center">
+<p align="left">
   <img src="pic/reset.png" alt="Mux-OS Self-Healing" width="400" />
 </p>
 
@@ -77,3 +77,41 @@ cd mux-os
 source ~/mux-os/core.sh
 ```
 *(第一次執行core會將需要的功能做引導式的安裝，請照著指示操作即可。)*
+
+## 使用指南 (Usage)
+
+### Mux-OS 的核心指令是 mux。
+
+- `mux menu`: 叫出圖形化指令儀表板 (Dashboard)。
+- `mux update`: 檢查並更新系統。
+- `mux reset`: [危險] 強制重置系統至原廠設定（修復所有錯誤）。
+
+### 常用快捷鍵 (Examples)
+
+- `wb` : 開啟瀏覽器 (Neural Link)。
+- `wb <內容> `: 預設 瀏覽器啓動 + 搜尋。
+- `wifi` : 開啟 Wi-Fi 設定。
+- `apklist` : 列出手機內所有 App 的 Package Name。
+
+### 自定義（Customization）
+
+- `app.sh`: 在這裡新增你自己的 App 快捷鍵。
+- `plugins/<手機廠牌>.sh`: 跟隨手機廠牌邏輯。
+- `system.sh`: 系統底層邏輯（不建議隨意更動）。
+
+*Mux-OS 的強大在於它的可塑性，可以按照下列的模板直接修改再貼入 app.sh 裡面。*
+
+```bash
+# === 綠色功能大標題 ===
+
+# : APP功能註解
+function custom_command() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "custom_app_name" "可藉由apklist指令獲得（Name）" "可藉由apklist指令獲得（Activity）"
+}
+```
+
+## 致謝 (Credits)
+- Core Logic: DreamM117er。
+- Co-Pilot / Architect: Google Gemini
+- Platform: Termux Team
