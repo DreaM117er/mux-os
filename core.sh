@@ -542,10 +542,11 @@ clear
 _draw_logo
 _system_check
 _show_hud
-echo "\n"
-echo "\n"
+echo ""
+echo ""
 sleep 2.0
 echo "---"
 echo " > Input \"apklist\" to search installed Android apps."
 echo " > Input \"menu\" to check all available commands."
 echo "---"
+_bot_say "hello"
