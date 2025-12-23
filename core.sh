@@ -348,7 +348,6 @@ function _mux_reload_kernel() {
     else
         echo "❌ Installer module not found. Skipping vendor config."
     fi
-    echo " > Reloading Kernel..."
     source "$BASE_DIR/core.sh"
 }
 
