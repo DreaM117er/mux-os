@@ -543,7 +543,7 @@ _draw_logo
 _system_check
 _show_hud
 echo "\n"
-echo "\n
+echo "\n"
 sleep 2.0
 echo "---"
 echo " > Input \"apklist\" to search installed Android apps."
