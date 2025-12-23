@@ -476,7 +476,6 @@ function _mux_reload_kernel() {
 }
 
 function _mux_force_reset() {
-    clear
     _bot_say "system" "Protocol Override: Force Sync"
     echo -e "\033[1;31m⚠️  WARNING: All local changes will be obliterated.\033[0m"
     
