@@ -59,4 +59,3 @@ else
 fi
 
 echo "✅ Installation Complete."
-echo " > Please restart Termux to initialize the neural link."
