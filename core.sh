@@ -356,7 +356,7 @@ function _mux_force_reset() {
     _bot_say "system" "Protocol Override: Force Sync"
     echo -e "\033[1;31m⚠️  WARNING: All local changes will be obliterated.\033[0m"
     
-    echo -ne "\033[1;33m⚡ Confirm system restore? (y/n): \033[0m"
+    echo -ne "\033[1;33m🛠️ Confirm system restore? (y/n): \033[0m"
     read choice
     
     if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
