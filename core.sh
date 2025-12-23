@@ -273,9 +273,13 @@ function mux() {
             echo "  mux version   : Show current version"
             echo "  mux update    : Check for updates"
             echo "  mux reload    : Reload system modules"
+            echo "  mux reset     : Force sync (Discard changes)"
             ;;
         "reload"|"r")
             _mux_reload_kernel
+            ;;
+        "reset")
+            _mux_force_reset
             ;;
         *)
             echo "Unknown command: $cmd"
@@ -348,33 +352,63 @@ function _mux_reload_kernel() {
     source "$BASE_DIR/core.sh"
 }
 
+function _mux_force_reset() {
+    _bot_say "system" "Protocol Override: Force Sync"
+    echo -e "\033[1;31m⚠️  WARNING: All local changes will be obliterated.\033[0m"
+    
+    echo -ne "\033[1;33m⚡ Confirm system restore? (y/n): \033[0m"
+    read choice
+    
+    if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+        cd "$BASE_DIR" || return
+        
+        echo " > Fetching latest protocols..."
+        git fetch --all
+        
+        local branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
+        
+        echo " > Resetting timeline to [origin/$branch]..."
+        git reset --hard "origin/$branch"
+        
+        _bot_say "success" "Timeline synchronized. System clean."
+        _mux_reload_kernel
+    else
+        echo " > Reset canceled."
+    fi
+}
+
 function _mux_update_system() {
-    echo " > Checking for updates..."
+echo " > Checking for updates..."
     cd "$BASE_DIR" || return
 
     git fetch origin
     
     local LOCAL=$(git rev-parse HEAD)
-    local REMOTE=$(git rev-parse @{u})
+    local REMOTE=$(git rev-parse @{u} 2>/dev/null)
 
     if [ -z "$REMOTE" ]; then
-    echo " > Remote branch info unavailable. Skipping version check."
-    return
+         echo "⚠️ Remote branch not found. Skipping check."
+         return
     fi
 
     if [ "$LOCAL" = "$REMOTE" ]; then
         echo "✅ System is up-to-date (v$MUX_VERSION)."
     else
         echo " > New version available!"
-        echo -ne "\033[1;36m📥 Install from Google Play? (y/n): \033[0m"
+        echo -ne "\033[1;36m📥 Update Mux-OS now? (y/n): \033[0m"
         read choice
-
+        
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
             echo " > Updating..."
-            git pull
             
-            _bot_say "success" "Update complete. Reloading kernel..."
-            _mux_reload_kernel
+            if git pull; then
+                _bot_say "success" "Update complete. Reloading kernel..."
+                _mux_reload_kernel
+            else
+                _bot_say "error" "Update conflict detected."
+                echo -e "\033[1;31m > Critical Error: Local timeline divergent.\033[0m"
+                echo -e "\033[1;33m > Suggestion: Run 'mux reset' to force synchronization.\033[0m"
+            fi
         else
             echo " > Update cancelled."
         fi
