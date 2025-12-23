@@ -1,5 +1,15 @@
 # system.sh - 系統基礎建設
 
+function _sys_cmd() {
+    local name="$1"
+    local intent="$2"
+    
+    _require_no_args "${@:3}" || return 1
+    _bot_say "system" "Configuring: $name"
+
+    am start -a "$intent" >/dev/null 2>&1
+}
+
 # === System Tools ===
 
 # : Termux Terminal
@@ -13,14 +23,18 @@ function apklist() {
     _launch_android_app "Package Names" "com.csdroid.pkg" "com.csdroid.pkg.MainActivity"
 }
 
-# : Default Web Browser & Search
+# : Default Web Browser (Neural Link)
 function wb() {
     if [ -z "$1" ]; then
-        echo " > Launching Default Browser..."
+        echo -e "\033[1;36m > 🔌 Establishing Neural Link with Android Host...\033[0m"
+        echo -e "\033[1;30m   > Protocol: [VISUAL_INTERFACE_INIT]\033[0m"
+        
         am start -a android.intent.action.VIEW -d "about:blank" >/dev/null 2>&1
     else
         local query="$*"
-        echo " > Web Search: $*"
+        echo -e "\033[1;33m > 📡 Injecting query into the Datasphere: \"$*\"\033[0m"
+        echo -e "\033[1;30m   > Handing off logic to System Core...\033[0m"
+        
         am start -a android.intent.action.WEB_SEARCH -e query "$query" >/dev/null 2>&1
     fi
 }
@@ -31,122 +45,105 @@ function console() {
     _launch_android_app "Ghost App" "com.ghost.not.exist" ""
 }
 
+
 # === System Settings ===
 
 # : Wi-Fi Settings
 function wifi() {
-    _require_no_args "$@" || return 1
-    am start -a android.settings.WIFI_SETTINGS >/dev/null 2>&1
+    _sys_cmd "Wireless Module" "android.settings.WIFI_SETTINGS" "$@"
 }
 
 # : Bluetooth Settings
 function ble() {
-    _require_no_args "$@" || return 1
-    am start -a android.settings.BLUETOOTH_SETTINGS >/dev/null 2>&1
+    _sys_cmd "Bluetooth Radio" "android.settings.BLUETOOTH_SETTINGS" "$@"
 }
 
-# : GPS
+# : GPS Location
 function gps() {
-    _require_no_args "$@" || return 1
-    am start -a android.settings.LOCATION_SOURCE_SETTINGS >/dev/null 2>&1
+    _sys_cmd "Geo-Positioning" "android.settings.LOCATION_SOURCE_SETTINGS" "$@"
 }
 
 # : Sound & Vibration
 function sound() {
-    _require_no_args "$@" || return 1
-    am start -a android.settings.SOUND_SETTINGS >/dev/null 2>&1
+    _sys_cmd "Audio Output" "android.settings.SOUND_SETTINGS" "$@"
 }
 
 # : Display Settings
 function display() {
-    _require_no_args "$@" || return 1
-    am start -a android.settings.DISPLAY_SETTINGS >/dev/null 2>&1
+    _sys_cmd "Visual Interface" "android.settings.DISPLAY_SETTINGS" "$@"
 }
 
 # : Battery Info
 function battery() {
-    _require_no_args "$@" || return 1
-    am start -a android.settings.BATTERY_SAVER_SETTINGS >/dev/null 2>&1
+    _sys_cmd "Power Core" "android.settings.BATTERY_SAVER_SETTINGS" "$@"
 }
 
 # : App Management
 function apkinfo() {
-    _require_no_args "$@" || return 1
-    am start -a android.settings.MANAGE_APPLICATIONS_SETTINGS >/dev/null 2>&1
+    _sys_cmd "Package Manager" "android.settings.MANAGE_APPLICATIONS_SETTINGS" "$@"
 }
 
 # : Hotspot & Tethering
 function hspot() {
-    _require_no_args "$@" || return 1
-    am start -a android.settings.TETHER_SETTINGS >/dev/null 2>&1
+    _sys_cmd "Tethering Uplink" "android.settings.TETHER_SETTINGS" "$@"
 }
 
-# : NFC
+# : NFC Settings
 function nfc() {
-    _require_no_args "$@" || return 1
-    am start -a android.settings.NFC_SETTINGS >/dev/null 2>&1
+    _sys_cmd "Near Field Protocol" "android.settings.NFC_SETTINGS" "$@"
 }
 
-# : VPN 
+# : VPN Settings
 function vpn() {
-    _require_no_args "$@" || return 1
-    am start -a android.settings.VPN_SETTINGS >/dev/null 2>&1
+    _sys_cmd "Secure Tunnel" "android.settings.VPN_SETTINGS" "$@"
 }
 
 # : Airplane Mode
 function apmode() {
-    _require_no_args "$@" || return 1
-    am start -a android.settings.AIRPLANE_MODE_SETTINGS >/dev/null 2>&1
+    _sys_cmd "Radio Silence" "android.settings.AIRPLANE_MODE_SETTINGS" "$@"
 }
 
-# : Mobile Data / Roaming
+# : Mobile Data
 function mdata() {
-    _require_no_args "$@" || return 1
-    am start -a android.settings.DATA_ROAMING_SETTINGS >/dev/null 2>&1
+    _sys_cmd "Cellular Link" "android.settings.DATA_ROAMING_SETTINGS" "$@"
 }
 
+# : Roaming Settings
 function roam() {
-    _require_no_args "$@" || return 1
-    am start -a android.settings.DATA_ROAMING_SETTINGS >/dev/null 2>&1
+    _sys_cmd "Roaming Protocols" "android.settings.DATA_ROAMING_SETTINGS" "$@"
 }
 
-# : Storage
+# : Internal Storage
 function storage() {
-    _require_no_args "$@" || return 1
-    am start -a android.settings.INTERNAL_STORAGE_SETTINGS >/dev/null 2>&1
+    _sys_cmd "Memory Banks" "android.settings.INTERNAL_STORAGE_SETTINGS" "$@"
 }
 
 # : Date & Time
 function settime() {
-    _require_no_args "$@" || return 1
-    am start -a android.settings.DATE_SETTINGS >/dev/null 2>&1
+    _sys_cmd "Chronometer" "android.settings.DATE_SETTINGS" "$@"
 }
 
 # : Input Method Editor
 function ime() {
-    _require_no_args "$@" || return 1
-    am start -a android.settings.INPUT_METHOD_SETTINGS >/dev/null 2>&1
+    _sys_cmd "Input Matrix" "android.settings.INPUT_METHOD_SETTINGS" "$@"
 }
 
+# : Keyboard Settings
 function keyboard() {
-    _require_no_args "$@" || return 1
-    am start -a android.settings.INPUT_METHOD_SETTINGS >/dev/null 2>&1
+    _sys_cmd "Input Matrix" "android.settings.INPUT_METHOD_SETTINGS" "$@"
 }
 
 # : Accessibility
 function access() {
-    _require_no_args "$@" || return 1
-    am start -a android.settings.ACCESSIBILITY_SETTINGS >/dev/null 2>&1
+    _sys_cmd "Accessibility Layer" "android.settings.ACCESSIBILITY_SETTINGS" "$@"
 }
 
 # : Sync Settings
 function account() {
-    _require_no_args "$@" || return 1
-    am start -a android.settings.SYNC_SETTINGS >/dev/null 2>&1
+    _sys_cmd "Identity Sync" "android.settings.SYNC_SETTINGS" "$@"
 }
 
 # : Developer Options
 function dev() {
-    _require_no_args "$@" || return 1
-    am start -a android.settings.APPLICATION_DEVELOPMENT_SETTINGS >/dev/null 2>&1
+    _sys_cmd "Developer Override" "android.settings.APPLICATION_DEVELOPMENT_SETTINGS" "$@"
 }

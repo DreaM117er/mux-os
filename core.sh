@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export MUX_VERSION="1.2.3"
+export MUX_VERSION="1.3.5"
 export MUX_ROOT="$HOME/mux-os"
 
 BASE_DIR="$HOME/mux-os"
@@ -50,45 +50,6 @@ if [ -f "$APP_MOD" ]; then
 else
     echo "# === My Apps ===" > "$APP_MOD"
 fi
-
-function _launch_android_app() {
-    local app_name="$1"
-    local package_name="$2"
-    local activity_name="$3"
-
-    echo " > Launching: $app_name ..."
-    
-    local output
-    if [ -n "$activity_name" ]; then
-        output=$(am start --user 0 -n "$package_name/$activity_name" 2>&1)
-    else
-        output=$(am start --user 0 -p "$package_name" 2>&1)
-    fi
-
-    if [[ "$output" == *"Error"* ]] || [[ "$output" == *"does not exist"* ]]; then
-        _bot_say "error" "Launch Failed: Target package not found."
-        echo -e "    Target: $package_name"
-        
-        read -p "📥 Install from Google Play? (y/n): " choice
-        
-        if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
-            _bot_say "loading" "Redirecting to Store..."
-            am start -a android.intent.action.VIEW -d "market://details?id=$package_name" >/dev/null 2>&1
-        else
-            echo -e "❌ Canceled."
-            return 1
-        fi
-        return 1
-    fi
-}
-
-function _require_no_args() {
-    if [ -n "$1" ]; then
-        _bot_say "no_args" "Unexpected input: $*"
-        return 1
-    fi
-    return 0
-}
 
 function _bot_say() {
     local mood="$1"
@@ -171,6 +132,33 @@ function _bot_say() {
                 " Compiling reality..."
             )
             ;;
+        "launch")
+            icon="🚀"
+            color=$C_CYAN
+            phrases=(
+                "Spinning up module..."
+                "Injecting payload..."
+                "Materializing interface..."
+                "Accessing neural partition..."
+                "Construct loading..."
+                "Summoning application..."
+                "Executing launch sequence..."
+            )
+            ;;
+
+        "system")
+            icon="⚡"
+            color=$C_YELLOW
+            phrases=(
+                "Interfacing with Host Core..."
+                "Modulating system parameters..." 
+                "Establishing neural link..."
+                "Overriding droid protocols..."
+                "Syncing with hardware layer..."
+                "Requesting host compliance..."
+                "Accessing control matrix..."
+            )
+            ;;
     esac
 
     local rand_index=$(( RANDOM % ${#phrases[@]} ))
@@ -182,6 +170,46 @@ function _bot_say() {
         echo -e "   ${C_GRAY}> ${detail}${C_RESET}"
     fi
 }
+
+function _launch_android_app() {
+    local app_name="$1"
+    local package_name="$2"
+    local activity_name="$3"
+
+    _bot_say "launch" "Target: [$app_name]"
+    local output
+
+    if [ -n "$activity_name" ]; then
+        output=$(am start --user 0 -n "$package_name/$activity_name" 2>&1)
+    else
+        output=$(am start --user 0 -p "$package_name" 2>&1)
+    fi
+
+    if [[ "$output" == *"Error"* ]] || [[ "$output" == *"does not exist"* ]]; then
+        _bot_say "error" "Launch Failed: Target package not found."
+        echo -e "    Target: $package_name"
+        
+        read -p "📥 Install from Google Play? (y/n): " choice
+        
+        if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+            _bot_say "loading" "Redirecting to Store..."
+            am start -a android.intent.action.VIEW -d "market://details?id=$package_name" >/dev/null 2>&1
+        else
+            echo -e "❌ Canceled."
+            return 1
+        fi
+        return 1
+    fi
+}
+
+function _require_no_args() {
+    if [ -n "$1" ]; then
+        _bot_say "no_args" "Unexpected input: $*"
+        return 1
+    fi
+    return 0
+}
+
 
 function mux() {
     local cmd="$1"
