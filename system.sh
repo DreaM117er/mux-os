@@ -13,6 +13,18 @@ function apklist() {
     _launch_android_app "Package Names" "com.csdroid.pkg" "com.csdroid.pkg.MainActivity"
 }
 
+# : Default Web Browser & Search
+function wb() {
+    if [ -z "$1" ]; then
+        echo " > Launching Default Browser..."
+        am start -a android.intent.action.VIEW -d "about:blank" >/dev/null 2>&1
+    else
+        local query="$*"
+        echo " > Web Search: $*"
+        am start -a android.intent.action.WEB_SEARCH -e query "$query" >/dev/null 2>&1
+    fi
+}
+
 # : Console test (Debug)
 function console() {
     _require_no_args "$@" || return 1
