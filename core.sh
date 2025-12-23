@@ -256,9 +256,10 @@ function mux() {
         return
     fi
 
-    case "$cmd" in
+case "$cmd" in
         "menu"|"m")
-            _show_menu_dashboard
+            _mux_fuzzy_menu
+            ;;
             ;;
         "version"|"v")
             echo -e "🤖 \033[1;33mMux-OS Core v$MUX_VERSION\033[0m"
@@ -288,51 +289,56 @@ function mux() {
     esac
 }
 
-function _show_menu_dashboard() {
-    echo -e "\n\033[1;33m" [" Mux-OS Command Center "]"\033[0m"
-    
-    awk '
-    BEGIN {
-        COLOR_CAT="\033[1;32m"
-        COLOR_FUNC="\033[1;36m"
-        RESET="\033[0m"
-    }
+function _mux_fuzzy_menu() {
+    if ! command -v fzf &> /dev/null; then
+        _show_menu_dashboard
+        echo -e "\n\033[1;30m(💡 Pro Tip: Install 'fzf' package to enable Neural Search)\033[0m"
+        return
+    fi
 
-    /^# ===|^# ---/ {
-        clean_header = $0;
-        gsub(/^# |^#===|^#---|===|---|^-+|-+$|^\s+|\s+$/, "", clean_header);
-        if (length(clean_header) > 0 && clean_header !~ /^[=-]+$/) {
-             print "\n" COLOR_CAT " [" clean_header "]" RESET
+    local selected=$(
+        awk '
+        BEGIN {
+            C_CMD="\033[1;36m"
+            C_DESC="\033[1;30m"
+            C_RESET="\033[0m"
         }
-    }
-    
-    /^function / {
-        match($0, /function ([a-zA-Z0-9_]+)/, arr);
-        func_name = arr[1];
         
-        if (substr(func_name, 1, 1) != "_") {
-            desc = "";
-            if (prev_line ~ /^# :/) {
-                desc = prev_line;
-                gsub(/^# : /, "", desc);
-            } else if (prev_line ~ /^# [0-9]+\./) {
-                desc = prev_line;
-                gsub(/^# [0-9]+\. /, "", desc);
-            }
-
-            if (length(desc) > 38) {
-                desc = substr(desc, 1, 35) "..";
-            }
-
-            if (desc != "") {
-                printf "  " COLOR_FUNC "%-12s" RESET " %s\n", func_name, desc;
+        /^function / {
+            match($0, /function ([a-zA-Z0-9_]+)/, arr);
+            func_name = arr[1];
+            
+            if (substr(func_name, 1, 1) != "_" && func_name != "mux") {
+                desc = "";
+                if (prev_line ~ /^# :/) {
+                    desc = prev_line;
+                    gsub(/^# : /, "", desc);
+                }
+                
+                if (desc != "") {
+                    printf C_CMD "%-12s" C_DESC " %s" C_RESET "\n", func_name, desc;
+                }
             }
         }
-    }
-    { prev_line = $0 }
-    ' "$0" "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD"
-    
-    echo -e "\n"
+        { prev_line = $0 }
+        ' "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD" | \
+        fzf --ansi --height=45% --layout=reverse --border \
+            --prompt="🔍 Neural Link > " \
+            --pointer="▶" \
+            --marker="✓" \
+            --header="[Select Protocol to Execute]" \
+            --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red
+    )
+
+    if [ -n "$selected" ]; then
+        local cmd_to_run=$(echo "$selected" | awk '{print $1}')
+        
+        history -s "$cmd_to_run"
+        _bot_say "neural" "Executing: $cmd_to_run"
+        eval "$cmd_to_run"
+    else
+        :
+    fi
 }
 
 function menu() {
