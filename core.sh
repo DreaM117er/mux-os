@@ -463,6 +463,7 @@ function menu() {
 }
 
 function _mux_reload_kernel() {
+    clear
     echo -e "\033[1;33m > System Reload Initiated...\033[0m"
     if [ -f "$INSTALLER" ]; then
         echo " > Re-calibrating vendor ecosystem..."
@@ -475,6 +476,7 @@ function _mux_reload_kernel() {
 }
 
 function _mux_force_reset() {
+    clear
     _bot_say "system" "Protocol Override: Force Sync"
     echo -e "\033[1;31m⚠️  WARNING: All local changes will be obliterated.\033[0m"
     
@@ -500,7 +502,8 @@ function _mux_force_reset() {
 }
 
 function _mux_update_system() {
-echo " > Checking for updates..."
+    clear
+    echo " > Checking for updates..."
     cd "$BASE_DIR" || return
 
     git fetch origin
