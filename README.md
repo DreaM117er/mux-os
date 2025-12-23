@@ -45,13 +45,13 @@ Mux-OS 的誕生，源於我與 AI (Gemini) 的一場關於 Termux 的辯論。�
 **系統啟動與狀態檢查**
 *(Mux-OS 啟動時的綠色檢查清單，與版本號顯示)*
 <p align="center">
-  <img src="https://i.imgur.com/L53b9a2.jpeg" alt="Mux-OS Startup" width="400" />
+  <img src="pic/startup.png" alt="Mux-OS Startup" width="400" />
 </p>
 
 **自我修復機制 (Self-Healing in Action)**
 *(展示 Update 衝突後，系統建議 Reset 並成功修復的過程)*
 <p align="center">
-  <img src="https://i.imgur.com/tYy3eXQ.jpg" alt="Mux-OS Self-Healing" width="400" />
+  <img src="pic/reset.png" alt="Mux-OS Self-Healing" width="400" />
 </p>
 
 ## 安裝教學 (Installation)
