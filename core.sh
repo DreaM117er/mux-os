@@ -136,13 +136,13 @@ function _bot_say() {
             icon="🚀"
             color=$C_CYAN
             phrases=(
-                "Spinning up module..."
-                "Injecting payload..."
-                "Materializing interface..."
-                "Accessing neural partition..."
-                "Construct loading..."
-                "Summoning application..."
-                "Executing launch sequence..."
+                " Spinning up module..."
+                " Injecting payload..."
+                " Materializing interface..."
+                " Accessing neural partition..."
+                " Construct loading..."
+                " Summoning application..."
+                " Executing launch sequence..."
             )
             ;;
 
@@ -150,13 +150,13 @@ function _bot_say() {
             icon="⚡"
             color=$C_YELLOW
             phrases=(
-                "Interfacing with Host Core..."
-                "Modulating system parameters..." 
-                "Establishing neural link..."
-                "Overriding droid protocols..."
-                "Syncing with hardware layer..."
-                "Requesting host compliance..."
-                "Accessing control matrix..."
+                " Interfacing with Host Core..."
+                " Modulating system parameters..." 
+                " Establishing neural link..."
+                " Overriding droid protocols..."
+                " Syncing with hardware layer..."
+                " Requesting host compliance..."
+                " Accessing control matrix..."
             )
             ;;
     esac
