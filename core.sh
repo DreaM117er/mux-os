@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export MUX_VERSION="1.4.6"
+export MUX_VERSION="1.5.0"
 export MUX_ROOT="$HOME/mux-os"
 
 BASE_DIR="$HOME/mux-os"
@@ -227,7 +227,8 @@ function _launch_android_app() {
         _bot_say "error" "Launch Failed: Target package not found."
         echo -e "    Target: $package_name"
 
-        read -p "\033[1;36m📥 Install from Google Play? (y/n): \033[0m" choice
+        echo -ne "\033[1;36m📥 Install from Google Play? (y/n): \033[0m"
+        read choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
             _bot_say "loading" "Redirecting to Store..."
@@ -256,10 +257,9 @@ function mux() {
         return
     fi
 
-case "$cmd" in
+    case "$cmd" in
         "menu"|"m")
             _mux_fuzzy_menu
-            ;;
             ;;
         "version"|"v")
             echo -e "🤖 \033[1;33mMux-OS Core v$MUX_VERSION\033[0m"
@@ -289,11 +289,73 @@ case "$cmd" in
     esac
 }
 
+function _show_menu_dashboard() {
+    echo -e "\n\033[1;33m" [" Mux-OS Command Center "]"\033[0m"
+    
+    awk '
+    BEGIN {
+        COLOR_CAT="\033[1;32m"
+        COLOR_FUNC="\033[1;36m"
+        RESET="\033[0m"
+    }
+
+    /^# ===|^# ---/ {
+        clean_header = $0;
+        gsub(/^# |^#===|^#---|===|---|^-+|-+$|^\s+|\s+$/, "", clean_header);
+        if (length(clean_header) > 0 && clean_header !~ /^[=-]+$/) {
+             print "\n" COLOR_CAT " [" clean_header "]" RESET
+        }
+    }
+    
+    /^function / {
+        match($0, /function ([a-zA-Z0-9_]+)/, arr);
+        func_name = arr[1];
+        
+        if (substr(func_name, 1, 1) != "_") {
+            desc = "";
+            if (prev_line ~ /^# :/) {
+                desc = prev_line;
+                gsub(/^# : /, "", desc);
+            } else if (prev_line ~ /^# [0-9]+\./) {
+                desc = prev_line;
+                gsub(/^# [0-9]+\. /, "", desc);
+            }
+
+            if (length(desc) > 38) {
+                desc = substr(desc, 1, 35) "..";
+            }
+
+            if (desc != "") {
+                printf "  " COLOR_FUNC "%-12s" RESET " %s\n", func_name, desc;
+            }
+        }
+    }
+    { prev_line = $0 }
+    ' "$0" "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD"
+    
+    echo -e "\n"
+}
+
 function _mux_fuzzy_menu() {
     if ! command -v fzf &> /dev/null; then
         _show_menu_dashboard
-        echo -e "\n\033[1;30m(💡 Pro Tip: Install 'fzf' package to enable Neural Search)\033[0m"
-        return
+        
+        echo -e "\n\033[1;33m⚠️  Neural Search Module (fzf) is missing.\033[0m"
+        echo -ne "\033[1;36m📥 Install now to enable interactive interface? (y/n): \033[0m"
+        read choice
+        
+        if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+            echo " > Installing fzf..."
+            pkg install fzf -y
+            
+            echo -e "\033[1;32m✅ Module installed. Initializing Neural Link...\033[0m"
+            sleep 1
+            _mux_fuzzy_menu
+            return
+        else
+            echo " > Keeping legacy menu."
+            return
+        fi
     fi
 
     local selected=$(
