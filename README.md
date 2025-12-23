@@ -43,10 +43,10 @@ Mux-OS 的誕生，源於我與 AI (Gemini) 的一場關於 Termux 的辯論。�
 ## 操作界面 (Interface)
 
 **系統啟動與狀態檢查**
-![Startup]()
+![startup](pic/startup.png)
 
 **自我修復機制 (Self-Healing in Action)**
-![Self Healing]()
+![reset](pic/reset.png)
 
 ## 安裝教學 (Installation)
 
