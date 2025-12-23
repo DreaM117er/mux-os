@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export MUX_VERSION="1.3.5"
+export MUX_VERSION="1.4.5"
 export MUX_ROOT="$HOME/mux-os"
 
 BASE_DIR="$HOME/mux-os"
@@ -78,9 +78,14 @@ function _bot_say() {
                 " At your service."
                 " Digital horizon secure. What's next?"
                 " I am ready to serve."
+                " Yo, Commander. Systems ready."
+                " Mux-OS awake. Coffee time?"
+                " What are we building today?"
+                " System green. Vibes good."
+                " Back online. Let's rock."
+                " I was sleeping... but okay, I'm up."
             )
             ;;
-            
         "success")
             icon="✅"
             color=$C_GREEN
@@ -92,9 +97,28 @@ function _bot_say() {
                 " That was easy."
                 " I have arranged the bits as requested."
                 " Smooth as silk."
+                " Boom. Done."
+                " Too easy."
+                " Nailed it."
+                " Smooth."
+                " I'm actually a genius."
+                " Sorted."
+                " Consider it handled."
             )
             ;;
-            
+        "neural")
+            icon="🌐"
+            color=$C_CYAN
+            phrases=(
+                " Establishing Neural Link..."       
+                " Injecting query into Datasphere..."
+                " Handshaking with the Grid..."
+                " Accessing Global Network..."
+                " Broadcasting intent..."
+                " Opening digital gateway..."
+                " Uplink established."
+            )
+            ;;
         "error")
             icon="🚫"
             color=$C_RED
@@ -106,9 +130,15 @@ function _bot_say() {
                 " Protocol mismatch. Try again."
                 " My logic circuits refuse this request."
                 " User error... presumably."
+                " Yeah... that's a negative."
+                " Oof. That didn't work."
+                " I refuse to do that."
+                " You typed that wrong, didn't you?"
+                " 404: Motivation not found."
+                " Mission failed... awkwardly."
+                " Computer says no."
             )
             ;;
-            
         "no_args")
             icon="⚠️"
             color=$C_YELLOW
@@ -118,9 +148,14 @@ function _bot_say() {
                 " Don't complicate things."
                 " Arguments are irrelevant here."
                 " Just the command, nothing else."
+                " Whoa, too many words."
+                " Just the command, chief."
+                " I don't need arguments for this."
+                " Solo command only."
+                " Don't complicate things."
+                " Chill with the parameters."
             )
             ;;
-            
         "loading")
             icon="⏳"
             color=$C_GRAY
@@ -130,6 +165,11 @@ function _bot_say() {
                 " Calculating probabilities..."
                 " Hold your horses..."
                 " Compiling reality..."
+                " Hold up..."
+                " Gimme a sec..."
+                " Doing the magic..."
+                " Processing... maybe."
+                " One moment..."
             )
             ;;
         "launch")
@@ -145,7 +185,6 @@ function _bot_say() {
                 " Executing launch sequence..."
             )
             ;;
-
         "system")
             icon="⚡"
             color=$C_YELLOW
@@ -165,7 +204,6 @@ function _bot_say() {
     local selected_phrase="${phrases[$rand_index]}"
 
     echo -e "${color}${icon}${selected_phrase}${C_RESET}"
-    
     if [ -n "$detail" ]; then
         echo -e "   ${C_GRAY}> ${detail}${C_RESET}"
     fi
@@ -188,8 +226,8 @@ function _launch_android_app() {
     if [[ "$output" == *"Error"* ]] || [[ "$output" == *"does not exist"* ]]; then
         _bot_say "error" "Launch Failed: Target package not found."
         echo -e "    Target: $package_name"
-        
-        read -p "📥 Install from Google Play? (y/n): " choice
+
+        read -p "\033[1;36m📥 Install from Google Play? (y/n): \033[0m" choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
             _bot_say "loading" "Redirecting to Store..."
@@ -222,15 +260,12 @@ function mux() {
         "menu"|"m")
             _show_menu_dashboard
             ;;
-            
         "version"|"v")
             echo -e "🤖 \033[1;33mMux-OS Core v$MUX_VERSION\033[0m"
             ;;
-            
         "update"|"up")
             _mux_update_system
             ;;
-            
         "help"|"h")
             echo "Available commands:"
             echo "  mux           : Acknowledge presence"
@@ -239,7 +274,6 @@ function mux() {
             echo "  mux update    : Check for updates"
             echo "  mux reload    : Reload system modules"
             ;;
-
         "reload"|"r")
             _mux_reload_kernel
             ;;
@@ -303,7 +337,6 @@ function menu() {
 
 function _mux_reload_kernel() {
     echo -e "\033[1;33m > System Reload Initiated...\033[0m"
-    
     if [ -f "$INSTALLER" ]; then
         echo " > Re-calibrating vendor ecosystem..."
         chmod +x "$INSTALLER"
@@ -311,7 +344,6 @@ function _mux_reload_kernel() {
     else
         echo "❌ Installer module not found. Skipping vendor config."
     fi
-    
     echo " > Reloading Kernel..."
     source "$BASE_DIR/core.sh"
 }
@@ -325,11 +357,18 @@ function _mux_update_system() {
     local LOCAL=$(git rev-parse HEAD)
     local REMOTE=$(git rev-parse @{u})
 
+    if [ -z "$REMOTE" ]; then
+    echo " > Remote branch info unavailable. Skipping version check."
+    return
+    fi
+
     if [ "$LOCAL" = "$REMOTE" ]; then
         echo "✅ System is up-to-date (v$MUX_VERSION)."
     else
         echo " > New version available!"
-        read -p "📥 Update Mux-OS now? (y/n): " choice
+        echo -ne "\033[1;36m📥 Install from Google Play? (y/n): \033[0m"
+        read choice
+
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
             echo " > Updating..."
             git pull

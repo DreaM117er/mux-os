@@ -9,7 +9,7 @@ function edge() {
     else
         local query="$*"
         query="${query// /+}"
-        echo " > Edge Bing Search: $*"
+       _bot_say "neural" "Bing Search: $query"
         am start -a android.intent.action.VIEW \
             -d "https://www.bing.com/search?q=$query" \
             -p com.microsoft.emmx >/dev/null 2>&1
@@ -31,8 +31,7 @@ function play() {
     else
         local query="$*"
         query="${query// /+}"
-        
-        echo " > Searching Play Store for: $*"
+        _bot_say "neural" "Query Store: $query"
         am start -a android.intent.action.VIEW \
             -d "market://search?q=$query" \
             -p com.android.vending >/dev/null 2>&1
@@ -42,12 +41,11 @@ function play() {
 # : Google app Search
 function google() {
     if [ -z "$1" ]; then
-        echo " > Please input search keywords. (e.g., google Termux)"
+        _bot_say "no_args" "Input search keywords. (e.g., google Termux)"
         return 1
     fi
-    
     local query="$*"
-    echo " > Google App Search: $*"
+    _bot_say "neural" "Google Search: $query"
     am start -a android.intent.action.WEB_SEARCH \
         -p com.google.android.googlequicksearchbox \
         -e query "$query" >/dev/null 2>&1
@@ -89,38 +87,36 @@ function map() {
 # : Map to location or keywords
 function mapto() {
     if [ -z "$1" ]; then
-        echo " > Please input location or keywords to search on map. (e.g., mapto Taipei 101)"
+        _bot_say "no_args" "Need location data. (e.g., mapto Taipei 101)"
         return 1
     fi
-    
     local query="$*"
     query="${query// /+}"
-    echo " > Map search keywords: $*"
+    _bot_say "neural" "Locking Coordinates: $query"
     am start -a android.intent.action.VIEW -d "geo:0,0?q=$query" >/dev/null 2>&1
 }
 
 # : Plan route to location or keywords
 function mapway() {
     if [ -z "$1" ]; then
-        echo " > Please input destination. (e.g., mapway Taipei Main Station)"
+        _bot_say "no_args" "Need destination. (e.g., mapway Taipei Main Station)"
         return 1
     fi
     local query="$*"
     query="${query// /+}"
-    echo " > Planning route to: $*"
+    _bot_say "neural" "Calculating Trajectory: $query"
     am start -a android.intent.action.VIEW -d "https://maps.google.com/maps?daddr=$query" >/dev/null 2>&1
 }
 
 # : Navigate to location or keywords
 function mapgo() {
     if [ -z "$1" ]; then
-        echo " > Please input destination or keywords (e.g., togo company, togo \"nearest MRT station\")"
+        _bot_say "no_args" "Need target. (e.g., mapgo Home)"
         return 1
-    fi
-    
+    fi 
     local query="$*"
     query="${query// /+}"
-    echo " > Start to go to: $*"
+    _bot_say "neural" "Engaging Guidance: $query"
     am start -a android.intent.action.VIEW -d "google.navigation:q=$query" >/dev/null 2>&1
 }
 
@@ -233,7 +229,7 @@ function mihon() {
 # : Cashew (Budget Tracker)
 function cashew() {
     _require_no_args "$@" || return 1
-	_launch_android_app "Cashew" "com.budget.tracker_app" "com.budget.tracker_app.MainActivity"
+    _launch_android_app "Cashew" "com.budget.tracker_app" "com.budget.tracker_app.MainActivity"
 }
 
 # : OpenPoint (7-11)
@@ -265,3 +261,4 @@ function ezway() {
     _require_no_args "$@" || return 1
     _launch_android_app "EZ Way" "com.tradevan.android.forms" "com.tradevan.android.forms.ui.activity.SplashActivity"
 }
+

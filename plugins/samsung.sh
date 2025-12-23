@@ -91,3 +91,4 @@ function notes() {
     _require_no_args "$@" || return 1
     _launch_android_app "Samsung Notes" "com.samsung.android.app.notes" "com.samsung.android.app.notes.memolist.MemoListActivity"
 }
+
