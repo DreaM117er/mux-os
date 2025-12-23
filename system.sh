@@ -26,13 +26,13 @@ function apklist() {
 # : Default Web Browser (Neural Link)
 function wb() {
     if [ -z "$1" ]; then
-        echo -e "\033[1;36m > 🔌 Establishing Neural Link with Android Host...\033[0m"
+        echo -e "\033[1;36m🔌 Establishing Neural Link with Android Host...\033[0m"
         echo -e "\033[1;30m   > Protocol: [VISUAL_INTERFACE_INIT]\033[0m"
         
         am start -a android.intent.action.VIEW -d "about:blank" >/dev/null 2>&1
     else
         local query="$*"
-        echo -e "\033[1;33m > 📡 Injecting query into the Datasphere: \"$*\"\033[0m"
+        echo -e "\033[1;33m📡 Injecting query into the Datasphere: \"$*\"\033[0m"
         echo -e "\033[1;30m   > Handing off logic to System Core...\033[0m"
         
         am start -a android.intent.action.WEB_SEARCH -e query "$query" >/dev/null 2>&1
