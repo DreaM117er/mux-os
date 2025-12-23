@@ -1,6 +1,10 @@
 # Mux-OS
 > *The Android Neural Link / A Personal Cyberdeck Environment*
 
+<p align="left">
+  <img src="pic/logo.png" alt="Mux-OS Startup" width="400" />
+</p>
+
 ![Bash](https://img.shields.io/badge/Language-Bash-4EAA25?style=flat-square&logo=gnu-bash&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Termux-black?style=flat-square)
 ![Root](https://img.shields.io/badge/Root-Not%20Required-success?style=flat-square)
