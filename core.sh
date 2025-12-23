@@ -91,7 +91,7 @@ function _system_check() {
 
 function _show_hud() {
     local android_ver=$(getprop ro.build.version.release)
-    local kernel_ver=$(uname -r | awk -F- '{print $1}') # 只取前面版號
+    local kernel_ver=$(uname -r | awk -F- '{print $1}')
     local mem_info=$(free -h | awk '/Mem:/ {print $3 "/" $2}')
    
     echo -e "\033[1;34m╔════════════════════════════════════════╗\033[0m"
@@ -542,9 +542,6 @@ echo " > Checking for updates..."
     fi
 }
 
-
-echo "✅ Mux-OS Loaded."
-sleep 1.0
 _draw_logo
 sleep 0.5
 echo "---"
