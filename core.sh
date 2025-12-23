@@ -537,14 +537,11 @@ echo " > Checking for updates..."
     fi
 }
 
-sleep 0.8
+sleep 1.9
 clear
 _draw_logo
 _system_check
 _show_hud
 echo ""
-echo ""
-sleep 0.5
-echo " > Input \"apklist\" to search installed Android apps."
-echo " > Input \"menu\" to check all available commands."
+sleep 0.4
 _bot_say "hello"
