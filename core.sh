@@ -102,11 +102,6 @@ function _show_hud() {
     echo ""
 }
 
-clear
-_draw_logo
-_system_check
-_show_hud
-
 _bot_say "hello"
 echo -e "\033[1;30m > Input \"menu\" to initialize command interface.\033[0m"
 
@@ -542,8 +537,15 @@ echo " > Checking for updates..."
     fi
 }
 
+sleep 1.0
+clear
 _draw_logo
-sleep 0.5
+_system_check
+_show_hud
+echo "\n"
+echo "\n
+sleep 2.0
 echo "---"
 echo " > Input \"apklist\" to search installed Android apps."
 echo " > Input \"menu\" to check all available commands."
+echo "---"
