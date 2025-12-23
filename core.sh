@@ -91,20 +91,23 @@ function _system_check() {
 
 function _show_hud() {
     local android_ver=$(getprop ro.build.version.release)
+    local brand_raw=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]' | cut -c1)$(getprop ro.product.brand | tr '[:upper:]' '[:lower:]' | cut -c2-)
+    local model=$(getprop ro.product.model)
     local kernel_ver=$(uname -r | awk -F- '{print $1}')
     local mem_info=$(free -h | awk '/Mem:/ {print $3 "/" $2}')
+    local host_str="$brand_raw $model (Android $android_ver)"
+
+    if [ ${#host_str} -gt 36 ]; then
+        host_str="${host_str:0:33}..."
+    fi
    
     echo -e "\033[1;34m╔════════════════════════════════════════╗\033[0m"
-    echo -e "\033[1;34m║\033[0m \033[1;37mHOST   \033[0m: Samsung OneUI (Android $android_ver)  \033[1;34m║\033[0m"
-    echo -e "\033[1;34m║\033[0m \033[1;37mKERNEL \033[0m: $kernel_ver          \033[1;34m║\033[0m"
-    echo -e "\033[1;34m║\033[0m \033[1;37mMEMORY \033[0m: $mem_info              \033[1;34m║\033[0m"
+    printf "\033[1;34m║\033[0m \033[1;37mHOST   \033[0m: %-30s \033[1;34m║\033[0m\n" "$host_str"
+    printf "\033[1;34m║\033[0m \033[1;37mKERNEL \033[0m: %-30s \033[1;34m║\033[0m\n" "$kernel_ver"
+    printf "\033[1;34m║\033[0m \033[1;37mMEMORY \033[0m: %-30s \033[1;34m║\033[0m\n" "$mem_info"
     echo -e "\033[1;34m╚════════════════════════════════════════╝\033[0m"
     echo ""
 }
-
-_bot_say "hello"
-echo -e "\033[1;30m > Input \"menu\" to initialize command interface.\033[0m"
-
 
 function _bot_say() {
     local mood="$1"
