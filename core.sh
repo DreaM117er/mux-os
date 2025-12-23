@@ -85,13 +85,13 @@ function _bot_say() {
             icon="✅"
             color=$C_GREEN
             phrases=(
-                "Execution perfect."
-                "As you commanded."
-                "Consider it done."
-                "Operation successful."
-                "That was easy."
-                "I have arranged the bits as requested."
-                "Smooth as silk."
+                " Execution perfect."
+                " As you commanded."
+                " Consider it done."
+                " Operation successful."
+                " That was easy."
+                " I have arranged the bits as requested."
+                " Smooth as silk."
             )
             ;;
             
