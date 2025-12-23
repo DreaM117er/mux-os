@@ -176,7 +176,7 @@ function _bot_say() {
     local rand_index=$(( RANDOM % ${#phrases[@]} ))
     local selected_phrase="${phrases[$rand_index]}"
 
-    echo -e "${color}${icon} ${selected_phrase}${C_RESET}"
+    echo -e "${color}${icon}  ${selected_phrase}${C_RESET}"
     
     if [ -n "$detail" ]; then
         echo -e "   ${C_GRAY}> ${detail}${C_RESET}"
