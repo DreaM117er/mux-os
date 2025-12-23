@@ -51,6 +51,66 @@ else
     echo "# === My Apps ===" > "$APP_MOD"
 fi
 
+function _draw_logo() {
+    # Mux-OS ASCII Art
+    echo -e "\033[1;36m"
+    cat << "EOF"
+  __  __                  ___  ____  
+ |  \/  |_   ___  __     / _ \/ ___| 
+ | |\/| | | | \ \/ /____| | | \___ \ 
+ | |  | | |_| |>  <_____| |_| |___) |
+ |_|  |_|\__,_/_/\_\     \___/|____/ 
+EOF
+    echo -e "\033[0m"
+    echo -e " \033[1;30m:: Mux-OS Core v$MUX_VERSION :: Target: Android/Termux ::\033[0m"
+    echo ""
+}
+
+function _system_check() {
+    local C_CHECK="\033[1;32m✓\033[0m"
+    local C_PROC="\033[1;33m⟳\033[0m"
+    
+    local steps=(
+        "Initializing Kernel Bridge..."
+        "Mounting Vendor Ecosystem [Samsung]..."
+        "Verifying Neural Link (fzf)..."
+        "Calibrating Touch Matrix..."
+        "Bypassing Knox Security Layer..."
+        "Establish Uplink..."
+    )
+
+    for step in "${steps[@]}"; do
+        echo -ne " $C_PROC $step\r"
+        sleep 0.08
+        
+        echo -e " $C_CHECK $step                    "
+        sleep 0.02
+    done
+    echo ""
+}
+
+function _show_hud() {
+    local android_ver=$(getprop ro.build.version.release)
+    local kernel_ver=$(uname -r | awk -F- '{print $1}') # 只取前面版號
+    local mem_info=$(free -h | awk '/Mem:/ {print $3 "/" $2}')
+   
+    echo -e "\033[1;34m╔════════════════════════════════════════╗\033[0m"
+    echo -e "\033[1;34m║\033[0m \033[1;37mHOST   \033[0m: Samsung OneUI (Android $android_ver)  \033[1;34m║\033[0m"
+    echo -e "\033[1;34m║\033[0m \033[1;37mKERNEL \033[0m: $kernel_ver          \033[1;34m║\033[0m"
+    echo -e "\033[1;34m║\033[0m \033[1;37mMEMORY \033[0m: $mem_info              \033[1;34m║\033[0m"
+    echo -e "\033[1;34m╚════════════════════════════════════════╝\033[0m"
+    echo ""
+}
+
+clear
+_draw_logo
+_system_check
+_show_hud
+
+_bot_say "hello"
+echo -e "\033[1;30m > Input \"menu\" to initialize command interface.\033[0m"
+
+
 function _bot_say() {
     local mood="$1"
     local detail="$2"
@@ -484,6 +544,9 @@ echo " > Checking for updates..."
 
 
 echo "✅ Mux-OS Loaded."
-mux version
+sleep 1.0
+_draw_logo
+sleep 0.5
+echo "---"
 echo " > Input \"apklist\" to search installed Android apps."
 echo " > Input \"menu\" to check all available commands."
