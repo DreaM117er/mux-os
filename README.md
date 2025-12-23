@@ -109,6 +109,36 @@ function custom_command() {
 }
 ```
 
+## 擴充支援 (Contributing / Plugins)
+
+> **"We need your hardware data." Mux-OS 目前原生支援 Samsung 裝置。**
+> **為了讓神經連結擴展到更多硬體（Pixel, Xiaomi, Sony, Oppo...），我們需要你的協助。**
+
+如果你手邊有其他品牌的裝置，請協助我們建立對應的 Plugin！
+
+### 如何貢獻 (How to Contribute)
+
+1. 獵取數據 (Hunt Data): 使用 Mux-OS 內建指令 apklist 來查詢你手機內建 App 的 Package Name。 (例如：Sony 的相簿可能叫 com.sonymobile.album)
+
+2. 建立檔案 (Create Plugin): 在 `plugins` 資料夾中，建立一個以你的品牌命名的檔案（小寫），例如 pixel.sh 或 sony.sh。
+
+3. 填入代碼 (Code): 複製以下模板，並填入你查詢到的 Package Name：
+
+```bash
+# your_brand.sh 什麼品牌手機全家桶
+
+# === 綠色功能大標題 ===
+
+# : APP功能註解
+function custom_command() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "custom_app_name" "可藉由apklist指令獲得（Name）" "可藉由apklist指令獲得（Activity）"
+}
+```
+
+4. 提交請求 (Submit PR): 將檔案 Push 上來並發送 Pull Request。一旦核准，你的代碼將成為 Mux-OS 生態系的一部分。
+
+
 ## 致謝 (Credits)
 - Core Logic: DreamM117er。
 - Co-Pilot / Architect: Google Gemini
