@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export MUX_VERSION="1.4.5"
+export MUX_VERSION="1.4.6"
 export MUX_ROOT="$HOME/mux-os"
 
 BASE_DIR="$HOME/mux-os"

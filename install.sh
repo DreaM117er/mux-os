@@ -40,4 +40,23 @@ fi
 echo " > Setting permissions for vendor module..."
 chmod +x "$VENDOR_TARGET"
 
-echo "✅ Configuration Complete."
+RC_FILE="$HOME/.bashrc"
+LOAD_CMD="source $BASE_DIR/core.sh"
+
+echo " > Configuring auto-start sequence..."
+
+if [ ! -f "$RC_FILE" ]; then
+    touch "$RC_FILE"
+fi
+
+if grep -Fq "$LOAD_CMD" "$RC_FILE"; then
+    echo "   > Startup protocol already active."
+else
+    echo "" >> "$RC_FILE"
+    echo "# === Mux-OS Auto-Loader ===" >> "$RC_FILE"
+    echo "$LOAD_CMD" >> "$RC_FILE"
+    echo "   > Injecting startup code into .bashrc... [DONE]"
+fi
+
+echo "✅ Installation Complete."
+echo " > Please restart Termux to initialize the neural link."
