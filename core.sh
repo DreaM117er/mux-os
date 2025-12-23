@@ -82,6 +82,15 @@ function _launch_android_app() {
     fi
 }
 
+function _require_no_args() {
+    if [ -n "$1" ]; then
+        echo -e "\033[1;31m❌ Error: This command does not accept arguments.\033[0m"
+        echo " > Unexpected input: $1 , Try again."
+        return 1
+    fi
+    return 0
+}
+
 function mux() {
     local cmd="$1"
     
