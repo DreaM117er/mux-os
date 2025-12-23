@@ -110,13 +110,13 @@ function _bot_say() {
             icon="🤖"
             color=$C_CYAN
             phrases=(
-                "Mux-OS online. Awaiting input."
-                "Systems nominal. Ready when you are."
-                "Greetings, Commander."
-                "Core logic initialized."
-                "At your service."
-                "Digital horizon secure. What's next?"
-                "I am ready to serve."
+                " Mux-OS online. Awaiting input."
+                " Systems nominal. Ready when you are."
+                " Greetings, Commander."
+                " Core logic initialized."
+                " At your service."
+                " Digital horizon secure. What's next?"
+                " I am ready to serve."
             )
             ;;
             
@@ -138,25 +138,25 @@ function _bot_say() {
             icon="🚫"
             color=$C_RED
             phrases=(
-                "I'm afraid I can't do that."
-                "Mission failed successfully."
-                "Computer says no."
-                "That... didn't go as planned."
-                "Protocol mismatch. Try again."
-                "My logic circuits refuse this request."
-                "User error... presumably."
+                " I'm afraid I can't do that."
+                " Mission failed successfully."
+                " Computer says no."
+                " That... didn't go as planned."
+                " Protocol mismatch. Try again."
+                " My logic circuits refuse this request."
+                " User error... presumably."
             )
             ;;
             
         "no_args")
-            icon="🛡️"
+            icon="⚠️"
             color=$C_YELLOW
             phrases=(
-                "I need less talking, more action. (No args please)"
-                "That command stands alone."
-                "Don't complicate things."
-                "Arguments are irrelevant here."
-                "Just the command, nothing else."
+                " I need less talking, more action. (No args please)"
+                " That command stands alone."
+                " Don't complicate things."
+                " Arguments are irrelevant here."
+                " Just the command, nothing else."
             )
             ;;
             
@@ -164,11 +164,11 @@ function _bot_say() {
             icon="⏳"
             color=$C_GRAY
             phrases=(
-                "Processing..."
-                "Entropy increasing..."
-                "Calculating probabilities..."
-                "Hold your horses..."
-                "Compiling reality..."
+                " Processing..."
+                " Entropy increasing..."
+                " Calculating probabilities..."
+                " Hold your horses..."
+                " Compiling reality..."
             )
             ;;
     esac
