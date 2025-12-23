@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export MUX_VERSION="1.0.3"
+export MUX_VERSION="1.2.3"
 export MUX_ROOT="$HOME/mux-os"
 
 BASE_DIR="$HOME/mux-os"
@@ -66,13 +66,13 @@ function _launch_android_app() {
     fi
 
     if [[ "$output" == *"Error"* ]] || [[ "$output" == *"does not exist"* ]]; then
-        echo -e "\033[1;31m❌ Launch Failed: App not found. \033[0m"
+        _bot_say "error" "Launch Failed: Target package not found."
         echo -e "    Target: $package_name"
         
         read -p "📥 Install from Google Play? (y/n): " choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
-            echo -e "\033[1;33m 🚀 Redirecting to Store... \033[0m"
+            _bot_say "loading" "Redirecting to Store..."
             am start -a android.intent.action.VIEW -d "market://details?id=$package_name" >/dev/null 2>&1
         else
             echo -e "❌ Canceled."
@@ -84,30 +84,109 @@ function _launch_android_app() {
 
 function _require_no_args() {
     if [ -n "$1" ]; then
-        echo -e "\033[1;31m❌ Error: This command does not accept arguments.\033[0m"
-        echo " > Unexpected input: $1 , Try again."
+        _bot_say "no_args" "Unexpected input: $*"
         return 1
     fi
     return 0
 }
 
+function _bot_say() {
+    local mood="$1"
+    local detail="$2"
+    
+    local C_RESET="\033[0m"
+    local C_CYAN="\033[1;36m"
+    local C_GREEN="\033[1;32m"
+    local C_RED="\033[1;31m"
+    local C_YELLOW="\033[1;33m"
+    local C_GRAY="\033[1;30m"
+
+    local icon=""
+    local color=""
+    local phrases=()
+
+    case "$mood" in
+        "hello")
+            icon="🤖"
+            color=$C_CYAN
+            phrases=(
+                "Mux-OS online. Awaiting input."
+                "Systems nominal. Ready when you are."
+                "Greetings, Commander."
+                "Core logic initialized."
+                "At your service."
+                "Digital horizon secure. What's next?"
+                "I am ready to serve."
+            )
+            ;;
+            
+        "success")
+            icon="✅"
+            color=$C_GREEN
+            phrases=(
+                "Execution perfect."
+                "As you commanded."
+                "Consider it done."
+                "Operation successful."
+                "That was easy."
+                "I have arranged the bits as requested."
+                "Smooth as silk."
+            )
+            ;;
+            
+        "error")
+            icon="🚫"
+            color=$C_RED
+            phrases=(
+                "I'm afraid I can't do that."
+                "Mission failed successfully."
+                "Computer says no."
+                "That... didn't go as planned."
+                "Protocol mismatch. Try again."
+                "My logic circuits refuse this request."
+                "User error... presumably."
+            )
+            ;;
+            
+        "no_args")
+            icon="🛡️"
+            color=$C_YELLOW
+            phrases=(
+                "I need less talking, more action. (No args please)"
+                "That command stands alone."
+                "Don't complicate things."
+                "Arguments are irrelevant here."
+                "Just the command, nothing else."
+            )
+            ;;
+            
+        "loading")
+            icon="⏳"
+            color=$C_GRAY
+            phrases=(
+                "Processing..."
+                "Entropy increasing..."
+                "Calculating probabilities..."
+                "Hold your horses..."
+                "Compiling reality..."
+            )
+            ;;
+    esac
+
+    local rand_index=$(( RANDOM % ${#phrases[@]} ))
+    local selected_phrase="${phrases[$rand_index]}"
+
+    echo -e "${color}${icon} ${selected_phrase}${C_RESET}"
+    
+    if [ -n "$detail" ]; then
+        echo -e "   ${C_GRAY}> ${detail}${C_RESET}"
+    fi
+}
+
 function mux() {
     local cmd="$1"
-    
-if [ -z "$cmd" ]; then
-        local responses=(
-            "Mux here, Commander."
-            "Systems nominal. Ready for input."
-            "Awaiting instructions."
-            "Termux uplink established."
-            "At your service."
-            "What is your command?"
-            "Mux standing by."
-        )
-        
-        local rand_index=$(( RANDOM % ${#responses[@]} ))
-        
-        echo -e "\033[1;36m🤖 ${responses[$rand_index]}\033[0m"
+    if [ -z "$cmd" ]; then
+        _bot_say "hello"
         return
     fi
 
@@ -227,7 +306,7 @@ function _mux_update_system() {
             echo " > Updating..."
             git pull
             
-            echo "✅ Update complete."
+            _bot_say "success" "Update complete. Reloading kernel..."
             _mux_reload_kernel
         else
             echo " > Update cancelled."

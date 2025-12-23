@@ -15,11 +15,11 @@ esac
 
 echo " > Device Brand Detected: [$BRAND]"
 
-TARGET_PLUGIN="$PLUGIN_DIR/$BRAND.sh"
-
 if [ -z "$BRAND" ]; then
     BRAND="unknown"
 fi
+
+TARGET_PLUGIN="$PLUGIN_DIR/$BRAND.sh"
 
 if [ -f "$TARGET_PLUGIN" ]; then
     echo " > Found matching ecosystem: $BRAND.sh"

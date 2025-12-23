@@ -138,7 +138,7 @@ function ms365() {
 # : GitHub
 function github() {
     _require_no_args "$@" || return 1
-	_launch_android_app "GitHub" "com.github.android" "com.github.android.main.MainActivity"
+    _launch_android_app "GitHub" "com.github.android" "com.github.android.main.MainActivity"
 }
 
 # : Autodesk Fusion
