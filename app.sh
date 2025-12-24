@@ -4,16 +4,12 @@
 
 # : Edge & Bing search
 function edge() {
-    if [ -z "$1" ]; then
-        _launch_android_app "Edge" "com.microsoft.emmx" "com.microsoft.ruby.Main"
-    else
-        local query="$*"
-        query="${query// /+}"
-       _bot_say "neural" "Bing Search: $query"
-        am start -a android.intent.action.VIEW \
-            -d "https://www.bing.com/search?q=$query" \
-            -p com.microsoft.emmx >/dev/null 2>&1
-    fi
+    _smart_browse "com.microsoft.emmx" "$SEARCH_BING" "$@"
+}
+
+# : Chrome
+function chrome() {
+    _smart_browse "com.android.chrome" "$SEARCH_GOOGLE" "$@"
 }
 
 # : Mega Sync

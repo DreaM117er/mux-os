@@ -8,6 +8,53 @@ function _sys_cmd() {
     am start -a "$intent" >/dev/null 2>&1
 }
 
+# 定義網址搜尋引擎首頁 - https://engine/search?q=
+export SEARCH_GOOGLE="https://www.google.com/search?q="
+export SEARCH_BING="https://www.bing.com/search?q="
+
+function _smart_browse() {
+    local pkg_target="$1"
+    local search_engine="$2"
+    local input="${*:3}"
+
+    local pkg_flag=""
+    if [ "$pkg_target" != "wb" ] && [ -n "$pkg_target" ]; then
+        pkg_flag="-p $pkg_target"
+    fi
+
+    if [ -z "$input" ]; then
+        if [ -n "$pkg_flag" ]; then
+            am start --user 0 $pkg_flag >/dev/null 2>&1
+        else
+            am start -a android.intent.action.VIEW -d "" >/dev/null 2>&1
+        fi
+        return
+    fi
+
+    local target_url=""
+    local mode="launch"
+
+    if [[ "$input" == http* ]]; then
+        target_url="$input"
+    elif echo "$input" | grep -P -q '[^\x00-\x7F]'; then
+        target_url="${search_engine}${input}"
+        mode="neural"
+    elif [[ "$input" == *.* ]] && [[ "$input" != *" "* ]]; then
+        target_url="https://$input"
+    else
+        target_url="${search_engine}${input}"
+        mode="neural"
+    fi
+
+    if [ "$mode" == "neural" ]; then
+        _bot_say "neural" "Search Query: \"$input\""
+    else
+        _bot_say "launch" "Target Lock: $target_url"
+    fi
+
+    am start -a android.intent.action.VIEW -d "$target_url" $pkg_flag >/dev/null 2>&1
+}
+
 # === System Tools ===
 
 # : Termux Terminal
@@ -23,34 +70,7 @@ function apklist() {
 
 # : Default Web Browser (Neural Link)
 function wb() {
-    if [ -z "$1" ]; then
-        _bot_say "neural" "Protocol: [VISUAL_INTERFACE_INIT]"
-
-        am start -a android.intent.action.VIEW -d "about:home" >/dev/null 2>&1
-        return
-    fi
-
-    local input="$*"
-
-    if [[ "$input" == http* ]]; then
-        _bot_say "launch" "Target Lock: $input"
-        am start -a android.intent.action.VIEW -d "$input" >/dev/null 2>&1
-        return
-    fi
-
-    if echo "$input" | grep -P -q '[^\x00-\x7F]'; then
-        _bot_say "neural" "Injecting Query: \"$input\""
-        am start -a android.intent.action.WEB_SEARCH -e query "$input" >/dev/null 2>&1
-        
-    elif [[ "$input" == *.* ]] && [[ "$input" != *" "* ]]; then
-        local url="https://$input"
-        _bot_say "launch" "Target Lock: $url"
-        am start -a android.intent.action.VIEW -d "$url" >/dev/null 2>&1
-        
-    else
-        _bot_say "neural" "Injecting Query: \"$input\""
-        am start -a android.intent.action.WEB_SEARCH -e query "$input" >/dev/null 2>&1
-    fi
+    _smart_browse "wb" "$SEARCH_GOOGLE" "$@"
 }
 
 # : AI Assistant (Voice Interface)
