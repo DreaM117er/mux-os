@@ -55,11 +55,11 @@ function apklist() {
 function wb() {
     if [ -z "$1" ]; then
         _bot_say "neural" "Protocol: [VISUAL_INTERFACE_INIT]"
-        am start -a android.intent.action.VIEW -d "about:newtab" >/dev/null 2>&1
+        am start -a android.intent.action.VIEW -d "about:blank" >/dev/null 2>&1
         return
     fi
 
-    _resolve_smart_url "$SEARCH_GOOGLE" "$@"
+    _resolve_smart_url "" "$@"
 
     if [ "$__GO_MODE" == "neural" ]; then
         _bot_say "neural" "Search Query: \"$*\""
