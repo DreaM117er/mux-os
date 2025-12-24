@@ -290,6 +290,11 @@ function _bot_say() {
                 " Accessing control matrix..."
             )
             ;;
+        *)
+            icon="💬"
+            color=$C_CYAN
+            phrases=(" Processing: $detail" " I hear you." " Input received.")
+            ;;
     esac
 
     local rand_index=$(( RANDOM % ${#phrases[@]} ))
