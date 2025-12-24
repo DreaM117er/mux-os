@@ -567,7 +567,6 @@ function _mux_update_system() {
             echo " > Updating..."
             
             if git pull; then
-                _bot_say "success" "Update complete. Reloading kernel..."
                 sleep 2.6
                 _mux_reload_kernel
             else
