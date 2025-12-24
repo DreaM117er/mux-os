@@ -92,3 +92,18 @@ function notes() {
     _launch_android_app "Samsung Notes" "com.samsung.android.app.notes" "com.samsung.android.app.notes.memolist.MemoListActivity"
 }
 
+
+# === Samsung Tools ===
+
+# : Screen Recorder
+function rec() {
+    _require_no_args "$@" || return 1
+    _bot_say "system" "Initializing Screen Recorder..."
+
+    am start -n com.samsung.android.app.screenrecorder/com.samsung.android.app.screenrecorder.ScreenRecorderActivity >/dev/null 2>&1
+    
+    if [ $? -ne 0 ]; then
+        _bot_say "warn" "Direct launch failed. Opening Quick Settings."
+        cmd statusbar expand-settings
+    fi
+}

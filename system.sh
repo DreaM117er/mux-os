@@ -33,6 +33,18 @@ function wb() {
     fi
 }
 
+# : AI Assistant (Voice Interface)
+function ai() {
+    if [ -z "$1" ]; then
+        _bot_say "neural" "Protocol: [VOICE_INTERFACE_INIT]"
+        am start -a android.intent.action.VOICE_COMMAND >/dev/null 2>&1
+    else
+        local query="$*"
+        _bot_say "neural" "Injecting Query: \"$query\""
+        am start -a android.intent.action.WEB_SEARCH -e query "$query" >/dev/null 2>&1
+    fi
+}
+
 # : Console test (Debug)
 function console() {
     _require_no_args "$@" || return 1
