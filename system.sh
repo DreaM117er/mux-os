@@ -38,11 +38,21 @@ function ai() {
     if [ -z "$1" ]; then
         _bot_say "neural" "Protocol: [VOICE_INTERFACE_INIT]"
         am start -a android.intent.action.VOICE_COMMAND >/dev/null 2>&1
-    else
-        local query="$*"
-        _bot_say "neural" "Injecting Query: \"$query\""
-        am start -a android.intent.action.WEB_SEARCH -e query "$query" >/dev/null 2>&1
+        return
     fi
+
+    local query="$*"
+    _bot_say "neural" "Analyzing: \"$query\""
+    
+    if command -v termux-clipboard-set >/dev/null; then
+        echo -n "$query" | termux-clipboard-set
+        _bot_say "info" "Text copied to clipboard."
+    else
+        _bot_say "warn" "Clipboard module missing (install termux-api)."
+    fi
+
+    _bot_say "launch" "Opening Neural Interface..."
+    am start -a android.intent.action.VIEW -d "https://gemini.google.com" >/dev/null 2>&1
 }
 
 # : Console test (Debug)
