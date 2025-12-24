@@ -573,4 +573,5 @@ _draw_logo
 _system_check
 _show_hud
 sleep 0.4
+echo ""
 _bot_say "hello"
