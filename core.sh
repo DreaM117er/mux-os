@@ -543,7 +543,6 @@ function _mux_force_reset() {
 }
 
 function _mux_update_system() {
-    clear
     echo " > Checking for updates..."
     cd "$BASE_DIR" || return
 
