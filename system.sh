@@ -51,7 +51,7 @@ function apklist() {
 function wb() {
     if [ -z "$1" ]; then
         _bot_say "neural" "Protocol: [VISUAL_INTERFACE_INIT]"
-        am start -a android.intent.action.VIEW -d "https://www.google.com" >/dev/null 2>&1
+        am start -a android.intent.action.VIEW -d "about:newtab" >/dev/null 2>&1
         return
     fi
 
