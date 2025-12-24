@@ -18,7 +18,7 @@ function _smart_browse() {
     local input="${*:3}"
 
     local pkg_flag=""
-    if [ "$pkg_target" == "wb" ]; then
+    if [ "$pkg_target" == "wb" ] && [ -n "$pkg_target" ]; then
         pkg_flag="-p $pkg_target"
     fi
 
