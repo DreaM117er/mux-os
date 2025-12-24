@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export MUX_VERSION="1.6.0"
+export MUX_VERSION="1.6.1"
 export MUX_ROOT="$HOME/mux-os"
 
 BASE_DIR="$HOME/mux-os"
@@ -52,7 +52,6 @@ else
 fi
 
 function _draw_logo() {
-    # Mux-OS ASCII Art
     echo -e "\033[1;36m"
     cat << "EOF"
   __  __                  ___  ____  
@@ -115,22 +114,32 @@ function _system_check() {
 }
 
 function _show_hud() {
+    local screen_width=$(tput cols)
+    local box_width=$((screen_width - 2))
+    local content_limit=$((box_width - 13))
     local android_ver=$(getprop ro.build.version.release)
     local brand_raw=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]' | cut -c1)$(getprop ro.product.brand | tr '[:upper:]' '[:lower:]' | cut -c2-)
     local model=$(getprop ro.product.model)
+    local host_str="$brand_raw $model (Android $android_ver)"
+    
     local kernel_ver=$(uname -r | awk -F- '{print $1}')
     local mem_info=$(free -h | awk '/Mem:/ {print $3 "/" $2}')
-    local host_str="$brand_raw $model (Android $android_ver)"
 
-    if [ ${#host_str} -gt 36 ]; then
-        host_str="${host_str:0:33}..."
+    if [ ${#host_str} -gt $content_limit ]; then
+        host_str="${host_str:0:$((content_limit - 2))}.."
     fi
+    if [ ${#kernel_ver} -gt $content_limit ]; then
+        kernel_ver="${kernel_ver:0:$((content_limit - 2))}.."
+    fi
+
+    local border_len=$((box_width - 2))
+    local border_line=$(printf '═%.0s' $(seq 1 $border_len))
    
-    echo -e "\033[1;34m╔══════════════════════════════════════════╗\033[0m"
-    printf "\033[1;34m║\033[0m \033[1;37mHOST   \033[0m: %-31s \033[1;34m║\033[0m\n" "$host_str"
-    printf "\033[1;34m║\033[0m \033[1;37mKERNEL \033[0m: %-31s \033[1;34m║\033[0m\n" "$kernel_ver"
-    printf "\033[1;34m║\033[0m \033[1;37mMEMORY \033[0m: %-31s \033[1;34m║\033[0m\n" "$mem_info"
-    echo -e "\033[1;34m╚══════════════════════════════════════════╝\033[0m"
+    echo -e "\033[1;34m╔${border_line}╗\033[0m"
+    printf "\033[1;34m║\033[0m \033[1;37mHOST   \033[0m: %-*s \033[1;34m║\033[0m\n" $content_limit "$host_str"
+    printf "\033[1;34m║\033[0m \033[1;37mKERNEL \033[0m: %-*s \033[1;34m║\033[0m\n" $content_limit "$kernel_ver"
+    printf "\033[1;34m║\033[0m \033[1;37mMEMORY \033[0m: %-*s \033[1;34m║\033[0m\n" $content_limit "$mem_info"
+    echo -e "\033[1;34m╚${border_line}╝\033[0m"
     echo ""
 }
 
