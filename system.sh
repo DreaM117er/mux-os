@@ -18,7 +18,7 @@ function _smart_browse() {
     local input="${*:3}"
 
     local pkg_flag=""
-    if [ "$pkg_target" != "wb" ] && [ -n "$pkg_target" ]; then
+    if [ "$pkg_target" == "wb" ]; then
         pkg_flag="-p $pkg_target"
     fi
 
@@ -26,7 +26,7 @@ function _smart_browse() {
         if [ -n "$pkg_flag" ]; then
             am start --user 0 $pkg_flag >/dev/null 2>&1
         else
-            am start -a android.intent.action.VIEW -d "" >/dev/null 2>&1
+            am start -a android.intent.action.VIEW -d "about:blank" >/dev/null 2>&1
         fi
         return
     fi
