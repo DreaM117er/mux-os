@@ -37,11 +37,16 @@ function wb() {
         am start -a android.intent.action.VIEW -d "$input" >/dev/null 2>&1
         return
     fi
-    
-    if [[ ! "$input" =~ [^[:ascii:]] ]] && [[ "$input" == *.* ]] && [[ "$input" != *" "* ]]; then
+
+    if echo "$input" | grep -P -q '[^\x00-\x7F]'; then
+        _bot_say "neural" "Injecting Query: \"$input\""
+        am start -a android.intent.action.WEB_SEARCH -e query "$input" >/dev/null 2>&1
+        
+    elif [[ "$input" == *.* ]] && [[ "$input" != *" "* ]]; then
         local url="https://$input"
         _bot_say "launch" "Target Lock: $url"
         am start -a android.intent.action.VIEW -d "$url" >/dev/null 2>&1
+        
     else
         _bot_say "neural" "Injecting Query: \"$input\""
         am start -a android.intent.action.WEB_SEARCH -e query "$input" >/dev/null 2>&1
