@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export MUX_VERSION="1.5.0"
+export MUX_VERSION="1.5.2"
 export MUX_ROOT="$HOME/mux-os"
 
 BASE_DIR="$HOME/mux-os"
@@ -67,25 +67,50 @@ EOF
 }
 
 function _system_check() {
+    local C_RESET="\033[0m"
     local C_CHECK="\033[1;32m✓\033[0m"
+    local C_FAIL="\033[1;31m✗\033[0m"
+    local C_WARN="\033[1;33m!\033[0m"
     local C_PROC="\033[1;33m⟳\033[0m"
-    
-    local steps=(
-        "Initializing Kernel Bridge..."
-        "Mounting Vendor Ecosystem [Samsung]..."
-        "Verifying Neural Link (fzf)..."
-        "Calibrating Touch Matrix..."
-        "Bypassing Knox Security Layer..."
-        "Establish Uplink..."
-    )
 
-    for step in "${steps[@]}"; do
-        echo -ne " $C_PROC $step\r"
-        sleep 0.08
+    local DELAY_ANIM=0.08
+    local DELAY_STEP=0.02
+
+    function _run_step() {
+        local msg="$1"
+        local status="${2:-0}"
         
-        echo -e " $C_CHECK $step                    "
-        sleep 0.02
-    done
+        echo -ne " $C_PROC $msg\r"
+        sleep $DELAY_ANIM
+        
+        if [ "$status" -eq 0 ]; then
+            echo -e " $C_CHECK $msg                    "
+        elif [ "$status" -eq 1 ]; then
+            echo -e " $C_FAIL $msg \033[1;31m[OFFLINE]\033[0m"
+        else
+            echo -e " $C_WARN $msg \033[1;33m[UNKNOWN]\033[0m"
+        fi
+        sleep $DELAY_STEP
+    }
+
+    _run_step "Initializing Kernel Bridge..." 0
+
+    local brand=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]')
+    if [ -n "$brand" ]; then
+        _run_step "Mounting Vendor Ecosystem [$brand]..." 0
+    else
+        _run_step "Mounting Vendor Ecosystem..." 2
+    fi
+
+    if command -v fzf &> /dev/null; then
+        _run_step "Verifying Neural Link (fzf)..." 0
+    else
+        _run_step "Verifying Neural Link (fzf)..." 1
+    fi
+
+    _run_step "Calibrating Touch Matrix..." 0
+    _run_step "Bypassing Knox Security Layer..." 0
+    _run_step "Establish Uplink..." 0
     echo ""
 }
 
@@ -547,6 +572,5 @@ clear
 _draw_logo
 _system_check
 _show_hud
-echo ""
 sleep 0.4
 _bot_say "hello"
