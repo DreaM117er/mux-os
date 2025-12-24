@@ -8,6 +8,10 @@ function _sys_cmd() {
     am start -a "$intent" >/dev/null 2>&1
 }
 
+# 瀏覽器網址搜尋引擎 - https://engine.com/search?q=
+export SEARCH_GOOGLE="https://www.google.com/search?q="
+export SEARCH_BING="https://www.bing.com/search?q="
+
 export __GO_TARGET=""
 export __GO_MODE=""
 
