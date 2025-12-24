@@ -8,51 +8,30 @@ function _sys_cmd() {
     am start -a "$intent" >/dev/null 2>&1
 }
 
-# 定義網址搜尋引擎首頁 - https://engine/search?q=
-export SEARCH_GOOGLE="https://www.google.com/search?q="
-export SEARCH_BING="https://www.bing.com/search?q="
+export __GO_TARGET=""
+export __GO_MODE=""
 
-function _smart_browse() {
-    local pkg_target="$1"
-    local search_engine="$2"
-    local input="${*:3}"
+function _resolve_smart_url() {
+    local search_engine="$1"
+    local input="${*:2}"
 
-    local pkg_flag=""
-    if [ "$pkg_target" == "wb" ] && [ -n "$pkg_target" ]; then
-        pkg_flag="-p $pkg_target"
-    fi
-
-    if [ -z "$input" ]; then
-        if [ -n "$pkg_flag" ]; then
-            am start --user 0 $pkg_flag >/dev/null 2>&1
-        else
-            am start -a android.intent.action.VIEW -d "about:blank" >/dev/null 2>&1
-        fi
-        return
-    fi
-
-    local target_url=""
-    local mode="launch"
+    __GO_TARGET=""
+    __GO_MODE="launch"
 
     if [[ "$input" == http* ]]; then
-        target_url="$input"
+        __GO_TARGET="$input"
+    
     elif echo "$input" | grep -P -q '[^\x00-\x7F]'; then
-        target_url="${search_engine}${input}"
-        mode="neural"
+        __GO_TARGET="${search_engine}${input}"
+        __GO_MODE="neural"
+
     elif [[ "$input" == *.* ]] && [[ "$input" != *" "* ]]; then
-        target_url="https://$input"
+        __GO_TARGET="https://$input"
+    
     else
-        target_url="${search_engine}${input}"
-        mode="neural"
+        __GO_TARGET="${search_engine}${input}"
+        __GO_MODE="neural"
     fi
-
-    if [ "$mode" == "neural" ]; then
-        _bot_say "neural" "Search Query: \"$input\""
-    else
-        _bot_say "launch" "Target Lock: $target_url"
-    fi
-
-    am start -a android.intent.action.VIEW -d "$target_url" $pkg_flag >/dev/null 2>&1
 }
 
 # === System Tools ===
@@ -70,7 +49,21 @@ function apklist() {
 
 # : Default Web Browser (Neural Link)
 function wb() {
-    _smart_browse "wb" "$SEARCH_GOOGLE" "$@"
+    if [ -z "$1" ]; then
+        _bot_say "neural" "Protocol: [VISUAL_INTERFACE_INIT]"
+        am start -a android.intent.action.VIEW -d "https://www.google.com" >/dev/null 2>&1
+        return
+    fi
+
+    _resolve_smart_url "$SEARCH_GOOGLE" "$@"
+
+    if [ "$__GO_MODE" == "neural" ]; then
+        _bot_say "neural" "Search Query: \"$*\""
+    else
+        _bot_say "launch" "Target Lock: $__GO_TARGET"
+    fi
+
+    am start -a android.intent.action.VIEW -d "$__GO_TARGET" >/dev/null 2>&1
 }
 
 # : AI Assistant (Voice Interface)

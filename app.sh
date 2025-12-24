@@ -4,12 +4,22 @@
 
 # : Edge & Bing search
 function edge() {
-    _smart_browse "com.microsoft.emmx" "$SEARCH_BING" "$@"
-}
+    local pkg="com.microsoft.emmx"
 
-# : Chrome
-function chrome() {
-    _smart_browse "com.android.chrome" "$SEARCH_GOOGLE" "$@"
+    if [ -z "$1" ]; then
+        _launch_android_app "Edge" "$pkg" "com.microsoft.ruby.Main"
+        return
+    fi
+
+    _resolve_smart_url "$SEARCH_BING" "$@"
+
+    if [ "$__GO_MODE" == "neural" ]; then
+        _bot_say "neural" "Bing Search: \"$*\""
+    else
+        _bot_say "launch" "Edge Target: $__GO_TARGET"
+    fi
+
+    am start -a android.intent.action.VIEW -d "$__GO_TARGET" -p "$pkg" >/dev/null 2>&1
 }
 
 # : Mega Sync
