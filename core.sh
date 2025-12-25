@@ -58,14 +58,14 @@ function _launch_android_app() {
         _bot_say "error" "Launch Failed: Target package not found."
         echo -e "    Target: $package_name"
         echo ""
-        echo -ne "\033[1;36m :: Install from Google Play? (y/n): \033[0m"
+        echo -ne "\033[1;32m :: Install from Google Play? (y/n): \033[0m"
         read choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
             _bot_say "loading" "Redirecting to Store..."
             am start -a android.intent.action.VIEW -d "market://details?id=$package_name" >/dev/null 2>&1
         else
-            echo -e "\033[1;36m ›› Canceled.\033[0m"
+            echo -e "\033[1;30m    ›› Canceled.\033[0m"
             return 1
         fi
         return 1
@@ -132,9 +132,9 @@ function menu() {
 # 重新載入核心模組 - Reload Core Modules
 function _mux_reload_kernel() {
     clear
-    echo -e "\033[1;33m🟡 System Reload Initiated...\033[0m"
+    echo -e "\033[1;33m :: System Reload Initiated...\033[0m"
     if [ -f "$INSTALLER" ]; then
-        echo " ›› Re-calibrating vendor ecosystem..."
+        echo "    ›› Re-calibrating vendor ecosystem..."
         chmod +x "$INSTALLER"
         "$INSTALLER"
     else
@@ -154,7 +154,7 @@ function _mux_force_reset() {
     if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
         cd "$BASE_DIR" || return
         
-        echo " ›› Fetching latest protocols..."
+        echo "    ›› Fetching latest protocols..."
         git fetch --all
         
         local branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
@@ -194,7 +194,7 @@ function _mux_update_system() {
         read choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
-            echo " ›› Updating..."
+            echo "    ›› Updating..."
             
             if git pull; then
                 sleep 2.2
