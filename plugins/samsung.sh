@@ -121,13 +121,22 @@ function notes() {
 
 # : Screen Recorder
 function rec() {
-    _require_no_args "$@" || return 1
-    _bot_say "system" "Initializing Screen Recorder..."
+_require_no_args "$@" || return 1
+    _bot_say "system" "Accessing Recorder Protocol..."
 
-    am start -n com.samsung.android.app.screenrecorder/com.samsung.android.app.screenrecorder.ScreenRecorderActivity >/dev/null 2>&1
+    am start -n com.samsung.android.app.smartcapture/com.samsung.android.app.smartcapture.capture.CaptureActivity >/dev/null 2>&1
     
+    if [ $? -eq 0 ]; then
+        return 0
+    fi
+
+    _bot_say "warn" "Direct uplink failed. Opening Config."
+    
+    am start -a android.intent.action.MAIN \
+             -n com.samsung.android.app.screenrecorder/com.samsung.android.app.screenrecorder.setting.ScreenRecorderSettingActivity >/dev/null 2>&1
+
     if [ $? -ne 0 ]; then
-        _bot_say "warn" "Direct launch failed. Opening Quick Settings."
-        cmd statusbar expand-settings
+         am start -a android.intent.action.MAIN \
+                  -n com.samsung.android.app.smartcapture/com.samsung.android.app.smartcapture.setting.SmartCaptureSettingsActivity >/dev/null 2>&1
     fi
 }

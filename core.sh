@@ -375,6 +375,7 @@ function mux() {
             echo "  mux update    : Check for updates"
             echo "  mux reload    : Reload system modules"
             echo "  mux reset     : Force sync (Discard changes)"
+            echo "  mux info      : Show system information"
             ;;
         "reload"|"r")
             _mux_reload_kernel
@@ -582,6 +583,7 @@ function _mux_force_reset() {
         git reset --hard "origin/$branch"
         
         _bot_say "success" "Timeline synchronized. System clean."
+        sleep 1.2
         _mux_reload_kernel
     else
         echo " > Reset canceled."
