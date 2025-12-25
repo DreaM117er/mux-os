@@ -38,13 +38,13 @@ else
     } > "$VENDOR_TARGET"
 fi
 
-echo -e "\033[1;33m :: :: Setting permissions for vendor module...\033[0m"
+echo -e "\033[1;33m :: Setting permissions for vendor module...\033[0m"
 chmod +x "$VENDOR_TARGET"
 
 RC_FILE="$HOME/.bashrc"
 LOAD_CMD="source $BASE_DIR/core.sh"
 
-echo -e "\033[1;33m :: :: Configuring auto-start sequence...\033[0m"
+echo -e "\033[1;33m :: Configuring auto-start sequence...\033[0m"
 
 if [ ! -f "$RC_FILE" ]; then
     touch "$RC_FILE"
