@@ -539,7 +539,6 @@ function _mux_fuzzy_menu() {
     if [ -n "$selected" ]; then
         local cmd_to_run=$(echo "$selected" | awk '{print $1}')
         
-        echo ""
         echo -ne "\033[1;33m⚡ $cmd_to_run \033[1;30m(Params?): \033[0m"
         
         read -e params < /dev/tty
