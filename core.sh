@@ -83,11 +83,13 @@ function _require_no_args() {
 
 # 系統輸入鎖定與解鎖 - System Input Lock and Unlock
 function _system_lock() {
+    trap 'stty echo isig; exit' ERR INT TERM
     stty -echo -isig
 }
 
 function _system_unlock() {
     stty echo isig
+    trap - ERR INT TERM
 }
 
 # Mux-OS 主指令入口 - Mux-OS Main Command Entry
@@ -142,6 +144,7 @@ function menu() {
 function _mux_reload_kernel() {
     clear
     echo -e "\033[1;33m :: System Reload Initiated...\033[0m"
+    unset MUX_INITIALIZED
     if [ -f "$INSTALLER" ]; then
         echo "    ›› Re-calibrating vendor ecosystem..."
         chmod +x "$INSTALLER"
@@ -154,7 +157,6 @@ function _mux_reload_kernel() {
 
 # 強制同步系統狀態 - Force Sync System State
 function _mux_force_reset() {
-    trap 'stty echo isig; exit' ERR INT TERM
     _system_lock
     _bot_say "system" "Protocol Override: Force Sync"
     echo -e "\033[1;31m :: WARNING: All local changes will be obliterated.\033[0m"
@@ -187,7 +189,6 @@ function _mux_force_reset() {
 
 # 系統更新檢測與執行 - System Update Check and Execution
 function _mux_update_system() {
-    trap 'stty echo isig; exit' ERR INT TERM
     _system_lock
     echo -e "\033[1;33m :: Checking for updates...\033[0m"
     cd "$BASE_DIR" || return
@@ -235,11 +236,23 @@ function _mux_update_system() {
 }
 
 # 主程式啟動體感動畫 - Main Program Startup Animation
-sleep 1.9
-clear
-_draw_logo
-_system_check
-_show_hud
-sleep 0.4
-echo ""
-_bot_say "hello"
+function _mux_init() {
+    if [ "$MUX_INITIALIZED" = "true" ]; then
+        return
+    fi
+    _system_lock
+
+    sleep 1.9
+    clear
+    _draw_logo
+    _system_check
+    _show_hud
+    sleep 0.4
+    echo ""
+    _bot_say "hello"
+
+    export MUX_INITIALIZED="true"
+    _system_unlock
+}
+
+_mux_init
