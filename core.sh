@@ -186,7 +186,7 @@ function _mux_update_system() {
     fi
 
     if [ "$LOCAL" = "$REMOTE" ]; then
-        echo "✅ System is up-to-date (v$MUX_VERSION)."
+        echo "    ›› System is up-to-date (v$MUX_VERSION). ✅"
     else
         echo -e "\033[1;33m :: New version available!\033[0m"
         echo ""

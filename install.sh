@@ -59,4 +59,4 @@ else
     echo "    ›› Injecting startup code into .bashrc... [DONE]"
 fi
 
-echo "✅ Installation Complete."
+echo "    ›› Installation Complete. ✅"
