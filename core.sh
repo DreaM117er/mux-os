@@ -514,7 +514,6 @@ function _mux_fuzzy_menu() {
             match($0, /function ([a-zA-Z0-9_]+)/, arr);
             func_name = arr[1];
             
-            # 過濾掉內部函數 (_) 和 mux 本身
             if (substr(func_name, 1, 1) != "_" && func_name != "mux") {
                 desc = "";
                 if (prev_line ~ /^# :/) {
@@ -537,11 +536,13 @@ function _mux_fuzzy_menu() {
             --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red
     )
 
-if [ -n "$selected" ]; then
+    if [ -n "$selected" ]; then
         local cmd_to_run=$(echo "$selected" | awk '{print $1}')
+        
         echo ""
         echo -ne "\033[1;33m⚡ $cmd_to_run \033[1;30m(Params?): \033[0m"
-        read -e params
+        
+        read -e params < /dev/tty
         
         local final_cmd="$cmd_to_run"
         if [ -n "$params" ]; then
@@ -550,7 +551,7 @@ if [ -n "$selected" ]; then
         
         history -s "$final_cmd"
         _bot_say "neural" "Executing: $final_cmd"
-        eval "$final_cmd"    
+        eval "$final_cmd"
     else
         :
     fi
