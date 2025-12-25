@@ -28,7 +28,7 @@ for mod in "${MODULES[@]}"; do
         source "$mod"
     else
         case "$mod" in
-            "$SYSTEM_MOD") echo -e "\033[1;31m❌ Critical Error: system.sh missing!\033[0m" ;;
+            "$SYSTEM_MOD") echo -e "\033[1;31m :: Critical Error: system.sh missing!\033[0m" ;;
             "$APP_MOD")    echo "# === My Apps ===" > "$mod" && source "$mod" ;;
             *)             : ;;
         esac
@@ -58,14 +58,14 @@ function _launch_android_app() {
         _bot_say "error" "Launch Failed: Target package not found."
         echo -e "    Target: $package_name"
         echo ""
-        echo -ne "\033[1;36m:: Install from Google Play? (y/n): \033[0m"
+        echo -ne "\033[1;36m :: Install from Google Play? (y/n): \033[0m"
         read choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
             _bot_say "loading" "Redirecting to Store..."
             am start -a android.intent.action.VIEW -d "market://details?id=$package_name" >/dev/null 2>&1
         else
-            echo -e "❌ Canceled."
+            echo -e "\033[1;36m ›› Canceled.\033[0m"
             return 1
         fi
         return 1
@@ -146,9 +146,9 @@ function _mux_reload_kernel() {
 # 強制同步系統狀態 - Force Sync System State
 function _mux_force_reset() {
     _bot_say "system" "Protocol Override: Force Sync"
-    echo -e "\033[1;31m🟡  WARNING: All local changes will be obliterated.\033[0m"
+    echo -e "\033[1;31m :: WARNING: All local changes will be obliterated.\033[0m"
     echo ""
-    echo -ne "\033[1;33m:: Confirm system restore? (y/n): \033[0m"
+    echo -ne "\033[1;32m :: Confirm system restore? (y/n): \033[0m"
     read choice
     
     if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
@@ -166,13 +166,13 @@ function _mux_force_reset() {
         sleep 1.2
         _mux_reload_kernel
     else
-        echo "❌ Reset canceled."
+        echo -e "\033[1;36m ›› Reset canceled.\033[0m"
     fi
 }
 
 # 系統更新檢測與執行 - System Update Check and Execution
 function _mux_update_system() {
-    echo "🟡 Checking for updates..."
+    echo -e "\033[1;33m :: Checking for updates...\033[0m"
     cd "$BASE_DIR" || return
 
     git fetch origin
@@ -188,9 +188,9 @@ function _mux_update_system() {
     if [ "$LOCAL" = "$REMOTE" ]; then
         echo "✅ System is up-to-date (v$MUX_VERSION)."
     else
-        echo "🟡 New version available!"
+        echo -e "\033[1;33m :: New version available!\033[0m"
         echo ""
-        echo -ne "\033[1;36m:: Update Mux-OS now? (y/n): \033[0m"
+        echo -ne "\033[1;32m:: Update Mux-OS now? (y/n): \033[0m"
         read choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
@@ -201,11 +201,11 @@ function _mux_update_system() {
                 _mux_reload_kernel
             else
                 _bot_say "error" "Update conflict detected."
-                echo -e "\033[1;31m❌ Critical Error: Local timeline divergent.\033[0m"
+                echo -e "\033[1;31m :: Critical Error: Local timeline divergent.\033[0m"
                 echo -e "\033[1;33m ›› Suggestion: Run 'mux reset' to force synchronization.\033[0m"
             fi
         else
-            echo "❌ Update cancelled."
+            echo -e "\033[1;36m ›› Update canceled.\033[0m"
         fi
     fi
 }
