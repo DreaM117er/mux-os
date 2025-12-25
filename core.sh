@@ -204,7 +204,7 @@ function _mux_update_system() {
     local REMOTE=$(git rev-parse @{u} 2>/dev/null)
 
     if [ -z "$REMOTE" ]; then
-         echo " ›› Remote branch not found. Skipping check."
+         echo "   ›› Remote branch not found. Skipping check."
          _system_unlock
          return
     fi

@@ -7,7 +7,6 @@ VENDOR_TARGET="$BASE_DIR/vendor.sh"
 echo -e "\033[1;33m :: Starting Mux-OS Installation & Calibration...\033[0m"
 
 # 1. 環境依賴檢查
-PACKAGES=(ncurses-utils fzf git termux-api)
 for pkg in "${PACKAGES[@]}"; do
     if ! command -v "$pkg" &> /dev/null; then
         echo "    ›› Installing missing part: $pkg"
