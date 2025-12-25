@@ -58,7 +58,7 @@ function _launch_android_app() {
         _bot_say "error" "Launch Failed: Target package not found."
         echo -e "    Target: $package_name"
 
-        echo -ne "\033[1;36m📥 Install from Google Play? (y/n): \033[0m"
+        echo -ne "\033[1;36m :: Install from Google Play? (y/n): \033[0m"
         read choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
@@ -132,9 +132,9 @@ function menu() {
 # 重新載入核心模組 - Reload Core Modules
 function _mux_reload_kernel() {
     clear
-    echo -e "\033[1;33m > System Reload Initiated...\033[0m"
+    echo -e "\033[1;33m🟡 System Reload Initiated...\033[0m"
     if [ -f "$INSTALLER" ]; then
-        echo " > Re-calibrating vendor ecosystem..."
+        echo " ›› Re-calibrating vendor ecosystem..."
         chmod +x "$INSTALLER"
         "$INSTALLER"
     else
@@ -146,33 +146,33 @@ function _mux_reload_kernel() {
 # 強制同步系統狀態 - Force Sync System State
 function _mux_force_reset() {
     _bot_say "system" "Protocol Override: Force Sync"
-    echo -e "\033[1;31m⚠️  WARNING: All local changes will be obliterated.\033[0m"
+    echo -e "\033[1;31m🟡  WARNING: All local changes will be obliterated.\033[0m"
     
-    echo -ne "\033[1;33m🛠️ Confirm system restore? (y/n): \033[0m"
+    echo -ne "\033[1;33m :: Confirm system restore? (y/n): \033[0m"
     read choice
     
     if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
         cd "$BASE_DIR" || return
         
-        echo " > Fetching latest protocols..."
+        echo " ›› Fetching latest protocols..."
         git fetch --all
         
         local branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
         
-        echo " > Resetting timeline to [origin/$branch]..."
+        echo " ›› Resetting timeline to [origin/$branch]..."
         git reset --hard "origin/$branch"
         
         _bot_say "success" "Timeline synchronized. System clean."
         sleep 1.2
         _mux_reload_kernel
     else
-        echo " > Reset canceled."
+        echo "❌ Reset canceled."
     fi
 }
 
 # 系統更新檢測與執行 - System Update Check and Execution
 function _mux_update_system() {
-    echo " > Checking for updates..."
+    echo "🟡 Checking for updates..."
     cd "$BASE_DIR" || return
 
     git fetch origin
@@ -181,30 +181,30 @@ function _mux_update_system() {
     local REMOTE=$(git rev-parse @{u} 2>/dev/null)
 
     if [ -z "$REMOTE" ]; then
-         echo "⚠️ Remote branch not found. Skipping check."
+         echo " ›› Remote branch not found. Skipping check."
          return
     fi
 
     if [ "$LOCAL" = "$REMOTE" ]; then
         echo "✅ System is up-to-date (v$MUX_VERSION)."
     else
-        echo " > New version available!"
-        echo -ne "\033[1;36m📥 Update Mux-OS now? (y/n): \033[0m"
+        echo "🟡 New version available!"
+        echo -ne "\033[1;36m :: Update Mux-OS now? (y/n): \033[0m"
         read choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
-            echo " > Updating..."
+            echo " ›› Updating..."
             
             if git pull; then
-                sleep 2.6
+                sleep 2.2
                 _mux_reload_kernel
             else
                 _bot_say "error" "Update conflict detected."
-                echo -e "\033[1;31m > Critical Error: Local timeline divergent.\033[0m"
-                echo -e "\033[1;33m > Suggestion: Run 'mux reset' to force synchronization.\033[0m"
+                echo -e "\033[1;31m❌ Critical Error: Local timeline divergent.\033[0m"
+                echo -e "\033[1;33m ›› Suggestion: Run 'mux reset' to force synchronization.\033[0m"
             fi
         else
-            echo " > Update cancelled."
+            echo "❌ Update cancelled."
         fi
     fi
 }

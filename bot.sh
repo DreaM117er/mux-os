@@ -19,129 +19,125 @@ function _bot_say() {
 
     case "$mood" in
         "hello")
-            icon="🤖";
+            icon=" ::";
             color=$C_CYAN;
             phrases=(
-                " Mux-OS online. Awaiting input."
-                " Systems nominal. Ready when you are."
-                " Greetings, Commander."
-                " Core logic initialized."
-                " At your service."
-                " Digital horizon secure. What's next?"
-                " I am ready to serve."
-                " Yo, Commander. Systems ready."
-                " Mux-OS awake. Coffee time?"
-                " What are we building today?"
-                " System green. Vibes good."
-                " Back online. Let's rock."
-                " I was sleeping... but okay, I'm up."
+                " Mux-OS online. Awaiting input. 🫡"
+                " Systems nominal. Ready when you are. 😏"
+                " Greetings, Commander. 😁"
+                " Core logic initialized. 😎"
+                " At your service. 🫡"
+                " Digital horizon secure. What's next? 🧐"
+                " Yo, Commander. Systems ready. 🤠"
+                " Mux-OS awake. Coffee time? 🤤"
+                " What are we building today? 🤩"
+                " System great. Vibes good. 😊"
+                " Back online. Let's rock. 😆"
+                " I was sleeping... but okay, I'm up. 🥱"
+                " I am ready to serve. 🫡"
                 )
                 ;;
         "success")
-            icon="✅";
+            icon=" ::";
             color=$C_GREEN;
             phrases=(
-                " Execution perfect."
-                " As you commanded."
-                " Consider it done."
-                " Operation successful."
-                " That was easy."
-                " I have arranged the bits as requested."
-                " Smooth as silk."
-                " Boom. Done."
-                " Too easy."
-                " Nailed it."
-                " Smooth."
-                " I'm actually a genius."
-                " Sorted."
-                " Consider it handled."
+                " Execution perfect. 😏"
+                " As you commanded. 🫡"
+                " Consider it done. 🥳"
+                " Operation successful. 🤩"
+                " That was easy. 😁"
+                " I have arranged the bits as requested. 😉"
+                " Smooth as silk. 😋"
+                " Boom. Done. 😝"
+                " Too easy. 😏"
+                " Nailed it. 🤓"
+                " I'm actually a genius. 🤠"
+                " Sorted. 😉"
+                " Consider it handled. 🫡"
                 )
                 ;;
         "neural")
-            icon="🌐";
+            icon=" ::";
             color=$C_CYAN;
             phrases=(
-                " Establishing Neural Link..."       
-                " Injecting query into Datasphere..."
-                " Handshaking with the Grid..."
-                " Accessing Global Network..."
-                " Broadcasting intent..."
-                " Opening digital gateway..."
-                " Uplink established."
+                " Establishing Neural Link... 🧐"
+                " Injecting query into Datasphere... 🤔"
+                " Handshaking with the Grid... ☺️"
+                " Accessing Global Network... 🙂‍↕️"
+                " Broadcasting intent... 🤓"
+                " Opening digital gateway... 😉"
+                " Uplink established. 🤗"
                 )
                 ;;
         "error")
-            icon="🚫";
+            icon=" ::";
             color=$C_RED;
             phrases=(
-                " I'm afraid I can't do that."
-                " Mission failed successfully."
-                " Computer says no."
-                " That... didn't go as planned."
-                " Protocol mismatch. Try again."
-                " My logic circuits refuse this request."
-                " User error... presumably."
-                " Yeah... that's a negative."
-                " Oof. That didn't work."
-                " I refuse to do that."
-                " You typed that wrong, didn't you?"
-                " 404: Motivation not found."
-                " Mission failed... awkwardly."
-                " Computer says no."
+                " I'm afraid I can't do that. 😩"
+                " Mission failed successfully. 💀"
+                " Computer says no. 🫢"
+                " That... didn't go as planned. 🫤"
+                " Protocol mismatch. Try again. 🤨"
+                " My logic circuits refuse this request. 😒"
+                " User error... presumably. 🤫"
+                " Yeah... that's a negative. 🙄"
+                " Oof. That didn't work. 🫨"
+                " I refuse to do that. 🫥"
+                " You typed that wrong, didn't you? 🤨"
+                " 404: Motivation not found. 🫠"
+                " Mission failed... awkwardly. 🫣"
                 )
                 ;;
         "no_args")
-            icon="⚠️";
+            icon=" ::";
             color=$C_YELLOW;
             phrases=(
-                " I need less talking, more action. (No args please)"
-                " That command stands alone."
-                " Don't complicate things."
-                " Arguments are irrelevant here."
-                " Just the command, nothing else."
-                " Whoa, too many words."
-                " Just the command, chief."
-                " I don't need arguments for this."
-                " Solo command only."
-                " Don't complicate things."
-                " Chill with the parameters."
+                " I need less talking, more action. (No args please) 🤫"
+                " That command stands alone. 🥹"
+                " Don't complicate things. 😓"
+                " Arguments are irrelevant here. 😦"
+                " Just the command, nothing else. 🤐"
+                " Whoa, too many words. 😵"
+                " Just the command, chief. 🫡"
+                " I don't need arguments for this. 🤨"
+                " Solo command only. 👤"
+                " Chill with the parameters. 🙄"
                 )
                 ;;
         "loading")
-            icon="⏳";
+            icon=" ::";
             color=$C_GRAY;
             phrases=(
-                " Processing..."
-                " Entropy increasing..."
-                " Calculating probabilities..."
-                " Hold your horses..."
-                " Compiling reality..."
-                " Hold up..."
-                " Gimme a sec..."
-                " Doing the magic..."
-                " Processing... maybe."
-                " One moment..."
+                " Processing... 😑"
+                " Entropy increasing... 🌀"
+                " Calculating probabilities... 🧐"
+                " Hold your horses... 🫥"
+                " Compiling reality... 🫩"
+                " Hold up... 🫨"
+                " Gimme a sec... 🫠"
+                " Doing the magic... 😶"
+                " One moment... 🥱"
                 )
                 ;;
         "launch")
-            icon="🚀";
+            icon=" ::";
             color=$C_CYAN;
             phrases=(
-                " Spinning up module..."
-                " Injecting payload..."
-                " Materializing interface..."
-                " Accessing neural partition..."
-                " Construct loading..."
-                " Summoning application..."
-                " Executing launch sequence..."
+                " Spinning up module... ⚙️"
+                " Injecting payload... 💉"
+                " Materializing interface... 🖥️"
+                " Accessing neural partition... 🧠"
+                " Construct loading... 📦"
+                " Summoning application... 🤖"
+                " Executing launch sequence... 🚀"
                 )
                 ;;
         "system")
-            icon="⚡";
+            icon=" ::";
             color=$C_YELLOW;
             phrases=(
                 " Interfacing with Host Core..."
-                " Modulating system parameters..." 
+                " Modulating system parameters..."
                 " Establishing neural link..."
                 " Overriding droid protocols..."
                 " Syncing with hardware layer..."
@@ -150,11 +146,11 @@ function _bot_say() {
                 )
                 ;;
         *)
-            icon="💬";
+            icon=" ::";
             color=$C_CYAN;
             phrases=(
-                "Processing: $detail"
-                "I hear you."
+                " Processing: $detail 😌"
+                " I hear you. 😙"
                 )
                 ;;
     esac

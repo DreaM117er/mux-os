@@ -63,7 +63,7 @@ function wb() {
 
     input=$(echo "$input" | sed 'y/。．/../' | sed 's/　/ /g')
     if echo "$input" | grep -P -q '[^\x00-\x7F]'; then
-        _bot_say "neural" "Payload: [Non-ASCII Detect] -> Search Engine"
+        _bot_say "neural" "Payload: [Non-ASCII Detect] ›› Search Engine"
         am start -a android.intent.action.WEB_SEARCH -e query "$input" >/dev/null 2>&1
     elif [[ "$input" == http* ]] || ([[ "$input" == *.* ]] && [[ "$input" != *" "* ]]); then
         local target="$input"
@@ -72,7 +72,7 @@ function wb() {
         _bot_say "launch" "Target Lock: $target"
         am start -a android.intent.action.VIEW -d "$target" >/dev/null 2>&1
     else
-        _bot_say "neural" "Payload: \"$input\" -> Search Engine"
+        _bot_say "neural" "Payload: \"$input\" ›› Search Engine"
         am start -a android.intent.action.WEB_SEARCH -e query "$input" >/dev/null 2>&1
     fi
 }
