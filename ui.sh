@@ -46,9 +46,10 @@ function _system_check() {
 
 # 顯示系統資訊 HUD - Display System Info HUD
 function _show_hud() {
-local screen_width=$(tput cols)
+    local screen_width=$(tput cols)
     local box_width=$(( screen_width < 22 ? 22 : screen_width - 2 ))
-    local content_limit=$(( box_width - 18 ))
+    local content_limit=$(( box_width - 13 ))
+    
     [ "$content_limit" -lt 5 ] && content_limit=5
 
     local android_ver=$(getprop ro.build.version.release)
