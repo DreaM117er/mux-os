@@ -188,6 +188,7 @@ _system_lock
         sleep 1
         clear
         _mux_init
+        _system_unlock
         exec bash
     else
         echo -e "\033[1;30m    ›› Reset canceled.\033[0m"
