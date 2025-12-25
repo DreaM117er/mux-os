@@ -211,7 +211,7 @@ function _mux_fuzzy_menu() {
         { prev_line = $0 }
         ' "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD" | \
         fzf --ansi --height=45% --layout=reverse --border \
-            --prompt="🔍 Neural Link > " \
+            --prompt=" :: Neural Link › " \
             --pointer="▶" \
             --marker="✓" \
             --header="[Select Protocol to Execute]" \
@@ -221,8 +221,7 @@ function _mux_fuzzy_menu() {
     if [ -n "$selected" ]; then
         local cmd_to_run=$(echo "$selected" | awk '{print $1}')
         
-        echo ""
-        echo -ne "\033[1;33m⚡ $cmd_to_run \033[1;30m(Params?): \033[0m"
+        echo -ne "\033[1;33m :: $cmd_to_run \033[1;30m(Params?): \033[0m"
         read -e params < /dev/tty
         
         local final_cmd="$cmd_to_run"
