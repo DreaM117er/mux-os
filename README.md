@@ -63,23 +63,17 @@ Mux-OS 的誕生，源於我與 AI (Gemini) 的一場關於 Termux 的辯論。�
 ### 1. 前置需求
 請確保你使用的是 **GitHub 版本** 或  **F-Droid 版本** 的 Termux (Google Play 版本已停止維護)。
 
-### 2. 下載與部署
+### 2. 下載、安裝及部署
 在 Termux 中輸入以下指令：
 
 ```bash
 pkg update && pkg install git -y
 git clone https://github.com/DreaM117er/mux-os.git
 cd mux-os
-```
-*(安裝Git、把Mux-OS下載下來)*
-
-### 3. 安裝系統
-
-```bash
-chmod +x install.sh
+istall.sh
 ./install.sh
 ```
-*(第一次執行core會將需要的功能做引導式的安裝，請照著指示操作即可。)*
+*(第一次執行core會將需要的功能安裝起來，請直接下指令即可)*
 
 ## 使用指南 (Usage)
 
