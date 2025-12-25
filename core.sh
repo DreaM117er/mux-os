@@ -7,6 +7,7 @@ export MUX_ROOT="$HOME/mux-os"
 export BASE_DIR="$MUX_ROOT"
 
 # 模組註冊表 - Module Registry
+export CORE_MOD="$BASE_DIR/core.sh"
 export BOT_MOD="$BASE_DIR/bot.sh"
 export UI_MOD="$BASE_DIR/ui.sh"
 export SYSTEM_MOD="$BASE_DIR/system.sh"

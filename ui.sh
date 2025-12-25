@@ -156,7 +156,7 @@ function _show_menu_dashboard() {
         }
     }
     { prev_line = $0 }
-    ' "$0" "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD"
+    ' "$CORE_MOD" "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD"
     
     echo -e "\n"
 }
@@ -209,7 +209,7 @@ function _mux_fuzzy_menu() {
             }
         }
         { prev_line = $0 }
-        ' "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD" | \
+        ' "$CORE_MOD" "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD" | \
         fzf --ansi --height=45% --layout=reverse --border \
             --prompt=" :: Neural Link › " \
             --pointer="▶" \
