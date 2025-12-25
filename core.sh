@@ -1,311 +1,44 @@
 #!/bin/bash
 
-export MUX_VERSION="1.7.8"
+# 基礎路徑與版本定義 - Base Paths and Version Definition
+export MUX_VERSION="2.0.0"
 export MUX_ROOT="$HOME/mux-os"
+export BASE_DIR="$MUX_ROOT"
 
-BASE_DIR="$HOME/mux-os"
-SYSTEM_MOD="$BASE_DIR/system.sh"
-APP_MOD="$BASE_DIR/app.sh"
-VENDOR_MOD="$BASE_DIR/vendor.sh"
-INSTALLER="$BASE_DIR/install.sh"
+# 模組註冊表 - Module Registry
+export BOT_MOD="$BASE_DIR/bot.sh"
+export UI_MOD="$BASE_DIR/ui.sh"
+export SYSTEM_MOD="$BASE_DIR/system.sh"
+export VENDOR_MOD="$BASE_DIR/vendor.sh"
+export APP_MOD="$BASE_DIR/app.sh"
 
-if [ ! -d "$HOME/storage" ]; then
-    echo " > Initializing Storage Permission..."
-    echo " > Please allow file access in the popup window."
-    termux-setup-storage
-    sleep 2
-fi
+# 按依賴順序排列：Bot & UI 必須最先載入 - Order by dependency: Bot & UI must load first
+MODULES=(
+    "$BOT_MOD"
+    "$UI_MOD"
+    "$SYSTEM_MOD"
+    "$VENDOR_MOD"
+    "$APP_MOD"
+)
 
-if ! command -v git &> /dev/null; then
-    echo " > Installing Git..."
-    pkg update -y && pkg install git -y
-fi
-
-if [ ! -f "$VENDOR_MOD" ]; then
-    echo " > First time setup detected..."
-    
-    if [ -f "$INSTALLER" ]; then
-        echo " > Granting permission to installer..."
-        chmod +x "$INSTALLER"
-        
-        echo " > Running auto-configuration..."
-        "$INSTALLER"
+# 核心自動掃描 - Core Auto-Scan & Load
+for mod in "${MODULES[@]}"; do
+    if [ -f "$mod" ]; then
+        source "$mod"
     else
-        echo "❌ Error: install.sh not found!"
+        case "$mod" in
+            "$SYSTEM_MOD") echo -e "\033[1;31m❌ Critical Error: system.sh missing!\033[0m" ;;
+            "$APP_MOD")    echo "# === My Apps ===" > "$mod" && source "$mod" ;;
+            *)             : ;;
+        esac
     fi
-fi
+done
 
-if [ -f "$SYSTEM_MOD" ]; then
-    source "$SYSTEM_MOD"
-else
-    echo -e "\033[1;31m❌ Error: system.sh module missing!\033[0m"
-fi
+# 環境初始化檢測 (僅在必要時運行) - Environment Initialization Check (Run if necessary)
+[ ! -d "$HOME/storage" ] && { echo " > Setup Storage..."; termux-setup-storage; sleep 2; }
+[ ! -f "$VENDOR_MOD" ] && [ -f "$INSTALLER" ] && { chmod +x "$INSTALLER"; "$INSTALLER"; }
 
-if [ -f "$VENDOR_MOD" ]; then
-    source "$VENDOR_MOD"
-fi
-
-if [ -f "$APP_MOD" ]; then
-    source "$APP_MOD"
-else
-    echo "# === My Apps ===" > "$APP_MOD"
-fi
-
-function _draw_logo() {
-    echo -e "\033[1;36m"
-    cat << "EOF"
-  __  __                  ___  ____  
- |  \/  |_   ___  __     / _ \/ ___| 
- | |\/| | | | \ \/ /____| | | \___ \ 
- | |  | | |_| |>  <_____| |_| |___) |
- |_|  |_|\__,_/_/\_\     \___/|____/ 
-EOF
-    echo -e "\033[0m"
-    echo -e " \033[1;30m:: Mux-OS Core v$MUX_VERSION :: Target: Android/Termux ::\033[0m"
-    echo ""
-}
-
-function _system_check() {
-    local C_RESET="\033[0m"
-    local C_CHECK="\033[1;32m✓\033[0m"
-    local C_FAIL="\033[1;31m✗\033[0m"
-    local C_WARN="\033[1;33m!\033[0m"
-    local C_PROC="\033[1;33m⟳\033[0m"
-
-    local DELAY_ANIM=0.08
-    local DELAY_STEP=0.02
-
-    function _run_step() {
-        local msg="$1"
-        local status="${2:-0}"
-        
-        echo -ne " $C_PROC $msg\r"
-        sleep $DELAY_ANIM
-        
-        if [ "$status" -eq 0 ]; then
-            echo -e " $C_CHECK $msg                    "
-        elif [ "$status" -eq 1 ]; then
-            echo -e " $C_FAIL $msg \033[1;31m[OFFLINE]\033[0m"
-        else
-            echo -e " $C_WARN $msg \033[1;33m[UNKNOWN]\033[0m"
-        fi
-        sleep $DELAY_STEP
-    }
-
-    _run_step "Initializing Kernel Bridge..." 0
-
-    local brand=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]')
-    if [ -n "$brand" ]; then
-        _run_step "Mounting Vendor Ecosystem [$brand]..." 0
-    else
-        _run_step "Mounting Vendor Ecosystem..." 2
-    fi
-
-    if command -v fzf &> /dev/null; then
-        _run_step "Verifying Neural Link (fzf)..." 0
-    else
-        _run_step "Verifying Neural Link (fzf)..." 1
-    fi
-
-    _run_step "Calibrating Touch Matrix..." 0
-    _run_step "Bypassing Knox Security Layer..." 0
-    _run_step "Establish Uplink..." 0
-    echo ""
-}
-
-function _show_hud() {
-    local screen_width=$(tput cols)
-    local box_width=$((screen_width - 2))
-    local content_limit=$((box_width - 13))
-    local android_ver=$(getprop ro.build.version.release)
-    local brand_raw=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]' | cut -c1)$(getprop ro.product.brand | tr '[:upper:]' '[:lower:]' | cut -c2-)
-    local model=$(getprop ro.product.model)
-    local host_str="$brand_raw $model (Android $android_ver)"
-    
-    local kernel_ver=$(uname -r | awk -F- '{print $1}')
-    local mem_info=$(free -h | awk '/Mem:/ {print $3 "/" $2}')
-
-    if [ ${#host_str} -gt $content_limit ]; then
-        host_str="${host_str:0:$((content_limit - 2))}.."
-    fi
-    if [ ${#kernel_ver} -gt $content_limit ]; then
-        kernel_ver="${kernel_ver:0:$((content_limit - 2))}.."
-    fi
-
-    local border_len=$((box_width - 2))
-    local border_line=$(printf '═%.0s' $(seq 1 $border_len))
-   
-    echo -e "\033[1;34m╔${border_line}╗\033[0m"
-    printf "\033[1;34m║\033[0m \033[1;37mHOST   \033[0m: %-*s \033[1;34m║\033[0m\n" $content_limit "$host_str"
-    printf "\033[1;34m║\033[0m \033[1;37mKERNEL \033[0m: %-*s \033[1;34m║\033[0m\n" $content_limit "$kernel_ver"
-    printf "\033[1;34m║\033[0m \033[1;37mMEMORY \033[0m: %-*s \033[1;34m║\033[0m\n" $content_limit "$mem_info"
-    echo -e "\033[1;34m╚${border_line}╝\033[0m"
-    echo ""
-}
-
-function _bot_say() {
-    local mood="$1"
-    local detail="$2"
-    
-    local C_RESET="\033[0m"
-    local C_CYAN="\033[1;36m"
-    local C_GREEN="\033[1;32m"
-    local C_RED="\033[1;31m"
-    local C_YELLOW="\033[1;33m"
-    local C_GRAY="\033[1;30m"
-
-    local icon=""
-    local color=""
-    local phrases=()
-
-    case "$mood" in
-        "hello")
-            icon="🤖"
-            color=$C_CYAN
-            phrases=(
-                " Mux-OS online. Awaiting input."
-                " Systems nominal. Ready when you are."
-                " Greetings, Commander."
-                " Core logic initialized."
-                " At your service."
-                " Digital horizon secure. What's next?"
-                " I am ready to serve."
-                " Yo, Commander. Systems ready."
-                " Mux-OS awake. Coffee time?"
-                " What are we building today?"
-                " System green. Vibes good."
-                " Back online. Let's rock."
-                " I was sleeping... but okay, I'm up."
-            )
-            ;;
-        "success")
-            icon="✅"
-            color=$C_GREEN
-            phrases=(
-                " Execution perfect."
-                " As you commanded."
-                " Consider it done."
-                " Operation successful."
-                " That was easy."
-                " I have arranged the bits as requested."
-                " Smooth as silk."
-                " Boom. Done."
-                " Too easy."
-                " Nailed it."
-                " Smooth."
-                " I'm actually a genius."
-                " Sorted."
-                " Consider it handled."
-            )
-            ;;
-        "neural")
-            icon="🌐"
-            color=$C_CYAN
-            phrases=(
-                " Establishing Neural Link..."       
-                " Injecting query into Datasphere..."
-                " Handshaking with the Grid..."
-                " Accessing Global Network..."
-                " Broadcasting intent..."
-                " Opening digital gateway..."
-                " Uplink established."
-            )
-            ;;
-        "error")
-            icon="🚫"
-            color=$C_RED
-            phrases=(
-                " I'm afraid I can't do that."
-                " Mission failed successfully."
-                " Computer says no."
-                " That... didn't go as planned."
-                " Protocol mismatch. Try again."
-                " My logic circuits refuse this request."
-                " User error... presumably."
-                " Yeah... that's a negative."
-                " Oof. That didn't work."
-                " I refuse to do that."
-                " You typed that wrong, didn't you?"
-                " 404: Motivation not found."
-                " Mission failed... awkwardly."
-                " Computer says no."
-            )
-            ;;
-        "no_args")
-            icon="⚠️"
-            color=$C_YELLOW
-            phrases=(
-                " I need less talking, more action. (No args please)"
-                " That command stands alone."
-                " Don't complicate things."
-                " Arguments are irrelevant here."
-                " Just the command, nothing else."
-                " Whoa, too many words."
-                " Just the command, chief."
-                " I don't need arguments for this."
-                " Solo command only."
-                " Don't complicate things."
-                " Chill with the parameters."
-            )
-            ;;
-        "loading")
-            icon="⏳"
-            color=$C_GRAY
-            phrases=(
-                " Processing..."
-                " Entropy increasing..."
-                " Calculating probabilities..."
-                " Hold your horses..."
-                " Compiling reality..."
-                " Hold up..."
-                " Gimme a sec..."
-                " Doing the magic..."
-                " Processing... maybe."
-                " One moment..."
-            )
-            ;;
-        "launch")
-            icon="🚀"
-            color=$C_CYAN
-            phrases=(
-                " Spinning up module..."
-                " Injecting payload..."
-                " Materializing interface..."
-                " Accessing neural partition..."
-                " Construct loading..."
-                " Summoning application..."
-                " Executing launch sequence..."
-            )
-            ;;
-        "system")
-            icon="⚡"
-            color=$C_YELLOW
-            phrases=(
-                " Interfacing with Host Core..."
-                " Modulating system parameters..." 
-                " Establishing neural link..."
-                " Overriding droid protocols..."
-                " Syncing with hardware layer..."
-                " Requesting host compliance..."
-                " Accessing control matrix..."
-            )
-            ;;
-        *)
-            icon="💬"
-            color=$C_CYAN
-            phrases=(" Processing: $detail" " I hear you." " Input received.")
-            ;;
-    esac
-
-    local rand_index=$(( RANDOM % ${#phrases[@]} ))
-    local selected_phrase="${phrases[$rand_index]}"
-
-    echo -e "${color}${icon}${selected_phrase}${C_RESET}"
-    if [ -n "$detail" ]; then
-        echo -e "   ${C_GRAY}> ${detail}${C_RESET}"
-    fi
-}
-
+# 核心指令項 - Core Command Functions
 function _launch_android_app() {
     local app_name="$1"
     local package_name="$2"
@@ -338,6 +71,7 @@ function _launch_android_app() {
     fi
 }
 
+# 無參數檢測輔助函式 - No-Argument Check Helper Function
 function _require_no_args() {
     if [ -n "$1" ]; then
         _bot_say "no_args" "Unexpected input: $*"
@@ -346,7 +80,7 @@ function _require_no_args() {
     return 0
 }
 
-
+# Mux-OS 主指令入口 - Mux-OS Main Command Entry
 function mux() {
     local cmd="$1"
     if [ -z "$cmd" ]; then
@@ -390,167 +124,11 @@ function mux() {
     esac
 }
 
-export MUX_REPO="https://github.com/DreaM117er/mux-os"
-
-function _mux_show_info() {
-    clear
-    _draw_logo
-    
-    local C_CYAN="\033[1;36m"
-    local C_WHITE="\033[1;37m"
-    local C_GRAY="\033[1;30m"
-    local C_RESET="\033[0m"
-    local C_GREEN="\033[1;32m"
-
-    echo -e " ${C_CYAN}:: SYSTEM MANIFEST ::${C_RESET}"
-    echo ""
-    echo -e "  ${C_GRAY}PROJECT    :${C_RESET} ${C_WHITE}Mux-OS (Terminal Environment)${C_RESET}"
-    echo -e "  ${C_GRAY}VERSION    :${C_RESET} ${C_GREEN}v$MUX_VERSION${C_RESET}"
-    echo -e "  ${C_GRAY}CODENAME   :${C_RESET} ${C_CYAN}Neural Link${C_RESET}"
-    echo -e "  ${C_GRAY}ARCHITECT  :${C_RESET} ${C_WHITE}Commander${C_RESET}" 
-    echo -e "  ${C_GRAY}BASE SYS   :${C_RESET} ${C_WHITE}Android $(getprop ro.build.version.release) / Linux $(uname -r | cut -d- -f1)${C_RESET}"
-    echo ""
-    echo -e " ${C_CYAN}:: PHILOSOPHY ::${C_RESET}"
-    echo -e "  ${C_GRAY}\"Logic in mind, Hardware in hand.\"${C_RESET}"
-    echo -e "  ${C_GRAY}Designed for efficiency, built for control.${C_RESET}"
-    echo ""
-    echo -e " ${C_CYAN}:: SOURCE CONTROL ::${C_RESET}"
-    echo -e "  ${C_GRAY}Repo       :${C_RESET} ${C_WHITE}$MUX_REPO${C_RESET}"
-    echo ""
-    
-    echo -ne " ${C_GREEN}👉 Open GitHub Repository? (y/n): ${C_RESET}"
-    read choice
-    
-    if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
-        if command -v wb &> /dev/null; then
-            wb "$MUX_REPO"
-        else
-            am start -a android.intent.action.VIEW -d "$MUX_REPO" >/dev/null 2>&1
-        fi
-    else
-        echo ""
-        _bot_say "system" "Returning to command line..."
-    fi
-}
-
-function _show_menu_dashboard() {
-    echo -e "\n\033[1;33m" [" Mux-OS Command Center "]"\033[0m"
-    
-    awk '
-    BEGIN {
-        COLOR_CAT="\033[1;32m"
-        COLOR_FUNC="\033[1;36m"
-        RESET="\033[0m"
-    }
-
-    /^# ===|^# ---/ {
-        clean_header = $0;
-        gsub(/^# |^#===|^#---|===|---|^-+|-+$|^\s+|\s+$/, "", clean_header);
-        if (length(clean_header) > 0 && clean_header !~ /^[=-]+$/) {
-             print "\n" COLOR_CAT " [" clean_header "]" RESET
-        }
-    }
-    
-    /^function / {
-        match($0, /function ([a-zA-Z0-9_]+)/, arr);
-        func_name = arr[1];
-        
-        if (substr(func_name, 1, 1) != "_") {
-            desc = "";
-            if (prev_line ~ /^# :/) {
-                desc = prev_line;
-                gsub(/^# : /, "", desc);
-            } else if (prev_line ~ /^# [0-9]+\./) {
-                desc = prev_line;
-                gsub(/^# [0-9]+\. /, "", desc);
-            }
-
-            if (length(desc) > 38) {
-                desc = substr(desc, 1, 35) "..";
-            }
-
-            if (desc != "") {
-                printf "  " COLOR_FUNC "%-12s" RESET " %s\n", func_name, desc;
-            }
-        }
-    }
-    { prev_line = $0 }
-    ' "$0" "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD"
-    
-    echo -e "\n"
-}
-
-function _mux_fuzzy_menu() {
-    if ! command -v fzf &> /dev/null; then
-        _show_menu_dashboard
-        
-        echo -e "\n\033[1;33m⚠️  Neural Search Module (fzf) is missing.\033[0m"
-        echo -ne "\033[1;36m📥 Install now to enable interactive interface? (y/n): \033[0m"
-        read choice
-        
-        if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
-            echo " > Installing fzf..."
-            pkg install fzf -y
-            
-            echo -e "\033[1;32m✅ Module installed. Initializing Neural Link...\033[0m"
-            sleep 1
-            _mux_fuzzy_menu
-            return
-        else
-            echo " > Keeping legacy menu."
-            return
-        fi
-    fi
-
-    local selected=$(
-        awk '
-        BEGIN {
-            C_CMD="\033[1;36m"
-            C_DESC="\033[1;30m"
-            C_RESET="\033[0m"
-        }
-        
-        /^function / {
-            match($0, /function ([a-zA-Z0-9_]+)/, arr);
-            func_name = arr[1];
-            
-            if (substr(func_name, 1, 1) != "_" && func_name != "mux") {
-                desc = "";
-                if (prev_line ~ /^# :/) {
-                    desc = prev_line;
-                    gsub(/^# : /, "", desc);
-                }
-                
-                if (desc != "") {
-                    printf C_CMD "%-12s" C_DESC " %s" C_RESET "\n", func_name, desc;
-                }
-            }
-        }
-        { prev_line = $0 }
-        ' "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD" | \
-        fzf --ansi --height=45% --layout=reverse --border \
-            --prompt="🔍 Neural Link > " \
-            --pointer="▶" \
-            --marker="✓" \
-            --header="[Select Protocol to Execute]" \
-            --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red
-    )
-
-    if [ -n "$selected" ]; then
-        local cmd_to_run=$(echo "$selected" | awk '{print $1}')
-        
-        history -s "$cmd_to_run"
-        _bot_say "neural" "Executing: $cmd_to_run"
-        eval "$cmd_to_run"
-    else
-        :
-    fi
-}
-
 function menu() {
     mux menu
 }
 
+# 重新載入核心模組 - Reload Core Modules
 function _mux_reload_kernel() {
     clear
     echo -e "\033[1;33m > System Reload Initiated...\033[0m"
@@ -564,6 +142,7 @@ function _mux_reload_kernel() {
     source "$BASE_DIR/core.sh"
 }
 
+# 強制同步系統狀態 - Force Sync System State
 function _mux_force_reset() {
     _bot_say "system" "Protocol Override: Force Sync"
     echo -e "\033[1;31m⚠️  WARNING: All local changes will be obliterated.\033[0m"
@@ -590,6 +169,7 @@ function _mux_force_reset() {
     fi
 }
 
+# 系統更新檢測與執行 - System Update Check and Execution
 function _mux_update_system() {
     echo " > Checking for updates..."
     cd "$BASE_DIR" || return
@@ -628,6 +208,7 @@ function _mux_update_system() {
     fi
 }
 
+# 主程式啟動體感動畫 - Main Program Startup Animation
 sleep 1.9
 clear
 _draw_logo
