@@ -108,6 +108,9 @@ function mux() {
         "menu"|"m")
             _mux_fuzzy_menu
             ;;
+        "oldmenu"|"om")
+            _show_menu_dashboard
+            ;;
         "info"|"i")
             _mux_show_info
             ;;
@@ -142,6 +145,10 @@ function mux() {
 
 function menu() {
     mux menu
+}
+
+function oldmenu() {
+    mux oldmenu
 }
 
 # 重新載入核心模組 - Reload Core Modules
