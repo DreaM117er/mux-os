@@ -68,7 +68,7 @@ function wb() {
         am start -a android.intent.action.VIEW -d "$target" >/dev/null 2>&1
     else
         _bot_say "neural" "Payload: \"$input\" -> Search Engine"
-        am start -a android.intent.action.VIEW -d "$input" >/dev/null 2>&1
+        am start -a android.intent.action.VIEW -e query "$input" >/dev/null 2>&1
     fi
 }
 
