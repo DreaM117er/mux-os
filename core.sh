@@ -81,6 +81,15 @@ function _require_no_args() {
     return 0
 }
 
+# 系統輸入鎖定與解鎖 - System Input Lock and Unlock
+function _system_lock() {
+    stty -echo -isig
+}
+
+function _system_unlock() {
+    stty echo isig
+}
+
 # Mux-OS 主指令入口 - Mux-OS Main Command Entry
 function mux() {
     local cmd="$1"
@@ -100,7 +109,10 @@ function mux() {
             echo -e "🤖 \033[1;33mMux-OS Core v$MUX_VERSION\033[0m"
             ;;
         "update"|"up")
+            trap 'stty echo isig; exit' ERR INT TERM
+            _system_lock
             _mux_update_system
+            _system_unlock
             ;;
         "help"|"h")
             echo "Available commands:"
@@ -113,10 +125,16 @@ function mux() {
             echo "  mux info      : Show system information"
             ;;
         "reload"|"r")
+            trap 'stty echo isig; exit' ERR INT TERM
+            _system_lock
             _mux_reload_kernel
+            _system_unlock
             ;;
         "reset")
+            trap 'stty echo isig; exit' ERR INT TERM
+            _system_lock
             _mux_force_reset
+            _system_unlock
             ;;
         *)
             echo "Unknown command: $cmd"
