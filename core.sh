@@ -187,9 +187,8 @@ _system_lock
         _bot_say "success" "Timeline restored. Re-engaging Terminal Control..."
         sleep 1
         clear
-        _mux_init
+        ./install.sh
         _system_unlock
-        exec bash
     else
         echo -e "\033[1;30m    ›› Reset canceled.\033[0m"
         _system_unlock
