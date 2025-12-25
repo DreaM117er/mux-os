@@ -185,6 +185,8 @@ _system_lock
         chmod +x "$BASE_DIR/"*.sh
         _bot_say "success" "Timeline restored. Re-engaging Terminal Control..."
         sleep 1
+        clear
+        _mux_init
         exec bash
     else
         echo -e "\033[1;30m    ›› Reset canceled.\033[0m"
