@@ -109,10 +109,7 @@ function mux() {
             echo -e "🤖 \033[1;33mMux-OS Core v$MUX_VERSION\033[0m"
             ;;
         "update"|"up")
-            trap 'stty echo isig; exit' ERR INT TERM
-            _system_lock
             _mux_update_system
-            _system_unlock
             ;;
         "help"|"h")
             echo "Available commands:"
@@ -125,16 +122,10 @@ function mux() {
             echo "  mux info      : Show system information"
             ;;
         "reload"|"r")
-            trap 'stty echo isig; exit' ERR INT TERM
-            _system_lock
             _mux_reload_kernel
-            _system_unlock
             ;;
         "reset")
-            trap 'stty echo isig; exit' ERR INT TERM
-            _system_lock
             _mux_force_reset
-            _system_unlock
             ;;
         *)
             echo "Unknown command: $cmd"
@@ -163,13 +154,17 @@ function _mux_reload_kernel() {
 
 # 強制同步系統狀態 - Force Sync System State
 function _mux_force_reset() {
+    trap 'stty echo isig; exit' ERR INT TERM
+    _system_lock
     _bot_say "system" "Protocol Override: Force Sync"
     echo -e "\033[1;31m :: WARNING: All local changes will be obliterated.\033[0m"
     echo ""
+    _system_unlock
     echo -ne "\033[1;32m :: Confirm system restore? (y/n): \033[0m"
     read choice
     
     if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+        _system_lock
         cd "$BASE_DIR" || return
         
         echo "    ›› Fetching latest protocols..."
@@ -183,13 +178,17 @@ function _mux_force_reset() {
         _bot_say "success" "Timeline synchronized. System clean."
         sleep 1.2
         _mux_reload_kernel
+        _system_unlock
     else
         echo -e "\033[1;30m    ›› Reset canceled.\033[0m"
+        _system_unlock
     fi
 }
 
 # 系統更新檢測與執行 - System Update Check and Execution
 function _mux_update_system() {
+    trap 'stty echo isig; exit' ERR INT TERM
+    _system_lock
     echo -e "\033[1;33m :: Checking for updates...\033[0m"
     cd "$BASE_DIR" || return
 
@@ -200,30 +199,37 @@ function _mux_update_system() {
 
     if [ -z "$REMOTE" ]; then
          echo " ›› Remote branch not found. Skipping check."
+         _system_unlock
          return
     fi
 
     if [ "$LOCAL" = "$REMOTE" ]; then
         echo "    ›› System is up-to-date (v$MUX_VERSION). ✅"
+        _system_unlock
     else
         echo -e "\033[1;33m :: New version available!\033[0m"
         echo ""
+        _system_unlock
         echo -ne "\033[1;32m :: Update Mux-OS now? (y/n): \033[0m"
         read choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+            _system_lock
             echo "    ›› Updating..."
             
             if git pull; then
                 sleep 2.2
                 _mux_reload_kernel
+                _system_unlock
             else
                 _bot_say "error" "Update conflict detected."
                 echo -e "\033[1;31m :: Critical Error: Local timeline divergent.\033[0m"
                 echo -e "\033[1;33m    ›› Suggestion: Run 'mux reset' to force synchronization.\033[0m"
+                _system_unlock
             fi
         else
             echo -e "\033[1;30m    ›› Update canceled.\033[0m"
+            _system_unlock
         fi
     fi
 }
