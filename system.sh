@@ -63,7 +63,7 @@ function wb() {
     input=$(echo "$input" | sed 'y/。．/../' | sed 's/　/ /g')
 
     if echo "$input" | grep -P -q '[^\x00-\x7F]'; then
-        _bot_say "neural" "Payload: \"$input\" -> Search Engine"
+        _bot_say "neural" "Payload: [Multi-byte Detect] -> Search Engine"
         am start -a android.intent.action.WEB_SEARCH -e query "$input" >/dev/null 2>&1
     elif [[ "$input" == http* ]] || ([[ "$input" == *.* ]] && [[ "$input" != *" "* ]]); then
         local target="$input"
