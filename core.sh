@@ -2,145 +2,37 @@
 
 export MUX_VERSION="1.8.8"
 export MUX_ROOT="$HOME/mux-os"
+export BASE_DIR="$HOME/mux-os"
+export MUX_REPO="https://github.com/DreaM117er/mux-os"
 
-BASE_DIR="$HOME/mux-os"
 SYSTEM_MOD="$BASE_DIR/system.sh"
 APP_MOD="$BASE_DIR/app.sh"
 VENDOR_MOD="$BASE_DIR/vendor.sh"
 INSTALLER="$BASE_DIR/install.sh"
 
-if [ ! -d "$HOME/storage" ]; then
-    echo " > Initializing Storage Permission..."
-    echo " > Please allow file access in the popup window."
-    termux-setup-storage
-    sleep 2
-fi
-
-if ! command -v git &> /dev/null; then
-    echo " > Installing Git..."
-    pkg update -y && pkg install git -y
-fi
-
-if [ ! -f "$VENDOR_MOD" ]; then
-    echo " > First time setup detected..."
-    
-    if [ -f "$INSTALLER" ]; then
-        echo " > Granting permission to installer..."
-        chmod +x "$INSTALLER"
-        
-        echo " > Running auto-configuration..."
-        "$INSTALLER"
-    else
-        echo "❌ Error: install.sh not found!"
-    fi
-fi
-
-if [ -f "$SYSTEM_MOD" ]; then
-    source "$SYSTEM_MOD"
-else
-    echo -e "\033[1;31m❌ Error: system.sh module missing!\033[0m"
-fi
-
-if [ -f "$VENDOR_MOD" ]; then
-    source "$VENDOR_MOD"
-fi
-
-if [ -f "$APP_MOD" ]; then
-    source "$APP_MOD"
-else
-    echo "# === My Apps ===" > "$APP_MOD"
-fi
-
-function _draw_logo() {
-    echo -e "\033[1;36m"
-    cat << "EOF"
-  __  __                  ___  ____  
- |  \/  |_   ___  __     / _ \/ ___| 
- | |\/| | | | \ \/ /____| | | \___ \ 
- | |  | | |_| |>  <_____| |_| |___) |
- |_|  |_|\__,_/_/\_\     \___/|____/ 
-EOF
-    echo -e "\033[0m"
-    echo -e " \033[1;30m:: Mux-OS Core v$MUX_VERSION :: Target: Android/Termux ::\033[0m"
-    echo ""
-}
+[ -f "$BASE_DIR/ui.sh" ] && source "$BASE_DIR/ui.sh"
+[ -f "$SYSTEM_MOD" ] && source "$SYSTEM_MOD" || echo -e "\033[1;31m❌ Error: system.sh missing!\033[0m"
+[ -f "$VENDOR_MOD" ] && source "$VENDOR_MOD"
+[ -f "$APP_MOD" ] && source "$APP_MOD" || echo "# === My Apps ===" > "$APP_MOD"
 
 function _system_check() {
-    local C_RESET="\033[0m"
-    local C_CHECK="\033[1;32m✓\033[0m"
-    local C_FAIL="\033[1;31m✗\033[0m"
-    local C_WARN="\033[1;33m!\033[0m"
-    local C_PROC="\033[1;33m⟳\033[0m"
-
-    local DELAY_ANIM=0.08
-    local DELAY_STEP=0.02
-
-    function _run_step() {
-        local msg="$1"
-        local status="${2:-0}"
-        
-        echo -ne " $C_PROC $msg\r"
-        sleep $DELAY_ANIM
-        
-        if [ "$status" -eq 0 ]; then
-            echo -e " $C_CHECK $msg                    "
-        elif [ "$status" -eq 1 ]; then
-            echo -e " $C_FAIL $msg \033[1;31m[OFFLINE]\033[0m"
-        else
-            echo -e " $C_WARN $msg \033[1;33m[UNKNOWN]\033[0m"
-        fi
-        sleep $DELAY_STEP
-    }
-
-    _run_step "Initializing Kernel Bridge..." 0
-
-    local brand=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]')
-    if [ -n "$brand" ]; then
-        _run_step "Mounting Vendor Ecosystem [$brand]..." 0
-    else
-        _run_step "Mounting Vendor Ecosystem..." 2
+    if [ ! -d "$HOME/storage" ]; then
+        echo " > Initializing Storage Permission..."
+        termux-setup-storage
+        sleep 2
     fi
 
-    if command -v fzf &> /dev/null; then
-        _run_step "Verifying Neural Link (fzf)..." 0
-    else
-        _run_step "Verifying Neural Link (fzf)..." 1
+    if ! command -v git &> /dev/null; then
+        echo " > Installing Git..."
+        pkg update -y && pkg install git -y
     fi
-
-    _run_step "Calibrating Touch Matrix..." 0
-    _run_step "Bypassing Knox Security Layer..." 0
-    _run_step "Establish Uplink..." 0
-    echo ""
-}
-
-function _show_hud() {
-    local screen_width=$(tput cols)
-    local box_width=$((screen_width - 2))
-    local content_limit=$((box_width - 13))
-    local android_ver=$(getprop ro.build.version.release)
-    local brand_raw=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]' | cut -c1)$(getprop ro.product.brand | tr '[:upper:]' '[:lower:]' | cut -c2-)
-    local model=$(getprop ro.product.model)
-    local host_str="$brand_raw $model (Android $android_ver)"
     
-    local kernel_ver=$(uname -r | awk -F- '{print $1}')
-    local mem_info=$(free -h | awk '/Mem:/ {print $3 "/" $2}')
-
-    if [ ${#host_str} -gt $content_limit ]; then
-        host_str="${host_str:0:$((content_limit - 2))}.."
+    if [ ! -f "$VENDOR_MOD" ]; then
+        if [ -f "$INSTALLER" ]; then
+            chmod +x "$INSTALLER"
+            "$INSTALLER"
+        fi
     fi
-    if [ ${#kernel_ver} -gt $content_limit ]; then
-        kernel_ver="${kernel_ver:0:$((content_limit - 2))}.."
-    fi
-
-    local border_len=$((box_width - 2))
-    local border_line=$(printf '═%.0s' $(seq 1 $border_len))
-   
-    echo -e "\033[1;34m╔${border_line}╗\033[0m"
-    printf "\033[1;34m║\033[0m \033[1;37mHOST   \033[0m: %-*s \033[1;34m║\033[0m\n" $content_limit "$host_str"
-    printf "\033[1;34m║\033[0m \033[1;37mKERNEL \033[0m: %-*s \033[1;34m║\033[0m\n" $content_limit "$kernel_ver"
-    printf "\033[1;34m║\033[0m \033[1;37mMEMORY \033[0m: %-*s \033[1;34m║\033[0m\n" $content_limit "$mem_info"
-    echo -e "\033[1;34m╚${border_line}╝\033[0m"
-    echo ""
 }
 
 function _bot_say() {
@@ -390,7 +282,7 @@ function mux() {
     esac
 }
 
-export MUX_REPO="https://github.com/DreaM117er/mux-os"
+
 
 function _mux_show_info() {
     clear
@@ -430,129 +322,6 @@ function _mux_show_info() {
     else
         echo ""
         _bot_say "system" "Returning to command line..."
-    fi
-}
-
-function _show_menu_dashboard() {
-    echo -e "\n\033[1;33m" [" Mux-OS Command Center "]"\033[0m"
-    
-    awk '
-    BEGIN {
-        COLOR_CAT="\033[1;32m"
-        COLOR_FUNC="\033[1;36m"
-        RESET="\033[0m"
-    }
-
-    /^# ===|^# ---/ {
-        clean_header = $0;
-        gsub(/^# |^#===|^#---|===|---|^-+|-+$|^\s+|\s+$/, "", clean_header);
-        if (length(clean_header) > 0 && clean_header !~ /^[=-]+$/) {
-             print "\n" COLOR_CAT " [" clean_header "]" RESET
-        }
-    }
-    
-    /^function / {
-        match($0, /function ([a-zA-Z0-9_]+)/, arr);
-        func_name = arr[1];
-        
-        if (substr(func_name, 1, 1) != "_") {
-            desc = "";
-            if (prev_line ~ /^# :/) {
-                desc = prev_line;
-                gsub(/^# : /, "", desc);
-            } else if (prev_line ~ /^# [0-9]+\./) {
-                desc = prev_line;
-                gsub(/^# [0-9]+\. /, "", desc);
-            }
-
-            if (length(desc) > 38) {
-                desc = substr(desc, 1, 35) "..";
-            }
-
-            if (desc != "") {
-                printf "  " COLOR_FUNC "%-12s" RESET " %s\n", func_name, desc;
-            }
-        }
-    }
-    { prev_line = $0 }
-    ' "$0" "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD"
-    
-    echo -e "\n"
-}
-
-function _mux_fuzzy_menu() {
-    if ! command -v fzf &> /dev/null; then
-        _show_menu_dashboard
-        
-        echo -e "\n\033[1;33m⚠️  Neural Search Module (fzf) is missing.\033[0m"
-        echo -ne "\033[1;36m📥 Install now to enable interactive interface? (y/n): \033[0m"
-        read choice
-        
-        if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
-            echo " > Installing fzf..."
-            pkg install fzf -y
-            
-            echo -e "\033[1;32m✅ Module installed. Initializing Neural Link...\033[0m"
-            sleep 1
-            _mux_fuzzy_menu
-            return
-        else
-            echo " > Keeping legacy menu."
-            return
-        fi
-    fi
-
-    local selected=$(
-        awk '
-        BEGIN {
-            C_CMD="\033[1;36m"
-            C_DESC="\033[1;30m"
-            C_RESET="\033[0m"
-        }
-        
-        /^function / {
-            match($0, /function ([a-zA-Z0-9_]+)/, arr);
-            func_name = arr[1];
-            
-            if (substr(func_name, 1, 1) != "_" && func_name != "mux") {
-                desc = "";
-                if (prev_line ~ /^# :/) {
-                    desc = prev_line;
-                    gsub(/^# : /, "", desc);
-                }
-                
-                if (desc != "") {
-                    printf C_CMD "%-12s" C_DESC " %s" C_RESET "\n", func_name, desc;
-                }
-            }
-        }
-        { prev_line = $0 }
-        ' "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD" | \
-        fzf --ansi --height=45% --layout=reverse --border \
-            --prompt="🔍 Neural Link > " \
-            --pointer="▶" \
-            --marker="✓" \
-            --header="[Select Protocol]" \
-            --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red
-    )
-
-    if [ -n "$selected" ]; then
-        local cmd_to_run=$(echo "$selected" | awk '{print $1}')
-        
-        echo -ne "\033[1;33m⚡ $cmd_to_run \033[1;30m(Params?): \033[0m"
-        
-        read -e params < /dev/tty
-        
-        local final_cmd="$cmd_to_run"
-        if [ -n "$params" ]; then
-            final_cmd="$cmd_to_run $params"
-        fi
-        
-        history -s "$final_cmd"
-        _bot_say "neural" "Executing: $final_cmd"
-        eval "$final_cmd"
-    else
-        :
     fi
 }
 
