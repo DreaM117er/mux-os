@@ -181,14 +181,14 @@ _system_lock
         
         local branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
         
-        git reset --hard "origin/$branch"
+        git reset --hard
         
         chmod +x "$BASE_DIR/"*.sh
         _bot_say "success" "Timeline restored. Re-engaging Terminal Control..."
         sleep 1
         clear
-        ./install.sh
         _system_unlock
+        ./install.sh
     else
         echo -e "\033[1;30m    ›› Reset canceled.\033[0m"
         _system_unlock
