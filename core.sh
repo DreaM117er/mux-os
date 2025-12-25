@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export MUX_VERSION="1.6.8"
+export MUX_VERSION="1.7.8"
 export MUX_ROOT="$HOME/mux-os"
 
 BASE_DIR="$HOME/mux-os"
@@ -358,6 +358,9 @@ function mux() {
         "menu"|"m")
             _mux_fuzzy_menu
             ;;
+        "info"|"i")
+            _mux_show_info
+            ;;
         "version"|"v")
             echo -e "🤖 \033[1;33mMux-OS Core v$MUX_VERSION\033[0m"
             ;;
@@ -384,6 +387,49 @@ function mux() {
             echo "Try 'mux help'"
             ;;
     esac
+}
+
+export MUX_REPO="https://github.com/DreaM117er/mux-os"
+
+function _mux_show_info() {
+    clear
+    _draw_logo
+    
+    local C_CYAN="\033[1;36m"
+    local C_WHITE="\033[1;37m"
+    local C_GRAY="\033[1;30m"
+    local C_RESET="\033[0m"
+    local C_GREEN="\033[1;32m"
+
+    echo -e " ${C_CYAN}:: SYSTEM MANIFEST ::${C_RESET}"
+    echo ""
+    echo -e "  ${C_GRAY}PROJECT    :${C_RESET} ${C_WHITE}Mux-OS (Terminal Environment)${C_RESET}"
+    echo -e "  ${C_GRAY}VERSION    :${C_RESET} ${C_GREEN}v$MUX_VERSION${C_RESET}"
+    echo -e "  ${C_GRAY}CODENAME   :${C_RESET} ${C_CYAN}Neural Link${C_RESET}"
+    echo -e "  ${C_GRAY}ARCHITECT  :${C_RESET} ${C_WHITE}Commander${C_RESET}" 
+    echo -e "  ${C_GRAY}BASE SYS   :${C_RESET} ${C_WHITE}Android $(getprop ro.build.version.release) / Linux $(uname -r | cut -d- -f1)${C_RESET}"
+    echo ""
+    echo -e " ${C_CYAN}:: PHILOSOPHY ::${C_RESET}"
+    echo -e "  ${C_GRAY}\"Logic in mind, Hardware in hand.\"${C_RESET}"
+    echo -e "  ${C_GRAY}Designed for efficiency, built for control.${C_RESET}"
+    echo ""
+    echo -e " ${C_CYAN}:: SOURCE CONTROL ::${C_RESET}"
+    echo -e "  ${C_GRAY}Repo       :${C_RESET} ${C_WHITE}$MUX_REPO${C_RESET}"
+    echo ""
+    
+    echo -ne " ${C_GREEN}👉 Open GitHub Repository? (y/n): ${C_RESET}"
+    read choice
+    
+    if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+        if command -v wb &> /dev/null; then
+            wb "$MUX_REPO"
+        else
+            am start -a android.intent.action.VIEW -d "$MUX_REPO" >/dev/null 2>&1
+        fi
+    else
+        echo ""
+        _bot_say "system" "Returning to command line..."
+    fi
 }
 
 function _show_menu_dashboard() {
