@@ -95,7 +95,7 @@ function _mux_show_info() {
     echo -e "  ${C_GRAY}Repo       :${C_RESET} ${C_WHITE}$MUX_REPO${C_RESET}"
     echo ""
     
-    echo -ne " ${C_GREEN} :: Open GitHub Repository? (y/n): ${C_RESET}"
+    echo -ne " ${C_GREEN}:: Open GitHub Repository? (y/n): ${C_RESET}"
     read choice
     
     if [[ "$choice" == "y" || "$choice" == "Y" ]]; then

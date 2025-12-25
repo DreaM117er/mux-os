@@ -57,8 +57,8 @@ function _launch_android_app() {
     if [[ "$output" == *"Error"* ]] || [[ "$output" == *"does not exist"* ]]; then
         _bot_say "error" "Launch Failed: Target package not found."
         echo -e "    Target: $package_name"
-
-        echo -ne "\033[1;36m :: Install from Google Play? (y/n): \033[0m"
+        echo ""
+        echo -ne "\033[1;36m:: Install from Google Play? (y/n): \033[0m"
         read choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
@@ -147,8 +147,8 @@ function _mux_reload_kernel() {
 function _mux_force_reset() {
     _bot_say "system" "Protocol Override: Force Sync"
     echo -e "\033[1;31m🟡  WARNING: All local changes will be obliterated.\033[0m"
-    
-    echo -ne "\033[1;33m :: Confirm system restore? (y/n): \033[0m"
+    echo ""
+    echo -ne "\033[1;33m:: Confirm system restore? (y/n): \033[0m"
     read choice
     
     if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
@@ -189,7 +189,8 @@ function _mux_update_system() {
         echo "✅ System is up-to-date (v$MUX_VERSION)."
     else
         echo "🟡 New version available!"
-        echo -ne "\033[1;36m :: Update Mux-OS now? (y/n): \033[0m"
+        echo ""
+        echo -ne "\033[1;36m:: Update Mux-OS now? (y/n): \033[0m"
         read choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
