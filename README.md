@@ -73,10 +73,11 @@ cd mux-os
 ```
 *(安裝Git、把Mux-OS下載下來)*
 
-### 3. 啓動系統
+### 3. 安裝系統
 
 ```bash
-source ~/mux-os/core.sh
+chmod +x install.sh
+./install.sh
 ```
 *(第一次執行core會將需要的功能做引導式的安裝，請照著指示操作即可。)*
 
