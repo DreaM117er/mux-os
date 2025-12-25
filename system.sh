@@ -63,11 +63,11 @@ function wb() {
 
     if [ "$__GO_MODE" == "neural" ]; then
         _bot_say "neural" "Search Query: \"$*\""
+        am start -a android.intent.action.WEB_SEARCH -e query "$__GO_TARGET" >/dev/null 2>&1
     else
         _bot_say "launch" "Target Lock: $__GO_TARGET"
-    fi
-
-    am start -a android.intent.action.VIEW -d "$__GO_TARGET" >/dev/null 2>&1
+        am start -a android.intent.action.VIEW -d "$__GO_TARGET" >/dev/null 2>&1
+    f
 }
 
 # : AI or Voice Interface
