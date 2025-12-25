@@ -156,9 +156,9 @@ function _mux_reload_kernel() {
 
 # 強制同步系統狀態 - Force Sync System State
 function _mux_force_reset() {
-    _system_lock
-    _bot_say "system" "Protocol Override: Force Sync"
-    echo -e "\033[1;31m :: WARNING: All local changes will be obliterated.\033[0m"
+_system_lock
+    _bot_say "system" "Protocol Override: Force Syncing Timeline..."
+    echo -e "\033[1;31m :: WARNING: Obliterating all local modifications.\033[0m"
     echo ""
     _system_unlock
     echo -ne "\033[1;32m :: Confirm system restore? (y/n): \033[0m"
@@ -168,18 +168,17 @@ function _mux_force_reset() {
         _system_lock
         cd "$BASE_DIR" || return
         
-        echo "    ›› Fetching latest protocols..."
+        echo "    ›› Pulling pristine protocols from origin..."
         git fetch --all
         
         local branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
         
-        echo " ›› Resetting timeline to [origin/$branch]..."
         git reset --hard "origin/$branch"
         
-        _bot_say "success" "Timeline synchronized. System clean."
-        sleep 1.2
-        _mux_reload_kernel
-        _system_unlock
+        chmod +x "$BASE_DIR/"*.sh
+        _bot_say "success" "Timeline restored. Re-engaging Terminal Control..."
+        sleep 1
+        exec bash
     else
         echo -e "\033[1;30m    ›› Reset canceled.\033[0m"
         _system_unlock

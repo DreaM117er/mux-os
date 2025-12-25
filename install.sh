@@ -41,8 +41,8 @@ if ! grep -Fq "$LOAD_CMD" "$RC_FILE"; then
     echo -e "\n# === Mux-OS Auto-Loader ===\n$LOAD_CMD" >> "$RC_FILE"
 fi
 
-# 5. 最後交接：所有權限賦予並啟動
+# 5. 最後交接：所有權限賦予
 chmod +x "$BASE_DIR/"*.sh
-echo " :: Handing over to Core Engine..."
+echo " :: All systems calibrated. Re-engaging Terminal..."
 sleep 1
-source "$BASE_DIR/core.sh"
+exec bash
