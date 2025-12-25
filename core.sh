@@ -186,6 +186,7 @@ function _mux_force_reset() {
         chmod +x "$BASE_DIR/"*.sh
         
         _bot_say "success" "Timeline restored. Re-engaging Terminal Control..."
+        _system_unlock
         sleep 1
 
         exec bash 
