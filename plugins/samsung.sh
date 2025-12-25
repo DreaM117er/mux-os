@@ -121,7 +121,6 @@ function notes() {
 
 # : Screen Recorder
 function rec() {
-_require_no_args "$@" || return 1
     if [ "$1" == "cli" ]; then
         local timestamp=$(date +%Y%m%d_%H%M%S)
         local filename="/sdcard/mux_rec_${timestamp}.mp4"
@@ -136,6 +135,8 @@ _require_no_args "$@" || return 1
         
         am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d "file://$filename" >/dev/null 2>&1
         return
+    else
+        _require_no_args "$@" || return 1
     fi
 
     _bot_say "system" "Accessing Recorder Configuration..."
