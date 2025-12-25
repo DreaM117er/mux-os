@@ -2,7 +2,7 @@
 
 # 基礎路徑與版本定義 - Base Paths and Version Definition
 export MUX_REPO="https://github.com/DreaM117er/mux-os"
-export MUX_VERSION="2.0.1"
+export MUX_VERSION="2.1.0"
 export MUX_ROOT="$HOME/mux-os"
 export BASE_DIR="$MUX_ROOT"
 
@@ -150,7 +150,6 @@ function _mux_reload_kernel() {
     clear
     echo -e "\033[1;33m :: System Reload Initiated...\033[0m"
     unset MUX_INITIALIZED
-    [ -f "$MUX_ROOT/install.sh" ] && bash "$MUX_ROOT/install.sh"
     source "$MUX_ROOT/core.sh"
     _system_unlock
 }
