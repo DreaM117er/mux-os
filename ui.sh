@@ -95,7 +95,7 @@ function _mux_show_info() {
     echo -e "  ${C_GRAY}Repo       :${C_RESET} ${C_WHITE}$MUX_REPO${C_RESET}"
     echo ""
     
-    echo -ne " ${C_GREEN}👉 Open GitHub Repository? (y/n): ${C_RESET}"
+    echo -ne " ${C_GREEN} :: Open GitHub Repository? (y/n): ${C_RESET}"
     read choice
     
     if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
@@ -163,8 +163,8 @@ function _mux_fuzzy_menu() {
     if ! command -v fzf &> /dev/null; then
         _show_menu_dashboard
         
-        echo -e "\n\033[1;33m⚠️  Neural Search Module (fzf) is missing.\033[0m"
-        echo -ne "\033[1;36m📥 Install now to enable interactive interface? (y/n): \033[0m"
+        echo -e "\n\033[1;33m🔴  Neural Search Module (fzf) is missing.\033[0m"
+        echo -ne "\033[1;36m :: Install now to enable interactive interface? (y/n): \033[0m"
         read choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then

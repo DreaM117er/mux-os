@@ -159,5 +159,5 @@ function _bot_say() {
     local selected_phrase="${phrases[$rand_index]}"
 
     echo -e "${color}${icon}${selected_phrase}${C_RESET}"
-    [ -n "$detail" ] && echo -e "   ${C_GRAY}> ${detail}${C_RESET}"
+    [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
 }
