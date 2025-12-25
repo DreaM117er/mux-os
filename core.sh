@@ -537,9 +537,8 @@ function _mux_fuzzy_menu() {
             --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red
     )
 
-    if [ -n "$selected" ]; then
+if [ -n "$selected" ]; then
         local cmd_to_run=$(echo "$selected" | awk '{print $1}')
-        
         echo ""
         echo -ne "\033[1;33m⚡ $cmd_to_run \033[1;30m(Params?): \033[0m"
         read -e params
@@ -548,10 +547,10 @@ function _mux_fuzzy_menu() {
         if [ -n "$params" ]; then
             final_cmd="$cmd_to_run $params"
         fi
-
+        
         history -s "$final_cmd"
         _bot_say "neural" "Executing: $final_cmd"
-        eval "$final_cmd"
+        eval "$final_cmd"    
     else
         :
     fi
