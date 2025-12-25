@@ -592,7 +592,7 @@ function _mux_force_reset() {
         git reset --hard "origin/$branch"
         
         _bot_say "success" "Timeline synchronized. System clean."
-        sleep 1.2
+        sleep 0.9
         _mux_reload_kernel
     else
         echo " > Reset canceled."
