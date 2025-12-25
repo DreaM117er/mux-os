@@ -2,7 +2,7 @@
 
 # 基礎路徑與版本定義 - Base Paths and Version Definition
 export MUX_REPO="https://github.com/DreaM117er/mux-os"
-export MUX_VERSION="2.0.0"
+export MUX_VERSION="2.0.1"
 export MUX_ROOT="$HOME/mux-os"
 export BASE_DIR="$MUX_ROOT"
 
@@ -83,13 +83,17 @@ function _require_no_args() {
 
 # 系統輸入鎖定與解鎖 - System Input Lock and Unlock
 function _system_lock() {
-    trap 'stty echo isig' INT TERM
-    stty -echo -isig
+    stty -echo
 }
 
 function _system_unlock() {
-    stty echo isig
-    trap - INT TERM
+    stty echo
+}
+
+# 安全介面寬度計算 - Safe UI Width Calculation
+function _safe_ui_calc() {
+    local width=$(tput cols)
+    content_limit=$(( width > 10 ? width - 10 : 2 ))
 }
 
 # Mux-OS 主指令入口 - Mux-OS Main Command Entry
@@ -142,17 +146,13 @@ function menu() {
 
 # 重新載入核心模組 - Reload Core Modules
 function _mux_reload_kernel() {
+    _system_lock
     clear
     echo -e "\033[1;33m :: System Reload Initiated...\033[0m"
     unset MUX_INITIALIZED
-    if [ -f "$INSTALLER" ]; then
-        echo "    ›› Re-calibrating vendor ecosystem..."
-        chmod +x "$INSTALLER"
-        "$INSTALLER"
-    else
-        echo -e "\033[1;31m :: Installer module not found. Skipping vendor config.\033[0m"
-    fi
-    source "$BASE_DIR/core.sh"
+    [ -f "$MUX_ROOT/install.sh" ] && bash "$MUX_ROOT/install.sh"
+    source "$MUX_ROOT/core.sh"
+    _system_unlock
 }
 
 # 強制同步系統狀態 - Force Sync System State
@@ -237,22 +237,16 @@ function _mux_update_system() {
 
 # 主程式啟動體感動畫 - Main Program Startup Animation
 function _mux_init() {
-    if [ "$MUX_INITIALIZED" = "true" ]; then
-        return
-    fi
+if [ "$MUX_INITIALIZED" = "true" ]; then return; fi
     _system_lock
-
-    sleep 1.9
+    _safe_ui_calc
     clear
     _draw_logo
     _system_check
     _show_hud
-    sleep 0.4
-    echo ""
-    _bot_say "hello"
-
     export MUX_INITIALIZED="true"
     _system_unlock
+    _bot_say "hello"
 }
 
 _mux_init

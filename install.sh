@@ -4,6 +4,19 @@ BASE_DIR="$HOME/mux-os"
 PLUGIN_DIR="$BASE_DIR/plugins"
 VENDOR_TARGET="$BASE_DIR/vendor.sh"
 
+echo " :: Initiating Vendor Ecosystem Mounting..."
+
+PACKAGES=(ncurses-utils fzf git termux-api)
+
+for pkg in "${PACKAGES[@]}"; do
+    if ! command -v "$pkg" &> /dev/null; then
+        echo "    ›› Installing missing component: $pkg"
+        pkg install "$pkg" -y
+    fi
+done
+
+echo " :: Ecosystem Calibration Complete. ✅"
+
 echo -e "\033[1;33m :: Detecting Device Identity...\033[0m"
 
 BRAND=$(getprop ro.product.brand | tr '[:upper:]' '[:lower:]' | xargs)
