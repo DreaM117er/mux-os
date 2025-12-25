@@ -59,15 +59,18 @@ function wb() {
         return
     fi
 
-    _resolve_smart_url "" "$@"
+    local input="$*"
 
-    if [ "$__GO_MODE" == "neural" ]; then
-        _bot_say "neural" "Search Query: \"$*\""
-        am start -a android.intent.action.WEB_SEARCH -e query "$__GO_TARGET" >/dev/null 2>&1
+    if [[ "$input" == http* ]] || ([[ "$input" == *.* ]] && [[ "$input" != *" "* ]]); then
+        local target="$input"
+        [[ "$target" != http* ]] && target="https://$target"
+        _bot_say "launch" "Target Lock: $target"
+        am start -a android.intent.action.VIEW -d "$target" >/dev/null 2>&1
     else
-        _bot_say "launch" "Target Lock: $__GO_TARGET"
-        am start -a android.intent.action.VIEW -d "$__GO_TARGET" >/dev/null 2>&1
-    f
+        _bot_say "neural" "Payload: \"$input\" -> Search Engine"
+        local search_url="${SEARCH_GOOGLE}${input}"
+        am start -a android.intent.action.VIEW -d "$search_url" >/dev/null 2>&1
+    fi
 }
 
 # : AI or Voice Interface
