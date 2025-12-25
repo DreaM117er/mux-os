@@ -122,21 +122,31 @@ function notes() {
 # : Screen Recorder
 function rec() {
 _require_no_args "$@" || return 1
-    _bot_say "system" "Accessing Recorder Protocol..."
-
-    am start -n com.samsung.android.app.smartcapture/com.samsung.android.app.smartcapture.capture.CaptureActivity >/dev/null 2>&1
-    
-    if [ $? -eq 0 ]; then
-        return 0
+    if [ "$1" == "cli" ]; then
+        local timestamp=$(date +%Y%m%d_%H%M%S)
+        local filename="/sdcard/mux_rec_${timestamp}.mp4"
+        
+        _bot_say "system" "Initializing Native Capture Protocol..."
+        echo -e "\033[1;31m🔴 Recording... Press Ctrl+C to stop.\033[0m"
+        
+        /system/bin/screenrecord --time-limit 180 --verbose "$filename"
+        
+        echo ""
+        _bot_say "success" "Footage saved: $filename"
+        
+        am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d "file://$filename" >/dev/null 2>&1
+        return
     fi
 
-    _bot_say "warn" "Direct uplink failed. Opening Config."
+    _bot_say "system" "Accessing Recorder Configuration..."
     
     am start -a android.intent.action.MAIN \
-             -n com.samsung.android.app.screenrecorder/com.samsung.android.app.screenrecorder.setting.ScreenRecorderSettingActivity >/dev/null 2>&1
-
-    if [ $? -ne 0 ]; then
-         am start -a android.intent.action.MAIN \
-                  -n com.samsung.android.app.smartcapture/com.samsung.android.app.smartcapture.setting.SmartCaptureSettingsActivity >/dev/null 2>&1
+             -n com.samsung.android.app.smartcapture/com.samsung.android.app.smartcapture.setting.SmartCaptureSettingsActivity >/dev/null 2>&1
+    
+    if [ $? -eq 0 ]; then
+        _bot_say "neural" "Config uplink established. Manual trigger required."
+    else
+        _bot_say "error" "Uplink blocked. System UI restriction active."
+        echo " > Tip: Use 'rec cli' for direct silent recording."
     fi
 }
