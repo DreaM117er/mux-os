@@ -60,10 +60,12 @@ function wb() {
     fi
 
     local input="$*"
+    input=$(echo "$input" | sed 'y/。．/../' | sed 's/　/ /g')
 
-    if [[ "$input" == http* ]] || ([[ "$input" == *.* ]] && [[ "$input" != *" "* ]]); then
+if [[ "$input" == http* ]] || ([[ "$input" =~ \.[a-zA-Z]{2,} ]] && [[ "$input" != *" "* ]]); then
         local target="$input"
         [[ "$target" != http* ]] && target="https://$target"
+        
         _bot_say "launch" "Target Lock: $target"
         am start -a android.intent.action.VIEW -d "$target" >/dev/null 2>&1
     else
