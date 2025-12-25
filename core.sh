@@ -164,7 +164,7 @@ function _mux_reload_kernel() {
 
 # 強制同步系統狀態 - Force Sync System State
 function _mux_force_reset() {
-_system_lock
+    _system_lock
     _bot_say "system" "Protocol Override: Force Syncing Timeline..."
     echo -e "\033[1;31m :: WARNING: Obliterating all local modifications.\033[0m"
     echo ""
@@ -181,14 +181,14 @@ _system_lock
         
         local branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
         
-        git reset --hard
+        git reset --hard "origin/$branch"
         
         chmod +x "$BASE_DIR/"*.sh
+        
         _bot_say "success" "Timeline restored. Re-engaging Terminal Control..."
         sleep 1
-        clear
-        _system_unlock
-        ./install.sh
+
+        exec bash 
     else
         echo -e "\033[1;30m    ›› Reset canceled.\033[0m"
         _system_unlock

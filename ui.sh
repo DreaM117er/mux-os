@@ -167,11 +167,11 @@ function _mux_fuzzy_menu() {
         _show_menu_dashboard
         
         echo -e "\n\033[1;31m :: Neural Search Module (fzf) is missing.\033[0m"
-        echo -ne "\033[1;32m :: Install now to enable interactive interface? (y/n): \033[0m"
+        echo -ne "\033[1;32m :: Install interactive interface? (y/n): \033[0m"
         read choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
-            echo " > Installing fzf..."
+            echo "    ›› Installing fzf..."
             pkg install fzf -y
             
             echo "\033[1;32m    ›› Module installed. Initializing Neural Link... ✅\033[0m"
@@ -179,7 +179,7 @@ function _mux_fuzzy_menu() {
             _mux_fuzzy_menu
             return
         else
-            echo " > Keeping legacy menu."
+            echo -e "\033[1;30m    ›› Keeping legacy menu.\033[0m"
             return
         fi
     fi
