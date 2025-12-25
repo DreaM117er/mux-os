@@ -138,7 +138,7 @@ function _mux_reload_kernel() {
         chmod +x "$INSTALLER"
         "$INSTALLER"
     else
-        echo "❌ Installer module not found. Skipping vendor config."
+        echo -e "\033[1;31m :: Installer module not found. Skipping vendor config.\033[0m"
     fi
     source "$BASE_DIR/core.sh"
 }
@@ -166,7 +166,7 @@ function _mux_force_reset() {
         sleep 1.2
         _mux_reload_kernel
     else
-        echo -e "\033[1;36m ›› Reset canceled.\033[0m"
+        echo -e "\033[1;30m    ›› Reset canceled.\033[0m"
     fi
 }
 
@@ -190,7 +190,7 @@ function _mux_update_system() {
     else
         echo -e "\033[1;33m :: New version available!\033[0m"
         echo ""
-        echo -ne "\033[1;32m:: Update Mux-OS now? (y/n): \033[0m"
+        echo -ne "\033[1;32m :: Update Mux-OS now? (y/n): \033[0m"
         read choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
@@ -202,10 +202,10 @@ function _mux_update_system() {
             else
                 _bot_say "error" "Update conflict detected."
                 echo -e "\033[1;31m :: Critical Error: Local timeline divergent.\033[0m"
-                echo -e "\033[1;33m ›› Suggestion: Run 'mux reset' to force synchronization.\033[0m"
+                echo -e "\033[1;33m    ›› Suggestion: Run 'mux reset' to force synchronization.\033[0m"
             fi
         else
-            echo -e "\033[1;36m ›› Update canceled.\033[0m"
+            echo -e "\033[1;30m    ›› Update canceled.\033[0m"
         fi
     fi
 }
