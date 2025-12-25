@@ -83,13 +83,13 @@ function _require_no_args() {
 
 # 系統輸入鎖定與解鎖 - System Input Lock and Unlock
 function _system_lock() {
-    trap 'stty echo isig; exit' ERR INT TERM
+    trap 'stty echo isig' INT TERM
     stty -echo -isig
 }
 
 function _system_unlock() {
     stty echo isig
-    trap - ERR INT TERM
+    trap - INT TERM
 }
 
 # Mux-OS 主指令入口 - Mux-OS Main Command Entry
