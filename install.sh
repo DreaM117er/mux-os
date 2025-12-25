@@ -11,6 +11,7 @@ BRAND=$(getprop ro.product.brand | tr '[:upper:]' '[:lower:]' | xargs)
 case "$BRAND" in
     "redmi"|"poco") BRAND="xiaomi" ;;
     "rog"|"asus")   BRAND="asus" ;;
+    "samsung")      BRAND="samsung" ;;
 esac
 
 echo " > Device Brand Detected: [$BRAND]"

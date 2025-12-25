@@ -22,10 +22,57 @@ function edge() {
     am start -a android.intent.action.VIEW -d "$__GO_TARGET" -p "$pkg" >/dev/null 2>&1
 }
 
+# : Chrome
+function chrome() {
+    local pkg="com.android.chrome"
+    
+    if [ -z "$1" ]; then
+        _launch_android_app "Chrome" "$pkg" "com.google.android.apps.chrome.Main"
+        return
+    fi
+
+    _resolve_smart_url "$SEARCH_GOOGLE" "$@"
+    
+    if [ "$__GO_MODE" == "neural" ]; then
+        _bot_say "neural" "Chrome Search: \"$*\""
+    else
+        _bot_say "launch" "Chrome Target: $__GO_TARGET"
+    fi
+    
+    am start -a android.intent.action.VIEW -d "$__GO_TARGET" -p "$pkg" >/dev/null 2>&1
+}
+
+# : YouTube APP
+function yt() {
+    local pkg="com.google.android.youtube"
+    local yt_engine="https://www.youtube.com/results?search_query="
+
+    if [ -z "$1" ]; then
+        _launch_android_app "YouTube" "$pkg" "com.google.android.youtube.HomeActivity"
+        return
+    fi
+
+    _resolve_smart_url "$yt_engine" "$@"
+
+    if [ "$__GO_MODE" == "neural" ]; then
+        _bot_say "neural" "Broadcasting Stream: \"$*\""
+    else
+        _bot_say "launch" "Video Link: $__GO_TARGET"
+    fi
+
+    am start -a android.intent.action.VIEW -d "$__GO_TARGET" -p "$pkg" >/dev/null 2>&1
+}
+
 # : Mega Sync
 function mega() {
     _require_no_args "$@" || return 1
     _launch_android_app "Mega" "mega.privacy.android.app" "mega.privacy.android.app.main.ManagerActivity"
+}
+
+# : OneDrive
+function onedrive() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "OneDrive" "com.microsoft.skydrive" "com.microsoft.skydrive.MainActivity"
 }
 
 # === Google Suite ===
@@ -268,3 +315,10 @@ function ezway() {
     _launch_android_app "EZ Way" "com.tradevan.android.forms" "com.tradevan.android.forms.ui.activity.SplashActivity"
 }
 
+# === Tools & Utilities ===
+
+# : RAR Archiver
+function rartool() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "RAR" "com.rarlab.rar" "com.rarlab.rar.MainActivity"
+}

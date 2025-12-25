@@ -20,6 +20,24 @@ function calendar() {
     _launch_android_app "Calendar" "com.samsung.android.calendar" "com.samsung.android.app.calendar.activity.MainActivity"
 }
 
+# : Samsung Reminder
+function remind() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Reminder" "com.samsung.android.app.reminder" "com.samsung.android.app.reminder.ui.LaunchMainActivity"
+}
+
+# : Galaxy Store
+function store() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Galaxy Store" "com.sec.android.app.samsungapps" "com.sec.android.app.samsungapps.SamsungAppsMainActivity"
+}
+
+# : Samsung Weather
+function weather() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Weather" "com.sec.android.daemonapp" "com.sec.android.daemonapp.app.MainActivity"
+}
+
 
 # === Samsung Life ===
 
@@ -36,13 +54,19 @@ function wallet() {
 }
 
 # : Samsung Members
-function members() {
+function member() {
     _require_no_args "$@" || return 1
     _launch_android_app "Members" "com.samsung.android.voc" "com.samsung.android.voc.LauncherActivity"
 }
 
 
 # === Samsung Media ===
+
+# : Samsung Video Player
+function video() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Video Player" "com.samsung.android.video" "com.samsung.android.video.player.activity.MoviePlayer"
+}
 
 # : Samsung Music
 function music() {
