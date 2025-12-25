@@ -174,7 +174,7 @@ function _mux_fuzzy_menu() {
             echo "    ›› Installing fzf..."
             pkg install fzf -y
             
-            echo "\033[1;32m    ›› Module installed. Initializing Neural Link... ✅\033[0m"
+            echo -e "\033[1;32m    ›› Module installed. Initializing Neural Link... ✅\033[0m"
             sleep 1
             _mux_fuzzy_menu
             return
