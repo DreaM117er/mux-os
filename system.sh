@@ -51,7 +51,7 @@ function apklist() {
     _launch_android_app "Package Names" "com.csdroid.pkg" "com.csdroid.pkg.MainActivity"
 }
 
-# : Default Web Browser (Neural Link)
+# : Default Browser
 function wb() {
     if [ -z "$1" ]; then
         _bot_say "neural" "Protocol: [VISUAL_INTERFACE_INIT]"
@@ -70,7 +70,7 @@ function wb() {
     am start -a android.intent.action.VIEW -d "$__GO_TARGET" >/dev/null 2>&1
 }
 
-# : AI Assistant (Voice Interface)
+# : AI or Voice Interface
 function ai() {
     _require_no_args "$@" || return 1
     am start -a android.intent.action.VOICE_COMMAND >/dev/null 2>&1
@@ -99,7 +99,7 @@ function data() {
     _sys_cmd "Traffic Analysis" "android.settings.DATA_USAGE_SETTINGS" "$@"
 }
 
-# : Hotspot & Tethering
+# : Hotspot
 function hspot() {
     _sys_cmd "Tethering Uplink" "android.settings.TETHER_SETTINGS" "$@"
 }
@@ -142,7 +142,7 @@ function sound() {
     _sys_cmd "Audio Output" "android.settings.SOUND_SETTINGS" "$@"
 }
 
-# : Do Not Disturb (Zen Mode)
+# : Do Not Disturb
 function dnd() {
     _sys_cmd "Focus Protocol" "android.settings.ZEN_MODE_SETTINGS" "$@"
 }
@@ -165,7 +165,7 @@ function storage() {
     _sys_cmd "Memory Banks" "android.settings.INTERNAL_STORAGE_SETTINGS" "$@"
 }
 
-# : Security Settings (Biometrics/Password)
+# : Security Settings
 function secure() {
     _sys_cmd "Security Layer" "android.settings.SECURITY_SETTINGS" "$@"
 }
