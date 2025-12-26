@@ -202,9 +202,11 @@ function _mux_force_reset() {
         _bot_say "success" "Timeline restored. Re-engaging Terminal Control..."
         _system_unlock
         sleep 1
+        return 0
     else
         echo -e "\033[1;30m    ›› Reset canceled.\033[0m"
         _system_unlock
+        return 1
     fi
 }
 
