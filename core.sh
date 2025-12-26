@@ -141,7 +141,7 @@ function mux() {
             fi
             ;;
         *)
-            echo "    ›› Unknown command: $cmd .Try input 'mux help'."
+            echo "Unknown command: $cmd .Try input 'mux help'."
             ;;
     esac
 }

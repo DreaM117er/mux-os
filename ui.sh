@@ -201,7 +201,6 @@ function _mux_fuzzy_menu() {
         if (prev_line ~ /^# :/) {
             desc = prev_line;
             gsub(/^# : /, "", desc);
-            # 關鍵修正：切除結尾的 Carriage Return 符號 (\r)
             sub(/\r$/, "", desc); 
         }
         
