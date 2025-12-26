@@ -190,7 +190,7 @@ function _mux_fuzzy_menu() {
         match($0, /function ([a-zA-Z0-9_]+)/, arr);
         func_name = arr[1];
     
-        if (substr(func_name, 1, 1) != "_" && func_name != "mux") {
+        if (substr(func_name, 1, 1) != "_") {
             desc = "";
             if (prev_line ~ /^# :/) {
                 desc = prev_line;

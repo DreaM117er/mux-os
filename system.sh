@@ -42,7 +42,7 @@ function _resolve_smart_url() {
 
 # : Termux Terminal
 function termux() {
-    # : Termux Terminal
+    _require_no_args "$@" || return 1
     _launch_android_app "Termux" "com.termux" "com.termux.app.TermuxActivity"
 }
 

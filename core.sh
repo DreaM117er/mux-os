@@ -97,10 +97,11 @@ function _safe_ui_calc() {
     content_limit=$(( width > 10 ? width - 10 : 2 ))
 }
 
+
+# Mux-OS 主指令入口 - Mux-OS Main Command Entry
 # === Mux ===
 
-# : Core Command
-# Mux-OS 主指令入口 - Mux-OS Main Command Entry
+# : Core Command Entry
 function mux() {
     local cmd="$1"
     if [ -z "$cmd" ]; then
