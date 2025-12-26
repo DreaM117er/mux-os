@@ -213,12 +213,15 @@ function _mux_fuzzy_menu() {
         }
         { prev_line = $0 }
     ' "$CORE_MOD" "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD" | \
-        fzf --ansi --height=45% --layout=reverse --border \
-            --prompt=" :: Neural Link › " \
-            --pointer="▶" \
-            --marker="✓" \
-            --header="[Select Protocol to Execute]" \
-            --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red
+        fzf --ansi \
+            --height=10 \
+            --layout=default \
+            --border=top \
+            --prompt="Neural Link › " \
+            --header="[Active Protocol Slots: 6]" \
+            --info=inline \
+            --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red \
+            --bind="resize:clear-screen"
     )
 
     if [ -n "$selected" ]; then
