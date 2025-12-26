@@ -184,11 +184,10 @@ function _mux_fuzzy_menu() {
 
     local C_CMD="\033[1;36m"
     local C_DESC="\033[1;30m"
-    local C_RESET="\033[0m"
 
     local selected=$(
-    awk -v C_CMD="$C_CMD" -v C_DESC="$C_DESC" -v C_RESET="$C_RESET" '
-        # 1. 檔案首行去磁處理
+    awk -v C_CMD="$C_CMD" -v C_DESC="$C_DESC" '
+        # 1. 檔案首行極限清洗
         NR == 1 { gsub(/[^[:print:]]/, ""); }
 
         /^function / {
@@ -205,11 +204,8 @@ function _mux_fuzzy_menu() {
                 }
         
                 if (desc != "") {
-                    # 2. 針對 func_name 進行二次清洗，防止不可見字元殘留
+                    # 2. 為第一個字元留出 1 單位緩衝空間，消除 ANSI 渲染衝突 (紅點修復)
                     gsub(/[^[:print:]]/, "", func_name);
-                    
-                    # 3. 核心修正：printf 行首增加一個空格 " %s..." 
-                    # 這能讓 fzf 的指針 (▶) 擁有獨立渲染空間，不再與顏色序列產生干涉
                     printf " %s%-12s %s%s\n", C_CMD, func_name, C_DESC, desc;
                 }
             }
@@ -218,10 +214,10 @@ function _mux_fuzzy_menu() {
     ' "$CORE_MOD" "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD" | \
         fzf --ansi \
             --height=10 \
-            --layout=default \
+            --layout=reverse \
             --border=horizontal \
             --prompt=" :: Neural Link › " \
-            --header="[Active Protocol Slots: 6]" \
+            --header=" [Active Protocol Slots: 6]" \
             --info=inline \
             --pointer=">" \
             --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:cyan,border:blue \
