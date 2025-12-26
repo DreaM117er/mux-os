@@ -133,23 +133,28 @@ function _show_menu_dashboard() {
     }
     
     /^function / {
-    match($0, /function ([a-zA-Z0-9_]+)/, arr);
-    func_name = arr[1];
-    
-    if (substr(func_name, 1, 1) != "_" && func_name != "mux") {
-        desc = "";
-        if (prev_line ~ /^# :/) {
-            desc = prev_line;
-            gsub(/^# : /, "", desc);
-            gsub(/[[:space:]]+$/, "", desc);
-            gsub(/[^[:print:]]/, "", desc);
-        }
+        match($0, /function ([a-zA-Z0-9_]+)/, arr);
+        func_name = arr[1];
         
-        if (desc != "") {
-            printf C_CMD "%-12s" C_DESC " %s" C_RESET "\n", func_name, desc;
+        if (substr(func_name, 1, 1) != "_") {
+            desc = "";
+            if (prev_line ~ /^# :/) {
+                desc = prev_line;
+                gsub(/^# : /, "", desc);
+            } else if (prev_line ~ /^# [0-9]+\./) {
+                desc = prev_line;
+                gsub(/^# [0-9]+\. /, "", desc);
+            }
+
+            if (length(desc) > 38) {
+                desc = substr(desc, 1, 35) "..";
+            }
+
+            if (desc != "") {
+                printf "  " COLOR_FUNC "%-12s" RESET " %s\n", func_name, desc;
+            }
         }
     }
-}
     { prev_line = $0 }
     ' "$CORE_MOD" "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD"
     
@@ -180,13 +185,7 @@ function _mux_fuzzy_menu() {
     fi
 
     local selected=$(
-        awk '
-        BEGIN {
-    C_CMD="\033[1;36m"
-    C_DESC="\033[1;30m"
-    C_RESET="\033[0m"
-    }
-
+    awk '
     /^function / {
     match($0, /function ([a-zA-Z0-9_]+)/, arr);
     func_name = arr[1];
@@ -196,7 +195,8 @@ function _mux_fuzzy_menu() {
         if (prev_line ~ /^# :/) {
             desc = prev_line;
             gsub(/^# : /, "", desc);
-            sub(/\r$/, "", desc); 
+            gsub(/[[:space:]]+$/, "", desc);
+            gsub(/[^[:print:]]/, "", desc);
         }
         
         if (desc != "") {
