@@ -186,8 +186,6 @@ function _mux_fuzzy_menu() {
     local C_DESC="\033[1;30m"
     local C_RESET="\033[0m"
 
-    local grid_line=$(printf '─%.0s' {1..200})
-
     local cmd_list=$(awk -v C_CMD="$C_CMD" -v C_DESC="$C_DESC" '
         NR == 1 { gsub(/[^[:print:]]/, ""); }
         /^function / {
@@ -210,13 +208,15 @@ function _mux_fuzzy_menu() {
         { prev_line = $0 }
     ' "$CORE_MOD" "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD")
 
+    local total_cmds=$(echo "$cmd_list" | grep -c "^ ")
+
     local selected=$(echo "$cmd_list" | fzf --ansi \
         --height=10 \
         --layout=reverse \
         --border=bottom \
         --prompt=" :: Neural Link › " \
-        --header="$grid_line" \
-        --info=inline \
+        --header=" [Active Protocol Slots: 6/$total_cmds]" \
+        --info=hidden \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red,border:blue \
         --bind="resize:clear-screen"
