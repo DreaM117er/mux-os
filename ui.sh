@@ -164,8 +164,6 @@ function _show_menu_dashboard() {
 # 模糊指令選單介面 - Fuzzy Command Menu Interface
 function _mux_fuzzy_menu() {
     if ! command -v fzf &> /dev/null; then
-        _show_menu_dashboard
-        
         echo -e "\n\033[1;31m :: Neural Search Module (fzf) is missing.\033[0m"
         echo -ne "\033[1;32m :: Install interactive interface? (y/n): \033[0m"
         read choice
@@ -186,25 +184,34 @@ function _mux_fuzzy_menu() {
 
     local selected=$(
     awk '
+        BEGIN {
+            C_CMD="\033[1;36m"
+            C_DESC="\033[1;30m"
+            C_RESET="\033[0m"
+        }
+
+        NR == 1 { sub(/^\xef\xbb\xbf/, ""); }
+
         /^function / {
-        match($0, /function ([a-zA-Z0-9_]+)/, arr);
-        func_name = arr[1];
-    
-        if (substr(func_name, 1, 1) != "_") {
-            desc = "";
-            if (prev_line ~ /^# :/) {
-                desc = prev_line;
-                gsub(/^# : /, "", desc);
-                gsub(/[[:space:]]+$/, "", desc);
-                gsub(/[^[:print:]]/, "", desc);
-            }
+            match($0, /function ([a-zA-Z0-9_]+)/, arr);
+            func_name = arr[1];
         
-            if (desc != "") {
-                printf C_CMD "%-12s" C_DESC " %s" C_RESET "\n", func_name, desc;
+            if (substr(func_name, 1, 1) != "_") {
+                desc = "";
+                if (prev_line ~ /^# :/) {
+                    desc = prev_line;
+                    gsub(/^# : /, "", desc);
+                    
+                    gsub(/[[:space:]]+$/, "", desc);
+                    gsub(/[^[:print:]]/, "", desc);
+                }
+            
+                if (desc != "") {
+                    printf "%s%-12s %s%s\n", C_CMD, func_name, C_DESC, desc;
+                }
             }
         }
-    }
-    { prev_line = $0 }
+        { prev_line = $0 }
     ' "$CORE_MOD" "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD" | \
         fzf --ansi --height=45% --layout=reverse --border \
             --prompt=" :: Neural Link › " \
