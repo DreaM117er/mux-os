@@ -183,29 +183,22 @@ function _mux_fuzzy_menu() {
     fi
 
     local selected=$(
-    awk '
-        BEGIN {
-            C_CMD="\033[1;36m"
-            C_DESC="\033[1;30m"
-            C_RESET="\033[0m"
-        }
-
-        NR == 1 { sub(/^\xef\xbb\xbf/, ""); }
+    awk -v C_CMD="$C_CMD" -v C_DESC="$C_DESC" -v C_RESET="$C_RESET" '
+        NR == 1 { gsub(/[^[:print:]]/, ""); }
 
         /^function / {
             match($0, /function ([a-zA-Z0-9_]+)/, arr);
             func_name = arr[1];
-        
+    
             if (substr(func_name, 1, 1) != "_") {
                 desc = "";
                 if (prev_line ~ /^# :/) {
                     desc = prev_line;
                     gsub(/^# : /, "", desc);
-                    
                     gsub(/[[:space:]]+$/, "", desc);
                     gsub(/[^[:print:]]/, "", desc);
                 }
-            
+        
                 if (desc != "") {
                     printf "%s%-12s %s%s\n", C_CMD, func_name, C_DESC, desc;
                 }
@@ -216,11 +209,11 @@ function _mux_fuzzy_menu() {
         fzf --ansi \
             --height=10 \
             --layout=default \
-            --border=top \
+            --border=horizontal \
             --prompt=" :: Neural Link › " \
             --header="[Active Protocol Slots: 6]" \
             --info=inline \
-            --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red \
+            --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red,border:blue \
             --bind="resize:clear-screen"
     )
 
