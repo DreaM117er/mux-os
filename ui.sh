@@ -213,9 +213,9 @@ function _mux_fuzzy_menu() {
     local selected=$(echo "$cmd_list" | fzf --ansi \
         --height=10 \
         --layout=reverse \
-        --border=horizontal \
+        --border=bottom \
         --prompt=" :: Neural Link › " \
-        --header=" [Active Protocol Slots: $total_cmds]" \
+        --header=" [Active Protocol Slots: 6/$total_cmds]" \
         --info=hidden \
         --pointer="▶" \
         --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red,border:blue \
