@@ -211,11 +211,11 @@ function _mux_fuzzy_menu() {
     local total_cmds=$(echo "$cmd_list" | grep -c "^ ")
 
     local selected=$(echo "$cmd_list" | fzf --ansi \
-        --height=9 \
+        --height=10 \
         --layout=reverse \
-        --border=top \
+        --border=horizontal \
         --prompt=" :: Neural Link › " \
-        --header=" [Active Protocol Slots: 6/$total_cmds]" \
+        --header=" [Active Protocol Slots: $total_cmds]" \
         --info=hidden \
         --pointer="▶" \
         --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red,border:blue \
@@ -224,9 +224,7 @@ function _mux_fuzzy_menu() {
 
     if [ -n "$selected" ]; then
         local cmd_to_run=$(echo "$selected" | awk '{print $1}')
-        
         local prompt_text=$'\033[1;33m :: '$cmd_to_run$' \033[1;30m(Params?): \033[0m'
-        
         read -e -p "$prompt_text" params < /dev/tty
         
         local final_cmd="$cmd_to_run"
