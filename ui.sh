@@ -182,26 +182,27 @@ function _mux_fuzzy_menu() {
         fi
     fi
 
-    local C_CMD="\033[1;37m"
-    local C_DESC="\033[1;30m"
-    local C_RESET="\033[0m"
+    local cmd_list=$(awk '
+        BEGIN {
+            C_CMD="\x1b[1;37m"
+            C_DESC="\x1b[1;30m"
+            C_RESET="\x1b[0m"
+        }
 
-    local cmd_list=$(awk -v C_CMD="$C_CMD" -v C_DESC="$C_DESC" '
-        NR == 1 { gsub(/[^[:print:]]/, ""); }
         /^function / {
             match($0, /function ([a-zA-Z0-9_]+)/, arr);
             func_name = arr[1];
+            
             if (substr(func_name, 1, 1) != "_") {
                 desc = "";
                 if (prev_line ~ /^# :/) {
                     desc = prev_line;
                     gsub(/^# : /, "", desc);
                     gsub(/[[:space:]]+$/, "", desc);
-                    gsub(/[^[:print:]]/, "", desc);
                 }
+                
                 if (desc != "") {
-                    gsub(/[^[:print:]]/, "", func_name);
-                    printf " %s%-12s %s%s\n", C_CMD, func_name, C_DESC, desc;
+                    printf "  %s%-12s %s%s\n", C_CMD, func_name, C_DESC, desc;
                 }
             }
         }
