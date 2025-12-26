@@ -111,10 +111,18 @@ function mux() {
 
     case "$cmd" in
         "menu"|"m")
-            _mux_fuzzy_menu
+            if command -v fzf &> /dev/null; then
+                _mux_fuzzy_menu
+            else
+                _show_menu_dashboard
+            fi
             ;;
         "oldmenu"|"om")
-            _show_menu_dashboard
+            if command -v fzf &> /dev/null; then
+                _show_menu_dashboard
+            else
+                echo "Unknown command: '$cmd'. No '$cmd' exist."
+            fi
             ;;
         "info"|"i")
             _mux_show_info
