@@ -136,10 +136,12 @@ function mux() {
             ;;
         "reset")
             _mux_force_reset
+            if [ $? -eq 0 ]; then
+                _mux_reload_kernel
+            fi
             ;;
         *)
-            echo "Unknown command: $cmd"
-            echo "Try 'mux help'"
+            echo "    ›› Unknown command: $cmd .Try input 'mux help'."
             ;;
     esac
 }
@@ -188,8 +190,6 @@ function _mux_force_reset() {
         _bot_say "success" "Timeline restored. Re-engaging Terminal Control..."
         _system_unlock
         sleep 1
-
-        exec bash 
     else
         echo -e "\033[1;30m    ›› Reset canceled.\033[0m"
         _system_unlock
