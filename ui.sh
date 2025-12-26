@@ -215,7 +215,7 @@ function _mux_fuzzy_menu() {
         --layout=reverse \
         --border=bottom \
         --prompt=" :: Neural Link › " \
-        --header=" [Active Protocol Slots: 6/$total_cmds]" \
+        --header=" [Active Protocol Slots: $cmd_list/$total_cmds]" \
         --info=hidden \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red,border:blue \
