@@ -217,7 +217,7 @@ function _mux_fuzzy_menu() {
             --height=10 \
             --layout=default \
             --border=top \
-            --prompt="Neural Link › " \
+            --prompt=" :: Neural Link › " \
             --header="[Active Protocol Slots: 6]" \
             --info=inline \
             --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red \
