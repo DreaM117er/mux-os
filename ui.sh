@@ -202,7 +202,7 @@ function _mux_fuzzy_menu() {
                 }
                 
                 if (desc != "") {
-                    printf "  %s%-12s %s%s\n", C_CMD, func_name, C_DESC, desc;
+                    printf " %s%-12s %s%s\n", C_CMD, func_name, C_DESC, desc;
                 }
             }
         }
