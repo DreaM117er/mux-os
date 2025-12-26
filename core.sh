@@ -37,7 +37,7 @@ for mod in "${MODULES[@]}"; do
 done
 
 # 環境初始化檢測 (僅在必要時運行) - Environment Initialization Check (Run if necessary)
-[ ! -d "$HOME/storage" ] && { echo " > Setup Storage..."; termux-setup-storage; sleep 2; }
+[ ! -d "$HOME/storage" ] && { echo -e "\033[1;33m :: Setup Storage...\033[0m"; termux-setup-storage; sleep 2; }
 [ ! -f "$VENDOR_MOD" ] && [ -f "$INSTALLER" ] && { chmod +x "$INSTALLER"; "$INSTALLER"; }
 
 # 核心指令項 - Core Command Functions
@@ -116,7 +116,7 @@ function mux() {
             _mux_show_info
             ;;
         "version"|"v")
-            echo -e "🤖 \033[1;33mMux-OS Core v$MUX_VERSION\033[0m"
+            echo -e "\033[1;33m :: Mux-OS Core v$MUX_VERSION  🤖\033[0m"
             ;;
         "update"|"up")
             _mux_update_system
