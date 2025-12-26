@@ -187,9 +187,7 @@ function _mux_fuzzy_menu() {
     local C_RESET="\033[0m"
 
     local cmd_list=$(awk -v C_CMD="$C_CMD" -v C_DESC="$C_DESC" '
-        # 強力切除所有不可見字元 (包含 BOM)
         NR == 1 { gsub(/[^[:print:]]/, ""); }
-
         /^function / {
             match($0, /function ([a-zA-Z0-9_]+)/, arr);
             func_name = arr[1];
@@ -203,7 +201,6 @@ function _mux_fuzzy_menu() {
                 }
                 if (desc != "") {
                     gsub(/[^[:print:]]/, "", func_name);
-                    # 核心修正：行首留出 1 單位物理緩衝空間，徹底消除紅點問題
                     printf " %s%-12s %s%s\n", C_CMD, func_name, C_DESC, desc;
                 }
             }
@@ -214,9 +211,9 @@ function _mux_fuzzy_menu() {
     local total_cmds=$(echo "$cmd_list" | grep -c "^ ")
 
     local selected=$(echo "$cmd_list" | fzf --ansi \
-        --height=11 \
+        --height=9 \
         --layout=reverse \
-        --border=bottom \
+        --border=top \
         --prompt=" :: Neural Link › " \
         --header=" [Active Protocol Slots: 6/$total_cmds]" \
         --info=hidden \
@@ -227,8 +224,11 @@ function _mux_fuzzy_menu() {
 
     if [ -n "$selected" ]; then
         local cmd_to_run=$(echo "$selected" | awk '{print $1}')
-        echo -ne "\033[1;33m :: $cmd_to_run \033[1;30m(Params?): \033[0m"
-        read -e params < /dev/tty
+        
+        local prompt_text=$'\033[1;33m :: '$cmd_to_run$' \033[1;30m(Params?): \033[0m'
+        
+        read -e -p "$prompt_text" params < /dev/tty
+        
         local final_cmd="$cmd_to_run"
         [ -n "$params" ] && final_cmd="$cmd_to_run $params"
         history -s "$final_cmd"
