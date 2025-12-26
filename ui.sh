@@ -182,18 +182,15 @@ function _mux_fuzzy_menu() {
         fi
     fi
 
-    local C_CMD="\033[1;36m"
+    local C_CMD="\033[1;37m"
     local C_DESC="\033[1;30m"
+    local C_RESET="\033[0m"
 
-    local selected=$(
-    awk -v C_CMD="$C_CMD" -v C_DESC="$C_DESC" '
-        # 1. 檔案首行極限清洗
+    local cmd_list=$(awk -v C_CMD="$C_CMD" -v C_DESC="$C_DESC" '
         NR == 1 { gsub(/[^[:print:]]/, ""); }
-
         /^function / {
             match($0, /function ([a-zA-Z0-9_]+)/, arr);
             func_name = arr[1];
-    
             if (substr(func_name, 1, 1) != "_") {
                 desc = "";
                 if (prev_line ~ /^# :/) {
@@ -202,26 +199,27 @@ function _mux_fuzzy_menu() {
                     gsub(/[[:space:]]+$/, "", desc);
                     gsub(/[^[:print:]]/, "", desc);
                 }
-        
                 if (desc != "") {
-                    # 2. 為第一個字元留出 1 單位緩衝空間，消除 ANSI 渲染衝突 (紅點修復)
                     gsub(/[^[:print:]]/, "", func_name);
                     printf " %s%-12s %s%s\n", C_CMD, func_name, C_DESC, desc;
                 }
             }
         }
         { prev_line = $0 }
-    ' "$CORE_MOD" "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD" | \
-        fzf --ansi \
-            --height=10 \
-            --layout=reverse \
-            --border=horizontal \
-            --prompt=" :: Neural Link › " \
-            --header=" [Active Protocol Slots: 6]" \
-            --info=inline \
-            --pointer=">" \
-            --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:cyan,border:blue \
-            --bind="resize:clear-screen"
+    ' "$CORE_MOD" "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD")
+
+    local total_cmds=$(echo "$cmd_list" | grep -c "^ ")
+
+    local selected=$(echo "$cmd_list" | fzf --ansi \
+        --height=10 \
+        --layout=reverse \
+        --border=horizontal \
+        --prompt=" Neural Link › " \
+        --header=" [Active Protocol Slots: 6] (Total: $total_cmds)" \
+        --info=hidden \
+        --pointer="▶" \
+        --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red,border:blue \
+        --bind="resize:clear-screen"
     )
 
     if [ -n "$selected" ]; then
