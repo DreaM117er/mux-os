@@ -17,8 +17,8 @@ function _bot_say() {
     local color=""
     local phrases=()
     
+    # 獲取時間參數 (0-23)
     local current_hour=$(date +%H)
-    
     local rng=$(( RANDOM % 100 ))
     local easter_egg=0
     [ $rng -lt 3 ] && easter_egg=1
