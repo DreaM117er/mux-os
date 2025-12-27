@@ -44,7 +44,7 @@ function _install_protocol() {
     echo -e "  ${C_GREEN}[+]${C_RESET} Neural Link     : $MUX_ROOT/bot.sh"
     echo -e "  ${C_GREEN}[+]${C_RESET} System Apps     : $MUX_ROOT/app.sh"
     echo -e "  ${C_GREEN}[+]${C_RESET} Bootloader      : $RC_FILE (Append)"
-    echo -e "  ${C_GREEN}[+]${C_RESET} Dependencies    : git, fzf, ncurses-utils, termux-api"
+    echo -e "  ${C_GREEN}[+]${C_RESET} Dependencies    : git, ncurses-utils, termux-api"
     echo ""
 
     echo -ne "${C_GREEN} :: Proceed with installation? [Y/n]: ${C_RESET}"
@@ -57,7 +57,7 @@ function _install_protocol() {
     echo ""
     echo -e "${C_YELLOW} :: Executing Protocol...${C_RESET}"
 
-    PACKAGES=(ncurses-utils git termux-api fzf)
+    PACKAGES=(ncurses-utils git termux-api)
     for pkg in "${PACKAGES[@]}"; do
         if ! command -v "$pkg" &> /dev/null; then
             echo "    ›› Installing missing gear: $pkg"
