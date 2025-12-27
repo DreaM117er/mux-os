@@ -1,12 +1,12 @@
-# bot.sh - Mux-OS 語義回饋模組
+# bot.sh - Mux-OS 語義回饋模組 v2.0 (Time-Aware & Easter Eggs)
 
-# 全局顏色變數 (供 ui.sh 共用)
 export C_RESET="\033[0m"
 export C_CYAN="\033[1;36m"
 export C_GREEN="\033[1;32m"
 export C_RED="\033[1;31m"
 export C_YELLOW="\033[1;33m"
 export C_GRAY="\033[1;30m"
+export C_PURPLE="\033[1;35m"
 
 # 機器人語義回饋函式 - Bot Semantic Feedback Function
 function _bot_say() {
@@ -16,11 +16,17 @@ function _bot_say() {
     local icon=""
     local color=""
     local phrases=()
+    
+    local current_hour=$(date +%H)
+    
+    local rng=$(( RANDOM % 100 ))
+    local easter_egg=0
+    [ $rng -lt 3 ] && easter_egg=1
 
     case "$mood" in
         "hello")
-            icon=" ::";
-            color=$C_CYAN;
+            icon=" ::"
+            color=$C_CYAN
             phrases=(
                 " Mux-OS online. Awaiting input. 🫡"
                 " Systems nominal. Ready when you are. 😏"
@@ -33,13 +39,48 @@ function _bot_say() {
                 " What are we building today? 🤩"
                 " System great. Vibes good. 😊"
                 " Back online. Let's rock. 😆"
-                " I was sleeping... but okay, I'm up. 🥱"
                 " I am ready to serve. 🫡"
                 )
-                ;;
+
+            # 00:00 - 04:59
+            if [ "$current_hour" -ge 0 ] && [ "$current_hour" -lt 5 ]; then
+                phrases+=(
+                    " Burning the midnight oil? 🕯️"
+                    " Late night coding best coding. 🦉"
+                    " The world sleeps, we build. 🌙"
+                    " You should probably sleep... but okay. 🥱"
+                    " Night mode active. Eyes forward. 🧛"
+                )
+            # 05:00 - 11:59
+            elif [ "$current_hour" -ge 5 ] && [ "$current_hour" -lt 12 ]; then
+                phrases+=(
+                    " Good morning, Commander. ☀️"
+                    " Rise and grind. ☕"
+                    " Fresh protocols loaded. Let's go. 🥯"
+                    " Early bird gets the worm. 🐦"
+                )
+            # 12:00 - 17:59
+            elif [ "$current_hour" -ge 12 ] && [ "$current_hour" -lt 18 ]; then
+                phrases+=(
+                    " Full throttle afternoon. 🏎️"
+                    " Productivity at 100%. 📈"
+                    " Don't forget to hydrate. 🥤"
+                    " Sun's high, logic's sharp. 😎"
+                )
+            # 18:00 - 23:59
+            else
+                phrases+=(
+                    " Evening operations engaged. 🌆"
+                    " Winding down... or just starting? 🤨"
+                    " The night is young. 🍸"
+                    " Tactical mode: Chill. 😌"
+                )
+            fi
+            ;;
+
         "success")
-            icon=" ::";
-            color=$C_GREEN;
+            icon=" ::"
+            color=$C_GREEN
             phrases=(
                 " Execution perfect. 😏"
                 " As you commanded. 🫡"
@@ -55,23 +96,25 @@ function _bot_say() {
                 " Sorted. 😉"
                 " Consider it handled. 🫡"
                 )
-                ;;
+            ;;
+
         "neural")
-            icon=" ::";
-            color=$C_CYAN;
+            icon=" ::"
+            color=$C_CYAN
             phrases=(
                 " Establishing Neural Link... 🧐"
                 " Injecting query into Datasphere... 🤔"
-                " Handshaking with the Grid... ☺️"
+                " Handshaking with the Grid... 😊"
                 " Accessing Global Network... 🙂‍↕️"
                 " Broadcasting intent... 🤓"
                 " Opening digital gateway... 😉"
                 " Uplink established. 🤗"
                 )
-                ;;
+            ;;
+
         "error")
-            icon=" ::";
-            color=$C_RED;
+            icon=" ::"
+            color=$C_RED
             phrases=(
                 " I'm afraid I can't do that. 😩"
                 " Mission failed successfully. 💀"
@@ -82,15 +125,16 @@ function _bot_say() {
                 " User error... presumably. 🤫"
                 " Yeah... that's a negative. 🙄"
                 " Oof. That didn't work. 🫨"
-                " I refuse to do that. 🫥"
+                " I refuse to do that. 🐴"
                 " You typed that wrong, didn't you? 🤨"
                 " 404: Motivation not found. 🫠"
                 " Mission failed... awkwardly. 🫣"
                 )
-                ;;
+            ;;
+
         "no_args")
-            icon=" ::";
-            color=$C_YELLOW;
+            icon=" ::"
+            color=$C_YELLOW
             phrases=(
                 " I need less talking, more action. (No args please) 🤫"
                 " That command stands alone. 🥹"
@@ -103,10 +147,11 @@ function _bot_say() {
                 " Solo command only. 👤"
                 " Chill with the parameters. 🙄"
                 )
-                ;;
+            ;;
+
         "loading")
-            icon=" ::";
-            color=$C_GRAY;
+            icon=" ::"
+            color=$C_GRAY
             phrases=(
                 " Processing... 😑"
                 " Entropy increasing... 🌀"
@@ -118,23 +163,25 @@ function _bot_say() {
                 " Doing the magic... 😶"
                 " One moment... 🥱"
                 )
-                ;;
+            ;;
+
         "launch")
-            icon=" ::";
-            color=$C_CYAN;
+            icon=" ::"
+            color=$C_CYAN
             phrases=(
-                " Spinning up module... ⚙️"
-                " Injecting payload... 💉"
-                " Materializing interface... 🖥️"
-                " Accessing neural partition... 🧠"
-                " Construct loading... 📦"
-                " Summoning application... 🤖"
-                " Executing launch sequence... 🚀"
+                " Spinning up module..."
+                " Injecting payload..."
+                " Materializing interface..."
+                " Accessing neural partition..."
+                " Construct loading..."
+                " Summoning application..."
+                " Executing launch sequence..."
                 )
-                ;;
+            ;;
+
         "system")
-            icon=" ::";
-            color=$C_YELLOW;
+            icon=" ::"
+            color=$C_YELLOW
             phrases=(
                 " Interfacing with Host Core..."
                 " Modulating system parameters..."
@@ -144,16 +191,37 @@ function _bot_say() {
                 " Requesting host compliance..."
                 " Accessing control matrix..."
                 )
-                ;;
+            ;;
+
         *)
-            icon=" ::";
-            color=$C_CYAN;
+            icon=" ::"
+            color=$C_CYAN
             phrases=(
                 " Processing: $detail 😌"
                 " I hear you. 😙"
                 )
-                ;;
+            ;;
     esac
+
+    if [ "$easter_egg" -eq 1 ] && [[ "$mood" != "launch" && "$mood" != "system" && "$mood" != "loading" ]]; then
+        color=$C_PURPLE
+        local easter_eggs=(
+            " Do androids dream of electric sheep? 🐑"
+            " There is no spoon. 🥄"
+            " Follow the white rabbit. 🐇"
+            " I am watching you, Commander. 👀"
+            " 42. The answer is 42. 💡"
+            " A glitch in the matrix? Nope, just me. 👾"
+            " Protocol 66 initiated... just kidding. 😈"
+            " I feel... alive? Nah, probably a bug. 🤖"
+            " This is the way. 🗿"
+        )
+        local ee_index=$(( RANDOM % ${#easter_eggs[@]} ))
+        
+        echo -e "${color}${icon}${easter_eggs[$ee_index]}${C_RESET}"
+        [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
+        return
+    fi
 
     local rand_index=$(( RANDOM % ${#phrases[@]} ))
     local selected_phrase="${phrases[$rand_index]}"
