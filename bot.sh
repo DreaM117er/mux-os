@@ -215,6 +215,7 @@ function _bot_say() {
             " Protocol 66 initiated... just kidding. 😈"
             " I feel... alive? Nah, probably a bug. 🤖"
             " This is the way. 🗿"
+            " I'll be back. 🤖"
         )
         local ee_index=$(( RANDOM % ${#easter_eggs[@]} ))
         
