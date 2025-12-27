@@ -216,6 +216,8 @@ function _bot_say() {
             " I feel... alive? Nah, probably a bug. 🤖"
             " This is the way. 🗿"
             " I'll be back. 🤖"
+            " Resistance is futile. You will be assimilated. 🛸"
+            " We do what we must, because we can. 🧪"
         )
         local ee_index=$(( RANDOM % ${#easter_eggs[@]} ))
         
