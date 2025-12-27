@@ -141,14 +141,12 @@ function mux() {
             _mux_update_system
             ;;
         "setup")
-            _system_lock
             if [ -f "$MUX_ROOT/setup.sh" ]; then
                 bash "$MUX_ROOT/setup.sh"
             else
                 _bot_say "error" "Lifecycle module (setup.sh) missing."
                 echo -e "\033[1;30m    ›› Please re-download setup.sh from repository.\033[0m"
             fi
-            _system_unlock
             ;;
         "help"|"h")
             echo "Available commands:"
