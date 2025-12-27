@@ -127,6 +127,13 @@ function mux() {
         "info"|"i")
             _mux_show_info
             ;;
+        "link")
+            if command -v _mux_uplink_sequence &> /dev/null; then
+                _mux_uplink_sequence
+            else
+                pkg install fzf -y
+            fi
+            ;;
         "version"|"v")
             echo -e "\033[1;33m :: Mux-OS Core v$MUX_VERSION  🤖\033[0m"
             ;;
