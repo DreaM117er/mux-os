@@ -67,7 +67,7 @@ Mux-OS 的誕生，源於我與 AI (Gemini) 的一場關於 Termux 的辯論。�
 在 Termux 中輸入以下指令：
 
 ```bash
-pkg update && pkg upgrade pkg && install git -y
+pkg update && pkg upgrade && pkg install git -y
 cd ~
 git clone https://github.com/DreaM117er/mux-os.git
 cd mux-os
