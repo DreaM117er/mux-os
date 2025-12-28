@@ -20,10 +20,10 @@ function calendar() {
     _launch_android_app "Calendar" "com.samsung.android.calendar" "com.samsung.android.app.calendar.activity.MainActivity"
 }
 
-# : Samsung Reminder
-function remind() {
+# : Calculator
+function calc() {
     _require_no_args "$@" || return 1
-    _launch_android_app "Reminder" "com.samsung.android.app.reminder" "com.samsung.android.app.reminder.ui.LaunchMainActivity"
+    _launch_android_app "Calculator" "com.sec.android.app.popupcalculator" "com.sec.android.app.popupcalculator.Calculator"
 }
 
 # : Galaxy Store
@@ -36,6 +36,12 @@ function store() {
 function weather() {
     _require_no_args "$@" || return 1
     _launch_android_app "Weather" "com.sec.android.daemonapp" "com.sec.android.daemonapp.app.MainActivity"
+}
+
+# : Voice Recorder
+function record() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Voice Recorder" "com.sec.android.app.voicenote" "com.sec.android.app.voicenote.main.MainActivity"
 }
 
 
@@ -61,6 +67,13 @@ function member() {
 
 
 # === Samsung Media ===
+
+# : Samsung Gallery
+function gallery() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Gallery" "com.sec.android.gallery3d" "com.samsung.android.gallery.app.activity.GalleryActivity"
+    #
+}
 
 # : Samsung Video Player
 function video() {
@@ -108,7 +121,7 @@ function tutor() {
 }
 
 
-# === Productivity ===
+# === Samsung Tools ===
 
 # : Samsung Notes
 function notes() {
@@ -116,3 +129,8 @@ function notes() {
     _launch_android_app "Samsung Notes" "com.samsung.android.app.notes" "com.samsung.android.app.notes.memolist.MemoListActivity"
 }
 
+# : Samsung Reminder
+function remind() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Reminder" "com.samsung.android.app.reminder" "com.samsung.android.app.reminder.ui.LaunchMainActivity"
+}

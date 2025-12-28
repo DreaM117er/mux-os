@@ -75,6 +75,21 @@ function onedrive() {
     _launch_android_app "OneDrive" "com.microsoft.skydrive" "com.microsoft.skydrive.MainActivity"
 }
 
+# === AI & Intelligence ===
+
+# : Google Gemini AI
+function gemini() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Gemini" "com.google.android.apps.bard" "com.google.android.apps.bard.shellapp.BardEntryPointActivity"
+}
+
+# : Grok (xAI) - 既然有了原生 App，當然要加入
+function grok() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Grok" "ai.x.grok" "ai.x.grok.main.GrokActivity"
+}
+
+
 # === Google Suite ===
 
 # : Google Play Store & Search
@@ -120,12 +135,6 @@ function gdrive() {
 function meet() {
     _require_no_args "$@" || return 1
     _launch_android_app "Meet" "com.google.android.apps.tachyon" "com.google.android.apps.tachyon.MainActivity"
-}
-
-# : Google Gemini AI
-function gemini() {
-    _require_no_args "$@" || return 1
-    _launch_android_app "Gemini" "com.google.android.apps.bard" "com.google.android.apps.bard.shellapp.BardEntryPointActivity"
 }
 
 
@@ -181,6 +190,13 @@ function ms365() {
     _require_no_args "$@" || return 1
     _launch_android_app "M365 Copilot" "com.microsoft.office.officehubrow" "com.microsoft.office.officesuite.OfficeSuiteActivity"
 }
+
+# : Google Sheets
+function sheets() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Sheets" "com.google.android.apps.docs.editors.sheets" "com.google.android.apps.docs.app.NewMainProxyActivity"
+}
+
 
 # === Engineering ===
 
@@ -262,6 +278,57 @@ function reddit() {
 }
 
 
+# === Finance ===
+
+# : Cashew (Budget Tracker)
+function cashew() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Cashew" "com.budget.tracker_app" "com.budget.tracker_app.MainActivity"
+}
+
+# : CTBC Bank (中國信託)
+function ctbc() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "CTBC Bank" "com.chinatrust.mobilebank" "com.chinatrust.mobilebank.MainActivity"
+}
+
+# : Taishin Bank (台新銀行)
+function taishin() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Taishin Bank" "tw.com.taishinbank.mobile" "tw.com.taishinbank.mobile.MainActivity"
+}
+
+# : SinoPac (永豐銀行)
+function sinopac() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "SinoPac" "com.sionpac.app.SinoPac" "com.sionpac.app.SinoPac.WelcomeActivity"
+}
+
+# : E.SUN Bank (玉山銀行) 
+function esun() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "E.SUN Bank" "com.esunbank" "com.esunbank.home.HomeStartActivity"
+}
+
+# : Mobile Post (行動郵局)
+function mpost() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Mobile Post" "tw.gov.post.mpost" "tw.gov.post.mpost.ui.MainActivity"
+}
+
+# : zingala (銀角零卡)
+function zgala() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "zingala" "com.chailease.tw.app.android.ccfappcust" "com.chailease.tw.app.android.ccfappcust.activity.SplashActivity"
+}
+
+# : PayPal
+function paypal() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "PayPal" "com.paypal.android.p2pmobile" "com.paypal.android.p2pmobile.startup.activities.StartupActivity"
+}
+
+
 # === Entertainment (Taiwan) ===
 
 # : 動畫瘋 (Bahamut Anime)
@@ -270,25 +337,43 @@ function bhani() {
     _launch_android_app "Animation" "tw.com.gamer.android.animad" "tw.com.gamer.android.animad.AnimadActivity"
 }
 
+# : 8Comic
+function 8comic() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "ComicBus" "com.comicbus" "com.comicbus.MainActivity"
+}
+
 # : Mihon
 function mihon() {
     _require_no_args "$@" || return 1
     _launch_android_app "Mihon" "app.mihon" "eu.kanade.tachiyomi.ui.main.MainActivity"
 }
 
+# : DLsite Sound
+function dlsite() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "DLsite Sound" "jp.co.eisys.dlsitesound" "jp.co.eisys.dlsitesound.MainActivity"
+}
+
+# : JMComic2
+function jmc() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "JMComic" "com.jiaohua_browser" "com.jiaohua_browser.MainActivity"
+}
+
 
 # === Local / Lifestyle (Taiwan) ===
-
-# : Cashew (Budget Tracker)
-function cashew() {
-    _require_no_args "$@" || return 1
-    _launch_android_app "Cashew" "com.budget.tracker_app" "com.budget.tracker_app.MainActivity"
-}
 
 # : OpenPoint (7-11)
 function op() {
     _require_no_args "$@" || return 1
     _launch_android_app "OPENPOINT" "tw.net.pic.m.openpoint" "tw.net.pic.m.openpoint.activity.WelcomeActivity"
+}
+
+# : foodomo
+function food() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "foodomo" "com.kollway.foodomo.user" "com.kollway.peper.user.ui.SplashActivity"
 }
 
 # : Shopee
@@ -315,10 +400,149 @@ function ezway() {
     _launch_android_app "EZ Way" "com.tradevan.android.forms" "com.tradevan.android.forms.ui.activity.SplashActivity"
 }
 
+# : Shop (Shopify Tracker)
+function shop() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Shop" "com.shopify.arrive" "com.shopify.arrive.MainActivity"
+}
+
+# : Route (Package Tracker)
+function route() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Route" "com.route.app" "com.route.app.ui.MainActivity"
+}
+
+
+# === Services ===
+
+# : TW Fido (行動自然人憑證)
+function fido() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "TW Fido" "tw.gov.moi.tfido" "tw.gov.moi.tfido.ui.splash.SplashActivity"
+}
+
+# : VGHTPE (臺北榮總行動就醫)
+function vgh() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Taipei VGH" "tw.com.bicom.VGHTPE" "tw.com.bicom.VGHTPE.MainActivity"
+}
+
+# : NHI Express (健保快易通)
+function nhi() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "NHI Express" "com.nhiApp.v1" "com.nhiApp.v1.features.StartActivity"
+}
+
+# : Readiness TW (防災e點通)
+function fire() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Readiness TW" "com.nfa.report" "com.nfa.report.BearInitActivity"
+}
+
+
+# === Transport & Travel ===
+
+# : Bus+ (公車動態)
+function bus() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Bus+" "hearsilent.busplus" "hearsilent.busplus.activity.SplashActivity"
+}
+
+# : TwRailway (台鐵 e訂通)
+function rail() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "TwRailway" "com.diousk.railjourney_tw" "com.diousk.railjourney_tw.ui.main.RailMainActivity"
+}
+
+# : T-EX (高鐵購票)
+function thsr() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "T-EX" "tw.com.thsrc.texpress" "tw.com.thsrc.texpress.ei.ov"
+}
+
+# : YouBike (微笑單車)
+function ubike() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "YouBike" "tw.com.youbike.plus" "tw.com.youbike.plus.MainActivity"
+}
+
+# : Visit Japan Web (WebAPK)
+function vstjp() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Visit Japan Web" "org.chromium.webapk.a4f6bf91f29575001_v2" "org.chromium.webapk.shell_apk.h2o.H2OpaqueMainActivity"
+}
+
+# : ACCUPASS (活動通)
+function aqpass() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "ACCUPASS" "com.accuvally.android.accupass" "com.accuvally.android.accupass.main.MainActivity"
+}
+
+
 # === Tools & Utilities ===
 
 # : RAR Archiver
 function rartool() {
     _require_no_args "$@" || return 1
     _launch_android_app "RAR" "com.rarlab.rar" "com.rarlab.rar.MainActivity"
+}
+
+# : AdGuard
+function adguard() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "AdGuard" "com.adguard.android" "com.adguard.android.ui.activity.SplashActivity"
+}
+
+# : aTorrent
+function bttool() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "aTorrent" "com.mobilityflow.torrent" "com.mobilityflow.torrent.AppActivity"
+}
+
+# : Google Authenticator
+function auth() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Authenticator" "com.google.android.apps.authenticator2" "com.google.android.apps.authenticator2.main.MainActivity"
+}
+
+# : Tabata Timer
+function tabata() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Tabata" "com.simplevision.workout.tabataadfree" "com.simplevision.workout.tabata.SimpleVision"
+}
+
+# : Shazam (Music ID)
+function shazam() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Shazam" "com.shazam.android" "com.shazam.android.activities.SplashActivity"
+}
+
+
+# === Diving Suite (PADI 聚合指令) ===
+
+function padi() {
+    local target="$1"
+    if [ -z "$target" ]; then
+        if command -v fzf &> /dev/null; then
+            target=$(echo -e "main\nadv\ntrain" | fzf --height=6 --layout=reverse --prompt=" :: Select PADI › " --border=none)
+        else
+            echo " :: Select Module:"
+            select t in "main" "adv" "train"; do target=$t; break; done
+        fi
+    fi
+
+    case "$target" in
+        "main"|"m")
+            _launch_android_app "PADI" "com.duns.padiapp" "com.duns.padiapp.presentation.SplashActivity"
+            ;;
+        "adv"|"a")
+            _launch_android_app "PADI Adv" "com.padi" "com.padi.MainActivity"
+            ;;
+        "train"|"t"|"learn")
+            _launch_android_app "PADI Training" "com.padi.learning.dev" "com.duns.paditraining.SplashActivity"
+            ;;
+        *)
+            [ -n "$target" ] && echo -e "\033[1;30m    ›› Operation canceled or unknown module.\033[0m"
+            ;;
+    esac
 }
