@@ -256,6 +256,7 @@ function _bot_say() {
             local msg="${quotes[$((RANDOM % ${#quotes[@]}))]}"
             echo -e "\033[1;34m[BOT] 🌌 $msg\033[0m"
         fi
+        return
         ;;
 
         *)
