@@ -32,7 +32,6 @@ EOF
 }
 
 # 安裝協議 - Installation Protocol
-
 function _install_protocol() {
     _banner
     echo -e "${C_YELLOW} :: Initialize System Construction?${C_RESET}"
