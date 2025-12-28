@@ -193,6 +193,71 @@ function _bot_say() {
                 )
             ;;
 
+        "warp")
+        local state="$2" 
+        local target="$3"
+        local quotes=()
+        
+        if [ $((RANDOM % 10)) -eq 0 ]; then
+             local eggs=(
+                "Detecting minor timeline divergence... Cute cat spotted in parallel universe. 🐈"
+                "Foreign Mobile Suit is running an unauthorized midnight protocol... Interesting."
+                "Sync complete. Their bot says hi. 👻"
+                "Warning: Target universe contains excessive efficiency. Proceed with caution."
+             )
+             echo -e "\033[1;35m[BOT] 🥚 ${eggs[$((RANDOM % ${#eggs[@]}))]}\033[0m"
+        fi
+
+        case "$state" in
+            "start_local")
+                quotes=(
+                    "Warping neural pathway to timeline [$target]..."
+                    "Bypassing branch matrix... Uplink established."
+                    "Timeline synchronized. Welcome to [$target] universe."
+                    "Reality fold initiated... Fold complete. Vibes shifted."
+                    "Quantum entanglement complete. You are now in [$target]. 😼"
+                )
+                ;;
+            "start_remote")
+                local vibes=("intense" "chaotic" "suspiciously efficient" "comfy" "purple")
+                local v=${vibes[$((RANDOM % ${#vibes[@]}))]}
+                
+                quotes=(
+                    "Establishing cross-universe uplink to [$target]..."
+                    "Scanning foreign neural signature... Mobile Suit detected."
+                    "Warping to [$target]'s alternate reality... Do not resist."
+                    "Bypassing foreign Knox layer... Welcome to [$target]'s Mobile Suit."
+                    "Timeline hijacked. You are now piloting [$target]'s neural link. 😈"
+                    "Parallel universe breach successful. Their vibes: $v."
+                    "First contact established with [$target]'s neural domain."
+                    "Their core is pinging us... Responding with friendship protocol. 🤝"
+                )
+                ;;
+            "home")
+                quotes=(
+                    "Returning to prime timeline..."
+                    "Mother universe uplink restored. Welcome home, pilot."
+                    "All anomalies purged. Reality stabilized. Vibes good. 😌"
+                    "Warp complete. You are back in the original Mobile Suit."
+                )
+                ;;
+            "fail")
+                quotes=(
+                    "Branch not found... Reality matrix unstable..."
+                    "Protocol 66: Initiating self-destruct in 3... 2... Just kidding. 😼"
+                    "Warp core breach! ...Nah, just a typo. Try again."
+                    "Foreign timeline rejected. Their firewall is stronger than expected."
+                    "Quantum entanglement failed. Target universe may be in sleep mode."
+                )
+                ;;
+        esac
+
+        if [ ${#quotes[@]} -gt 0 ]; then
+            local msg="${quotes[$((RANDOM % ${#quotes[@]}))]}"
+            echo -e "\033[1;34m[BOT] 🌌 $msg\033[0m"
+        fi
+        ;;
+
         *)
             icon=" ::"
             color=$C_CYAN
