@@ -518,8 +518,9 @@ function shazam() {
 }
 
 
-# === Diving Suite (PADI 聚合指令) ===
+# === Diving Suite ===
 
+# : PADI
 function padi() {
     local target="$1"
     if [ -z "$target" ]; then
