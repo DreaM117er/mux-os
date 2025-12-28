@@ -2,7 +2,7 @@
 
 # 基礎路徑與版本定義 - Base Paths and Version Definition
 export MUX_REPO="https://github.com/DreaM117er/mux-os"
-export MUX_VERSION="3.0.0"
+export MUX_VERSION="4.0.0"
 export MUX_ROOT="$HOME/mux-os"
 export BASE_DIR="$MUX_ROOT"
 
@@ -117,6 +117,7 @@ function mux() {
                 _show_menu_dashboard
             fi
             ;;
+
         "oldmenu"|"om")
             if command -v fzf &> /dev/null; then
                 _show_menu_dashboard
@@ -124,9 +125,11 @@ function mux() {
                 echo "Unknown command: '$cmd'. No '$cmd' exist."
             fi
             ;;
+
         "info"|"i")
             _mux_show_info
             ;;
+
         "link")
             if command -v _mux_uplink_sequence &> /dev/null; then
                 _mux_uplink_sequence
@@ -134,12 +137,15 @@ function mux() {
                 pkg install fzf -y
             fi
             ;;
+
         "version"|"v")
             echo -e "\033[1;33m :: Mux-OS Core v$MUX_VERSION  🤖\033[0m"
             ;;
+
         "update"|"up")
             _mux_update_system
             ;;
+
         "setup")
             if [ -f "$MUX_ROOT/setup.sh" ]; then
                 bash "$MUX_ROOT/setup.sh"
@@ -148,6 +154,7 @@ function mux() {
                 echo -e "\033[1;30m    ›› Please re-download setup.sh from repository.\033[0m"
             fi
             ;;
+
         "help"|"h")
             echo "Available commands:"
             echo "  mux           : Acknowledge presence"
@@ -158,15 +165,53 @@ function mux() {
             echo "  mux reset     : Force sync (Discard changes)"
             echo "  mux info      : Show system information"
             ;;
+
         "reload"|"r")
             _mux_reload_kernel
             ;;
+
         "reset")
             _mux_force_reset
             if [ $? -eq 0 ]; then
                 _mux_reload_kernel
             fi
             ;;
+
+        "warpto"|"jumpto")
+        echo -e " :: \033[1;36mScanning Multiverse Coordinates...\033[0m"
+        git fetch --all >/dev/null 2>&1
+
+        local target_branch=$(git branch -r | grep -v '\->' | sed 's/origin\///' | fzf --height=10 --layout=reverse --prompt=" :: Select Mobile Suit to Pilot › " --border=none)
+
+        if [ -z "$target_branch" ]; then
+            _bot_say "warp" "fail"
+            return 1
+        fi
+
+        local warp_type="start_local"
+        if [ "$target_branch" == "main" ] || [ "$target_branch" == "master" ]; then
+            warp_type="home"
+        elif [[ "$target_branch" != *"$(whoami)"* ]] && [[ "$target_branch" != *"DreaM117er"* ]]; then
+            warp_type="start_remote"
+        fi
+
+        _bot_say "warp" "$warp_type" "$target_branch"
+        
+        if [ -n "$(git status --porcelain)" ]; then
+            echo -e "    ›› Stashing local modifications..."
+            git stash push -m "Auto-stash before warp to $target_branch" >/dev/null 2>&1
+        fi
+
+        git checkout "$target_branch" 2>/dev/null
+
+        if [ $? -eq 0 ]; then
+            echo -e "    ›› Reloading System Core..."
+            mux reload
+        else
+            _bot_say "warp" "fail"
+        fi
+        ;;
+
         *)
             echo "Unknown command: '$cmd'. Try input 'mux help'."
             ;;
