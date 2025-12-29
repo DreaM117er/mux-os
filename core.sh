@@ -134,10 +134,28 @@ function mux() {
 
         # : Install Dependencies
         "link")
-            if command -v _mux_uplink_sequence &> /dev/null; then
-                _mux_uplink_sequence
+            if command -v fzf &> /dev/null; then
+                echo -e "\n\033[1;32m :: Neural Link (fzf) Status: \033[1;37mONLINE\033[0m ✅"
+                _bot_say "success" "Link is stable, Commander."
+                return
+            fi
+
+            echo -e ""
+            echo -e "\033[1;33m :: Initialize Neural Link Protocol? \033[0m"
+            echo -e "\033[1;30m    ›› Required for Multiverse Warp & Fuzzy Menu.\033[0m"
+            echo -ne "\033[1;32m :: Authorize construction? [Y/n]: \033[0m"
+            read choice
+
+            if [[ "$choice" == "y" || "$choice" == "Y" || "$choice" == "" ]]; then
+                if command -v _mux_uplink_sequence &> /dev/null; then
+                    _mux_uplink_sequence
+                else
+                    echo -e "\033[1;34m    ›› Downloading Neural Interface packages...\033[0m"
+                    pkg install fzf -y
+                    echo -e "\033[1;32m    ›› Neural Link Established.\033[0m"
+                fi
             else
-                pkg install fzf -y
+                echo -e "\033[1;30m    ›› Operation aborted. Link remains offline.\033[0m"
             fi
             ;;
 
