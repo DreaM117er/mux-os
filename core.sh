@@ -138,8 +138,14 @@ function mux() {
             fi
             ;;
 
-        "version"|"v")
-            echo -e "\033[1;33m :: Mux-OS Core v$MUX_VERSION  🤖\033[0m"
+        "status"|"st"|"v")
+            local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "Unknown")
+            local last_commit=$(git log -1 --format='%h - %s (%cr)' 2>/dev/null)
+            
+            echo -e "\033[1;34m :: Mux-OS System Status \033[0m"
+            echo -e "\033[1;37m    ›› Core Protocol :\033[0m \033[1;33mv$MUX_VERSION\033[0m"
+            echo -e "\033[1;37m    ›› Current Meta  :\033[0m \033[1;35m$current_branch\033[0m"
+            echo -e "\033[1;37m    ›› Last Uplink   :\033[0m \033[0;36m$last_commit\033[0m"
             ;;
 
         "update"|"up")
@@ -207,6 +213,19 @@ function mux() {
         git checkout "$target_branch" 2>/dev/null
 
         if [ $? -eq 0 ]; then
+            echo -e ""
+            echo -e "    ›› \033[1;33mStabilizing Reality Matrix...\033[0m"
+            sleep 1.2
+            
+            echo -e "    ›› \033[1;36mFlushing Quantum Cache...\033[0m"
+            sleep 0.8
+            
+            echo -e "    ›› \033[1;35mRealigning Neural Pathways...\033[0m"
+            sleep 1
+            
+            echo -e "    ›› \033[1;32mSystem Link Established.\033[0m"
+            sleep 0.5
+
             echo -e "    ›› Reloading System Core..."
             mux reload
         else
