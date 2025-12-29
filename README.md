@@ -1,7 +1,23 @@
-|![](pic/logo.png)|![](pic/startup.png)|
-|---|---|
-|![](pic/reset.png)|<video src="pic/warp.mp4" controls="controls" style="max-width: 100%;">
-</video>|
+<table>
+  <tr>
+    <td width="50%">
+      <img src="pic/logo.png" width="100%" alt="System Identity">
+    </td>
+    <td width="50%">
+      <img src="pic/startup.png" width="100%" alt="Boot Sequence">
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="pic/reset.png" width="100%" alt="System Reset">
+    </td>
+    <td width="50%">
+      <video src="pic/warp.mp4" controls="controls" width="100%"></video>
+    </td>
+  </tr>
+</table>
+
+<br>
 
 ![Bash](https://img.shields.io/badge/Language-Bash-4EAA25?style=flat-square&logo=gnu-bash&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Termux-black?style=flat-square)
