@@ -205,7 +205,7 @@ function _bot_say() {
                 "Sync complete. Their bot says hi. 👻"
                 "Warning: Target universe contains excessive efficiency. Proceed with caution."
              )
-             echo -e "\033[1;35m[BOT] 🥚 ${eggs[$((RANDOM % ${#eggs[@]}))]}\033[0m"
+             echo -e "\033[1;35m :: ${eggs[$((RANDOM % ${#eggs[@]}))]}\033[0m"
         fi
 
         case "$state" in
@@ -257,7 +257,7 @@ function _bot_say() {
 
         if [ ${#quotes[@]} -gt 0 ]; then
             local msg="${quotes[$((RANDOM % ${#quotes[@]}))]}"
-            echo -e "\033[1;34m[BOT] 🌌 $msg\033[0m"
+            echo -e "\033[1;34m    ›› $msg\033[0m"
         fi
         return
         ;;

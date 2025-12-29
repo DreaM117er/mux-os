@@ -113,6 +113,32 @@ function _mux_show_info() {
     fi
 }
 
+# 動態Help選單檢測 - Dynamic Help Detection
+function _mux_dynamic_help_core() {
+    local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "Unknown")
+
+    echo -e "\033[1;32m :: Mux-OS Core Protocols :: Target: v$MUX_VERSION @ \033[1;35m$current_branch :: \033[0m"
+    
+    awk '
+    /function mux\(\) \{/ { inside_mux=1; next }
+    /^}/ { inside_mux=0 }
+
+    inside_mux {
+        if ($0 ~ /^[[:space:]]*# :/) {
+            desc = $0;
+            sub(/^[[:space:]]*# :[[:space:]]*/, "", desc);
+            
+            getline;
+            if ($0 ~ /"/) {
+                split($0, parts, "\"");
+                cmd_name = parts[2];
+                printf "    \033[1;32m%-10s\033[0m : %s\n", cmd_name, desc;
+            }
+        }
+    }
+    ' "$CORE_MOD"
+}
+
 # 顯示指令選單儀表板 - Display Command Menu Dashboard
 function _show_menu_dashboard() {
     echo -e "\n\033[1;33m" [" Mux-OS Command Center "]"\033[0m"
