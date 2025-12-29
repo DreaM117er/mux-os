@@ -137,6 +137,7 @@ function mux() {
     fi
 
     case "$cmd" in
+        # : Open Command Dashboard
         "menu"|"m")
             if command -v fzf &> /dev/null; then
                 _mux_fuzzy_menu
@@ -153,10 +154,12 @@ function mux() {
             fi
             ;;
 
+        # : Show Mux-OS info
         "info"|"i")
             _mux_show_info
             ;;
 
+        # : Install Dependencies
         "link")
             if command -v _mux_uplink_sequence &> /dev/null; then
                 _mux_uplink_sequence
@@ -165,6 +168,7 @@ function mux() {
             fi
             ;;
 
+        # : Show System Status
         "status"|"st"|"v")
             local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "Unknown")
             local last_commit=$(git log -1 --format='%h - %s (%cr)' 2>/dev/null)
@@ -175,10 +179,12 @@ function mux() {
             echo -e "\033[1;37m    ›› Last Uplink   :\033[0m \033[0;36m$last_commit\033[0m"
             ;;
 
+        # : Check for Updates
         "update"|"up")
             _mux_update_system
             ;;
 
+        # : Run Setup Protocol
         "setup")
             if [ -f "$MUX_ROOT/setup.sh" ]; then
                 bash "$MUX_ROOT/setup.sh"
@@ -192,10 +198,12 @@ function mux() {
             _mux_dynamic_help_core
             ;;
 
+        # : Reload System Kernel
         "reload"|"r")
             _mux_reload_kernel
             ;;
 
+        # : Force System Sync
         "reset")
             _mux_force_reset
             if [ $? -eq 0 ]; then
@@ -203,6 +211,7 @@ function mux() {
             fi
             ;;
 
+        # : Multiverse Warp Drive
         "warpto"|"jumpto")
         echo -e "\033[1;36m :: Scanning Multiverse Coordinates...\033[0m"
         git fetch --all >/dev/null 2>&1
