@@ -117,7 +117,7 @@ function _mux_show_info() {
 function _mux_dynamic_help_core() {
     local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "Unknown")
 
-    echo -e "\033[1;32m :: Mux-OS Core Protocols :: Target: v$MUX_VERSION @ \033[1;35m$current_branch :: \033[0m"
+    echo -e "\033[1;35m :: Mux-OS Core v$MUX_VERSION Protocols :: @$current_branch :: \033[0m"
     
     awk '
     /function mux\(\) \{/ { inside_mux=1; next }
