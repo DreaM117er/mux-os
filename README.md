@@ -1,4 +1,4 @@
-```bash
+```diff
 
   __  __                  ___  ____  
  |  \/  |_   ___  __     / _ \/ ___| 
@@ -56,6 +56,7 @@ bash setup.sh
 
  :: 04. Basic Command ::
     ›› 基礎操作指令爲 mux 。
+    ›› mux help:  。
 
 
 
