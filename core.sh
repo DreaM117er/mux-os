@@ -227,6 +227,7 @@ function mux() {
             sleep 0.5
 
             echo -e "    ›› Reloading System Core..."
+            sleep 1.6
             mux reload
         else
             _bot_say "warp" "fail"
