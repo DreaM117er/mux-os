@@ -83,7 +83,7 @@ function gemini() {
     _launch_android_app "Gemini" "com.google.android.apps.bard" "com.google.android.apps.bard.shellapp.BardEntryPointActivity"
 }
 
-# : Grok (xAI) - 既然有了原生 App，當然要加入
+# : Grok (xAI)
 function grok() {
     _require_no_args "$@" || return 1
     _launch_android_app "Grok" "ai.x.grok" "ai.x.grok.main.GrokActivity"
