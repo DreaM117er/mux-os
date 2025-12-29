@@ -97,6 +97,33 @@ function _safe_ui_calc() {
     content_limit=$(( width > 10 ? width - 10 : 2 ))
 }
 
+# 動態Help選單檢測 - Dynamic Help Detection
+function _mux_dynamic_help_core() {
+    echo -e "\033[1;34m :: Mux-OS Core Protocols :: Target: $MUX_VERSION @ $(hostname)\033[0m"
+
+    awk '
+    /function mux\(\) \{/ { inside_mux=1; next }
+    
+    /^}/ { inside_mux=0 }
+
+    inside_mux {
+        if ($0 ~ /^[[:space:]]*# :/) {
+            desc = $0;
+            sub(/^[[:space:]]*# :[[:space:]]*/, "", desc);
+            
+            getline;
+            if ($0 ~ /"/) {
+                split($0, parts, "\"");
+                cmd_name = parts[2];
+                
+                printf "    \033[1;32mmux %-10s\033[0m : %s\n", cmd_name, desc;
+            }
+        }
+    }
+    ' "$CORE_MOD"
+    echo -e ""
+}
+
 
 # Mux-OS 主指令入口 - Mux-OS Main Command Entry
 # === Mux ===
@@ -162,14 +189,7 @@ function mux() {
             ;;
 
         "help"|"h")
-            echo "Available commands:"
-            echo "  mux           : Acknowledge presence"
-            echo "  mux menu      : Show command dashboard"
-            echo "  mux version   : Show current version"
-            echo "  mux update    : Check for updates"
-            echo "  mux reload    : Reload system modules"
-            echo "  mux reset     : Force sync (Discard changes)"
-            echo "  mux info      : Show system information"
+            _mux_dynamic_help_core
             ;;
 
         "reload"|"r")
@@ -184,7 +204,7 @@ function mux() {
             ;;
 
         "warpto"|"jumpto")
-        echo -e " :: \033[1;36mScanning Multiverse Coordinates...\033[0m"
+        echo -e "\033[1;36m :: Scanning Multiverse Coordinates...\033[0m"
         git fetch --all >/dev/null 2>&1
 
         local target_branch=$(git branch -r | grep -v '\->' | sed 's/origin\///' | fzf --height=10 --layout=reverse --prompt=" :: Select Mobile Suit to Pilot › " --border=none)
@@ -214,16 +234,16 @@ function mux() {
 
         if [ $? -eq 0 ]; then
             echo -e ""
-            echo -e "    ›› \033[1;33mStabilizing Reality Matrix...\033[0m"
+            echo -e "\033[1;33m    ›› Stabilizing Reality Matrix...\033[0m"
             sleep 1.2
             
-            echo -e "    ›› \033[1;36mFlushing Quantum Cache...\033[0m"
+            echo -e "\033[1;36m    ›› Flushing Quantum Cache...\033[0m"
             sleep 0.8
             
-            echo -e "    ›› \033[1;35mRealigning Neural Pathways...\033[0m"
+            echo -e "\033[1;35m    ›› Realigning Neural Pathways...\033[0m"
             sleep 1
             
-            echo -e "    ›› \033[1;32mSystem Link Established.\033[0m"
+            echo -e "\033[1;32m    ›› System Link Established.\033[0m"
             sleep 0.5
 
             echo -e "    ›› Reloading System Core..."
