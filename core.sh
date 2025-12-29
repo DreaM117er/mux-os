@@ -183,6 +183,8 @@ function mux() {
 
         local target_branch=$(git branch -r | grep -v '\->' | sed 's/origin\///' | fzf --height=10 --layout=reverse --prompt=" :: Select Mobile Suit to Pilot › " --border=none)
 
+        target_branch="${target_branch// /}"
+
         if [ -z "$target_branch" ]; then
             _bot_say "warp" "fail"
             return 1
