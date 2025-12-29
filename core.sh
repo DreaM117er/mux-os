@@ -215,7 +215,6 @@ function mux() {
         git checkout "$target_branch" 2>/dev/null
 
         if [ $? -eq 0 ]; then
-            echo -e ""
             echo -e "\033[1;30m    ›› Stabilizing Reality Matrix...\033[0m"
             sleep 1.2
             echo -e "\033[1;30m    ›› Flushing Quantum Cache...\033[0m"
@@ -224,7 +223,7 @@ function mux() {
             sleep 1
             echo -e "\033[1;30m    ›› System Link Established.\033[0m"
             sleep 0.5
-            echo -e "\033[1;33m    ›› Reloading System Core...\033[0m"
+            echo -e "\033[1;33m :: Reloading System Core...\033[0m"
             sleep 1.6
             mux reload
         else
