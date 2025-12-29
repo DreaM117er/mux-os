@@ -110,6 +110,7 @@ function mux() {
     fi
 
     case "$cmd" in
+        # : Open Command Dashboard
         "menu"|"m")
             if command -v fzf &> /dev/null; then
                 _mux_fuzzy_menu
@@ -126,10 +127,12 @@ function mux() {
             fi
             ;;
 
+        # : Show Mux-OS info
         "info"|"i")
             _mux_show_info
             ;;
 
+        # : Install Dependencies
         "link")
             if command -v _mux_uplink_sequence &> /dev/null; then
                 _mux_uplink_sequence
@@ -138,6 +141,7 @@ function mux() {
             fi
             ;;
 
+        # : Show System Status
         "status"|"st"|"v")
             local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "Unknown")
             local last_commit=$(git log -1 --format='%h - %s (%cr)' 2>/dev/null)
@@ -148,10 +152,12 @@ function mux() {
             echo -e "\033[1;37m    ›› Last Uplink   :\033[0m \033[0;36m$last_commit\033[0m"
             ;;
 
+        # : Check for Updates
         "update"|"up")
             _mux_update_system
             ;;
 
+        # : Run Setup Protocol
         "setup")
             if [ -f "$MUX_ROOT/setup.sh" ]; then
                 bash "$MUX_ROOT/setup.sh"
@@ -162,20 +168,15 @@ function mux() {
             ;;
 
         "help"|"h")
-            echo "Available commands:"
-            echo "  mux           : Acknowledge presence"
-            echo "  mux menu      : Show command dashboard"
-            echo "  mux version   : Show current version"
-            echo "  mux update    : Check for updates"
-            echo "  mux reload    : Reload system modules"
-            echo "  mux reset     : Force sync (Discard changes)"
-            echo "  mux info      : Show system information"
+            _mux_dynamic_help_core
             ;;
 
+        # : Reload System Kernel
         "reload"|"r")
             _mux_reload_kernel
             ;;
 
+        # : Force System Sync
         "reset")
             _mux_force_reset
             if [ $? -eq 0 ]; then
@@ -183,8 +184,9 @@ function mux() {
             fi
             ;;
 
+        # : Multiverse Warp Drive
         "warpto"|"jumpto")
-        echo -e " :: \033[1;36mScanning Multiverse Coordinates...\033[0m"
+        echo -e "\033[1;36m :: Scanning Multiverse Coordinates...\033[0m"
         git fetch --all >/dev/null 2>&1
 
         local target_branch=$(git branch -r | grep -v '\->' | sed 's/origin\///' | fzf --height=10 --layout=reverse --prompt=" :: Select Mobile Suit to Pilot › " --border=none)
@@ -214,19 +216,15 @@ function mux() {
 
         if [ $? -eq 0 ]; then
             echo -e ""
-            echo -e "    ›› \033[1;33mStabilizing Reality Matrix...\033[0m"
+            echo -e "\033[1;30m    ›› Stabilizing Reality Matrix...\033[0m"
             sleep 1.2
-            
-            echo -e "    ›› \033[1;36mFlushing Quantum Cache...\033[0m"
+            echo -e "\033[1;30m    ›› Flushing Quantum Cache...\033[0m"
             sleep 0.8
-            
-            echo -e "    ›› \033[1;35mRealigning Neural Pathways...\033[0m"
+            echo -e "\033[1;30m    ›› Realigning Neural Pathways...\033[0m"
             sleep 1
-            
-            echo -e "    ›› \033[1;32mSystem Link Established.\033[0m"
+            echo -e "\033[1;30m    ›› System Link Established.\033[0m"
             sleep 0.5
-
-            echo -e "    ›› Reloading System Core..."
+            echo -e "\033[1;33m    ›› Reloading System Core...\033[0m"
             sleep 1.6
             mux reload
         else
