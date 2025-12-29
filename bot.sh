@@ -218,6 +218,7 @@ function _bot_say() {
                     "Quantum entanglement complete. You are now in [$target]. 😼"
                 )
                 ;;
+
             "start_remote")
                 local vibes=("intense" "chaotic" "suspiciously efficient" "comfy" "purple")
                 local v=${vibes[$((RANDOM % ${#vibes[@]}))]}
@@ -233,6 +234,7 @@ function _bot_say() {
                     "Their core is pinging us... Responding with friendship protocol. 🤝"
                 )
                 ;;
+
             "home")
                 quotes=(
                     "Returning to prime timeline..."
@@ -241,6 +243,7 @@ function _bot_say() {
                     "Warp complete. You are back in the original Mobile Suit."
                 )
                 ;;
+                
             "fail")
                 quotes=(
                     "Branch not found... Reality matrix unstable..."
@@ -256,6 +259,7 @@ function _bot_say() {
             local msg="${quotes[$((RANDOM % ${#quotes[@]}))]}"
             echo -e "\033[1;34m[BOT] 🌌 $msg\033[0m"
         fi
+        return
         ;;
 
         *)
