@@ -264,16 +264,10 @@ function mux() {
 
         # : Enter the Arsenal (Factory Mode)
         "factory"|"fac"|"intofac")
-            if command -v _verify_identity_for_factory &> /dev/null; then
-                 _verify_identity_for_factory
-                 if [ $? -ne 0 ]; then
-                     return 1 
-                 fi
-            else
-                echo -e "\033[1;31m :: Identity Module Missing.\033[0m"
-                return 1
-            fi
-
+            echo ""
+            echo -ne "\033[1;30m :: Initializing Factory Protocol...\033[0m"
+            sleep 2.6
+            
             if [ -f "$MUX_ROOT/factory.sh" ]; then
                 source "$MUX_ROOT/factory.sh"
                 _enter_factory_mode
@@ -282,14 +276,6 @@ function mux() {
             fi
             ;;
     esac
-}
-
-function menu() {
-    mux menu
-}
-
-function oldmenu() {
-    mux oldmenu
 }
 
 # 重新載入核心模組 - Reload Core Modules

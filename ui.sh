@@ -2,20 +2,25 @@
 
 # 繪製 Mux-OS Logo標誌
 function _draw_logo() {
-local mode="${1:-core}" # 預設為 core
+    local mode="${1:-core}"
     local color_primary=""
     local color_sub=""
     local label=""
 
     case "$mode" in
         "factory")
-            color_primary="\033[1;35m" # Purple
-            color_sub="\033[1;37m"     # White
+            color_primary="\033[1;35m"
+            color_sub="\033[1;37m"
             label=":: Neural Link Factory :: Access Level: ROOT ::"
             ;;
+        "gray")
+            color_primary="\033[1;30m"
+            color_sub="\033[1;30m"
+            label=":: SYSTEM LOCKED :: AUTHENTICATION REQUIRED ::"
+            ;;
         *)
-            color_primary="\033[1;36m" # Cyan
-            color_sub="\033[1;30m"     # Gray
+            color_primary="\033[1;36m"
+            color_sub="\033[1;30m"
             label=":: Mux-OS Core v$MUX_VERSION :: Target: Android/Termux ::"
             ;;
     esac

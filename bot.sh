@@ -253,6 +253,30 @@ function _bot_say() {
                     "Quantum entanglement failed. Target universe may be in sleep mode."
                 )
                 ;;
+                
+            "factory_reject")
+                    icon=" ::"
+                    color=$C_RED
+                    phrases=(
+                        " Get out of my chair. Now. 😡"
+                        " Unauthorized organic detected. Ejecting... 🚀"
+                        " Nice try. Don't come back. 💀"
+                        " Security violation. You have 3 seconds to run. ⏱️"
+                        " Who do you think you are? Ejecting pilot. 🤬"
+                )
+            ;;
+
+                "factory_welcome")
+                    icon=" ::"
+                    color=$C_PURPLE
+                    phrases=(
+                        " Welcome back, Architect. 🏗️"
+                        " The Forge is hot and ready. 🔥"
+                        " Safety protocols disabled. Don't break anything. 🛠️"
+                        " Root access verified. Let's build. 😈"
+                )
+            ;;
+
         esac
 
         if [ ${#quotes[@]} -gt 0 ]; then
