@@ -116,9 +116,9 @@ function _factory_eject_sequence() {
     echo -e "${F_ERR} :: Initiating Eviction Protocol...${F_RESET}"
     sleep 0.4
     echo -e "${F_ERR} :: Locking Cockpit...${F_RESET}"
-    sleep 1.2
+    sleep 0.6
     echo -e "${F_ERR} :: Auto-Eject System Activated.${F_RESET}"
-    echo ""
+    sleep 1
     
     for i in {3..1}; do
         echo -e "${F_ERR}    ›› Ejection in $i...${F_RESET}"
