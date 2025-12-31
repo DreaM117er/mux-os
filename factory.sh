@@ -71,10 +71,8 @@ function _factory_boot_sequence() {
     
     if [ "$verify_success" -eq 1 ]; then
         echo -e "\n\033[1;32m :: ACCESS GRANTED :: \033[0m"
-        sleep 0.5
-        
-        clear
-        _draw_logo "gray"
+        sleep 1
+        echo ""
         echo -e "${F_ERR} :: WARNING: FACTORY PROTOCOL :: ${F_RESET}"
         echo -e "${F_SUB} 1. Modifications here are permanent.${F_RESET}"
         echo -e "${F_SUB} 2. Do not delete system kernels.${F_RESET}"
@@ -90,7 +88,6 @@ function _factory_boot_sequence() {
         fi
         
         _system_lock
-        echo ""
         local steps=("Injecting Logic..." "Desynchronizing Core..." "Loading Arsenal..." "Entering Factory...")
         for step in "${steps[@]}"; do
             echo -e "${F_MAIN}    ›› $step${F_RESET}"
