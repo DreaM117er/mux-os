@@ -1,0 +1,12 @@
+# .gitignore - Mux-OS Stealth Layer
+
+# :: Identity Matrix (DO NOT REMOVE)
+.mux_identity
+
+# :: System Backups
+bak/
+*.bak
+*.tmp
+
+# :: User Specific Cache
+.DS_Store

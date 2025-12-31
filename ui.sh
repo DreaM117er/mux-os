@@ -2,7 +2,25 @@
 
 # 繪製 Mux-OS Logo標誌
 function _draw_logo() {
-    echo -e "\033[1;36m"
+local mode="${1:-core}" # 預設為 core
+    local color_primary=""
+    local color_sub=""
+    local label=""
+
+    case "$mode" in
+        "factory")
+            color_primary="\033[1;35m" # Purple
+            color_sub="\033[1;37m"     # White
+            label=":: Neural Link Factory :: Access Level: ROOT ::"
+            ;;
+        *)
+            color_primary="\033[1;36m" # Cyan
+            color_sub="\033[1;30m"     # Gray
+            label=":: Mux-OS Core v$MUX_VERSION :: Target: Android/Termux ::"
+            ;;
+    esac
+
+    echo -e "${color_primary}"
     cat << "EOF"
   __  __                  ___  ____  
  |  \/  |_   ___  __     / _ \/ ___| 
@@ -11,7 +29,7 @@ function _draw_logo() {
  |_|  |_|\__,_/_/\_\     \___/|____/ 
 EOF
     echo -e "\033[0m"
-    echo -e " \033[1;30m:: Mux-OS Core v$MUX_VERSION :: Target: Android/Termux ::\033[0m"
+    echo -e " ${color_sub}${label}\033[0m"
     echo ""
 }
 

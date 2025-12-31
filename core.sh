@@ -2,7 +2,7 @@
 
 # 基礎路徑與版本定義 - Base Paths and Version Definition
 export MUX_REPO="https://github.com/DreaM117er/mux-os"
-export MUX_VERSION="4.0.0"
+export MUX_VERSION="4.1.0"
 export MUX_ROOT="$HOME/mux-os"
 export BASE_DIR="$MUX_ROOT"
 
@@ -18,6 +18,7 @@ export APP_MOD="$BASE_DIR/app.sh"
 MODULES=(
     "$BOT_MOD"
     "$UI_MOD"
+    "$IDENTITY_MOD"
     "$SYSTEM_MOD"
     "$VENDOR_MOD"
     "$APP_MOD"
@@ -35,6 +36,11 @@ for mod in "${MODULES[@]}"; do
         esac
     fi
 done
+
+# 初始化身份矩陣
+if command -v _init_identity &> /dev/null; then
+    _init_identity
+fi
 
 # 環境初始化檢測 (僅在必要時運行) - Environment Initialization Check (Run if necessary)
 [ ! -d "$HOME/storage" ] && { echo -e "\033[1;33m :: Setup Storage...\033[0m"; termux-setup-storage; sleep 2; }
@@ -357,11 +363,11 @@ function _mux_update_system() {
 
 # 主程式啟動體感動畫 - Main Program Startup Animation
 function _mux_init() {
-if [ "$MUX_INITIALIZED" = "true" ]; then return; fi
+    if [ "$MUX_INITIALIZED" = "true" ]; then return; fi
     _system_lock
     _safe_ui_calc
     clear
-    _draw_logo
+    _draw_logo "core"
     _system_check
     _show_hud
     export MUX_INITIALIZED="true"
