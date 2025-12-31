@@ -112,9 +112,9 @@ function _show_hud() {
 
     if [ "$mode" == "factory" ]; then
         border_color="\033[1;35m"
-        line1_k="MODE   "; line1_v="\033[1;35mFACTORY [ROOT]"
-        line2_k="TARGET "; line2_v="\033[1;37mapp.sh"
-        line3_k="STATUS "; line3_v="\033[1;33mUNLOCKED"
+        line1_k="MODE   "; line1_v="FACTORY [ROOT]"
+        line2_k="TARGET "; line2_v="app.sh"
+        line3_k="STATUS "; line3_v="UNLOCKED"
     else
         local android_ver=$(getprop ro.build.version.release)
         local brand_raw=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]' | cut -c1)$(getprop ro.product.brand | tr '[:upper:]' '[:lower:]' | cut -c2-)
@@ -357,4 +357,47 @@ function _mux_uplink_sequence() {
     else
         _bot_say "error" "Link failed. Neural rejection detected."
     fi
+}
+
+# 顯示兵工廠狀態 - Display Factory Status
+function _factory_show_status() {
+    local func_count=$(grep -c "^function" "$MUX_ROOT/app.sh")
+    local backup_count=$(ls "$MUX_ROOT/bak/" 2>/dev/null | wc -l)
+    local last_sync=$(grep "Last Sync" "$MUX_ROOT/app.sh" | cut -d: -f2- | sed 's/::/\n/' | xargs)
+    [ -z "$last_sync" ] && last_sync="Unknown"
+
+    local F_MAIN="\033[1;35m"
+    local F_SUB="\033[1;37m"
+    local F_WARN="\033[1;33m"
+    
+    echo -e "${F_MAIN} :: Factory Operational Status \033[0m"
+    echo -e "${F_SUB}    ›› Active Links  :\033[0m ${F_WARN}$func_count\033[0m"
+    echo -e "${F_SUB}    ›› Secure Backups:\033[0m ${F_WARN}$backup_count\033[0m"
+    echo -e "${F_SUB}    ›› Last Deploy   :\033[0m \033[1;36m$last_sync\033[0m"
+    echo ""
+}
+
+# 顯示兵工廠資訊 - Display Factory Info Manifest
+function _factory_show_info() {
+    local F_MAIN="\033[1;35m"
+    local F_SUB="\033[1;37m"
+    local F_WARN="\033[1;33m"
+    local F_GRAY="\033[1;30m"
+    local F_RESET="\033[0m"
+
+    clear
+    _draw_logo "factory"
+    
+    echo -e " ${F_MAIN}:: INDUSTRIAL MANIFEST ::${F_RESET}"
+    echo ""
+    echo -e "  ${F_GRAY}PROTOCOL   :${F_RESET} ${F_SUB}Factory Protocol v1.0.0${F_RESET}"
+    echo -e "  ${F_GRAY}ACCESS     :${F_RESET} ${F_MAIN}ROOT / COMMANDER${F_RESET}"
+    echo -e "  ${F_GRAY}PURPOSE    :${F_RESET} ${F_SUB}Neural Link Construction & Modification${F_RESET}"
+    echo -e "  ${F_GRAY}TARGET     :${F_RESET} ${F_WARN}$MUX_ROOT/app.sh${F_RESET}"
+    echo ""
+    echo -e " ${F_MAIN}:: WARNING ::${F_RESET}"
+    echo -e "  ${F_GRAY}\"With great power comes great possibility of breaking things.\"${F_RESET}"
+    echo ""
+    
+    _bot_say "system" "Returning to forge..."
 }

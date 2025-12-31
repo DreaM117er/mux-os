@@ -1,5 +1,5 @@
 #!/bin/bash
-# factory.sh - Mux-OS 兵工廠 v5.2.0 (Gray Ghost Protocol)
+# factory.sh - Mux-OS 兵工廠
 
 F_MAIN="\033[1;35m"
 F_SUB="\033[1;37m"
@@ -130,20 +130,59 @@ function _factory_eject_sequence() {
     mux reload
 }
 
+
 # 兵工廠指令入口 - Factory Command Entry
+# === Fac ===
+
+# : Factory Command Entry
 function fac() {
     local cmd="$1"
+    
     if [ "$__MUX_MODE" != "factory" ]; then
         echo -e "\033[1;31m :: Error: Link Offline. Use 'mux fac'.\033[0m"
         return 1
     fi
 
     case "$cmd" in
-        "menu"|"m") _factory_fzf_menu ;;
-        "list"|"l") _factory_list_links ;;
-        "deploy"|"d"|"exit") _factory_deploy_sequence ;;
-        "help"|"h") _factory_help ;;
-        *) echo -e "${F_WARN} :: Unknown Directive: $cmd${F_RESET}" ;;
+        # : Open Neural Forge (FZF)
+        "menu"|"m")
+            _factory_fzf_menu
+            ;;
+
+        # : List all links
+        "list"|"l")
+            _factory_list_links
+            ;;
+
+        # : Show Factory Status (Mirroring mux status)
+        "status"|"st")
+            if command -v _factory_show_status &> /dev/null; then
+                _factory_show_status
+            else
+                echo -e "${F_WARN} :: UI Module Link Failed.${F_RESET}"
+            fi
+            ;;
+
+        # : Show Factory Info (Mirroring mux info)
+        "info"|"i")
+            if command -v _factory_show_info &> /dev/null; then
+                _factory_show_info
+            fi
+            ;;
+
+        # : Save & Exit
+        "deploy"|"d"|"exit")
+            _factory_deploy_sequence
+            ;;
+
+        # : Help
+        "help"|"h")
+            _factory_help
+            ;;
+
+        *)
+            echo -e "${F_WARN} :: Unknown Directive: $cmd${F_RESET}"
+            ;;
     esac
 }
 
@@ -194,6 +233,8 @@ function _factory_help() {
     echo -e "${F_MAIN} :: Factory Manual ::${F_RESET}"
     echo "  fac menu   : Open Neural Forge (FZF)"
     echo "  fac list   : List functions"
+    echo "  fac status : Show operational status"
+    echo "  fac info   : Show factory manifest"
     echo "  fac deploy : Save changes & Return to Core"
 }
 
