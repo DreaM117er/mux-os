@@ -11,18 +11,18 @@ F_RESET="\033[0m"
 # 進入兵工廠模式 (Entry Point)
 function _enter_factory_mode() {
     _factory_boot_sequence
-    
     if [ $? -ne 0 ]; then return; fi
 
     export __MUX_MODE="factory"
-    
     _factory_auto_backup > /dev/null 2>&1
+
+    if command -v _fac_init &> /dev/null; then
+        _fac_init
+    else
+        clear
+        _draw_logo "factory"
+    fi
     
-    clear
-    _draw_logo "factory"
-    
-    echo -e "${F_MAIN} :: Factory Mode Engaged.${F_RESET}"
-    echo -e "${F_SUB} :: Write-Access: ${F_WARN}ENABLED${F_RESET} | Safety: ${F_ERR}OFF${F_RESET}"
     echo ""
     _bot_say "factory_welcome"
     echo ""
@@ -200,4 +200,12 @@ function _factory_help() {
 # 神經鍛造 (Neural Forge)
 function _factory_fzf_menu() {
     echo -e "${F_MAIN} :: Neural Forge (FZF) under construction...${F_RESET}"
+}
+
+# 初始化視覺效果 (Initialize Visuals)
+function _fac_init() {
+    clear
+    _draw_logo "factory"
+    _system_check "factory"
+    _show_hud "factory"
 }

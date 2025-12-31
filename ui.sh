@@ -40,12 +40,36 @@ EOF
 
 # 系統檢測動畫顯示 - System Check Animation Display
 function _system_check() {
+    local mode="${1:-core}"
+    
     local C_CHECK="\033[1;32m✓\033[0m"
     local C_FAIL="\033[1;31m✗\033[0m"
     local C_WARN="\033[1;33m!\033[0m"
     local C_PROC="\033[1;33m⟳\033[0m"
-    local DELAY_ANIM=0.08
+    local DELAY_ANIM=0.06
     local DELAY_STEP=0.02
+    
+    local steps=()
+    if [ "$mode" == "factory" ]; then
+        C_PROC="\033[1;35m⟳\033[0m"
+        steps=(
+            "Initializing Neural Forge..."
+            "Overriding Read-Only Filesystem..."
+            "Disabling Safety Interlocks..."
+            "Mounting app.sh (Write-Mode)..."
+            "Establishing Factory Uplink..."
+        )
+    else
+        local brand=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]')
+        steps=(
+            "Initializing Kernel Bridge..."
+            "Mounting Vendor Ecosystem [${brand:-UNKNOWN}]..."
+            "Verifying Neural Link (fzf)..."
+            "Calibrating Touch Matrix..."
+            "Bypassing Knox Security Layer..."
+            "Establish Uplink..."
+        )
+    fi
 
     function _run_step() {
         local msg="$1"
@@ -57,40 +81,63 @@ function _system_check() {
         sleep $DELAY_STEP
     }
 
-    _run_step "Initializing Kernel Bridge..." 0
-    local brand=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]')
-    _run_step "Mounting Vendor Ecosystem [${brand:-UNKNOWN}]..." 0
-    command -v fzf &> /dev/null && _run_step "Verifying Neural Link (fzf)..." 0 || _run_step "Verifying Neural Link (fzf)..." 1
-    _run_step "Calibrating Touch Matrix..." 0
-    _run_step "Bypassing Knox Security Layer..." 0
-    _run_step "Establish Uplink..." 0
+    for step in "${steps[@]}"; do
+        if [[ "$step" == *"fzf"* ]] && [ "$mode" == "core" ]; then
+             command -v fzf &> /dev/null && _run_step "$step" 0 || _run_step "$step" 1
+        else
+             _run_step "$step" 0
+        fi
+    done
     echo ""
 }
 
 # 顯示系統資訊 HUD - Display System Info HUD
 function _show_hud() {
+    local mode="${1:-core}"
     local screen_width=$(tput cols)
     local box_width=$(( screen_width < 22 ? 22 : screen_width - 2 ))
     local content_limit=$(( box_width - 13 ))
-    
     [ "$content_limit" -lt 5 ] && content_limit=5
+    
+    local border_color="\033[1;34m"
+    local text_color="\033[1;37m"
+    local value_color="\033[0m"
 
-    local android_ver=$(getprop ro.build.version.release)
-    local brand_raw=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]' | cut -c1)$(getprop ro.product.brand | tr '[:upper:]' '[:lower:]' | cut -c2-)
-    local model=$(getprop ro.product.model)
-    local host_str="$brand_raw $model (Android $android_ver)"
-    local kernel_ver=$(uname -r | awk -F- '{print $1}')
-    local mem_info=$(free -h | awk '/Mem:/ {print $3 "/" $2}')
+    local line1_k=""
+    local line1_v=""
+    local line2_k=""
+    local line2_v=""
+    local line3_k=""
+    local line3_v=""
 
-    [ ${#host_str} -gt $content_limit ] && host_str="${host_str:0:$((content_limit - 2))}.."
-    [ ${#kernel_ver} -gt $content_limit ] && kernel_ver="${kernel_ver:0:$((content_limit - 2))}.."
+    if [ "$mode" == "factory" ]; then
+        border_color="\033[1;35m"
+        line1_k="MODE   "; line1_v="\033[1;35mFACTORY [ROOT]"
+        line2_k="TARGET "; line2_v="\033[1;37mapp.sh"
+        line3_k="STATUS "; line3_v="\033[1;33mUNLOCKED"
+    else
+        local android_ver=$(getprop ro.build.version.release)
+        local brand_raw=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]' | cut -c1)$(getprop ro.product.brand | tr '[:upper:]' '[:lower:]' | cut -c2-)
+        local model=$(getprop ro.product.model)
+        local host_str="$brand_raw $model (Android $android_ver)"
+        local kernel_ver=$(uname -r | awk -F- '{print $1}')
+        local mem_info=$(free -h | awk '/Mem:/ {print $3 "/" $2}')
+        
+        [ ${#host_str} -gt $content_limit ] && host_str="${host_str:0:$((content_limit - 2))}.."
+        [ ${#kernel_ver} -gt $content_limit ] && kernel_ver="${kernel_ver:0:$((content_limit - 2))}.."
+        
+        line1_k="HOST   "; line1_v="$host_str"
+        line2_k="KERNEL "; line2_v="$kernel_ver"
+        line3_k="MEMORY "; line3_v="$mem_info"
+    fi
 
     local border_line=$(printf '═%.0s' $(seq 1 $((box_width - 2))))
-    echo -e "\033[1;34m╔${border_line}╗\033[0m"
-    printf "\033[1;34m║\033[0m \033[1;37mHOST   \033[0m: %-*s \033[1;34m║\033[0m\n" $content_limit "$host_str"
-    printf "\033[1;34m║\033[0m \033[1;37mKERNEL \033[0m: %-*s \033[1;34m║\033[0m\n" $content_limit "$kernel_ver"
-    printf "\033[1;34m║\033[0m \033[1;37mMEMORY \033[0m: %-*s \033[1;34m║\033[0m\n" $content_limit "$mem_info"
-    echo -e "\033[1;34m╚${border_line}╝\033[0m"
+    
+    echo -e "${border_color}╔${border_line}╗\033[0m"
+    printf "${border_color}║\033[0m ${text_color}%s\033[0m: %-*s ${border_color}║\033[0m\n" "$line1_k" $content_limit "$line1_v"
+    printf "${border_color}║\033[0m ${text_color}%s\033[0m: %-*s ${border_color}║\033[0m\n" "$line2_k" $content_limit "$line2_v"
+    printf "${border_color}║\033[0m ${text_color}%s\033[0m: %-*s ${border_color}║\033[0m\n" "$line3_k" $content_limit "$line3_v"
+    echo -e "${border_color}╚${border_line}╝\033[0m"
     echo ""
 }
 
