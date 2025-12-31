@@ -81,7 +81,7 @@ function _factory_boot_sequence() {
         echo -e "${F_SUB} 3. You are responsible for system stability.${F_RESET}"
         echo ""
         _system_unlock
-        echo -ne "${F_WARN} :: Proceed? [y/N]: ${F_RESET}"
+        echo -ne "${F_WARN} :: Proceed? [y/n]: ${F_RESET}"
         read choice
         
         if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
@@ -94,7 +94,7 @@ function _factory_boot_sequence() {
         local steps=("Injecting Logic..." "Desynchronizing Core..." "Loading Arsenal..." "Entering Factory...")
         for step in "${steps[@]}"; do
             echo -e "${F_MAIN}    ›› $step${F_RESET}"
-            sleep 0.4
+            sleep 0.6
         done
         sleep 0.5
         _system_unlock
@@ -110,17 +110,18 @@ function _factory_boot_sequence() {
 function _factory_eject_sequence() {
     local reason="$1"
     echo ""
-    echo -e "${F_ERR} [ACCESS DENIED] ${reason}${F_RESET}"
-    sleep 0.5
+    echo -e "${F_ERR} :: ACCESS DENIED :: ${reason}${F_RESET}"
+    echo ""
+    sleep 0.8
     echo -e "${F_ERR} :: Initiating Eviction Protocol...${F_RESET}"
-    sleep 0.5
+    sleep 0.4
     echo -e "${F_ERR} :: Locking Cockpit...${F_RESET}"
-    sleep 0.5
+    sleep 1.2
     echo -e "${F_ERR} :: Auto-Eject System Activated.${F_RESET}"
     echo ""
     
     for i in {3..1}; do
-        echo -e "${F_ERR} :: Ejection in $i...${F_RESET}"
+        echo -e "${F_ERR}    ›› Ejection in $i...${F_RESET}"
         sleep 1
     done
     
