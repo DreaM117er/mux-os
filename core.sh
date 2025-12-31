@@ -111,6 +111,12 @@ function _safe_ui_calc() {
 # : Core Command Entry
 function mux() {
     local cmd="$1"
+    if [ "$__MUX_MODE" == "factory" ]; then
+        echo -e "\033[1;31m [SYSTEM LOCK] Core commands disabled during Factory session.\033[0m"
+        echo -e "\033[1;33m :: Use 'fac deploy' to exit Factory mode.\033[0m"
+        return 1
+    fi
+
     if [ -z "$cmd" ]; then
         _bot_say "hello"
         return
@@ -261,10 +267,10 @@ function mux() {
             if command -v _verify_identity_for_factory &> /dev/null; then
                  _verify_identity_for_factory
                  if [ $? -ne 0 ]; then
-                     return 1
+                     return 1 
                  fi
             else
-                echo -e "\033[1;31m :: Critical Error: Identity Module Missing.\033[0m"
+                echo -e "\033[1;31m :: Identity Module Missing.\033[0m"
                 return 1
             fi
 
@@ -274,10 +280,6 @@ function mux() {
             else
                 _bot_say "error" "Factory module not found."
             fi
-            ;;
-
-        *)
-            echo "Unknown command: '$cmd'. Try input 'mux help'."
             ;;
     esac
 }
