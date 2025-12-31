@@ -112,8 +112,7 @@ function _safe_ui_calc() {
 function mux() {
     local cmd="$1"
     if [ "$__MUX_MODE" == "factory" ]; then
-        echo -e "\033[1;31m [SYSTEM LOCK] Core commands disabled during Factory session.\033[0m"
-        echo -e "\033[1;33m :: Use 'fac deploy' to exit Factory mode.\033[0m"
+        echo -e "\033[1;31m :: Core commands disabled during Factory session.\033[0m"
         return 1
     fi
 
