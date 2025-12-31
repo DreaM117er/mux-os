@@ -28,6 +28,7 @@ function _enter_factory_mode() {
     echo ""
 }
 
+# 啟動序列 (Boot Sequence)
 function _factory_boot_sequence() {
     clear
     _draw_logo "gray"
@@ -69,12 +70,12 @@ function _factory_boot_sequence() {
     fi
     
     if [ "$verify_success" -eq 1 ]; then
-        echo -e "\n\033[1;32m [ACCESS GRANTED] \033[0m"
+        echo -e "\n\033[1;32m :: ACCESS GRANTED :: \033[0m"
         sleep 0.5
         
         clear
         _draw_logo "gray"
-        echo -e "${F_ERR} [WARNING: FACTORY PROTOCOL] ${F_RESET}"
+        echo -e "${F_ERR} :: WARNING: FACTORY PROTOCOL :: ${F_RESET}"
         echo -e "${F_SUB} 1. Modifications here are permanent.${F_RESET}"
         echo -e "${F_SUB} 2. Do not delete system kernels.${F_RESET}"
         echo -e "${F_SUB} 3. You are responsible for system stability.${F_RESET}"
@@ -148,6 +149,7 @@ function fac() {
     esac
 }
 
+# 自動備份 - Auto Backup
 function _factory_auto_backup() {
     local bak_dir="$MUX_ROOT/bak"
     [ ! -d "$bak_dir" ] && mkdir -p "$bak_dir"
@@ -155,6 +157,7 @@ function _factory_auto_backup() {
     ls -t "$bak_dir"/app.sh_* 2>/dev/null | tail -n +4 | xargs rm -- 2>/dev/null
 }
 
+# 部署序列 (Deploy Sequence)
 function _factory_deploy_sequence() {
     echo ""
     echo -e "${F_MAIN} :: Initiate Deployment Sequence?${F_RESET}"
@@ -181,19 +184,22 @@ function _factory_deploy_sequence() {
     fi
 }
 
+# 列出所有連結函式 (List All Linked Functions)
 function _factory_list_links() {
-    echo -e "\n${F_MAIN} :: Current Neural Links:${F_RESET}"
+    echo -e "${F_MAIN} :: Current Neural Links:${F_RESET}"
     grep "^function" "$MUX_ROOT/app.sh" | sed 's/function //' | sed 's/() {//' | column
     echo ""
 }
 
+# 使用說明 (Help Manual)
 function _factory_help() {
-    echo -e "\n${F_MAIN} :: Factory Manual ::${F_RESET}"
+    echo -e "${F_MAIN} :: Factory Manual ::${F_RESET}"
     echo "  fac menu   : Open Neural Forge (FZF)"
     echo "  fac list   : List functions"
     echo "  fac deploy : Save changes & Return to Core"
 }
 
+# 神經鍛造 (Neural Forge)
 function _factory_fzf_menu() {
-    echo -e "\n${F_MAIN} :: Neural Forge (FZF) under construction...${F_RESET}"
+    echo -e "${F_MAIN} :: Neural Forge (FZF) under construction...${F_RESET}"
 }
