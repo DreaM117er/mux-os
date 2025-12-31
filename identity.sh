@@ -30,7 +30,7 @@ function _verify_access() {
 
 # 指揮官註冊儀式 (The Ritual)
 function _register_commander() {
-    _system_lock
+_system_lock
     clear
     _draw_logo "factory"
 
@@ -43,13 +43,14 @@ function _register_commander() {
 
     echo -e "    Detected Signal: \033[1;36m$git_user\033[0m"
     echo ""
+    
+    _system_unlock 
     echo -ne "\033[1;32m :: Input Commander ID: \033[0m"
     read input_id
 
     if [ -z "$input_id" ]; then
         _bot_say "error" "Identity cannot be void."
         sleep 1
-        _system_unlock
         return 1
     fi
 
@@ -58,6 +59,8 @@ function _register_commander() {
     echo -e " This will bind this terminal to \033[1;37m[$input_id]\033[0m."
     echo -e " Write-access to Factory will be granted."
     echo ""
+    
+    _system_unlock
     echo -ne "\033[1;33m :: Type 'CONFIRM' to encode identity: \033[0m"
     read confirm
 
@@ -75,12 +78,10 @@ function _register_commander() {
         
         echo -e "\033[1;32m :: Identity Verified. Welcome, Commander $MUX_ID.\033[0m"
         sleep 1
-        _system_unlock
         return 0
     else
         echo -e "\n\033[1;30m :: Verification failed.\033[0m"
         sleep 1
-        _system_unlock
         return 1
     fi
 }
@@ -90,17 +91,13 @@ function _verify_identity_for_factory() {
     if [ ! -f "$IDENTITY_FILE" ]; then _init_identity; fi
     source "$IDENTITY_FILE"
 
-    local current_user=$(whoami)
-    
     if [ "$MUX_ID" == "Unknown" ]; then
         echo -e "\n\033[1;31m :: ACCESS DENIED :: Unknown Identity.\033[0m"
         echo -e "    You are operating on a GUEST license."
         echo -e "    Factory access requires Commander privileges."
         echo ""
-        
         _register_commander
         if [ $? -ne 0 ]; then return 1; fi
-        
         source "$IDENTITY_FILE"
     fi
 
@@ -110,13 +107,12 @@ function _verify_identity_for_factory() {
         echo -e "    Commander ID: \033[1;37m$MUX_ID\033[0m"
         echo -e "    Access Level: \033[1;33mROOT (Write-Access)\033[0m"
         echo ""
+        
+        _system_unlock
         echo -ne "\033[1;35m :: Type 'CONFIRM' to unlock the blast door: \033[0m"
         read input
         
         if [ "$input" == "CONFIRM" ]; then
-            echo -e "\n\033[1;32m :: Access Granted. Welcome back, Commander.\033[0m"
-            _bot_say "success" "Security seal lifted. Entering Factory..."
-            sleep 1
             return 0
         else
             _bot_say "error" "Incorrect passphrase."
@@ -125,6 +121,5 @@ function _verify_identity_for_factory() {
             return 1
         fi
     fi
-
-    return 1 # Fallback
+    return 1
 }
