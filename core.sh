@@ -2,7 +2,7 @@
 
 # 基礎路徑與版本定義 - Base Paths and Version Definition
 export MUX_REPO="https://github.com/DreaM117er/mux-os"
-export MUX_VERSION="4.0.0"
+export MUX_VERSION="4.1.0"
 export MUX_ROOT="$HOME/mux-os"
 export BASE_DIR="$MUX_ROOT"
 
