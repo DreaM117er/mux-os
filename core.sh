@@ -13,6 +13,7 @@ export UI_MOD="$BASE_DIR/ui.sh"
 export SYSTEM_MOD="$BASE_DIR/system.sh"
 export VENDOR_MOD="$BASE_DIR/vendor.sh"
 export APP_MOD="$BASE_DIR/app.sh"
+export IDENTITY_MOD="$BASE_DIR/identity.sh"
 
 # 按依賴順序排列：Bot & UI 必須最先載入 - Order by dependency: Bot & UI must load first
 MODULES=(
