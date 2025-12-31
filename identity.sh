@@ -84,3 +84,47 @@ function _register_commander() {
         return 1
     fi
 }
+
+# 身份驗證流程 (Factory Gatekeeper)
+function _verify_identity_for_factory() {
+    if [ ! -f "$IDENTITY_FILE" ]; then _init_identity; fi
+    source "$IDENTITY_FILE"
+
+    local current_user=$(whoami)
+    
+    if [ "$MUX_ID" == "Unknown" ]; then
+        echo -e "\n\033[1;31m :: ACCESS DENIED :: Unknown Identity.\033[0m"
+        echo -e "    You are operating on a GUEST license."
+        echo -e "    Factory access requires Commander privileges."
+        echo ""
+        
+        _register_commander
+        if [ $? -ne 0 ]; then return 1; fi
+        
+        source "$IDENTITY_FILE"
+    fi
+
+    if [ "$MUX_ROLE" == "COMMANDER" ]; then
+        echo -e ""
+        echo -e "\033[1;35m :: Mux-OS Factory Gate ::\033[0m"
+        echo -e "    Commander ID: \033[1;37m$MUX_ID\033[0m"
+        echo -e "    Access Level: \033[1;33mROOT (Write-Access)\033[0m"
+        echo ""
+        echo -ne "\033[1;35m :: Type 'CONFIRM' to unlock the blast door: \033[0m"
+        read input
+        
+        if [ "$input" == "CONFIRM" ]; then
+            echo -e "\n\033[1;32m :: Access Granted. Welcome back, Commander.\033[0m"
+            _bot_say "success" "Security seal lifted. Entering Factory..."
+            sleep 1
+            return 0
+        else
+            _bot_say "error" "Incorrect passphrase."
+            echo -e "\033[1;31m    ›› Access Denied.\033[0m"
+            sleep 1
+            return 1
+        fi
+    fi
+
+    return 1 # Fallback
+}

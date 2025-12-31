@@ -255,6 +255,26 @@ function mux() {
         fi
         ;;
 
+        # : Enter the Arsenal (Factory Mode)
+        "factory"|"fac"|"intofac")
+            if command -v _verify_identity_for_factory &> /dev/null; then
+                 _verify_identity_for_factory
+                 if [ $? -ne 0 ]; then
+                     return 1
+                 fi
+            else
+                echo -e "\033[1;31m :: Critical Error: Identity Module Missing.\033[0m"
+                return 1
+            fi
+
+            if [ -f "$MUX_ROOT/factory.sh" ]; then
+                source "$MUX_ROOT/factory.sh"
+                _enter_factory_mode
+            else
+                _bot_say "error" "Factory module not found."
+            fi
+            ;;
+
         *)
             echo "Unknown command: '$cmd'. Try input 'mux help'."
             ;;
