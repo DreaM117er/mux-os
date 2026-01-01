@@ -134,6 +134,34 @@ function _factory_eject_sequence() {
     mux reload
 }
 
+# 兵工廠重置 (Factory Reset - Phoenix Protocol)
+function _factory_reset() {
+    echo ""
+    echo -e "${F_ERR} :: CRITICAL WARNING :: FACTORY RESET DETECTED ::${F_RESET}"
+    echo -e "${F_GRAY}    This will wipe ALL changes (Sandbox & Production) and pull from Origin.${F_RESET}"
+    echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO NUKE: ${F_RESET}"
+    read confirm
+
+    if [ "$confirm" == "CONFIRM" ]; then
+        _bot_say "loading" "Obliterating timeline..."
+        
+        git fetch --all >/dev/null 2>&1
+        local branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
+        git reset --hard "origin/$branch" >/dev/null 2>&1
+        chmod +x "$MUX_ROOT/"*.sh
+        
+        cp "$MUX_ROOT/app.sh" "$MUX_ROOT/app.sh.temp"
+        source "$MUX_ROOT/app.sh.temp"
+        
+        _factory_mask_apps
+        
+        _fac_init
+        _bot_say "success" "Factory reset complete. Timeline synchronized."
+    else
+        echo -e "${F_WARN} :: Reset aborted.${F_RESET}"
+    fi
+}
+
 
 # 兵工廠指令入口 - Factory Command Entry
 # === Fac ===
@@ -145,6 +173,11 @@ function fac() {
     if [ "$__MUX_MODE" != "factory" ]; then
         echo -e "\033[1;31m :: Error: Link Offline. Use 'mux fac'.\033[0m"
         return 1
+    fi
+
+    if [ -z "$cmd" ]; then
+        _bot_say "factory_welcome"
+        return
     fi
 
     case "$cmd" in
@@ -181,9 +214,20 @@ function fac() {
             _factory_deploy_sequence
             ;;
 
+        # : Reload Factory Visuals
+        "reload"|"r")
+            _fac_init
+            _bot_say "factory_welcome" "Systems refreshed."
+            ;;
+            
+        # Reset Phoenix Protocol
+        "reset")
+            _factory_reset
+            ;;
+
         # : Help
         "help"|"h")
-            _factory_help
+                _mux_dynamic_help_factory
             ;;
 
         *)
@@ -202,7 +246,6 @@ function _factory_auto_backup() {
 
 # 部署序列 (Deploy Sequence)
 function _factory_deploy_sequence() {
-    echo ""
     echo -e "${F_MAIN} :: Initiate Deployment Sequence?${F_RESET}"
     echo -e "${F_GRAY}    This will MERGE Sandbox (.temp) into Production (app.sh).${F_RESET}"
     echo -ne "${F_WARN} :: Type 'CONFIRM' to execute: ${F_RESET}"
@@ -232,6 +275,9 @@ function _factory_deploy_sequence() {
         fi
 
         export __MUX_MODE="core"
+        
+        source "$MUX_ROOT/app.sh"
+
         sleep 2
         clear
         _draw_logo "core"
@@ -247,16 +293,6 @@ function _factory_list_links() {
     echo -e "${F_MAIN} :: Current Neural Links:${F_RESET}"
     grep "^function" "$MUX_ROOT/app.sh" | sed 's/function //' | sed 's/() {//' | column
     echo ""
-}
-
-# 使用說明 (Help Manual)
-function _factory_help() {
-    echo -e "${F_MAIN} :: Factory Manual ::${F_RESET}"
-    echo "  fac menu   : Open Neural Forge (FZF)"
-    echo "  fac list   : List functions"
-    echo "  fac status : Show operational status"
-    echo "  fac info   : Show factory manifest"
-    echo "  fac deploy : Save changes & Return to Core"
 }
 
 # 神經鍛造 (Neural Forge)

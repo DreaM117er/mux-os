@@ -185,7 +185,7 @@ function _mux_show_info() {
     fi
 }
 
-# 動態Help選單檢測 - Dynamic Help Detection
+# 動態Help Core選單檢測 - Dynamic Help Core Detection
 function _mux_dynamic_help_core() {
     local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "Unknown")
 
@@ -209,6 +209,30 @@ function _mux_dynamic_help_core() {
         }
     }
     ' "$CORE_MOD"
+}
+
+# 動態Help Factory選單檢測 - Dynamic Help Factory Detection
+function _mux_dynamic_help_factory() {
+echo -e "\033[1;35m :: Mux-OS Factory Protocols ::\033[0m"
+    
+    awk '
+    /function fac\(\) \{/ { inside_fac=1; next }
+    /^}/ { inside_fac=0 }
+
+    inside_fac {
+        if ($0 ~ /^[[:space:]]*# :/) {
+            desc = $0;
+            sub(/^[[:space:]]*# :[[:space:]]*/, "", desc);
+            
+            getline;
+            if ($0 ~ /"/) {
+                split($0, parts, "\"");
+                cmd_name = parts[2];
+                printf "    \033[1;35m%-10s\033[0m : %s\n", cmd_name, desc;
+            }
+        }
+    }
+    ' "$MUX_ROOT/factory.sh"
 }
 
 # 顯示指令選單儀表板 - Display Command Menu Dashboard
