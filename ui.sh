@@ -13,11 +13,13 @@ function _draw_logo() {
             color_sub="\033[1;37m"
             label=":: Neural Link Factory :: Access Level: ROOT ::"
             ;;
+
         "gray")
             color_primary="\033[1;30m"
             color_sub="\033[1;30m"
             label=":: SYSTEM LOCKED :: AUTHENTICATION REQUIRED ::"
             ;;
+
         *)
             color_primary="\033[1;36m"
             color_sub="\033[1;30m"
@@ -99,7 +101,8 @@ function _show_hud() {
     local content_limit=$(( box_width - 13 ))
     [ "$content_limit" -lt 5 ] && content_limit=5
     
-    local border_color="\033[1;34m"
+    local border_color="\033[1;34m" 
+    
     local text_color="\033[1;37m"
     local value_color="\033[0m"
 
@@ -111,7 +114,6 @@ function _show_hud() {
     local line3_v=""
 
     if [ "$mode" == "factory" ]; then
-        border_color="\033[1;35m"
         line1_k="MODE   "; line1_v="FACTORY [ROOT]"
         line2_k="TARGET "; line2_v="app.sh"
         line3_k="STATUS "; line3_v="UNLOCKED"
@@ -374,7 +376,6 @@ function _factory_show_status() {
     echo -e "${F_SUB}    ›› Active Links  :\033[0m ${F_WARN}$func_count\033[0m"
     echo -e "${F_SUB}    ›› Secure Backups:\033[0m ${F_WARN}$backup_count\033[0m"
     echo -e "${F_SUB}    ›› Last Deploy   :\033[0m \033[1;36m$last_sync\033[0m"
-    echo ""
 }
 
 # 顯示兵工廠資訊 - Display Factory Info Manifest

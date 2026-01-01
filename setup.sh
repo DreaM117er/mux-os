@@ -18,7 +18,7 @@ C_GRAY="\033[1;30m"
 
 function _banner() {
     clear
-    echo -e "${C_CYAN}"
+    echo -e "${C_GRAY}"
     cat << "EOF"
   __  __                  ___  ____  
  |  \/  |_   ___  __     / _ \/ ___| 

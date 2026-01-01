@@ -207,7 +207,7 @@ function _bot_say() {
 
         "factory_welcome")
             icon=" ::"
-            color=$C_PURPLE
+            color=$C_RED
             phrases=(
                 " Welcome back, Architect. 🏗️"
                 " The Forge is hot and ready. 🔥"
