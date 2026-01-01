@@ -323,6 +323,7 @@ function _factory_deploy_sequence() {
          return 1
     fi
     
+    echo ""
     echo -e "${F_MAIN} :: DEPLOYMENT SUCCESSFUL ::${F_RESET}"
     echo -e "${F_SUB}    System requires manual reload to re-align kernel.${F_RESET}"
     echo ""
@@ -338,7 +339,6 @@ function _factory_deploy_sequence() {
         read reboot_cmd
         
         if [ "$reboot_cmd" == "mux reload" ]; then
-            sleep 1.9
             mux reload
             break
         else
