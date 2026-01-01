@@ -289,9 +289,9 @@ function mux() {
 # 重新載入核心模組 - Reload Core Modules
 function _mux_reload_kernel() {
     _system_lock
-    clear
     echo -e "\033[1;33m :: System Reload Initiated...\033[0m"
     sleep 1.6
+    clear
     unset MUX_INITIALIZED
     source "$MUX_ROOT/core.sh"
     _system_unlock
