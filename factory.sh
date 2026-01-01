@@ -154,8 +154,8 @@ function fac() {
         # : List all links
         "list"|"l")
             echo -e "${F_MAIN} :: Current Sandbox Links:${F_RESET}"
-             grep "^function" "$MUX_ROOT/app.sh.temp" | sed 's/function //' | sed 's/() {//' | column
-             echo ""
+            grep "^function" "$MUX_ROOT/app.sh.temp" | sed 's/function //' | sed 's/() {//' | column
+            echo ""
             ;;
 
         # : Show Factory Status (Mirroring mux status)
