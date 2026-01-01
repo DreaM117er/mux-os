@@ -18,6 +18,8 @@ function _enter_factory_mode() {
     cp "$MUX_ROOT/app.sh" "$MUX_ROOT/app.sh.temp"
     source "$MUX_ROOT/app.sh.temp"
 
+    _factory_mask_apps
+
     _factory_auto_backup > /dev/null 2>&1
 
     if command -v _fac_init &> /dev/null; then
@@ -175,7 +177,7 @@ function fac() {
             ;;
 
         # : Save & Exit
-        "deploy"|"d"|"exit")
+        "deploy"|"dep"|"exit")
             _factory_deploy_sequence
             ;;
 
@@ -185,7 +187,7 @@ function fac() {
             ;;
 
         *)
-            echo -e "${F_WARN} :: Unknown Directive: $cmd${F_RESET}"
+            echo -e "${F_SUB} :: Unknown Directive: $cmd${F_RESET}"
             ;;
     esac
 }
@@ -268,4 +270,35 @@ function _fac_init() {
     _draw_logo "factory"
     _system_check "factory"
     _show_hud "factory"
+}
+
+# 函式攔截器 (Function Interceptor)
+function _factory_mask_apps() {
+    local targets=("$MUX_ROOT/app.sh.temp" "$MUX_ROOT/vendor.sh")
+    
+    for file in "${targets[@]}"; do
+        if [ -f "$file" ]; then
+            local funcs=$(grep "^function" "$file" | sed 's/function //' | sed 's/() {//' | grep -v "^_")
+            
+            for func_name in $funcs; do
+                eval "function $func_name() { _factory_interceptor \"$func_name\" \"\$@\"; }"
+            done
+        fi
+    done
+}
+
+# 函式攔截處理 (Interceptor Handler)
+function _factory_interceptor() {
+    local func_name="$1"
+    
+    echo -e "\n${F_ERR} [SYSTEM LOCK] Function execution intercepted.${F_RESET}"
+    echo -e "${F_WARN} :: Target '${F_MAIN}$func_name${F_WARN}' is locked in Modification Mode.${F_RESET}"
+    
+    _bot_say "error" "Function locked. Use 'fac' commands to modify."
+    
+    echo -e "\n ${F_SUB}:: Available Operations ::${F_RESET}"
+    echo -e "  ${F_MAIN}fac edit $func_name${F_RESET}   : Modify code (Nano)"
+    echo -e "  ${F_MAIN}fac del  $func_name${F_RESET}   : Delete function"
+    echo -e "  ${F_MAIN}fac load $func_name${F_RESET}   : Dry Run (Test execution)"
+    echo ""
 }
