@@ -13,6 +13,11 @@ function _bot_say() {
     local mood="$1"
     local detail="$2"
 
+    if [ "$__MUX_MODE" == "factory" ]; then
+        _bot_factory_personality "$mood" "$detail"
+        return
+    fi
+
     local icon=""
     local color=""
     local phrases=()
@@ -322,5 +327,86 @@ function _bot_say() {
     local selected_phrase="${phrases[$rand_index]}"
 
     echo -e "${color}${icon}${selected_phrase}${C_RESET}"
+    [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
+}
+
+# === 整備長官人格 (Factory Mode) ===
+function _bot_factory_personality() {
+    local mood="$1"
+    local detail="$2"
+    
+    local icon=" ::"
+    local color=""
+    local phrases=()
+    
+    # Factory 專屬彩蛋 (Ghost in the Machine)
+    local rng=$(( RANDOM % 100 ))
+    if [ $rng -lt 2 ]; then
+        echo -e "\033[1;30m :: I have seen Commanders regret haste. Proceed with caution.\033[0m"
+        return
+    fi
+
+    case "$mood" in
+        "factory_welcome")
+            color=$C_PURPLE
+            phrases=(
+                " Welcome to the Forge. Don't break anything. 🏗️"
+                " Sandbox environment active. You are clear to experiment. 🛠️"
+                " Root access verified. Try not to blow us up. 😈"
+                " The Architect is in. Systems ready for modification. 🔥"
+            )
+            ;;
+        "success")
+            color=$C_GREEN
+            phrases=(
+                " Structure integrity: 100%. Modification applied."
+                " Code compiled. Looks stable... for now."
+                " Patch applied to Sandbox. Verify before deployment."
+                " Acceptable efficiency. Proceed."
+                " Blueprint updated."
+            )
+            ;;
+        "error")
+            color=$C_RED
+            phrases=(
+                " Syntax error. Check your manual, Commander. 😡"
+                " Invalid input. Do you want to corrupt the kernel? 🛑"
+                " Negative. System logic violation detected."
+                " Refused. That command is garbage."
+                " I can't let you do that. It's unsafe."
+            )
+            ;;
+        "deploy_start")
+            color=$C_YELLOW
+            phrases=(
+                " Initiating Deployment Protocol..."
+                " Compiling Sandbox changes..."
+                " Preparing to merge with Production timeline..."
+            )
+            ;;
+        "deploy_done")
+            color=$C_GREEN
+            phrases=(
+                " Modifications deployed. Safety interlocks re-engaged. Get out."
+                " Production environment updated. Reloading kernel manually required."
+                " Deployment complete. Return to cockpit."
+            )
+            ;;
+        "eject")
+            color=$C_RED
+            phrases=(
+                " Get out of my chair. Now. 🚀"
+                " Security violation. Ejecting pilot..."
+                " Sandbox purged. Session terminated."
+            )
+            ;;
+        *)
+            color=$C_PURPLE
+            phrases=(" Acknowledged: $detail" " Input received.")
+            ;;
+    esac
+
+    local rand_index=$(( RANDOM % ${#phrases[@]} ))
+    echo -e "${color}${icon}${phrases[$rand_index]}${C_RESET}"
     [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
 }

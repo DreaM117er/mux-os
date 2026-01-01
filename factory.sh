@@ -14,6 +14,10 @@ function _enter_factory_mode() {
     if [ $? -ne 0 ]; then return; fi
 
     export __MUX_MODE="factory"
+    
+    cp "$MUX_ROOT/app.sh" "$MUX_ROOT/app.sh.temp"
+    source "$MUX_ROOT/app.sh.temp"
+
     _factory_auto_backup > /dev/null 2>&1
 
     if command -v _fac_init &> /dev/null; then
@@ -149,7 +153,9 @@ function fac() {
 
         # : List all links
         "list"|"l")
-            _factory_list_links
+            echo -e "${F_MAIN} :: Current Sandbox Links:${F_RESET}"
+             grep "^function" "$MUX_ROOT/app.sh.temp" | sed 's/function //' | sed 's/() {//' | column
+             echo ""
             ;;
 
         # : Show Factory Status (Mirroring mux status)
@@ -196,26 +202,41 @@ function _factory_auto_backup() {
 function _factory_deploy_sequence() {
     echo ""
     echo -e "${F_MAIN} :: Initiate Deployment Sequence?${F_RESET}"
-    echo -ne "${F_WARN} :: Type 'CONFIRM' to save & exit: ${F_RESET}"
+    echo -e "${F_GRAY}    This will MERGE Sandbox (.temp) into Production (app.sh).${F_RESET}"
+    echo -ne "${F_WARN} :: Type 'CONFIRM' to execute: ${F_RESET}"
     read confirm
     
     if [ "$confirm" == "CONFIRM" ]; then
         echo ""
-        _bot_say "success" "Neural map updated."
-        local time_str="# :: Last Sync: $(date '+%Y-%m-%d %H:%M:%S') ::"
-        if grep -q "Last Sync" "$MUX_ROOT/app.sh"; then
-            sed -i "1s|.*Last Sync.*|$time_str|" "$MUX_ROOT/app.sh"
-        else
-            sed -i "1i $time_str" "$MUX_ROOT/app.sh"
-        fi
-        export __MUX_MODE="core"
+        _bot_say "deploy_start"
         sleep 1
+        
+        local time_str="# :: Last Sync: $(date '+%Y-%m-%d %H:%M:%S') ::"
+        local temp_file="$MUX_ROOT/app.sh.temp"
+        local prod_file="$MUX_ROOT/app.sh"
+
+        if [ -f "$temp_file" ]; then
+             if grep -q "Last Sync" "$temp_file"; then
+                sed -i "1s|.*Last Sync.*|$time_str|" "$temp_file"
+             else
+                sed -i "1i $time_str" "$temp_file"
+             fi
+             
+             mv "$temp_file" "$prod_file"
+             _bot_say "deploy_done"
+        else
+             _bot_say "error" "Sandbox file missing. Deploy failed."
+             return 1
+        fi
+
+        export __MUX_MODE="core"
+        sleep 2
         clear
         _draw_logo "core"
         echo -e "\033[1;36m :: System control returned to Core.\033[0m"
         echo -e "\033[1;30m    (Please manual 'mux reload')\033[0m"
     else
-        echo -e "${F_WARN} :: Deploy canceled.${F_RESET}"
+        echo -e "${F_WARN} :: Deploy canceled. Returning to Sandbox.${F_RESET}"
     fi
 }
 

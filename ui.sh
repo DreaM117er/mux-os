@@ -213,20 +213,37 @@ function _mux_dynamic_help_core() {
 
 # 顯示指令選單儀表板 - Display Command Menu Dashboard
 function _show_menu_dashboard() {
-    echo -e "\n\033[1;33m" [" Mux-OS Command Center "]"\033[0m"
+    local title_color="\033[1;33m"
+    local cat_color="\033[1;32m"
+    local func_color="\033[1;36m"
+    local target_file="$APP_MOD" 
+
+    if [ "$__MUX_MODE" == "factory" ]; then
+        title_color="\033[1;35m"
+        cat_color="\033[1;31m"
+        func_color="\033[1;37m"
+        target_file="$MUX_ROOT/app.sh.temp"
+        
+        echo -e "\n${title_color} [ Factory Sandbox Manifest ]${C_RESET}"
+    else
+        echo -e "\n${title_color} [ Mux-OS Command Center ]${C_RESET}"
+    fi
     
-    awk '
+    if [ ! -f "$target_file" ]; then
+        echo -e " :: Error: Target manifest not found ($target_file)"
+        return
+    fi
+
+    awk -v C_CAT="$cat_color" -v C_FUNC="$func_color" -v C_RST="\033[0m" '
     BEGIN {
-        COLOR_CAT="\033[1;32m"
-        COLOR_FUNC="\033[1;36m"
-        RESET="\033[0m"
+        # awk 變數傳入
     }
 
     /^# ===|^# ---/ {
         clean_header = $0;
         gsub(/^# |^#===|^#---|===|---|^-+|-+$|^\s+|\s+$/, "", clean_header);
         if (length(clean_header) > 0 && clean_header !~ /^[=-]+$/) {
-             print "\n" COLOR_CAT " [" clean_header "]" RESET
+             print "\n" C_CAT " [" clean_header "]" C_RST
         }
     }
     
@@ -249,12 +266,12 @@ function _show_menu_dashboard() {
             }
 
             if (desc != "") {
-                printf "  " COLOR_FUNC "%-12s" RESET " %s\n", func_name, desc;
+                printf "  " C_FUNC "%-12s" C_RST " %s\n", func_name, desc;
             }
         }
     }
     { prev_line = $0 }
-    ' "$CORE_MOD" "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD"
+    ' "$CORE_MOD" "$SYSTEM_MOD" "$target_file" "$VENDOR_MOD"
     
     echo -e "\n"
 }
