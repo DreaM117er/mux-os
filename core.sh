@@ -274,6 +274,10 @@ function mux() {
                 _bot_say "error" "Factory module not found."
             fi
             ;;
+
+        *)
+            echo " :: Unknown Directive: $cmd"
+            ;;
     esac
 }
 
