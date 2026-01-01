@@ -1,5 +1,10 @@
 # ui.sh - Mux-OS 視覺顯示模組
 
+if [ -z "$__MUX_CORE_ACTIVE" ]; then
+    echo -e "\033[1;31m :: ACCESS DENIED :: Core Uplink Required.\033[0m"
+    return 1 2>/dev/null || exit 1
+fi
+
 # 繪製 Mux-OS Logo標誌
 function _draw_logo() {
     local mode="${1:-core}"

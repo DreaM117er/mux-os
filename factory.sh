@@ -1,4 +1,10 @@
 #!/bin/bash
+
+if [ -z "$__MUX_CORE_ACTIVE" ]; then
+    echo -e "\033[1;31m :: ACCESS DENIED :: Core Uplink Required.\033[0m"
+    return 1 2>/dev/null || exit 1
+fi
+
 # factory.sh - Mux-OS 兵工廠
 
 F_MAIN="\033[1;35m"

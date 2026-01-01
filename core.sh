@@ -5,6 +5,7 @@ export MUX_REPO="https://github.com/DreaM117er/mux-os"
 export MUX_VERSION="4.1.0"
 export MUX_ROOT="$HOME/mux-os"
 export BASE_DIR="$MUX_ROOT"
+export __MUX_CORE_ACTIVE=true
 
 # 模組註冊表 - Module Registry
 export CORE_MOD="$BASE_DIR/core.sh"
