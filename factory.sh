@@ -274,13 +274,19 @@ function _fac_init() {
 
 # 函式攔截器 (Function Interceptor)
 function _factory_mask_apps() {
-    local targets=("$MUX_ROOT/app.sh.temp" "$MUX_ROOT/vendor.sh")
+    local targets=("$MUX_ROOT/system.sh" "$MUX_ROOT/app.sh.temp" "$MUX_ROOT/vendor.sh")
     
     for file in "${targets[@]}"; do
         if [ -f "$file" ]; then
             local funcs=$(grep "^function" "$file" | sed 's/function //' | sed 's/() {//' | grep -v "^_")
             
             for func_name in $funcs; do
+                case "$func_name" in
+                    "apklist"|"wb"|"termux") 
+                        continue 
+                        ;;
+                esac
+
                 eval "function $func_name() { _factory_interceptor \"$func_name\" \"\$@\"; }"
             done
         fi
