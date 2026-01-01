@@ -23,9 +23,7 @@ function _enter_factory_mode() {
         _draw_logo "factory"
     fi
     
-    echo ""
     _bot_say "factory_welcome"
-    echo ""
 }
 
 # 啟動序列 (Boot Sequence)
