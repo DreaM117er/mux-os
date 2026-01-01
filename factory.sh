@@ -100,7 +100,6 @@ function _factory_boot_sequence() {
         sleep 0.5
         _system_unlock
         return 0
-
     else
         _factory_eject_sequence "Identity Mismatch."
         return 1 
@@ -110,6 +109,10 @@ function _factory_boot_sequence() {
 # 彈射序列 (The Ejection)
 function _factory_eject_sequence() {
     local reason="$1"
+    if [ -f "$MUX_ROOT/app.sh.temp" ]; then rm "$MUX_ROOT/app.sh.temp"; fi
+    export __MUX_MODE="core"
+    source "$MUX_ROOT/app.sh"
+
     echo ""
     echo -e "${F_ERR} :: ACCESS DENIED :: ${reason}${F_RESET}"
     echo ""
@@ -158,7 +161,7 @@ function _factory_reset() {
         _fac_init
         _bot_say "success" "Factory reset complete. Timeline synchronized."
     else
-        echo -e "${F_WARN} :: Reset aborted.${F_RESET}"
+        echo -e "${F_GRAY}    ›› Reset aborted.${F_RESET}"
     fi
 }
 
@@ -193,7 +196,7 @@ function fac() {
             echo ""
             ;;
 
-        # : Show Factory Status (Mirroring mux status)
+        # : Show Factory Status
         "status"|"st")
             if command -v _factory_show_status &> /dev/null; then
                 _factory_show_status
@@ -201,31 +204,45 @@ function fac() {
                 echo -e "${F_WARN} :: UI Module Link Failed.${F_RESET}"
             fi
             ;;
+            
+        # : Edit Function
+        "edit") 
+            echo -e "${F_WARN} :: Neural Editor (Nano) Integration... Pending.${F_RESET}"
+            ;;
 
-        # : Show Factory Info (Mirroring mux info)
+        # : Load Function
+        "load") 
+            echo -e "${F_WARN} :: Dry Run Protocol... Pending.${F_RESET}" 
+            ;;
+
+        # : Delete Function
+        "del") 
+            echo -e "${F_WARN} :: Deletion Protocol... Pending.${F_RESET}" 
+            ;;
+
+        # : Show Factory Info
         "info"|"i")
             if command -v _factory_show_info &> /dev/null; then
                 _factory_show_info
             fi
             ;;
 
-        # : Save & Exit
+        # : Deploy Changes
         "deploy"|"dep"|"exit")
             _factory_deploy_sequence
             ;;
 
-        # : Reload Factory Visuals
+        # : Reload Factory
         "reload"|"r")
             _fac_init
-            _bot_say "factory_welcome" "Systems refreshed."
+            _bot_say "factory_welcome"
             ;;
             
-        # Reset Phoenix Protocol
+        # Reset Factory Change
         "reset")
             _factory_reset
             ;;
 
-        # : Help
         "help"|"h")
                 _mux_dynamic_help_factory
             ;;
@@ -246,46 +263,90 @@ function _factory_auto_backup() {
 
 # 部署序列 (Deploy Sequence)
 function _factory_deploy_sequence() {
-    echo -e "${F_MAIN} :: Initiate Deployment Sequence?${F_RESET}"
-    echo -e "${F_GRAY}    This will MERGE Sandbox (.temp) into Production (app.sh).${F_RESET}"
-    echo -ne "${F_WARN} :: Type 'CONFIRM' to execute: ${F_RESET}"
+    echo ""
+    echo -ne "${F_GRAY} :: Initiating Deployment Sequence...${F_RESET}"
+    sleep 2.6
+    
+    clear
+    _draw_logo "gray"
+    
+    echo -e "${F_MAIN} :: MANIFEST CHANGES (Sandbox vs Production) ::${F_RESET}"
+    echo ""
+    
+    if command -v diff &> /dev/null; then
+        diff -U 0 "$MUX_ROOT/app.sh" "$MUX_ROOT/app.sh.temp" | grep -v "^---" | grep -v "^+++" | grep -v "^@" | head -n 20
+    else
+        echo -e "${F_WARN}    (Diff module unavailable. Changes hidden.)${F_RESET}"
+    fi
+    echo ""
+    
+    _system_unlock
+    echo -ne "${F_WARN} :: Modifications verified? [y/n]: ${F_RESET}"
+    read choice
+    
+    if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
+        _fac_init
+        _bot_say "factory_welcome" "Deployment canceled. Resume editing."
+        return
+    fi
+    
+    echo ""
+    echo -e "${F_ERR} :: CRITICAL WARNING ::${F_RESET}"
+    echo -e "${F_SUB}    Sandbox (.temp) will OVERWRITE Production (app.sh).${F_RESET}"
+    echo -e "${F_SUB}    This action is irreversible via undo.${F_RESET}"
+    echo ""
+    echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO DEPLOY: ${F_RESET}"
     read confirm
     
-    if [ "$confirm" == "CONFIRM" ]; then
-        echo ""
-        _bot_say "deploy_start"
-        sleep 1
-        
-        local time_str="# :: Last Sync: $(date '+%Y-%m-%d %H:%M:%S') ::"
-        local temp_file="$MUX_ROOT/app.sh.temp"
-        local prod_file="$MUX_ROOT/app.sh"
-
-        if [ -f "$temp_file" ]; then
-             if grep -q "Last Sync" "$temp_file"; then
-                sed -i "1s|.*Last Sync.*|$time_str|" "$temp_file"
-             else
-                sed -i "1i $time_str" "$temp_file"
-             fi
-             
-             mv "$temp_file" "$prod_file"
-             _bot_say "deploy_done"
-        else
-             _bot_say "error" "Sandbox file missing. Deploy failed."
-             return 1
-        fi
-
-        export __MUX_MODE="core"
-        
-        source "$MUX_ROOT/app.sh"
-
-        sleep 2
-        clear
-        _draw_logo "core"
-        echo -e "\033[1;36m :: System control returned to Core.\033[0m"
-        echo -e "\033[1;30m    (Please manual 'mux reload')\033[0m"
-    else
-        echo -e "${F_WARN} :: Deploy canceled. Returning to Sandbox.${F_RESET}"
+    if [ "$confirm" != "CONFIRM" ]; then
+        _fac_init
+        _bot_say "error" "Confirmation failed. Deployment aborted."
+        return
     fi
+
+    _bot_say "deploy_start"
+    sleep 1.5
+    
+    local time_str="# :: Last Sync: $(date '+%Y-%m-%d %H:%M:%S') ::"
+    local temp_file="$MUX_ROOT/app.sh.temp"
+    local prod_file="$MUX_ROOT/app.sh"
+
+    if [ -f "$temp_file" ]; then
+         if grep -q "Last Sync" "$temp_file"; then
+            sed -i "1s|.*Last Sync.*|$time_str|" "$temp_file"
+         else
+            sed -i "1i $time_str" "$temp_file"
+         fi
+         mv "$temp_file" "$prod_file"
+    else
+         _bot_say "error" "Sandbox integrity failed."
+         return 1
+    fi
+    
+    clear
+    _draw_logo "core"
+    
+    echo -e "${F_MAIN} :: DEPLOYMENT SUCCESSFUL ::${F_RESET}"
+    echo -e "${F_SUB}    System requires manual reload to re-align kernel.${F_RESET}"
+    echo ""
+    echo -e "${F_ERR} [SYSTEM HALTED] Waiting for manual restart...${F_RESET}"
+    echo ""
+    
+    if [ -f "$temp_file" ]; then rm "$temp_file"; fi
+    export __MUX_MODE="core"
+    
+    while true; do
+        _system_unlock
+        echo -ne "${F_WARN} :: Type 'mux reload' to reboot: ${F_RESET}"
+        read reboot_cmd
+        
+        if [ "$reboot_cmd" == "mux reload" ]; then
+            mux reload
+            break
+        else
+            echo -e "${F_ERR} :: Command rejected. System is halted.${F_RESET}"
+        fi
+    done
 }
 
 # 列出所有連結函式 (List All Linked Functions)
