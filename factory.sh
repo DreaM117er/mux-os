@@ -94,7 +94,7 @@ function _factory_boot_sequence() {
         _system_lock
         local steps=("Injecting Logic..." "Desynchronizing Core..." "Loading Arsenal..." "Entering Factory...")
         for step in "${steps[@]}"; do
-            echo -e "${F_MAIN}    ›› $step${F_RESET}"
+            echo -e "${F_GRAY}    ›› $step${F_RESET}"
             sleep 0.6
         done
         sleep 0.5
@@ -297,14 +297,7 @@ function _factory_mask_apps() {
 function _factory_interceptor() {
     local func_name="$1"
     
-    echo -e "\n${F_ERR} [SYSTEM LOCK] Function execution intercepted.${F_RESET}"
-    echo -e "${F_WARN} :: Target '${F_MAIN}$func_name${F_WARN}' is locked in Modification Mode.${F_RESET}"
+    echo -e "${F_ERR} :: WARNING: Target '$func_name' is locked in Modification Mode.${F_RESET}"
     
     _bot_say "error" "Function locked. Use 'fac' commands to modify."
-    
-    echo -e "\n ${F_SUB}:: Available Operations ::${F_RESET}"
-    echo -e "  ${F_MAIN}fac edit $func_name${F_RESET}   : Modify code (Nano)"
-    echo -e "  ${F_MAIN}fac del  $func_name${F_RESET}   : Delete function"
-    echo -e "  ${F_MAIN}fac load $func_name${F_RESET}   : Dry Run (Test execution)"
-    echo ""
 }

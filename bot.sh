@@ -402,7 +402,11 @@ function _bot_factory_personality() {
             ;;
         *)
             color=$C_PURPLE
-            phrases=(" Acknowledged: $detail" " Input received.")
+            phrases=(
+                " Acknowledged..."
+                " Input received."
+                " Processing command..."
+            )
             ;;
     esac
 
