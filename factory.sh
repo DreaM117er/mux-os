@@ -293,9 +293,7 @@ function _fac_stamp_launcher() {
         return 1
     fi
 
-    # Step 1: Pre-flight - APK Check
-    echo -e ""
-    echo -ne "${F_WARN}    ›› Launch 'apklist' helper? (y/n): ${F_RESET}"
+    echo -ne "${F_WARN} :: Launch 'apklist' helper? (y/n): ${F_RESET}"
     read launch_apk
     if [[ "$launch_apk" == "y" || "$launch_apk" == "Y" ]]; then
         apklist
@@ -324,12 +322,12 @@ function _fac_stamp_launcher() {
 
     # 2.4 Command Name
     echo -e ""
-    echo -ne "${F_MAIN}    ›› Assign Command Name (Enter to auto-gen): ${F_RESET}"
+    echo -ne "${F_MAIN} :: Assign Command Name (Enter to auto-gen): ${F_RESET}"
     read func_name
     
     if [ -z "$func_name" ]; then
         func_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]' | sed 's/ //g')
-        echo -e "${F_WARN}    ›› Auto-assigned command: $func_name${F_RESET}"
+        echo -e "${F_WARN} :: Auto-assigned command: $func_name${F_RESET}"
     fi
 
     if [ -z "$func_name" ]; then
@@ -337,7 +335,7 @@ function _fac_stamp_launcher() {
         return
     fi
 
-    # Step 3: Safety Check - Duplicate
+    # Step 3: Safety Check
     if grep -qE "function[[:space:]]+$func_name[[:space:]]*\(" "$MUX_ROOT/app.sh.temp"; then
         _bot_say "error" "Module '$func_name' already exists."
         return
@@ -351,7 +349,7 @@ function _fac_stamp_launcher() {
         return
     fi
 
-    # Step 5: Assembly - Stamping
+    # Step 5: Assembly
     _bot_say "factory" "Assembling '$func_name' into sector '$CATEGORY_NAME'..."
 
     local temp_block="$MUX_ROOT/plate/block.tmp"
@@ -363,7 +361,6 @@ function _fac_stamp_launcher() {
         | sed "s/\[PKG_ACT\]/$pkg_act/g" \
         > "$temp_block"
     
-    # Injection
     local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp")
     if [ "$INSERT_LINE" -ge "$total_lines" ]; then
         cat "$temp_block" >> "$MUX_ROOT/app.sh.temp"
@@ -372,15 +369,15 @@ function _fac_stamp_launcher() {
     fi
     rm "$temp_block"
     
-    # Layout Fix
+    # Step 6: Final Report & Reload
     local last_char=$(tail -c 1 "$MUX_ROOT/app.sh.temp")
     if [ "$last_char" != "" ]; then echo "" >> "$MUX_ROOT/app.sh.temp"; fi
 
     echo -e "${F_MAIN} :: Module Installed Successfully ::${F_RESET}"
     echo -e "${F_GRAY}    ›› Location: Sector [$CATEGORY_NAME]${F_RESET}"
+    echo -e "${F_GRAY}    ›› Package : $pkg_id${F_RESET}"
     
-    # Step 6: Reload
-    echo -ne "${F_WARN}    ›› Hot Reload now? (y/n): ${F_RESET}"
+    echo -ne "${F_WARN} :: Hot Reload now? (y/n): ${F_RESET}"
     read reload_choice
     if [[ "$reload_choice" == "y" || "$reload_choice" == "Y" ]]; then
         _fac_load
