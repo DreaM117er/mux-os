@@ -278,20 +278,16 @@ function _fac_wizard_create() {
     echo -e "${F_MAIN} :: Select Core Type ::${F_RESET}"
     echo -e "${F_SUB}    [1] Normal APP (Standard Launcher)${F_RESET}"
     echo -e "${F_SUB}    [2] Browser APP (Smart Search)${F_RESET}"
+    echo -e "${F_SUB}    [3] Ecosystem Suite (Multi-App Menu)${F_RESET}"
     echo -e ""
     echo -ne "${F_WARN} :: Select: ${F_RESET}"
     read type_choice
 
     case "$type_choice" in
-        1) 
-            _fac_stamp_launcher 
-            ;;
-        2) 
-            _fac_stamp_browser
-            ;;
-        *) 
-            _bot_say "error" "Invalid type selection."
-            ;;
+        1) _fac_stamp_launcher ;;
+        2) _fac_stamp_browser ;;
+        3) _fac_stamp_suite ;;
+        *) _bot_say "error" "Invalid type selection." ;;
     esac
 }
 
@@ -570,6 +566,171 @@ function _fac_stamp_browser() {
     fi
 }
 
+# 鑄造工序：生態系套件 - Ecosystem Suite Stamp
+function _fac_stamp_suite() {
+    local mold_file="$MUX_ROOT/plate/suite.txt"
+    
+    # 自動建立模具 (如果不存在)
+    if [ ! -f "$mold_file" ]; then
+        echo -e "# : [SUITE_NAME] Suite\nfunction [FUNC]() {\n    local target=\"\$1\"\n    if [ -z \"\$target\" ]; then\n        if command -v fzf &> /dev/null; then\n            target=\$(echo -e \"[OPTION_LIST]\" | fzf --height=8 --layout=reverse --prompt=\" :: Select [SUITE_NAME] › \" --border=none)\n        else\n            echo \" :: Select Module:\"\n            select t in [OPTION_SELECT]; do target=\$t; break; done\n        fi\n    fi\n\n    case \"\$target\" in\n[CASE_LOGIC]\n        *)\n            [ -n \"\$target\" ] && echo -e \"\\033[1;30m    ›› Operation canceled or unknown module.\\033[0m\"\n            ;;\n    esac\n}" > "$mold_file"
+    fi
+
+    # Step 1: Suite Basic Info
+    echo -e ""
+    echo -e "${F_MAIN} :: Ecosystem Suite Construction ::${F_RESET}"
+    
+    echo -ne "${F_SUB}    [Data] Suite Name (e.g. Adobe Creative): ${F_RESET}"
+    read suite_name
+    [ -z "$suite_name" ] && suite_name="Unknown Suite"
+
+    echo -ne "${F_MAIN}    ›› Assign Command Name (e.g. adobe): ${F_RESET}"
+    read input_func
+    
+    local func_name=""
+    if [ -z "$input_func" ]; then
+        local clean_name=$(echo "$suite_name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
+        func_name="$clean_name"
+    else
+        func_name="$input_func"
+    fi
+
+    # Check Duplicate
+    if grep -qE "function[[:space:]]+$func_name[[:space:]]*\(" "$MUX_ROOT/app.sh.temp"; then
+        _bot_say "error" "Module '$func_name' already exists."
+        return 1
+    fi
+
+    # Step 2: Sub-Modules Loop
+    local option_list_fzf=""
+    local option_list_select=""
+    local case_logic=""
+    local count=0
+
+    echo -e ""
+    echo -e "${F_WARN} :: Adding Sub-Modules...${F_RESET}"
+
+    while true; do
+        ((count++))
+        echo -e "${F_GRAY}    --------------------------------${F_RESET}"
+        echo -e "${F_MAIN}    [Sub-Module #$count]${F_RESET}"
+        
+        # 2.1 Trigger Key
+        echo -ne "${F_SUB}    ›› Trigger Key (e.g. ps): ${F_RESET}"
+        read sub_key
+        if [ -z "$sub_key" ]; then break; fi
+
+        # 2.2 App Name
+        echo -ne "${F_SUB}    ›› Display Name (e.g. Photoshop): ${F_RESET}"
+        read sub_name
+        [ -z "$sub_name" ] && sub_name="$sub_key"
+
+        # 2.3 Package
+        echo -ne "${F_SUB}    ›› Package Name: ${F_RESET}"
+        read sub_pkg
+        [ -z "$sub_pkg" ] && sub_pkg="com.null.placeholder"
+
+        # 2.4 Activity
+        echo -ne "${F_SUB}    ›› Activity (Optional): ${F_RESET}"
+        read sub_act
+
+        # Build Logic Chunks
+        
+        # FZF List (Newline separated)
+        if [ -z "$option_list_fzf" ]; then
+            option_list_fzf="$sub_key"
+        else
+            option_list_fzf="$option_list_fzf\\\\n$sub_key"
+        fi
+
+        # Select List (Space separated quotes)
+        if [ -z "$option_list_select" ]; then
+            option_list_select="\"$sub_key\""
+        else
+            option_list_select="$option_list_select \"$sub_key\""
+        fi
+
+        # Case Logic Block
+        # Indentation is key for pretty code
+        local case_block="        \"$sub_key\")\n            _launch_android_app \"$sub_name\" \"$sub_pkg\" \"$sub_act\"\n            ;;"
+        
+        if [ -z "$case_logic" ]; then
+            case_logic="$case_block"
+        else
+            case_logic="$case_logic\n$case_block"
+        fi
+
+        echo -e "${F_GRE}    ›› Module #$count added.${F_RESET}"
+        
+        # Continue?
+        echo -ne "${F_WARN}    ›› Add another? (y/n): ${F_RESET}"
+        read cont
+        if [[ "$cont" != "y" && "$cont" != "Y" ]]; then break; fi
+    done
+
+    if [ "$count" -eq 0 ]; then
+        _bot_say "error" "No modules added. Aborting."
+        return 1
+    fi
+
+    # Step 3: Category Selection
+    _fac_select_category 
+    if [ -z "$INSERT_LINE" ]; then return 1; fi
+
+    # Step 4: Final Review
+    echo -e ""
+    echo -e "${F_MAIN} :: Final Manifest Review ::${F_RESET}"
+    echo -e "${F_GRAY}    --------------------------------${F_RESET}"
+    echo -e "${F_GRAY}    Type     : ${F_MAIN}Ecosystem Suite${F_RESET}"
+    echo -e "${F_GRAY}    Command  : ${F_WARN}$func_name${F_RESET}"
+    echo -e "${F_GRAY}    Sub-Apps : ${F_WARN}$count modules${F_RESET}"
+    echo -e "${F_GRAY}    Keys     : $(echo -e "$option_list_fzf" | sed 's/\\n/, /g')${F_RESET}"
+    echo -e "${F_GRAY}    --------------------------------${F_RESET}"
+    
+    echo -ne "${F_ERR}    ›› TYPE 'CONFIRM' TO FORGE: ${F_RESET}"
+    read confirm_write
+    
+    if [ "$confirm_write" != "CONFIRM" ]; then
+        _bot_say "error" "Fabrication Aborted."
+        return 1
+    fi
+
+    # === Step 5: Assembly ===
+    _bot_say "factory" "Assembling ecosystem suite..."
+
+    local temp_block="$MUX_ROOT/plate/block.tmp"
+    
+    cp "$mold_file" "$temp_block"
+    
+    sed -i "s|\[SUITE_NAME\]|$suite_name|g" "$temp_block"
+    sed -i "s|\[FUNC\]|$func_name|g" "$temp_block"
+    sed -i "s|\[OPTION_LIST\]|$option_list_fzf|g" "$temp_block"
+    sed -i "s|\[OPTION_SELECT\]|$option_list_select|g" "$temp_block"
+    
+    awk -v logic="$case_logic" '{
+        gsub(/\[CASE_LOGIC\]/, logic)
+        print
+    }' "$temp_block" > "${temp_block}.2" && mv "${temp_block}.2" "$temp_block"
+    
+    sed -i 's/\\n/\n/g' "$temp_block"
+
+    # Injection
+    local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp")
+    if [ "$INSERT_LINE" -ge "$total_lines" ]; then
+        cat "$temp_block" >> "$MUX_ROOT/app.sh.temp"
+    else
+        sed -i "${INSERT_LINE}r $temp_block" "$MUX_ROOT/app.sh.temp"
+    fi
+    rm "$temp_block"
+    
+    echo "" >> "$MUX_ROOT/app.sh.temp"
+
+    echo -e "${F_GRE} :: Suite Installed Successfully ::${F_RESET}"
+    
+    echo -ne "${F_WARN}    ›› Hot Reload now? (y/n): ${F_RESET}"
+    read r
+    [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load
+}
+
 # 分類選擇器 (Category Selector Helper)
 function _fac_select_category() {
     local temp_file="$MUX_ROOT/app.sh.temp"
@@ -683,7 +844,6 @@ function _fac_wizard_edit() {
     local target="$1"
     local temp_file="$MUX_ROOT/app.sh.temp"
 
-    # 1. 鎖定目標
     if [ -z "$target" ]; then
         echo -e ""
         echo -e "${F_MAIN} :: Neural Link Diagnostics ::${F_RESET}"
@@ -693,7 +853,6 @@ function _fac_wizard_edit() {
 
     if [ -z "$target" ]; then return; fi
 
-    # 2. 定位座標
     local start_line=$(grep -n "^function $target() {" "$temp_file" | cut -d: -f1)
     if [ -z "$start_line" ]; then
         _bot_say "error" "Target module '$target' not found."
@@ -703,30 +862,90 @@ function _fac_wizard_edit() {
     local relative_end=$(tail -n +$start_line "$temp_file" | grep -n "^}" | head -n1 | cut -d: -f1)
     local end_line=$((start_line + relative_end - 1))
     
-    # 3. 讀取與分析 (DNA Sequencing)
     local func_body=$(sed -n "${start_line},${end_line}p" "$temp_file")
     local app_type="UNKNOWN"
+    
+    if echo "$func_body" | grep -q "case \"\$target\" in"; then
+        app_type="SUITE"
+    elif echo "$func_body" | grep -q "_resolve_smart_url"; then
+        app_type="BROWSER"
+    else
+        app_type="LAUNCHER"
+    fi
+
+    if [ "$app_type" == "SUITE" ]; then
+        while true; do
+            clear
+            echo -e "${F_MAIN} :: Ecosystem Suite Diagnostics ::${F_RESET}"
+            echo -e "${F_GRAY}    Target :${F_RESET} ${F_WARN}$target${F_RESET}"
+            echo -e "${F_GRAY}    Range  :${F_RESET} Lines $start_line-$end_line"
+            echo -e "${F_GRAY}    Type   :${F_RESET} Multi-App Suite"
+            echo -e "${F_GRAY}    --------------------------------${F_RESET}"
+            
+            echo -e "${F_SUB} [Active Sub-Modules]${F_RESET}"
+            
+            local map_file="$MUX_ROOT/.suite_map"
+            sed -n "${start_line},${end_line}p" "$temp_file" | grep -n "^[[:space:]]*\".*\")" > "$map_file"
+            
+            local i=1
+            local lines=()
+            local keys=()
+            
+            while IFS=: read -r rel_line content; do
+                local abs_line=$((start_line + rel_line - 1))
+                local key_name=$(echo "$content" | cut -d'"' -f2)
+                
+                echo -e "  [$i] \033[1;36m$key_name\033[0m \033[1;30m(Line $abs_line)\033[0m"
+                lines+=("$abs_line")
+                keys+=("$key_name")
+                ((i++))
+            done < "$map_file"
+            rm "$map_file"
+            
+            echo -e ""
+            echo -e "  [a] Add New Module (Injection)"
+            echo -e "  [m] Manual Edit (Nano)"
+            echo -e "  [0] Exit"
+            echo ""
+            
+            echo -ne "${F_WARN}    ›› Select Module to Edit (or Action): ${F_RESET}"
+            read choice
+
+            if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -gt 0 ] && [ "$choice" -le "${#lines[@]}" ]; then
+                local idx=$((choice - 1))
+                local target_line=${lines[$idx]}
+                _bot_say "factory" "Opening maintenance hatch at line $target_line..."
+                nano "+$target_line" "$temp_file"
+            elif [ "$choice" == "a" ]; then
+                _fac_suite_injector "$target" "$start_line" "$end_line"
+                break 
+            elif [ "$choice" == "m" ]; then
+                nano "+$start_line" "$temp_file"
+                break
+            elif [ "$choice" == "0" ]; then
+                break
+            fi
+        done
+        return
+    fi
+
     local current_name="Unknown"
     local current_pkg="Unknown"
     local current_act=""
     local current_engine=""
 
-    # 判斷類型與提取數據
-    if echo "$func_body" | grep -q "_resolve_smart_url"; then
-        app_type="BROWSER"
+    if [ "$app_type" == "BROWSER" ]; then
         current_pkg=$(echo "$func_body" | grep "local pkg=" | cut -d'"' -f2)
         current_name=$(echo "$func_body" | grep "_launch_android_app" | head -n1 | cut -d'"' -f2)
         local engine_raw=$(echo "$func_body" | grep "_resolve_smart_url" | cut -d'"' -f2)
         current_engine=$(echo "$engine_raw" | sed 's/\$SEARCH_//')
     else
-        app_type="LAUNCHER"
         local launch_line=$(echo "$func_body" | grep "_launch_android_app" | head -n1)
         current_name=$(echo "$launch_line" | cut -d'"' -f2)
         current_pkg=$(echo "$launch_line" | cut -d'"' -f4)
         current_act=$(echo "$launch_line" | cut -d'"' -f6)
     fi
 
-    # 4. 顯示儀表板 (Dashboard)
     while true; do
         clear
         echo -e "${F_MAIN} :: Neural Link Diagnostics ::${F_RESET}"
@@ -737,12 +956,7 @@ function _fac_wizard_edit() {
         
         echo -e "${F_SUB} [Current Parameters]${F_RESET}"
         echo -e "  [1] Name    : \033[1;36m$current_name\033[0m"
-        
-        if [[ "$current_pkg" == "com.null.placeholder" || "$current_pkg" == "com.null.browser" ]]; then
-            echo -e "  [2] Package : \033[1;31m$current_pkg (FIX REQUIRED)\033[0m"
-        else
-            echo -e "  [2] Package : \033[1;32m$current_pkg\033[0m"
-        fi
+        echo -e "  [2] Package : \033[1;32m$current_pkg\033[0m"
         
         if [ "$app_type" == "LAUNCHER" ]; then
             echo -e "  [3] Activity: ${F_GRAY}${current_act:-(Auto)}\033[0m"
@@ -786,25 +1000,17 @@ function _fac_wizard_edit() {
                 if [ "$app_type" == "LAUNCHER" ]; then
                     echo -ne "${F_SUB}    ›› New Activity (Enter to clear): ${F_RESET}"
                     read new_val
-                    
                     _bot_say "factory" "Re-constructing Launch Vector..."
-                    
                     local new_line="    _launch_android_app \"$current_name\" \"$current_pkg\" \"$new_val\""
-                    
                     sed -i "${start_line},${end_line}s|^.*_launch_android_app.*|$new_line|" "$temp_file"
-                    
                     current_act="$new_val"
-
                 elif [ "$app_type" == "BROWSER" ]; then
                      echo -ne "${F_SUB}    ›› New Engine (GOOGLE/BING/DUCK/YOUTUBE): ${F_RESET}"
                      read new_val
                      new_val=$(echo "$new_val" | tr '[:lower:]' '[:upper:]')
-                     
                      _bot_say "factory" "Switching Search Engine..."
-                     
                      local new_resolve="    _resolve_smart_url \"\$SEARCH_$new_val\" \"\$@\""
                      sed -i "${start_line},${end_line}s|^.*_resolve_smart_url.*|$new_resolve|" "$temp_file"
-                     
                      current_engine="$new_val"
                 fi
                 ;;
@@ -815,15 +1021,57 @@ function _fac_wizard_edit() {
                 [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load
                 return
                 ;;
-            x)
-                return
-                ;;
-            m)
-                nano "+$start_line" "$temp_file"
-                return
-                ;;
+            x) return ;;
+            m) nano "+$start_line" "$temp_file"; return ;;
         esac
     done
+}
+
+# 生態系套件注入器 - Suite Injector
+function _fac_suite_injector() {
+    local target="$1"
+    local start_line="$2"
+    local end_line="$3"
+    local temp_file="$MUX_ROOT/app.sh.temp"
+
+    echo -e ""
+    echo -e "${F_MAIN} :: Suite Expansion Protocol ::${F_RESET}"
+    
+    echo -ne "${F_SUB}    ›› New Trigger Key (e.g. ppt): ${F_RESET}"
+    read sub_key
+    [ -z "$sub_key" ] && return
+
+    echo -ne "${F_SUB}    ›› Display Name (e.g. PowerPoint): ${F_RESET}"
+    read sub_name
+    [ -z "$sub_name" ] && sub_name="$sub_key"
+
+    echo -ne "${F_SUB}    ›› Package Name: ${F_RESET}"
+    read sub_pkg
+    [ -z "$sub_pkg" ] && sub_pkg="com.null.placeholder"
+    
+    echo -ne "${F_SUB}    ›› Activity (Optional): ${F_RESET}"
+    read sub_act
+
+    _bot_say "factory" "Injecting module '$sub_key' into suite '$target'..."
+
+    # 1. Update FZF List
+    sed -i "${start_line},${end_line}s/\" | fzf/\\\\n$sub_key\" | fzf/" "$temp_file"
+
+    # 2. Update Select List
+    sed -i "${start_line},${end_line}s/; do/ \"$sub_key\"; do/" "$temp_file"
+
+    # 3. Insert Case Logic
+    local rel_esac=$(sed -n "${start_line},${end_line}p" "$temp_file" | grep -n "esac" | tail -n1 | cut -d: -f1)
+    
+    if [ -n "$rel_esac" ]; then
+        local abs_esac=$((start_line + rel_esac - 1))
+        local case_block="        \"$sub_key\")\\n            _launch_android_app \"$sub_name\" \"$sub_pkg\" \"$sub_act\"\\n            ;;"
+        
+        sed -i "${abs_esac}i $case_block" "$temp_file"
+        _bot_say "success" "Expansion complete. Module '$sub_key' active."
+    else
+        _bot_say "error" "Injection failed. Structure mismatch."
+    fi
 }
 
 # 刪除模組 - Delete Module
@@ -892,6 +1140,7 @@ function _fac_del() {
         _bot_say "factory" "Excising module..."
         
         sed -i "${delete_start},${delete_end}d" "$temp_file"
+        unset -f "$target"
         
         _fac_maintenance
 
@@ -1033,7 +1282,6 @@ function _fac_maintenance() {
             fi
         fi
     done
-    
     sleep 0.5
     echo -e ""
     _bot_say "factory" "Mechanism maintenance complete, Commander."
