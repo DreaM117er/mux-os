@@ -882,7 +882,7 @@ function _fac_wizard_edit() {
             echo -e "${F_GRAY}    Type   :${F_RESET} Multi-App Suite"
             echo -e "${F_GRAY}    --------------------------------${F_RESET}"
             
-            echo -e "${F_SUB} [Active Sub-Modules]${F_RESET}"
+            echo -e "${F_SUB}    [Active Sub-Modules]${F_RESET}"
             
             local map_file="$MUX_ROOT/.suite_map"
             sed -n "${start_line},${end_line}p" "$temp_file" | grep -n "^[[:space:]]*\".*\")" > "$map_file"
@@ -895,7 +895,7 @@ function _fac_wizard_edit() {
                 local abs_line=$((start_line + rel_line - 1))
                 local key_name=$(echo "$content" | cut -d'"' -f2)
                 
-                echo -e "  [$i] \033[1;36m$key_name\033[0m \033[1;30m(Line $abs_line)\033[0m"
+                echo -e "    [$i] \033[1;36m$key_name\033[0m \033[1;30m(Line $abs_line)\033[0m"
                 lines+=("$abs_line")
                 keys+=("$key_name")
                 ((i++))
@@ -903,9 +903,9 @@ function _fac_wizard_edit() {
             rm "$map_file"
             
             echo -e ""
-            echo -e "  [a] Add New Module (Injection)"
-            echo -e "  [m] Manual Edit (Nano)"
-            echo -e "  [0] Exit"
+            echo -e "    [a] Add New Module (Injection)"
+            echo -e "    [m] Manual Edit (Nano)"
+            echo -e "    [0] Exit"
             echo ""
             
             echo -ne "${F_WARN}    ›› Select Module to Edit (or Action): ${F_RESET}"
@@ -954,20 +954,20 @@ function _fac_wizard_edit() {
         echo -e "${F_GRAY}    Range  :${F_RESET} Lines $start_line-$end_line"
         echo -e "${F_GRAY}    --------------------------------${F_RESET}"
         
-        echo -e "${F_SUB} [Current Parameters]${F_RESET}"
-        echo -e "  [1] Name    : \033[1;36m$current_name\033[0m"
-        echo -e "  [2] Package : \033[1;32m$current_pkg\033[0m"
+        echo -e "${F_SUB}    [Current Parameters]${F_RESET}"
+        echo -e "    [1] Name    : \033[1;36m$current_name\033[0m"
+        echo -e "    [2] Package : \033[1;32m$current_pkg\033[0m"
         
         if [ "$app_type" == "LAUNCHER" ]; then
-            echo -e "  [3] Activity: ${F_GRAY}${current_act:-(Auto)}\033[0m"
+            echo -e "    [3] Activity: ${F_GRAY}${current_act:-(Auto)}\033[0m"
         elif [ "$app_type" == "BROWSER" ]; then
-            echo -e "  [3] Engine  : ${F_GRAY}$current_engine\033[0m"
+            echo -e "    [3] Engine  : ${F_GRAY}$current_engine\033[0m"
         fi
         
         echo -e ""
-        echo -e "  [0] Save & Exit"
-        echo -e "  [x] Cancel"
-        echo -e "  [m] Manual Edit (Nano)"
+        echo -e "    [0] Save & Exit"
+        echo -e "    [x] Cancel"
+        echo -e "    [m] Manual Edit (Nano)"
         echo ""
         
         echo -ne "${F_WARN}    ›› Select Parameter to Modify: ${F_RESET}"
@@ -1021,7 +1021,10 @@ function _fac_wizard_edit() {
                 [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load
                 return
                 ;;
-            x) return ;;
+            x)
+                return
+                _fac_init
+                ;;
             m) nano "+$start_line" "$temp_file"; return ;;
         esac
     done
