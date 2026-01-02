@@ -414,7 +414,7 @@ function _factory_show_status() {
     local last_sync=$(grep "Last Sync" "$MUX_ROOT/app.sh" | cut -d: -f2- | sed 's/::/\n/' | xargs)
     [ -z "$last_sync" ] && last_sync="Unknown"
 
-    local F_MAIN="\033[1;35m"
+    local F_MAIN="\033[38;5;208m"
     local F_SUB="\033[1;37m"
     local F_WARN="\033[1;33m"
     
@@ -440,7 +440,7 @@ function _factory_show_info() {
     echo -e "  ${F_GRAY}PROTOCOL   :${F_RESET} ${F_SUB}Factory Mode${F_RESET}"
     echo -e "  ${F_GRAY}ACCESS     :${F_RESET} ${F_MAIN}ROOT / COMMANDER${F_RESET}"
     echo -e "  ${F_GRAY}PURPOSE    :${F_RESET} ${F_SUB}Neural Link Construction & Modification${F_RESET}"
-    echo -e "  ${F_GRAY}TARGET     :${F_RESET} ${F_WARN}$MUX_ROOT/app.sh${F_RESET}"
+    echo -e "  ${F_GRAY}TARGET     :${F_RESET} ${F_WARN}app.sh${F_RESET}"
     echo ""
     echo -e " ${F_MAIN}:: WARNING ::${F_RESET}"
     echo -e "  ${F_GRAY}\"With great power comes great possibility of breaking things.\"${F_RESET}"
