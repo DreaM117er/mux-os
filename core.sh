@@ -394,8 +394,70 @@ function _mux_update_system() {
     fi
 }
 
+function _git_preflight_check() {
+    echo -e "${F_GRAY} :: Verifying Neural Signature (Git Identity)...${F_RESET}"
+
+    local git_user=$(git config user.name)
+    local git_email=$(git config user.email)
+    
+    if [ -z "$git_user" ] || [ -z "$git_email" ]; then
+        echo -e ""
+        _bot_say "error" "Identity Unknown. Protocol blocked."
+        echo -e "${F_GRAY}    The Grid requires a signature to accept your code.${F_RESET}"
+        
+        echo -e ""
+        echo -ne "${F_WARN}    ›› Enter GitHub Name: ${F_RESET}"
+        read input_name
+        echo -ne "${F_WARN}    ›› Enter GitHub Email: ${F_RESET}"
+        read input_email
+        
+        if [ -n "$input_name" ] && [ -n "$input_email" ]; then
+            git config --global user.name "$input_name"
+            git config --global user.email "$input_email"
+            _bot_say "success" "Identity matrix updated: $input_name"
+            echo -e ""
+        else
+            _bot_say "error" "Identity required. Aborting."
+            return 1
+        fi
+    else
+        echo -e "${F_GRAY}    ›› Identity Confirmed: $git_user${F_RESET}"
+    fi
+
+    echo -ne "${F_GRAY} :: Testing Uplink Connection... ${F_RESET}"
+    
+    if git ls-remote --heads origin >/dev/null 2>&1; then
+        echo -e "\033[1;32m[CONNECTED]\033[0m"
+    else
+        echo -e "\033[1;31m[REJECTED]\033[0m"
+        echo -e ""
+        _bot_say "error" "Uplink Authentication Failed."
+        echo -e "${F_SUB}    Possible causes:${F_RESET}"
+        echo -e "${F_GRAY}    1. Personal Access Token (PAT) expired.${F_RESET}"
+        echo -e "${F_GRAY}    2. 'gh auth login' not configured.${F_RESET}"
+        echo -e "${F_GRAY}    3. Network firewall active.${F_RESET}"
+        
+        if command -v gh &> /dev/null; then
+            echo -e ""
+            echo -ne "${F_WARN}    ›› Attempt re-login via GH CLI? (y/n): ${F_RESET}"
+            read try_login
+            if [[ "$try_login" == "y" || "$try_login" == "Y" ]]; then
+                gh auth login
+                _git_preflight_check
+                return $?
+            fi
+        fi
+        
+        return 1
+    fi
+    
+    return 0
+}
+
 # 神經連結部署協議 - Neural Link Deployment Protocol
 function _neural_link_deploy() {
+    _git_preflight_check || return 1
+
     echo -e "${F_MAIN} :: NEURAL LINK DEPLOYMENT PROTOCOL ::${F_RESET}"
     echo -e "${F_GRAY}    Target Repository: Origin/Main${F_RESET}"
     echo -e "${F_GRAY}    Payload          : app.sh${F_RESET}"
@@ -433,10 +495,8 @@ function _neural_link_deploy() {
     git push
     
     if [ $? -eq 0 ]; then
-        echo -e ""
         _bot_say "success" "Deployment Successful. Sync Complete."
     else
-        echo -e ""
         _bot_say "error" "Uplink destabilized. Check network."
     fi
 }
