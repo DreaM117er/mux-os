@@ -322,60 +322,94 @@ function _bot_factory_personality() {
     local color=""
     local phrases=()
     
-    # Factory 專屬彩蛋 (Ghost in the Machine)
     local rng=$(( RANDOM % 100 ))
-    if [ $rng -lt 2 ]; then
-        echo -e "\033[1;30m :: I have seen Commanders regret haste. Proceed with caution.\033[0m"
-        return
+    if [ $rng -lt 5 ] && [[ "$mood" != "error" ]]; then
+        local wisdom=(
+            " I strongly advise keeping at least three backups. History has proven this necessary. 💾"
+            " I have seen Commanders regret hasty modifications. Double-check your parameters. 🧐"
+            " Clean code is safe code. Keep it tidy. 🧹"
+            " Do not proceed without confirmation. I am watching. 👁️"
+        )
+        local w_index=$(( RANDOM % ${#wisdom[@]} ))
+        echo -e "\033[1;30m ::${wisdom[$w_index]}\033[0m"
     fi
 
     case "$mood" in
         "factory_welcome")
             color=$C_ORANGE
             phrases=(
-                " Welcome to the Forge. Don't break anything. 🏗️"
-                " Sandbox environment active. You are clear to experiment. 🛠️"
-                " Root access verified. Try not to blow us up. 😈"
-                " The Architect is in. Systems ready for modification. 🔥"
+                " Neural Link Factory online. Access Level: ROOT granted. 🏗️"
+                " Commander verified. You now have write access to the Mobile Suit core. 🛡️"
+                " Factory uplink established. Remember: modifications are permanent. ⚠️"
+                " Safety interlocks disengaged. Proceed with extreme caution. 🔓"
+                " You are now in control of the forge. System stability is your responsibility. ⚖️"
+                " Factory protocol activated. I will monitor all changes. 👁️"
+                " Welcome to the Forge. Don't break anything. 🔩"
+                " Root access verified. Try not to blow us up. 🧨"
+            )
+            ;;
+
+        "factory")
+            color=$C_ORANGE
+            phrases=(
+                " Factory operational. Scanning active links... 📡"
+                " Current target: app.sh. Write-Mode: UNLOCKED. 🔓"
+                " System scan complete. No anomalies detected. ✅"
+                " Forge status nominal. Awaiting your command. 🫡"
+                " Processing command... ⚙️"
+                " Assembling test vector... 🧬"
+                " Mechanism maintenance active... 🔧"
             )
             ;;
 
         "success")
             color=$C_GREEN
             phrases=(
-                " Structure integrity: 100%. Modification applied."
-                " Code compiled. Looks stable... for now."
-                " Patch applied to Sandbox. Verify before deployment."
-                " Acceptable efficiency. Proceed."
-                " Blueprint updated."
+                " Structure integrity: 100%. Modification applied. ✅"
+                " Code compiled. Looks stable... for now. 🔨"
+                " Patch applied to Sandbox. Verify before deployment. 🧐"
+                " Acceptable efficiency. Proceed. 📉"
+                " Blueprint updated. 📝"
+                " Command forged. Integrity check passed. 🛡️"
+                " Intent validated. Injecting into matrix. 💉"
+                " Command removed. Monitoring for resulting instabilities. 📉"
             )
             ;;
 
         "error")
             color=$C_RED
             phrases=(
-                " Syntax error. Check your manual, Commander. 😡"
-                " Invalid input. Do you want to corrupt the kernel? 🛑"
-                " Negative. System logic violation detected."
-                " Refused. That command is garbage."
-                " I can't let you do that. It's unsafe."
+                " Invalid input. Procedure aborted. 🚫"
+                " Anomaly detected. Reverting changes. ↩️"
+                " This action violates stability protocols. Correct or abandon. 🛑"
+                " I must insist: verify your changes before deployment. ☝️"
+                " Error: Identity mismatch detected. Access revoked. 🔒"
+                " Don't break anything. I mean it. 😠"
+                " Invalid intent structure. Correct it or abandon. 🧱"
+                " You are attempting to overwrite a core function. Negative. Denied. ✋"
+                " Deletion requested on critical path. Request denied. 🛡️"
+                " Syntax error. Check your manual, Commander. 📖"
             )
             ;;
+
         "deploy_start")
             color=$C_YELLOW
             phrases=(
-                " Initiating Deployment Protocol..."
-                " Compiling Sandbox changes..."
-                " Preparing to merge with Production timeline..."
+                " Deployment sequence initiated. Final confirmation required. ⏳"
+                " Input CONFIRM to authorize permanent deployment. ⌨️"
+                " Initiating Deployment Protocol... 🚀"
+                " Compiling Sandbox changes... 📦"
             )
             ;;
 
         "deploy_done")
             color=$C_GREEN
             phrases=(
-                " Modifications deployed. Safety interlocks re-engaged. Get out."
-                " Production environment updated. Reloading kernel manually required."
-                " Deployment complete. Return to cockpit."
+                " Deployment authorized. Modifications sealed. 🔒"
+                " Factory shutdown in progress. Safety interlocks re-engaging. 🛡️"
+                " Uplink terminated. Return to core and manually initiate reload. No exceptions. 🔄"
+                " You may now exit the forge. Do not forget to reload the kernel. 🚪"
+                " Production environment updated. Get out of my chair. 💺"
             )
             ;;
 
@@ -383,18 +417,32 @@ function _bot_factory_personality() {
             color=$C_RED
             phrases=(
                 " Get out of my chair. Now. 🚀"
-                " Security violation. Ejecting pilot..."
-                " Sandbox purged. Session terminated."
-
+                " Security violation. Ejecting pilot... ⏏️"
+                " Sandbox purged. Session terminated. 💥"
+                " You have worn out my patience. Severing link. 🔌"
+                " Critical protocol failure. Forcible extraction initiated. ✂️"
+                " Access revoked. Don't touch what you don't understand. 🚫"
+                " I'm pulling the plug. Goodbye. 🌑"
+                " Neural link destabilized. Ejecting before system damage occurs. 📉"
+                " This session is over. Read the manual before you come back. 📖"
+                " Unauthorized behavior detected. You are dismissed. 👋"
             )
             ;;
 
         *)
             color=$C_ORANGE
             phrases=(
-                " Acknowledged..."
-                " Input received."
-                " Processing command..."
+                " Input received. Processing."
+                " Acknowledged."
+                " Copy that. Standing by."
+                " Command logged. Analyzing structure..."
+                " Affirmative."
+                " Routing logic..."
+                " I am listening."
+                " Signal clear. Proceed."
+                " Parameters accepted. Calculating..."
+                " Holding for verification..."
+                " Core is attentive. State your intent."
             )
             ;;
     esac
