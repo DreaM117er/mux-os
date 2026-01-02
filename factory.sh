@@ -13,6 +13,7 @@ F_WARN="\033[1;33m"
 F_ERR="\033[1;31m"
 F_GRAY="\033[1;30m"
 F_RESET="\033[0m"
+F_GRE="\n\033[1;32m"
 
 # 進入兵工廠模式 (Entry Point)
 function _enter_factory_mode() {
@@ -80,7 +81,7 @@ function _factory_boot_sequence() {
     fi
     
     if [ "$verify_success" -eq 1 ]; then
-        echo -e "\n\033[1;32m :: ACCESS GRANTED :: \033[0m"
+        echo -e "${F_GRE} :: ACCESS GRANTED :: \033[0m${F_RESET}"
         sleep 1
         echo ""
         echo -e "${F_ERR} :: WARNING: FACTORY PROTOCOL :: ${F_RESET}"
@@ -293,6 +294,7 @@ function _fac_stamp_launcher() {
         return 1
     fi
 
+    # Step 1: Pre-flight
     echo -ne "${F_WARN} :: Launch 'apklist' helper? (y/n): ${F_RESET}"
     read launch_apk
     if [[ "$launch_apk" == "y" || "$launch_apk" == "Y" ]]; then
@@ -302,13 +304,12 @@ function _fac_stamp_launcher() {
     # Step 2: Data Collection
     # 2.1 UI Display Name
     echo -e ""
-    echo -ne "${F_SUB}    [Data] UI Display Name (e.g. YouTube): ${F_RESET}"
+    echo -ne "${F_SUB} :: UI Display Name (e.g. YouTube): ${F_RESET}"
     read app_name
     [ -z "$app_name" ] && app_name="Unknown App"
 
     # 2.2 Package Name
-    echo -e ""
-    echo -ne "${F_SUB}    [Data] Package Name (Enter to skip): ${F_RESET}"
+    echo -ne "${F_SUB} :: Package Name (Enter to skip): ${F_RESET}"
     read pkg_id
     
     if [ -z "$pkg_id" ]; then 
@@ -317,28 +318,32 @@ function _fac_stamp_launcher() {
     fi
 
     # 2.3 Activity Name
-    echo -ne "${F_SUB}    [Data] Activity Name (Optional): ${F_RESET}"
+    echo -ne "${F_SUB} :: Activity Name (Optional): ${F_RESET}"
     read pkg_act
 
-    # 2.4 Command Name
+    # 2.4 Command Name (Auto-Gen Fix)
     echo -e ""
     echo -ne "${F_MAIN} :: Assign Command Name (Enter to auto-gen): ${F_RESET}"
-    read func_name
+    read input_func
     
-    if [ -z "$func_name" ]; then
-        func_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]' | sed 's/ //g')
-        echo -e "${F_WARN} :: Auto-assigned command: $func_name${F_RESET}"
+    local func_name=""
+    if [ -z "$input_func" ]; then
+        local clean_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
+        func_name="$clean_name"
+        echo -e "${F_WARN}    ›› Auto-assigned command: $func_name${F_RESET}"
+    else
+        func_name="$input_func"
     fi
 
     if [ -z "$func_name" ]; then
-        _bot_say "error" "Command name required."
-        return
+        _bot_say "error" "Command name generation failed."
+        return 1
     fi
 
     # Step 3: Safety Check
     if grep -qE "function[[:space:]]+$func_name[[:space:]]*\(" "$MUX_ROOT/app.sh.temp"; then
         _bot_say "error" "Module '$func_name' already exists."
-        return
+        return 1
     fi
 
     # Step 4: Category Selection
@@ -346,11 +351,31 @@ function _fac_stamp_launcher() {
     
     if [ -z "$INSERT_LINE" ]; then
         _bot_say "error" "Placement calculation failed."
-        return
+        return 1
     fi
 
-    # Step 5: Assembly
-    _bot_say "factory" "Assembling '$func_name' into sector '$CATEGORY_NAME'..."
+    # Step 5: Final Manifest Review
+    echo -e ""
+    echo -e "${F_MAIN} :: Final Manifest Review ::${F_RESET}"
+    echo -e "${F_GRAY}    --------------------------------${F_RESET}"
+    echo -e "${F_GRAY}    Sector   : ${F_WARN}$CATEGORY_NAME${F_RESET}"
+    echo -e "${F_GRAY}    Command  : ${F_WARN}$func_name${F_RESET}"
+    echo -e "${F_GRAY}    Package  : $pkg_id${F_RESET}"
+    echo -e "${F_GRAY}    Activity : ${pkg_act:-[Auto]}${F_RESET}"
+    echo -e "${F_GRAY}    --------------------------------${F_RESET}"
+    
+    echo -ne "${F_ERR}    ›› TYPE 'CONFIRM' TO FORGE: ${F_RESET}"
+    read confirm_write
+    
+    if [ "$confirm_write" != "CONFIRM" ]; then
+        echo -e ""
+        _bot_say "error" "Authentication Failed. Fabrication Aborted."
+        echo -e "${F_GRAY}    ›› Material scrapped. All data discarded.${F_RESET}"
+        return 1
+    fi
+
+    # Step 6: Assembly
+    _bot_say "factory" "Stamping module..."
 
     local temp_block="$MUX_ROOT/plate/block.tmp"
     
@@ -369,14 +394,13 @@ function _fac_stamp_launcher() {
     fi
     rm "$temp_block"
     
-    # Step 6: Final Report & Reload
     local last_char=$(tail -c 1 "$MUX_ROOT/app.sh.temp")
     if [ "$last_char" != "" ]; then echo "" >> "$MUX_ROOT/app.sh.temp"; fi
 
-    echo -e "${F_MAIN} :: Module Installed Successfully ::${F_RESET}"
-    echo -e "${F_GRAY}    ›› Location: Sector [$CATEGORY_NAME]${F_RESET}"
-    echo -e "${F_GRAY}    ›› Package : $pkg_id${F_RESET}"
+    echo -e "${F_GRE} :: Module Installed Successfully ::${F_RESET}"
+    echo -e ""
     
+    # Step 7: Reload
     echo -ne "${F_WARN} :: Hot Reload now? (y/n): ${F_RESET}"
     read reload_choice
     if [[ "$reload_choice" == "y" || "$reload_choice" == "Y" ]]; then
