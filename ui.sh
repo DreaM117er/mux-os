@@ -209,7 +209,7 @@ function _mux_dynamic_help_core() {
             if ($0 ~ /"/) {
                 split($0, parts, "\"");
                 cmd_name = parts[2];
-                printf "    \033[1;32m%-10s\033[0m : %s\n", cmd_name, desc;
+                printf "    \033[1;36m%-10s\033[0m : %s\n", cmd_name, desc;
             }
         }
     }
@@ -233,7 +233,7 @@ echo -e "\033[1;35m :: Mux-OS Factory Protocols ::\033[0m"
             if ($0 ~ /"/) {
                 split($0, parts, "\"");
                 cmd_name = parts[2];
-                printf "    \033[1;35m%-10s\033[0m : %s\n", cmd_name, desc;
+                printf "    \033[38;5;208m%-10s\033[0m : %s\n", cmd_name, desc;
             }
         }
     }
@@ -426,7 +426,7 @@ function _factory_show_status() {
 
 # 顯示兵工廠資訊 - Display Factory Info Manifest
 function _factory_show_info() {
-    local F_MAIN="\033[1;35m"
+    local F_MAIN="\033[38;5;208m"
     local F_SUB="\033[1;37m"
     local F_WARN="\033[1;33m"
     local F_GRAY="\033[1;30m"
@@ -437,7 +437,7 @@ function _factory_show_info() {
     
     echo -e " ${F_MAIN}:: INDUSTRIAL MANIFEST ::${F_RESET}"
     echo ""
-    echo -e "  ${F_GRAY}PROTOCOL   :${F_RESET} ${F_SUB}Factory Protocol v1.0.0${F_RESET}"
+    echo -e "  ${F_GRAY}PROTOCOL   :${F_RESET} ${F_SUB}Factory Mode${F_RESET}"
     echo -e "  ${F_GRAY}ACCESS     :${F_RESET} ${F_MAIN}ROOT / COMMANDER${F_RESET}"
     echo -e "  ${F_GRAY}PURPOSE    :${F_RESET} ${F_SUB}Neural Link Construction & Modification${F_RESET}"
     echo -e "  ${F_GRAY}TARGET     :${F_RESET} ${F_WARN}$MUX_ROOT/app.sh${F_RESET}"

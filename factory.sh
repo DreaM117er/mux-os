@@ -7,7 +7,7 @@ fi
 
 # factory.sh - Mux-OS 兵工廠
 
-F_MAIN="\033[1;35m"
+F_MAIN="\033[38;5;208m"
 F_SUB="\033[1;37m"
 F_WARN="\033[1;33m"
 F_ERR="\033[1;31m"
@@ -315,7 +315,7 @@ function _factory_deploy_sequence() {
     _bot_say "deploy_start"
     sleep 1.5
     
-    local time_str="# :: Last Sync: $(date '+%Y-%m-%d %H:%M:%S') ::"
+    local time_str="#Last Sync: $(date '+%Y-%m-%d %H:%M:%S') ::"
     local temp_file="$MUX_ROOT/app.sh.temp"
     local prod_file="$MUX_ROOT/app.sh"
 
@@ -335,7 +335,7 @@ function _factory_deploy_sequence() {
     echo -e "${F_MAIN} :: DEPLOYMENT SUCCESSFUL ::${F_RESET}"
     echo -e "${F_SUB}    System requires manual reload to re-align kernel.${F_RESET}"
     echo ""
-    echo -e "${F_ERR} [SYSTEM HALTED] Waiting for manual restart...${F_RESET}"
+    echo -e "${F_ERR} :: Waiting for manual restart...${F_RESET}"
     echo ""
     
     if [ -f "$temp_file" ]; then rm "$temp_file"; fi
