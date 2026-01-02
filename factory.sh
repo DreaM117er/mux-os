@@ -213,19 +213,19 @@ function fac() {
             fi
             ;;
             
-        # : Edit Function
+        # : Add Function Module
         "edit") 
-            echo -e "${F_WARN} :: Neural Editor (Nano) Integration... Pending.${F_RESET}"
+            _fac_edit "$2"
             ;;
 
         # : Load Function
         "load") 
-            echo -e "${F_WARN} :: Dry Run Protocol... Pending.${F_RESET}" 
+            _fac_load
             ;;
 
         # : Delete Function
         "del") 
-            echo -e "${F_WARN} :: Deletion Protocol... Pending.${F_RESET}" 
+            _fac_del "$2"
             ;;
 
         # : Show Factory Info
@@ -259,6 +259,134 @@ function fac() {
             echo -e "${F_SUB} :: Unknown Directive: $cmd${F_RESET}"
             ;;
     esac
+}
+
+# 編輯與鑄造模組 - Edit & Stamp Module
+function _fac_edit() {
+    local func_name="$1"
+    local temp_file="$MUX_ROOT/app.sh.temp"
+    
+    local mold_launcher="$MUX_ROOT/plate/launcher.txt"
+    local mold_browser="$MUX_ROOT/plate/browser.txt"
+
+    if [ -z "$func_name" ]; then
+        _bot_say "factory" "Opening sandbox manifest..."
+        nano "$temp_file"
+        return
+    fi
+
+    local line_num=$(grep -n "^function $func_name() {" "$temp_file" | cut -d: -f1)
+
+    if [ -n "$line_num" ]; then
+        _bot_say "factory" "Locating module: $func_name (Line $line_num)"
+        nano "+$line_num" "$temp_file"
+    else
+        echo -e "\033[1;33m :: Select Module Type ::\033[0m"
+        echo -e "    [1] Standard Launcher (Direct App)"
+        echo -e "    [2] Browser Interface (Smart Search)"
+        echo -ne "\033[1;32m    ›› Choice [1]: \033[0m"
+        read type_choice
+
+        local target_mold="$mold_launcher"
+        if [ "$type_choice" == "2" ]; then
+            target_mold="$mold_browser"
+        fi
+        
+        if [ ! -f "$target_mold" ]; then
+            _bot_say "error" "Mold missing ($target_mold). Halting."
+            return 1
+        fi
+
+        echo -ne "\033[1;36m    ›› App Name (UI): \033[0m"; read app_name
+        [ -z "$app_name" ] && app_name="$func_name"
+        
+        local engine_var="GOOGLE"
+        if [ "$type_choice" == "2" ]; then
+            echo -e "\033[1;30m    (Registered: GOOGLE, BING, DUCK, YOUTUBE)\033[0m"
+            echo -ne "\033[1;36m    ›› Search Engine Key (e.g. BING): \033[0m"; read input_engine
+            [ -n "$input_engine" ] && engine_var=$(echo "$input_engine" | tr '[:lower:]' '[:upper:]')
+        fi
+
+        _bot_say "factory" "Stamping module..."
+
+        cat "$target_mold" \
+            | sed "s/\[FUNC\]/$func_name/g" \
+            | sed "s/\[NAME\]/$app_name/g" \
+            | sed "s/\[ENGINE_NAME\]/$engine_var/g" \
+            | sed "s/\[ENGINE_VAR\]/$engine_var/g" \
+            >> "$temp_file"
+
+        local new_line=$(wc -l < "$temp_file")
+        local edit_line=$((new_line - 1))
+        [ "$type_choice" == "2" ] && edit_line=$((new_line - 6))
+
+        _bot_say "success" "Module created using [Type $type_choice]. Engaging editor..."
+        nano "+$edit_line" "$temp_file"
+    fi
+}
+
+# 加載模組 - Load Module
+function _fac_load() {
+    local temp_file="$MUX_ROOT/app.sh.temp"
+    
+    if [ ! -f "$temp_file" ]; then
+        _bot_say "error" "Sandbox file missing."
+        return 1
+    fi
+
+    _bot_say "loading" "Compiling sandbox logic..."
+    source "$temp_file"
+    _factory_mask_apps
+    sleep 0.5
+    _bot_say "success" "Sandbox reloaded. Logic active."
+}
+
+# 刪除模組 - Delete Module
+function _fac_del() {
+    local target="$1"
+    local temp_file="$MUX_ROOT/app.sh.temp"
+
+    if [ -z "$target" ]; then
+        _bot_say "error" "Target required."
+        return 1
+    fi
+
+    local start_line=$(grep -n "^function $target() {" "$temp_file" | cut -d: -f1)
+    
+    if [ -z "$start_line" ]; then
+        _bot_say "error" "Target '$target' not found."
+        return 1
+    fi
+
+    local header_line=$((start_line - 1))
+    local header_content=$(sed "${header_line}q;d" "$temp_file")
+    
+    local delete_start=$start_line
+    if [[ "$header_content" == "# :"* ]]; then
+        delete_start=$header_line
+        echo -e "${F_WARN}    ›› Detected Header: \033[1;30m$header_content\033[0m"
+    fi
+
+    local relative_end=$(tail -n +$start_line "$temp_file" | grep -n "^}" | head -n1 | cut -d: -f1)
+    local delete_end=$((start_line + relative_end - 1))
+
+    echo -e "${F_ERR} :: DESTRUCTION MANIFEST ::${F_RESET}"
+    echo -e "${F_SUB}    Target  : \033[1;37m$target\033[0m"
+    echo -e "${F_SUB}    Range   : Line $delete_start -> $delete_end"
+    
+    echo -e "${F_GRAY}----------------------------------------${F_RESET}"
+    sed -n "${delete_start},${delete_end}p" "$temp_file"
+    echo -e "${F_GRAY}----------------------------------------${F_RESET}"
+
+    echo -ne "${F_ERR} :: Confirm deletion? (y/n): ${F_RESET}"
+    read choice
+
+    if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+        sed -i "${delete_start},${delete_end}d" "$temp_file"
+        _bot_say "success" "Module '$target' excised."
+    else
+        echo -e "${F_GRAY}    ›› Operation aborted.${F_RESET}"
+    fi
 }
 
 # 自動備份 - Auto Backup

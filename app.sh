@@ -547,3 +547,12 @@ function padi() {
             ;;
     esac
 }
+
+
+# === fac test ===
+
+# : Console test (Debug)
+function console() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Ghost App" "com.ghost.not.exist" ""
+}

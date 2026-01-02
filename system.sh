@@ -89,12 +89,6 @@ function ai() {
     am start -a android.intent.action.VOICE_COMMAND >/dev/null 2>&1
 }
 
-# : Console test (Debug)
-function console() {
-    _require_no_args "$@" || return 1
-    _launch_android_app "Ghost App" "com.ghost.not.exist" ""
-}
-
 
 # === System Settings ===
 
