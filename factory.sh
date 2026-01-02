@@ -7,7 +7,7 @@ fi
 
 # factory.sh - Mux-OS 兵工廠
 
-F_MAIN="\033[38;5;208m"
+F_MAIN="\033[1;38;5;208m"
 F_SUB="\033[1;37m"
 F_WARN="\033[1;33m"
 F_ERR="\033[1;31m"
@@ -369,10 +369,14 @@ function _factory_fzf_menu() {
 
 # 初始化視覺效果 (Initialize Visuals)
 function _fac_init() {
+    _system_lock
+    echo -e "\033[1;33m :: System Reload Initiated...\033[0m"
+    sleep 1.6
     clear
     _draw_logo "factory"
     _system_check "factory"
     _show_hud "factory"
+    _system_unlock
 }
 
 # 函式攔截器 (Function Interceptor)

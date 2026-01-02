@@ -12,7 +12,7 @@ export C_RED="\033[1;31m"
 export C_YELLOW="\033[1;33m"
 export C_GRAY="\033[1;30m"
 export C_PURPLE="\033[1;35m"
-export C_ORANGE="\033[38;5;208m"
+export C_ORANGE="\033[1;38;5;208m"
 
 # 機器人語義回饋函式 - Bot Semantic Feedback Function
 function _bot_say() {

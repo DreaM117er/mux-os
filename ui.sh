@@ -14,7 +14,7 @@ function _draw_logo() {
 
     case "$mode" in
         "factory")
-            color_primary="\033[38;5;208m"
+            color_primary="\033[1;38;5;208m"
             color_sub="\033[1;30m"
             label=":: Neural Link Factory :: Access Level: ROOT ::"
             ;;
@@ -233,7 +233,7 @@ echo -e "\033[1;35m :: Mux-OS Factory Protocols ::\033[0m"
             if ($0 ~ /"/) {
                 split($0, parts, "\"");
                 cmd_name = parts[2];
-                printf "    \033[38;5;208m%-10s\033[0m : %s\n", cmd_name, desc;
+                printf "    \033[1;38;5;208m%-10s\033[0m : %s\n", cmd_name, desc;
             }
         }
     }
@@ -414,7 +414,7 @@ function _factory_show_status() {
     local last_sync=$(grep "Last Sync" "$MUX_ROOT/app.sh" | cut -d: -f2- | sed 's/::/\n/' | xargs)
     [ -z "$last_sync" ] && last_sync="Unknown"
 
-    local F_MAIN="\033[38;5;208m"
+    local F_MAIN="\033[1;38;5;208m"
     local F_SUB="\033[1;37m"
     local F_WARN="\033[1;33m"
     
@@ -426,7 +426,7 @@ function _factory_show_status() {
 
 # 顯示兵工廠資訊 - Display Factory Info Manifest
 function _factory_show_info() {
-    local F_MAIN="\033[38;5;208m"
+    local F_MAIN="\033[1;38;5;208m"
     local F_SUB="\033[1;37m"
     local F_WARN="\033[1;33m"
     local F_GRAY="\033[1;30m"
