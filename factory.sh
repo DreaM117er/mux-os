@@ -385,6 +385,8 @@ function _fac_stamp_launcher() {
         | sed "s/\[PKG_ID\]/$pkg_id/g" \
         | sed "s/\[PKG_ACT\]/$pkg_act/g" \
         > "$temp_block"
+
+    echo "" >> "$temp_block"
     
     local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp")
     if [ "$INSERT_LINE" -ge "$total_lines" ]; then
@@ -541,6 +543,8 @@ function _fac_stamp_browser() {
         sed -i "${INSERT_LINE}r $temp_block" "$MUX_ROOT/app.sh.temp"
     fi
     rm "$temp_block"
+
+    echo "" >> "$temp_block"
     
     local last_char=$(tail -c 1 "$MUX_ROOT/app.sh.temp")
     if [ "$last_char" != "" ]; then echo "" >> "$MUX_ROOT/app.sh.temp"; fi
