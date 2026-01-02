@@ -264,21 +264,12 @@ function fac() {
 # 新增模組 - Create Module
 function _fac_wizard_create() {
     echo -e "${F_MAIN} :: Neural Link Fabrication Protocol ::${F_RESET}"
-    echo -e "${F_GRAY}    [Type: Standard App Launcher]${F_RESET}"
-    
-    # 0. Pre-flight Check
-    echo -e ""
     echo -e "${F_GRAY}    Before we start, do you need to check Package IDs?${F_RESET}"
     echo -ne "${F_WARN}    ›› Launch 'apklist' helper? (y/n): ${F_RESET}"
     read launch_apk
     
     if [[ "$launch_apk" == "y" || "$launch_apk" == "Y" ]]; then
-        if command -v apklist &> /dev/null; then
             apklist
-            _bot_say "system" "Helper launched. Switch back when ready."
-        else
-            _bot_say "error" "'apklist' module not found."
-        fi
     fi
 
     echo -e ""
@@ -289,9 +280,20 @@ function _fac_wizard_create() {
         return
     fi
 
-    # Lock single template file
-    local mold_file="$MUX_ROOT/plate/template.txt"
-    if [ ! -f "$mold_file" ]; then _bot_say "error" "Mold missing ($mold_file)."; return; fi
+    echo -e ""
+    echo -e "${F_MAIN} :: Select Core Type ::${F_RESET}"
+    echo -e "${F_SUB}    [1] Normal APP (Standard Launcher)${F_RESET}"
+    echo -e "${F_SUB}    [2] Browser APP (Smart Search)${F_RESET}"
+    echo -ne "${F_WARN}    ›› Select: ${F_RESET}"
+    read type_choice
+
+    local mold_file=""
+    case "$type_choice" in
+        1) mold_file="$MUX_ROOT/plate/template.txt" ;;
+        2) mold_file="$MUX_ROOT/plate/browser.txt" ;;
+        *) _bot_say "error" "Invalid type."; return ;;
+    esac
+    if [ ! -f "$mold_file" ]; then _bot_say "error" "Mold missing."; return; fi
 
     # 1. UI Display Name
     echo -e ""
@@ -299,11 +301,18 @@ function _fac_wizard_create() {
     read app_name
     [ -z "$app_name" ] && app_name="Unknown App"
 
-    # 2. Package Name (Allow Empty -> Placeholder)
+    # 2. Package Name (Allow Empty)
     echo -e ""
     echo -ne "${F_WARN}    ›› Need to check apklist again? (y/n): ${F_RESET}"
     read check_again
-    [ "$check_again" == "y" ] && apklist
+    if [[ "$check_again" == "y" || "$check_again" == "Y" ]]; then
+        # 這裡也同步套用 Fallback 邏輯，確保一致性
+        if command -v apklist &> /dev/null; then
+            apklist
+        else
+            _launch_android_app "Package Name Viewer" "com.csdroid.pkg" "com.csdroid.pkg.MainActivity"
+        fi
+    fi
 
     echo -ne "${F_SUB}    [Data] Package Name (Enter to skip): ${F_RESET}"
     read pkg_id
@@ -314,25 +323,18 @@ function _fac_wizard_create() {
     fi
 
     # 3. Activity Name
-    echo -ne "${F_SUB}    [Data] Activity Name (Optional, Enter to skip): ${F_RESET}"
+    echo -ne "${F_SUB}    [Data] Activity Name (Optional): ${F_RESET}"
     read pkg_act
 
-    # 4. Data Verification
-    echo -e ""
-    echo -e "${F_MAIN} :: Verify Component Data ::${F_RESET}"
-    echo -e "    ${F_GRAY}Name     :${F_RESET} $app_name"
-    echo -e "    ${F_GRAY}Package  :${F_RESET} $pkg_id"
-    echo -e "    ${F_GRAY}Activity :${F_RESET} ${pkg_act:-[Auto-Detect]}"
-    
-    echo -e ""
-    echo -ne "${F_WARN}    ›› Data Correct? (y/n): ${F_RESET}"
-    read confirm_data
-    if [[ "$confirm_data" != "y" && "$confirm_data" != "Y" ]]; then
-        _bot_say "factory" "Discarding data. Abort."
-        return
+    # 4. Search Engine (Browser Only)
+    local engine_var="GOOGLE"
+    if [ "$type_choice" == "2" ]; then
+        echo -ne "${F_SUB}    [Data] Search Engine (GOOGLE/BING/DUCK): ${F_RESET}"
+        read input_engine
+        [ -n "$input_engine" ] && engine_var=$(echo "$input_engine" | tr '[:lower:]' '[:upper:]')
     fi
 
-    # 5. Command Name (Auto-Gen Logic)
+    # 5. Command Name
     echo -e ""
     echo -ne "${F_MAIN}    ›› Assign Command Name (Enter to auto-gen): ${F_RESET}"
     read func_name
@@ -347,13 +349,11 @@ function _fac_wizard_create() {
         return
     fi
 
-    # Duplicate Check
     if grep -qE "function[[:space:]]+$func_name[[:space:]]*\(" "$MUX_ROOT/app.sh.temp"; then
         _bot_say "error" "Module '$func_name' already exists."
         return
     fi
 
-    # 6. Category Selection
     _fac_select_category 
     
     if [ -z "$INSERT_LINE" ]; then
@@ -363,7 +363,6 @@ function _fac_wizard_create() {
 
     _bot_say "factory" "Assembling '$func_name' into sector '$CATEGORY_NAME'..."
 
-    # 7. Assembly (Cleaned up sed chain)
     local temp_block="$MUX_ROOT/plate/block.tmp"
     
     cat "$mold_file" \
@@ -371,9 +370,10 @@ function _fac_wizard_create() {
         | sed "s/\[NAME\]/$app_name/g" \
         | sed "s/\[PKG_ID\]/$pkg_id/g" \
         | sed "s/\[PKG_ACT\]/$pkg_act/g" \
+        | sed "s/\[ENGINE_VAR\]/$engine_var/g" \
+        | sed "s/\[ENGINE_NAME\]/$engine_var/g" \
         > "$temp_block"
     
-    # 8. Injection
     local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp")
     
     if [ "$INSERT_LINE" -ge "$total_lines" ]; then
@@ -383,9 +383,13 @@ function _fac_wizard_create() {
     fi
     
     rm "$temp_block"
+    
+    local last_char=$(tail -c 1 "$MUX_ROOT/app.sh.temp")
+    if [ "$last_char" != "" ]; then echo "" >> "$MUX_ROOT/app.sh.temp"; fi
 
     echo -e "${F_MAIN} :: Module Installed Successfully ::${F_RESET}"
     echo -e "${F_GRAY}    ›› Location: Sector [$CATEGORY_NAME]${F_RESET}"
+    echo -e "${F_GRAY}    ›› Package : $pkg_id${F_RESET}"
     
     echo -ne "${F_WARN}    ›› Hot Reload now? (y/n): ${F_RESET}"
     read reload_choice
@@ -431,7 +435,6 @@ function _fac_select_category() {
         CATEGORY_NAME=${categories[$idx]}
         
         local next_idx=$((idx + 1))
-        
         if [ "$next_idx" -lt "${#lines[@]}" ]; then
             local next_line=${lines[$next_idx]}
             INSERT_LINE=$((next_line - 1))
@@ -442,20 +445,34 @@ function _fac_select_category() {
     else
         echo -ne "${F_WARN}    ›› Enter New Category Name (Enter for 'Others'): ${F_RESET}"
         read new_cat
+        new_cat=$(echo "$new_cat" | xargs)
         [ -z "$new_cat" ] && new_cat="Others"
         
-        if grep -q "^# === $new_cat ===" "$temp_file"; then
-            _bot_say "factory" "Sector '$new_cat' detected. Using existing."
-        fi
-        
         CATEGORY_NAME="$new_cat"
-        _bot_say "factory" "Creating new sector: $CATEGORY_NAME"
+
+        local existing_line=$(grep -n "^# === $new_cat ===" "$temp_file" | head -n 1 | cut -d: -f1)
         
-        echo -e "\n\n# === $CATEGORY_NAME ===" >> "$temp_file"
-        INSERT_LINE=$(wc -l < "$temp_file")
+        if [ -n "$existing_line" ]; then
+            _bot_say "factory" "Sector '$new_cat' detected at line $existing_line. Merging..."
+            
+            local next_header_line=$(grep -n "^# ===" "$temp_file" | cut -d: -f1 | awk -v curr="$existing_line" '$1 > curr {print $1; exit}')
+            
+            if [ -n "$next_header_line" ]; then
+                INSERT_LINE=$((next_header_line - 1))
+            else
+                INSERT_LINE=$(wc -l < "$temp_file")
+            fi
+        else
+            _bot_say "factory" "Creating new sector: $CATEGORY_NAME"
+            
+            echo -e "\n\n# === $CATEGORY_NAME ===\n" >> "$temp_file"
+            
+            INSERT_LINE=$(wc -l < "$temp_file")
+        fi
     fi
     
     rm "$map_file"
+}
 }
 
 # 修復模組 - Fix Module
