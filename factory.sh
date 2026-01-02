@@ -214,17 +214,17 @@ function fac() {
             fi
             ;;
 
-        # : Create Function Module
+        # : Neural Forge (Create Command)
         "add"|"create") 
             _fac_wizard_create
             ;;
 
-        # : Load Function
+        # : Load Neural (Test Command)
         "load") 
             _fac_load
             ;;
 
-        # : Delete Function
+        # : Break Neural (Delete Command)
         "del") 
             _fac_del "$2"
             ;;
@@ -269,7 +269,7 @@ function _fac_wizard_create() {
     echo -e "${F_SUB}    [1] Normal APP (Standard Launcher)${F_RESET}"
     echo -e "${F_SUB}    [2] Browser APP (Smart Search)${F_RESET}"
     echo -e ""
-    echo -ne "${F_WARN}    ›› Select: ${F_RESET}"
+    echo -ne "${F_WARN} :: Select: ${F_RESET}"
     read type_choice
 
     case "$type_choice" in
@@ -277,7 +277,7 @@ function _fac_wizard_create() {
             _fac_stamp_launcher 
             ;;
         2) 
-            _bot_say "factory" "Browser module construction pending..."
+            _fac_stamp_browser
             ;;
         *) 
             _bot_say "error" "Invalid type selection."
@@ -401,6 +401,154 @@ function _fac_stamp_launcher() {
     echo -e ""
     
     # Step 7: Reload
+    echo -ne "${F_WARN} :: Hot Reload now? (y/n): ${F_RESET}"
+    read reload_choice
+    if [[ "$reload_choice" == "y" || "$reload_choice" == "Y" ]]; then
+        _fac_load
+    fi
+}
+
+# 鑄造工序：瀏覽器應用 (Browser App Stamp)
+function _fac_stamp_browser() {
+    local mold_file="$MUX_ROOT/plate/browser.txt"
+    
+    if [ ! -f "$mold_file" ]; then 
+        _bot_say "error" "Browser mold missing ($mold_file)."
+        return 1
+    fi
+
+    # Step 1: Pre-flight (APK Check
+    echo -ne "${F_WARN} :: Launch 'apklist' helper? (y/n): ${F_RESET}"
+    read launch_apk
+    if [[ "$launch_apk" == "y" || "$launch_apk" == "Y" ]]; then
+        apklist
+    fi
+
+    # Step 2: Data Collection
+    # 2.1 UI Display Name
+    echo -e ""
+    echo -ne "${F_SUB} :: UI Display Name (e.g. Brave): ${F_RESET}"
+    read app_name
+    [ -z "$app_name" ] && app_name="Unknown Browser"
+
+    # 2.2 Package Name
+    echo -ne "${F_SUB} :: Package Name (Enter to skip): ${F_RESET}"
+    read pkg_id
+    
+    if [ -z "$pkg_id" ]; then 
+        echo -e "${F_WARN}    ›› No Package ID detected. Using placeholder.${F_RESET}"
+        pkg_id="com.null.browser"
+    fi
+
+    # 2.3 Activity Name (Optional)
+    echo -ne "${F_SUB} :: Activity Name (Optional): ${F_RESET}"
+    read pkg_act
+
+    # 2.4 Search Engine Selection (Browser Exclusive)
+    echo -e ""
+    echo -e "${F_MAIN} :: Select Default Search Engine ::${F_RESET}"
+    echo -e "${F_SUB}    [1] Google${F_RESET}"
+    echo -e "${F_SUB}    [2] Bing${F_RESET}"
+    echo -e "${F_SUB}    [3] DuckDuckGo${F_RESET}"
+    echo -e "${F_SUB}    [4] YouTube${F_RESET}"
+    echo -e "${F_SUB}    [5] GitHub${F_RESET}"
+    echo -ne "${F_WARN}    ›› Select Engine: ${F_RESET}"
+    read engine_choice
+
+    local engine_var="GOOGLE" # Default
+    case "$engine_choice" in
+        1) engine_var="GOOGLE" ;;
+        2) engine_var="BING" ;;
+        3) engine_var="DUCK" ;;
+        4) engine_var="YOUTUBE" ;;
+        5) engine_var="GITHUB" ;;
+        *) engine_var="GOOGLE" ;;
+    esac
+
+    # 2.5 Command Name (Auto-Gen)
+    echo -e ""
+    echo -ne "${F_MAIN} :: Assign Command Name (Enter to auto-gen): ${F_RESET}"
+    read input_func
+    
+    local func_name=""
+    if [ -z "$input_func" ]; then
+        local clean_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
+        func_name="$clean_name"
+        echo -e "${F_WARN}    ›› Auto-assigned command: $func_name${F_RESET}"
+    else
+        func_name="$input_func"
+    fi
+
+    if [ -z "$func_name" ]; then
+        _bot_say "error" "Command name generation failed."
+        return 1
+    fi
+
+    # Step 3: Safety Check
+    if grep -qE "function[[:space:]]+$func_name[[:space:]]*\(" "$MUX_ROOT/app.sh.temp"; then
+        _bot_say "error" "Module '$func_name' already exists."
+        return 1
+    fi
+
+    # Step 4: Category Selection
+    _fac_select_category 
+    
+    if [ -z "$INSERT_LINE" ]; then
+        _bot_say "error" "Placement calculation failed."
+        return 1
+    fi
+
+    # Step 5: Final Manifest Review
+    echo -e ""
+    echo -e "${F_MAIN} :: Final Manifest Review ::${F_RESET}"
+    echo -e "${F_GRAY}    --------------------------------${F_RESET}"
+    echo -e "${F_GRAY}    Type     : ${F_MAIN}Browser Module${F_RESET}"
+    echo -e "${F_GRAY}    Sector   : ${F_WARN}$CATEGORY_NAME${F_RESET}"
+    echo -e "${F_GRAY}    Command  : ${F_WARN}$func_name${F_RESET}"
+    echo -e "${F_GRAY}    Engine   : ${F_SUB}$engine_var${F_RESET}"
+    echo -e "${F_GRAY}    Package  : $pkg_id${F_RESET}"
+    echo -e "${F_GRAY}    Activity : ${pkg_act:-[Auto]}${F_RESET}"
+    echo -e "${F_GRAY}    --------------------------------${F_RESET}"
+    
+    echo -ne "${F_ERR}    ›› TYPE 'CONFIRM' TO FORGE: ${F_RESET}"
+    read confirm_write
+    
+    if [ "$confirm_write" != "CONFIRM" ]; then
+        echo -e ""
+        _bot_say "error" "Authentication Failed. Fabrication Aborted."
+        echo -e "${F_GRAY}    ›› Material scrapped. All data discarded.${F_RESET}"
+        return 1
+    fi
+
+    # Step 6: Assembly
+    _bot_say "factory" "Stamping browser module..."
+
+    local temp_block="$MUX_ROOT/plate/block.tmp"
+    
+    cat "$mold_file" \
+        | sed "s/\[FUNC\]/$func_name/g" \
+        | sed "s/\[NAME\]/$app_name/g" \
+        | sed "s/\[PKG_ID\]/$pkg_id/g" \
+        | sed "s/\[PKG_ACT\]/$pkg_act/g" \
+        | sed "s/\[ENGINE_VAR\]/$engine_var/g" \
+        | sed "s/\[ENGINE_NAME\]/$engine_var/g" \
+        > "$temp_block"
+    
+    local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp")
+    if [ "$INSERT_LINE" -ge "$total_lines" ]; then
+        cat "$temp_block" >> "$MUX_ROOT/app.sh.temp"
+    else
+        sed -i "${INSERT_LINE}r $temp_block" "$MUX_ROOT/app.sh.temp"
+    fi
+    rm "$temp_block"
+    
+    local last_char=$(tail -c 1 "$MUX_ROOT/app.sh.temp")
+    if [ "$last_char" != "" ]; then echo "" >> "$MUX_ROOT/app.sh.temp"; fi
+
+    echo -e "${F_GRE} :: Browser Module Installed Successfully ::${F_RESET}"
+    echo -e ""
+    
+    # === Step 7: Reload ===
     echo -ne "${F_WARN} :: Hot Reload now? (y/n): ${F_RESET}"
     read reload_choice
     if [[ "$reload_choice" == "y" || "$reload_choice" == "Y" ]]; then

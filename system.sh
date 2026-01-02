@@ -16,6 +16,9 @@ function _sys_cmd() {
 # 瀏覽器網址搜尋引擎 - https://engine.com/search?q=
 export SEARCH_GOOGLE="https://www.google.com/search?q="
 export SEARCH_BING="https://www.bing.com/search?q="
+export SEARCH_DUCK="https://duckduckgo.com/?q="
+export SEARCH_YOUTUBE="https://www.youtube.com/results?search_query="
+export SEARCH_GITHUB="https://github.com/search?q="
 
 export __GO_TARGET=""
 export __GO_MODE=""
