@@ -264,6 +264,10 @@ function fac() {
 # 新增模組 - Create Module
 function _fac_wizard_create() {
     echo -e "${F_MAIN} :: Neural Link Fabrication Protocol ::${F_RESET}"
+    echo -e "${F_GRAY}    [Type: Standard App Launcher]${F_RESET}"
+    
+    # 0. Pre-flight Check
+    echo -e ""
     echo -e "${F_GRAY}    Before we start, do you need to check Package IDs?${F_RESET}"
     echo -ne "${F_WARN}    ›› Launch 'apklist' helper? (y/n): ${F_RESET}"
     read launch_apk
@@ -285,50 +289,40 @@ function _fac_wizard_create() {
         return
     fi
 
-    echo -e ""
-    echo -e "${F_MAIN} :: Select Core Type ::${F_RESET}"
-    echo -e "${F_SUB}    [1] Normal APP (Standard Launcher)${F_RESET}"
-    echo -e "${F_SUB}    [2] Browser APP (Smart Search)${F_RESET}"
-    echo -ne "${F_WARN}    ›› Select: ${F_RESET}"
-    read type_choice
+    # Lock single template file
+    local mold_file="$MUX_ROOT/plate/template.txt"
+    if [ ! -f "$mold_file" ]; then _bot_say "error" "Mold missing ($mold_file)."; return; fi
 
-    local mold_file=""
-    case "$type_choice" in
-        1) mold_file="$MUX_ROOT/plate/template.txt" ;;
-        2) mold_file="$MUX_ROOT/plate/browser.txt" ;;
-        *) _bot_say "error" "Invalid type."; return ;;
-    esac
-    if [ ! -f "$mold_file" ]; then _bot_say "error" "Mold missing."; return; fi
-
+    # 1. UI Display Name
     echo -e ""
     echo -ne "${F_SUB}    [Data] UI Display Name (e.g. YouTube): ${F_RESET}"
     read app_name
-    
+    [ -z "$app_name" ] && app_name="Unknown App"
+
+    # 2. Package Name (Allow Empty -> Placeholder)
     echo -e ""
     echo -ne "${F_WARN}    ›› Need to check apklist again? (y/n): ${F_RESET}"
     read check_again
     [ "$check_again" == "y" ] && apklist
 
-    echo -ne "${F_SUB}    [Data] Package Name (e.g. com.google.android.youtube): ${F_RESET}"
+    echo -ne "${F_SUB}    [Data] Package Name (Enter to skip): ${F_RESET}"
     read pkg_id
-    if [ -z "$pkg_id" ]; then _bot_say "error" "Package ID is mandatory."; return; fi
+    
+    if [ -z "$pkg_id" ]; then 
+        echo -e "${F_WARN}    ›› No Package ID detected. Using placeholder.${F_RESET}"
+        pkg_id="com.null.placeholder"
+    fi
 
+    # 3. Activity Name
     echo -ne "${F_SUB}    [Data] Activity Name (Optional, Enter to skip): ${F_RESET}"
     read pkg_act
 
-    local engine_var="GOOGLE"
-    if [ "$type_choice" == "2" ]; then
-        echo -ne "${F_SUB}    [Data] Search Engine (GOOGLE/BING/DUCK): ${F_RESET}"
-        read input_engine
-        [ -n "$input_engine" ] && engine_var=$(echo "$input_engine" | tr '[:lower:]' '[:upper:]')
-    fi
-
+    # 4. Data Verification
     echo -e ""
     echo -e "${F_MAIN} :: Verify Component Data ::${F_RESET}"
     echo -e "    ${F_GRAY}Name     :${F_RESET} $app_name"
     echo -e "    ${F_GRAY}Package  :${F_RESET} $pkg_id"
     echo -e "    ${F_GRAY}Activity :${F_RESET} ${pkg_act:-[Auto-Detect]}"
-    [ "$type_choice" == "2" ] && echo -e "    ${F_GRAY}Engine   :${F_RESET} $engine_var"
     
     echo -e ""
     echo -ne "${F_WARN}    ›› Data Correct? (y/n): ${F_RESET}"
@@ -338,16 +332,28 @@ function _fac_wizard_create() {
         return
     fi
 
+    # 5. Command Name (Auto-Gen Logic)
     echo -e ""
-    echo -ne "${F_MAIN}    ›› Assign Command Name (e.g. yt): ${F_RESET}"
+    echo -ne "${F_MAIN}    ›› Assign Command Name (Enter to auto-gen): ${F_RESET}"
     read func_name
-    if [ -z "$func_name" ]; then _bot_say "error" "Command name required."; return; fi
+    
+    if [ -z "$func_name" ]; then
+        func_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]' | sed 's/ //g')
+        echo -e "${F_WARN}    ›› Auto-assigned command: $func_name${F_RESET}"
+    fi
 
+    if [ -z "$func_name" ] || [ "$func_name" == "unknownapp" ]; then
+        _bot_say "error" "Command name required (Could not auto-generate)."
+        return
+    fi
+
+    # Duplicate Check
     if grep -qE "function[[:space:]]+$func_name[[:space:]]*\(" "$MUX_ROOT/app.sh.temp"; then
         _bot_say "error" "Module '$func_name' already exists."
         return
     fi
 
+    # 6. Category Selection
     _fac_select_category 
     
     if [ -z "$INSERT_LINE" ]; then
@@ -357,6 +363,7 @@ function _fac_wizard_create() {
 
     _bot_say "factory" "Assembling '$func_name' into sector '$CATEGORY_NAME'..."
 
+    # 7. Assembly (Cleaned up sed chain)
     local temp_block="$MUX_ROOT/plate/block.tmp"
     
     cat "$mold_file" \
@@ -364,10 +371,9 @@ function _fac_wizard_create() {
         | sed "s/\[NAME\]/$app_name/g" \
         | sed "s/\[PKG_ID\]/$pkg_id/g" \
         | sed "s/\[PKG_ACT\]/$pkg_act/g" \
-        | sed "s/\[ENGINE_VAR\]/$engine_var/g" \
-        | sed "s/\[ENGINE_NAME\]/$engine_var/g" \
         > "$temp_block"
     
+    # 8. Injection
     local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp")
     
     if [ "$INSERT_LINE" -ge "$total_lines" ]; then
