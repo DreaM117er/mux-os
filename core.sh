@@ -441,6 +441,26 @@ function _neural_link_deploy() {
     fi
 }
 
+# 系統完整性掃描器 (System Integrity Scanner)
+function _mux_integrity_scan() {
+    local targets=("$MUX_ROOT/app.sh" "$MUX_ROOT/system.sh" "$MUX_ROOT/vendor.sh")
+    local flaws_detected=0
+
+    for file in "${targets[@]}"; do
+        if [ -f "$file" ]; then
+            if [ -n "$(tail -c 1 "$file")" ]; then
+                flaws_detected=1
+            fi
+            
+            if grep -q "^}[^[:space:]]" "$file"; then
+                flaws_detected=1
+            fi
+        fi
+    done
+
+    return $flaws_detected
+}
+
 # 主程式啟動體感動畫 - Main Program Startup Animation
 function _mux_init() {
     if [ "$MUX_INITIALIZED" = "true" ]; then return; fi
