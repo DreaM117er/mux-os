@@ -14,8 +14,8 @@ function _draw_logo() {
 
     case "$mode" in
         "factory")
-            color_primary="\033[1;35m"
-            color_sub="\033[1;37m"
+            color_primary="\033[38;5;208m"
+            color_sub="\033[1;30m"
             label=":: Neural Link Factory :: Access Level: ROOT ::"
             ;;
 

@@ -85,8 +85,10 @@ function _factory_boot_sequence() {
         echo ""
         echo -e "${F_ERR} :: WARNING: FACTORY PROTOCOL :: ${F_RESET}"
         echo -e "${F_SUB} 1. Modifications here are permanent.${F_RESET}"
-        echo -e "${F_SUB} 2. Do not delete system kernels.${F_RESET}"
-        echo -e "${F_SUB} 3. You are responsible for system stability.${F_RESET}"
+        echo -e "${F_SUB} 2. Sandbox Environment Active (.temp).${F_RESET}"
+        echo -e "${F_SUB} 3. Core 'mux' commands are ${F_ERR}LOCKED${F_SUB}. Use 'fac'.${F_RESET}"
+        echo -e "${F_SUB} 4. App launches are ${F_ERR}LOCKED${F_SUB} (Except: wb, apklist).${F_RESET}"
+        echo -e "${F_SUB} 5. You are responsible for system stability.${F_RESET}"
         echo ""
         _system_unlock
         echo -ne "${F_WARN} :: Proceed? [y/n]: ${F_RESET}"
@@ -136,7 +138,7 @@ function _factory_eject_sequence() {
     done
     
     echo ""
-    _bot_say "factory_reject"
+    _bot_say "eject"
     sleep 2.6
     _system_unlock
     clear

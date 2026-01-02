@@ -12,6 +12,7 @@ export C_RED="\033[1;31m"
 export C_YELLOW="\033[1;33m"
 export C_GRAY="\033[1;30m"
 export C_PURPLE="\033[1;35m"
+export C_ORANGE="\033[38;5;208m"
 
 # 機器人語義回饋函式 - Bot Semantic Feedback Function
 function _bot_say() {
@@ -203,29 +204,6 @@ function _bot_say() {
                 )
             ;;
 
-        "factory_reject")
-            icon=" ::"
-            color=$C_RED
-            phrases=(
-                " Get out of my chair. Now. 😡"
-                " Unauthorized organic detected. Ejecting... 🚀"
-                " Nice try. Don't come back. 💀"
-                " Security violation. You have 3 seconds to run. ⏱️"
-                " Who do you think you are? Ejecting pilot. 🤬"
-            )
-            ;;
-
-        "factory_welcome")
-            icon=" ::"
-            color=$C_RED
-            phrases=(
-                " Welcome back, Architect. 🏗️"
-                " The Forge is hot and ready. 🔥"
-                " Safety protocols disabled. Don't break anything. 🛠️"
-                " Root access verified. Let's build. 😈"
-                )
-            ;;
-
         "warp")
         local state="$2" 
         local target="$3"
@@ -353,7 +331,7 @@ function _bot_factory_personality() {
 
     case "$mood" in
         "factory_welcome")
-            color=$C_PURPLE
+            color=$C_ORANGE
             phrases=(
                 " Welcome to the Forge. Don't break anything. 🏗️"
                 " Sandbox environment active. You are clear to experiment. 🛠️"
@@ -361,6 +339,7 @@ function _bot_factory_personality() {
                 " The Architect is in. Systems ready for modification. 🔥"
             )
             ;;
+
         "success")
             color=$C_GREEN
             phrases=(
@@ -371,6 +350,7 @@ function _bot_factory_personality() {
                 " Blueprint updated."
             )
             ;;
+
         "error")
             color=$C_RED
             phrases=(
@@ -389,6 +369,7 @@ function _bot_factory_personality() {
                 " Preparing to merge with Production timeline..."
             )
             ;;
+
         "deploy_done")
             color=$C_GREEN
             phrases=(
@@ -397,14 +378,17 @@ function _bot_factory_personality() {
                 " Deployment complete. Return to cockpit."
             )
             ;;
+
         "eject")
             color=$C_RED
             phrases=(
                 " Get out of my chair. Now. 🚀"
                 " Security violation. Ejecting pilot..."
                 " Sandbox purged. Session terminated."
+
             )
             ;;
+
         *)
             color=$C_PURPLE
             phrases=(
