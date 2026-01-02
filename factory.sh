@@ -831,46 +831,78 @@ function _fac_del() {
     local target="$1"
     local temp_file="$MUX_ROOT/app.sh.temp"
 
+    # 1. 鎖定目標
     if [ -z "$target" ]; then
-        _bot_say "error" "Target required."
-        return 1
+        echo -e ""
+        echo -e "${F_MAIN} :: Neural Link Destruction Protocol ::${F_RESET}"
+        echo -ne "${F_WARN}    ›› Enter Target Command to Delete: ${F_RESET}"
+        read target
     fi
 
+    if [ -z "$target" ]; then return; fi
+
+    # 2. 計算座標
     local start_line=$(grep -n "^function $target() {" "$temp_file" | cut -d: -f1)
     
     if [ -z "$start_line" ]; then
-        _bot_say "error" "Target '$target' not found."
+        _bot_say "error" "Target '$target' not found in Sandbox."
         return 1
     fi
 
+    # 偵測註解
     local header_line=$((start_line - 1))
     local header_content=$(sed "${header_line}q;d" "$temp_file")
-    
     local delete_start=$start_line
+    
     if [[ "$header_content" == "# :"* ]]; then
         delete_start=$header_line
-        echo -e "${F_WARN}    ›› Detected Header: \033[1;30m$header_content\033[0m"
     fi
 
-    local relative_end=$(tail -n +$start_line "$temp_file" | grep -n "^}" | head -n1 | cut -d: -f1)
+    local relative_end=$(tail -n +$start_line "$temp_file" | grep -n "^[[:space:]]*}" | head -n1 | cut -d: -f1)
+    
+    # 雙重保險：如果找不到結尾，立即中止
+    if [ -z "$relative_end" ]; then
+        _bot_say "error" "Structural integrity compromised. Cannot find closing brace."
+        return 1
+    fi
+
     local delete_end=$((start_line + relative_end - 1))
 
+    # 3. 毀滅預覽
+    clear
     echo -e "${F_ERR} :: DESTRUCTION MANIFEST ::${F_RESET}"
-    echo -e "${F_SUB}    Target  : \033[1;37m$target\033[0m"
-    echo -e "${F_SUB}    Range   : Line $delete_start -> $delete_end"
+    echo -e "${F_GRAY}    --------------------------------${F_RESET}"
+    echo -e "${F_GRAY}    Target  : ${F_WARN}$target${F_RESET}"
+    echo -e "${F_GRAY}    Range   : Line $delete_start -> $delete_end${F_RESET}"
+    echo -e "${F_GRAY}    Context :${F_RESET}"
+    echo -e ""
     
-    echo -e "${F_GRAY}----------------------------------------${F_RESET}"
+    echo -e "\033[1;31m"
     sed -n "${delete_start},${delete_end}p" "$temp_file"
-    echo -e "${F_GRAY}----------------------------------------${F_RESET}"
+    echo -e "\033[0m"
+    
+    echo -e "${F_GRAY}    --------------------------------${F_RESET}"
 
-    echo -ne "${F_ERR} :: Confirm deletion? (y/n): ${F_RESET}"
+    # 4. 紅鈕確認
+    echo -e "${F_ERR} :: WARNING: This action will permanently excise logic from the matrix.${F_RESET}"
+    echo -ne "${F_ERR}    ›› TYPE 'CONFIRM' TO DELETE: ${F_RESET}"
     read choice
 
-    if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+    if [[ "$choice" == "CONFIRM" ]]; then
+        _bot_say "factory" "Excising module..."
+        
         sed -i "${delete_start},${delete_end}d" "$temp_file"
-        _bot_say "success" "Module '$target' excised."
+        
+        _fac_maintenance
+
+        _bot_say "success" "Module '$target' has been terminated."
+        
+        echo -ne "${F_WARN}    ›› Hot Reload now? (y/n): ${F_RESET}"
+        read r
+        [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load
     else
-        echo -e "${F_GRAY}    ›› Operation aborted.${F_RESET}"
+        echo -e ""
+        echo -e "${F_GRAY}    ›› Operation aborted. Target lives another day.${F_RESET}"
     fi
 }
 
