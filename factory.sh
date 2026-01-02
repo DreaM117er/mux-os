@@ -213,8 +213,8 @@ function fac() {
             fi
             ;;
 
-        # : Add Function Module
-        "add") 
+        # : Create Function Module
+        "add"|"create") 
             _fac_wizard_create
             ;;
 
@@ -264,56 +264,52 @@ function fac() {
 # 新增模組 - Create Module
 function _fac_wizard_create() {
     echo -e "${F_MAIN} :: Neural Link Fabrication Protocol ::${F_RESET}"
-    echo -e "${F_GRAY}    Before we start, do you need to check Package IDs?${F_RESET}"
-    echo -ne "${F_WARN}    ›› Launch 'apklist' helper? (y/n): ${F_RESET}"
-    read launch_apk
-    
-    if [[ "$launch_apk" == "y" || "$launch_apk" == "Y" ]]; then
-            apklist
-    fi
-
-    echo -e ""
-    echo -ne "${F_WARN}    ›› Ready to proceed with creation? (y/n): ${F_RESET}"
-    read ready
-    if [[ "$ready" != "y" && "$ready" != "Y" ]]; then
-        _bot_say "factory" "Operation suspended."
-        return
-    fi
-
-    echo -e ""
     echo -e "${F_MAIN} :: Select Core Type ::${F_RESET}"
     echo -e "${F_SUB}    [1] Normal APP (Standard Launcher)${F_RESET}"
     echo -e "${F_SUB}    [2] Browser APP (Smart Search)${F_RESET}"
+    echo -e ""
     echo -ne "${F_WARN}    ›› Select: ${F_RESET}"
     read type_choice
 
-    local mold_file=""
     case "$type_choice" in
-        1) mold_file="$MUX_ROOT/plate/template.txt" ;;
-        2) mold_file="$MUX_ROOT/plate/browser.txt" ;;
-        *) _bot_say "error" "Invalid type."; return ;;
+        1) 
+            _fac_stamp_launcher 
+            ;;
+        2) 
+            _bot_say "factory" "Browser module construction pending..."
+            ;;
+        *) 
+            _bot_say "error" "Invalid type selection."
+            ;;
     esac
-    if [ ! -f "$mold_file" ]; then _bot_say "error" "Mold missing."; return; fi
+}
 
-    # 1. UI Display Name
+# 鑄造工序：標準啟動器 - Standard Launcher Stamp
+function _fac_stamp_launcher() {
+    local mold_file="$MUX_ROOT/plate/template.txt"
+    
+    if [ ! -f "$mold_file" ]; then 
+        _bot_say "error" "Launcher mold missing ($mold_file)."
+        return 1
+    fi
+
+    # Step 1: Pre-flight - APK Check
+    echo -e ""
+    echo -ne "${F_WARN}    ›› Launch 'apklist' helper? (y/n): ${F_RESET}"
+    read launch_apk
+    if [[ "$launch_apk" == "y" || "$launch_apk" == "Y" ]]; then
+        apklist
+    fi
+
+    # Step 2: Data Collection
+    # 2.1 UI Display Name
     echo -e ""
     echo -ne "${F_SUB}    [Data] UI Display Name (e.g. YouTube): ${F_RESET}"
     read app_name
     [ -z "$app_name" ] && app_name="Unknown App"
 
-    # 2. Package Name (Allow Empty)
+    # 2.2 Package Name
     echo -e ""
-    echo -ne "${F_WARN}    ›› Need to check apklist again? (y/n): ${F_RESET}"
-    read check_again
-    if [[ "$check_again" == "y" || "$check_again" == "Y" ]]; then
-        # 這裡也同步套用 Fallback 邏輯，確保一致性
-        if command -v apklist &> /dev/null; then
-            apklist
-        else
-            _launch_android_app "Package Name Viewer" "com.csdroid.pkg" "com.csdroid.pkg.MainActivity"
-        fi
-    fi
-
     echo -ne "${F_SUB}    [Data] Package Name (Enter to skip): ${F_RESET}"
     read pkg_id
     
@@ -322,19 +318,11 @@ function _fac_wizard_create() {
         pkg_id="com.null.placeholder"
     fi
 
-    # 3. Activity Name
+    # 2.3 Activity Name
     echo -ne "${F_SUB}    [Data] Activity Name (Optional): ${F_RESET}"
     read pkg_act
 
-    # 4. Search Engine (Browser Only)
-    local engine_var="GOOGLE"
-    if [ "$type_choice" == "2" ]; then
-        echo -ne "${F_SUB}    [Data] Search Engine (GOOGLE/BING/DUCK): ${F_RESET}"
-        read input_engine
-        [ -n "$input_engine" ] && engine_var=$(echo "$input_engine" | tr '[:lower:]' '[:upper:]')
-    fi
-
-    # 5. Command Name
+    # 2.4 Command Name
     echo -e ""
     echo -ne "${F_MAIN}    ›› Assign Command Name (Enter to auto-gen): ${F_RESET}"
     read func_name
@@ -344,16 +332,18 @@ function _fac_wizard_create() {
         echo -e "${F_WARN}    ›› Auto-assigned command: $func_name${F_RESET}"
     fi
 
-    if [ -z "$func_name" ] || [ "$func_name" == "unknownapp" ]; then
-        _bot_say "error" "Command name required (Could not auto-generate)."
+    if [ -z "$func_name" ]; then
+        _bot_say "error" "Command name required."
         return
     fi
 
+    # Step 3: Safety Check - Duplicate
     if grep -qE "function[[:space:]]+$func_name[[:space:]]*\(" "$MUX_ROOT/app.sh.temp"; then
         _bot_say "error" "Module '$func_name' already exists."
         return
     fi
 
+    # Step 4: Category Selection
     _fac_select_category 
     
     if [ -z "$INSERT_LINE" ]; then
@@ -361,6 +351,7 @@ function _fac_wizard_create() {
         return
     fi
 
+    # Step 5: Assembly - Stamping
     _bot_say "factory" "Assembling '$func_name' into sector '$CATEGORY_NAME'..."
 
     local temp_block="$MUX_ROOT/plate/block.tmp"
@@ -370,27 +361,25 @@ function _fac_wizard_create() {
         | sed "s/\[NAME\]/$app_name/g" \
         | sed "s/\[PKG_ID\]/$pkg_id/g" \
         | sed "s/\[PKG_ACT\]/$pkg_act/g" \
-        | sed "s/\[ENGINE_VAR\]/$engine_var/g" \
-        | sed "s/\[ENGINE_NAME\]/$engine_var/g" \
         > "$temp_block"
     
+    # Injection
     local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp")
-    
     if [ "$INSERT_LINE" -ge "$total_lines" ]; then
         cat "$temp_block" >> "$MUX_ROOT/app.sh.temp"
     else
         sed -i "${INSERT_LINE}r $temp_block" "$MUX_ROOT/app.sh.temp"
     fi
-    
     rm "$temp_block"
     
+    # Layout Fix
     local last_char=$(tail -c 1 "$MUX_ROOT/app.sh.temp")
     if [ "$last_char" != "" ]; then echo "" >> "$MUX_ROOT/app.sh.temp"; fi
 
     echo -e "${F_MAIN} :: Module Installed Successfully ::${F_RESET}"
     echo -e "${F_GRAY}    ›› Location: Sector [$CATEGORY_NAME]${F_RESET}"
-    echo -e "${F_GRAY}    ›› Package : $pkg_id${F_RESET}"
     
+    # Step 6: Reload
     echo -ne "${F_WARN}    ›› Hot Reload now? (y/n): ${F_RESET}"
     read reload_choice
     if [[ "$reload_choice" == "y" || "$reload_choice" == "Y" ]]; then
@@ -472,7 +461,6 @@ function _fac_select_category() {
     fi
     
     rm "$map_file"
-}
 }
 
 # 修復模組 - Fix Module

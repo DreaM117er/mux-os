@@ -16,7 +16,7 @@ function _draw_logo() {
         "factory")
             color_primary="\033[1;38;5;208m"
             color_sub="\033[1;30m"
-            label=":: Neural Link Factory :: Access Level: ROOT ::"
+            label=":: Mux-OS v$MUX_VERSION Factory :: Neural Link Create ::"
             ;;
 
         "gray")
@@ -28,7 +28,7 @@ function _draw_logo() {
         *)
             color_primary="\033[1;36m"
             color_sub="\033[1;30m"
-            label=":: Mux-OS Core v$MUX_VERSION :: Target: Android/Termux ::"
+            label=":: Mux-OS v$MUX_VERSION Core :: Target: Android/Termux ::"
             ;;
     esac
 
