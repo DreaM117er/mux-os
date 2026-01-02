@@ -390,7 +390,7 @@ function _bot_factory_personality() {
             ;;
 
         *)
-            color=$C_PURPLE
+            color=$C_ORANGE
             phrases=(
                 " Acknowledged..."
                 " Input received."
