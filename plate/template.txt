@@ -1,29 +1,5 @@
 # : [NAME]
 function [FUNC]() {
     _require_no_args "$@" || return 1
-    _launch_android_app "[NAME]" "com.package.id" "com.package.activity"
+    _launch_android_app "[NAME]" "[PKG_ID]" "[PKG_ACT]"
 }
-
-
-# : [NAME] & [ENGINE_NAME] search
-function [FUNC]() {
-    local pkg="[PKG_ID]"
-
-    if [ -z "$1" ]; then
-        _launch_android_app "[NAME]" "$pkg" "[PKG_ACT]"
-        return
-    fi
-
-    _resolve_smart_url "$SEARCH_[ENGINE_VAR]" "$@"
-
-    if [ "$__GO_MODE" == "neural" ]; then
-        _bot_say "neural" "[NAME] Search: \"$*\""
-    else
-        _bot_say "launch" "[NAME] Target: $__GO_TARGET"
-    fi
-
-    am start -a android.intent.action.VIEW -d "$__GO_TARGET" -p "$pkg" >/dev/null 2>&1
-}
-
-
-export SEARCH_[KEY]="url"

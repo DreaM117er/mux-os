@@ -212,10 +212,10 @@ function fac() {
                 echo -e "${F_WARN} :: UI Module Link Failed.${F_RESET}"
             fi
             ;;
-            
+
         # : Add Function Module
-        "edit") 
-            _fac_edit "$2"
+        "add") 
+            _fac_wizard_create
             ;;
 
         # : Load Function
@@ -261,50 +261,35 @@ function fac() {
     esac
 }
 
-# 編輯與鑄造模組 - Edit & Stamp Module
-function _fac_edit() {
-    local target="$1"
+# 新增模組 - Create Module
+function _fac_wizard_create() {
+    echo -e "${F_MAIN} :: Neural Link Fabrication Protocol ::${F_RESET}"
+    echo -e "${F_GRAY}    Before we start, do you need to check Package IDs?${F_RESET}"
+    echo -ne "${F_WARN}    ›› Launch 'apklist' helper? (y/n): ${F_RESET}"
+    read launch_apk
+    
+    if [[ "$launch_apk" == "y" || "$launch_apk" == "Y" ]]; then
+        if command -v apklist &> /dev/null; then
+            apklist
+            _bot_say "system" "Helper launched. Switch back when ready."
+        else
+            _bot_say "error" "'apklist' module not found."
+        fi
+    fi
 
-    if [ -n "$target" ]; then
-        _fac_wizard_fix "$target"
+    echo -e ""
+    echo -ne "${F_WARN}    ›› Ready to proceed with creation? (y/n): ${F_RESET}"
+    read ready
+    if [[ "$ready" != "y" && "$ready" != "Y" ]]; then
+        _bot_say "factory" "Operation suspended."
         return
     fi
 
     echo -e ""
-    echo -e "${F_MAIN} :: Neural Link Editor ::${F_RESET}"
-    echo -e "${F_SUB}    [1] Create Neural Link (Add APP)${F_RESET}"
-    echo -e "${F_SUB}    [2] Fix Neural Link (Edit APP)${F_RESET}"
-    echo -e ""
-    echo -ne "${F_WARN}    ›› Select Operation: ${F_RESET}"
-    read op_choice
-
-    case "$op_choice" in
-        1)
-            _fac_wizard_create
-            ;;
-        2)
-            echo -ne "${F_WARN}    ›› Enter Target Name (e.g., yt): ${F_RESET}"
-            read input_target
-            if [ -n "$input_target" ]; then
-                _fac_wizard_fix "$input_target"
-            else
-                _bot_say "error" "Target name required."
-            fi
-            ;;
-        *)
-            echo -e "${F_GRAY}    ›› Operation canceled.${F_RESET}"
-            ;;
-    esac
-}
-
-# 修復模組 - Fix Module
-function _fac_wizard_create() {
-    echo -e ""
-    echo -e "${F_MAIN} :: Select Module Type ::${F_RESET}"
+    echo -e "${F_MAIN} :: Select Core Type ::${F_RESET}"
     echo -e "${F_SUB}    [1] Normal APP (Standard Launcher)${F_RESET}"
     echo -e "${F_SUB}    [2] Browser APP (Smart Search)${F_RESET}"
-    echo -e ""
-    echo -ne "${F_WARN}    ›› Select Type: ${F_RESET}"
+    echo -ne "${F_WARN}    ›› Select: ${F_RESET}"
     read type_choice
 
     local mold_file=""
@@ -313,44 +298,67 @@ function _fac_wizard_create() {
         2) mold_file="$MUX_ROOT/plate/browser.txt" ;;
         *) _bot_say "error" "Invalid type."; return ;;
     esac
-
-    if [ ! -f "$mold_file" ]; then
-        _bot_say "error" "Mold missing ($mold_file)."
-        return
-    fi
+    if [ ! -f "$mold_file" ]; then _bot_say "error" "Mold missing."; return; fi
 
     echo -e ""
-    echo -e "${F_MAIN} :: Module Configuration ::${F_RESET}"
-    
-    echo -ne "${F_SUB}    [Q1] Command Name (e.g., yt): ${F_RESET}"
-    read func_name
-    if [ -z "$func_name" ]; then _bot_say "error" "Command name required."; return; fi
-
-    if grep -q "function $func_name() {" "$MUX_ROOT/app.sh.temp"; then
-        _bot_say "error" "Module '$func_name' already exists."
-        return
-    fi
-
-    echo -ne "${F_SUB}    [Q2] UI Display Name (e.g., YouTube): ${F_RESET}"
+    echo -ne "${F_SUB}    [Data] UI Display Name (e.g. YouTube): ${F_RESET}"
     read app_name
-    [ -z "$app_name" ] && app_name="$func_name"
-
-    echo -ne "${F_SUB}    [Q3] Package Name (e.g., com.google.xxx): ${F_RESET}"
-    read pkg_id
-    if [ -z "$pkg_id" ]; then _bot_say "error" "Package ID required."; return; fi
-
-    echo -ne "${F_SUB}    [Q4] Activity Name (Optional, Enter to skip): ${F_RESET}"
-    read pkg_act
     
+    echo -e ""
+    echo -ne "${F_WARN}    ›› Need to check apklist again? (y/n): ${F_RESET}"
+    read check_again
+    [ "$check_again" == "y" ] && apklist
+
+    echo -ne "${F_SUB}    [Data] Package Name (e.g. com.google.android.youtube): ${F_RESET}"
+    read pkg_id
+    if [ -z "$pkg_id" ]; then _bot_say "error" "Package ID is mandatory."; return; fi
+
+    echo -ne "${F_SUB}    [Data] Activity Name (Optional, Enter to skip): ${F_RESET}"
+    read pkg_act
+
     local engine_var="GOOGLE"
     if [ "$type_choice" == "2" ]; then
-        echo -ne "${F_SUB}    [Q5] Search Engine (GOOGLE/BING/DUCK): ${F_RESET}"
+        echo -ne "${F_SUB}    [Data] Search Engine (GOOGLE/BING/DUCK): ${F_RESET}"
         read input_engine
         [ -n "$input_engine" ] && engine_var=$(echo "$input_engine" | tr '[:lower:]' '[:upper:]')
     fi
 
-    _bot_say "factory" "Assembling module '$func_name'..."
+    echo -e ""
+    echo -e "${F_MAIN} :: Verify Component Data ::${F_RESET}"
+    echo -e "    ${F_GRAY}Name     :${F_RESET} $app_name"
+    echo -e "    ${F_GRAY}Package  :${F_RESET} $pkg_id"
+    echo -e "    ${F_GRAY}Activity :${F_RESET} ${pkg_act:-[Auto-Detect]}"
+    [ "$type_choice" == "2" ] && echo -e "    ${F_GRAY}Engine   :${F_RESET} $engine_var"
+    
+    echo -e ""
+    echo -ne "${F_WARN}    ›› Data Correct? (y/n): ${F_RESET}"
+    read confirm_data
+    if [[ "$confirm_data" != "y" && "$confirm_data" != "Y" ]]; then
+        _bot_say "factory" "Discarding data. Abort."
+        return
+    fi
 
+    echo -e ""
+    echo -ne "${F_MAIN}    ›› Assign Command Name (e.g. yt): ${F_RESET}"
+    read func_name
+    if [ -z "$func_name" ]; then _bot_say "error" "Command name required."; return; fi
+
+    if grep -qE "function[[:space:]]+$func_name[[:space:]]*\(" "$MUX_ROOT/app.sh.temp"; then
+        _bot_say "error" "Module '$func_name' already exists."
+        return
+    fi
+
+    _fac_select_category 
+    
+    if [ -z "$INSERT_LINE" ]; then
+        _bot_say "error" "Placement calculation failed."
+        return
+    fi
+
+    _bot_say "factory" "Assembling '$func_name' into sector '$CATEGORY_NAME'..."
+
+    local temp_block="$MUX_ROOT/plate/block.tmp"
+    
     cat "$mold_file" \
         | sed "s/\[FUNC\]/$func_name/g" \
         | sed "s/\[NAME\]/$app_name/g" \
@@ -358,18 +366,90 @@ function _fac_wizard_create() {
         | sed "s/\[PKG_ACT\]/$pkg_act/g" \
         | sed "s/\[ENGINE_VAR\]/$engine_var/g" \
         | sed "s/\[ENGINE_NAME\]/$engine_var/g" \
-        >> "$MUX_ROOT/app.sh.temp"
+        > "$temp_block"
+    
+    local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp")
+    
+    if [ "$INSERT_LINE" -ge "$total_lines" ]; then
+        cat "$temp_block" >> "$MUX_ROOT/app.sh.temp"
+    else
+        sed -i "${INSERT_LINE}r $temp_block" "$MUX_ROOT/app.sh.temp"
+    fi
+    
+    rm "$temp_block"
 
     echo -e "${F_MAIN} :: Module Installed Successfully ::${F_RESET}"
-    echo -e "${F_GRAY}    ›› Command: $func_name${F_RESET}"
-    echo -e "${F_GRAY}    ›› Target : $pkg_id${F_RESET}"
-    echo -e ""
+    echo -e "${F_GRAY}    ›› Location: Sector [$CATEGORY_NAME]${F_RESET}"
     
     echo -ne "${F_WARN}    ›› Hot Reload now? (y/n): ${F_RESET}"
     read reload_choice
     if [[ "$reload_choice" == "y" || "$reload_choice" == "Y" ]]; then
         _fac_load
     fi
+}
+
+# 分類選擇器 (Category Selector Helper)
+function _fac_select_category() {
+    local temp_file="$MUX_ROOT/app.sh.temp"
+    local map_file="$MUX_ROOT/.cat_map"
+    
+    echo -e ""
+    echo -e "${F_MAIN} :: Select Storage Sector (Category) ::${F_RESET}"
+    
+    grep -n "^# ===" "$temp_file" > "$map_file"
+    
+    local i=1
+    local categories=()
+    local lines=()
+    
+    while IFS=: read -r line_no content; do
+        local clean_name=$(echo "$content" | sed 's/# === //;s/ ===//')
+        echo -e "${F_SUB}    [$i] $clean_name${F_RESET}"
+        categories+=("$clean_name")
+        lines+=("$line_no")
+        ((i++))
+    done < "$map_file"
+    
+    echo -e "${F_SUB}    [N] Create New Category / Auto-Others${F_RESET}"
+    
+    echo -e ""
+    echo -ne "${F_WARN}    ›› Select Sector: ${F_RESET}"
+    read cat_choice
+    
+    INSERT_LINE=""
+    CATEGORY_NAME=""
+    
+    if [[ "$cat_choice" =~ ^[0-9]+$ ]] && [ "$cat_choice" -le "${#lines[@]}" ] && [ "$cat_choice" -gt 0 ]; then
+        local idx=$((cat_choice - 1))
+        local selected_line=${lines[$idx]}
+        CATEGORY_NAME=${categories[$idx]}
+        
+        local next_idx=$((idx + 1))
+        
+        if [ "$next_idx" -lt "${#lines[@]}" ]; then
+            local next_line=${lines[$next_idx]}
+            INSERT_LINE=$((next_line - 1))
+        else
+            INSERT_LINE=$(wc -l < "$temp_file")
+        fi
+        
+    else
+        echo -ne "${F_WARN}    ›› Enter New Category Name (Enter for 'Others'): ${F_RESET}"
+        read new_cat
+        [ -z "$new_cat" ] && new_cat="Others"
+        
+        if grep -q "^# === $new_cat ===" "$temp_file"; then
+            _bot_say "factory" "Sector '$new_cat' detected. Using existing."
+        fi
+        
+        CATEGORY_NAME="$new_cat"
+        _bot_say "factory" "Creating new sector: $CATEGORY_NAME"
+        
+        echo -e "\n\n# === $CATEGORY_NAME ===" >> "$temp_file"
+        INSERT_LINE=$(wc -l < "$temp_file")
+    fi
+    
+    rm "$map_file"
 }
 
 # 修復模組 - Fix Module
