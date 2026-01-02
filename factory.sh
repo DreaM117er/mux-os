@@ -198,6 +198,11 @@ function fac() {
             _factory_fzf_menu
             ;;
 
+        # : Check & Fix Formatting
+        "check"|"chk")
+            _fac_maintenance
+            ;;
+
         # : List all links
         "list"|"l")
             echo -e "${F_MAIN} :: Current Sandbox Links:${F_RESET}"
@@ -364,7 +369,7 @@ function _fac_stamp_launcher() {
     echo -e "${F_GRAY}    Activity : ${pkg_act:-[Auto]}${F_RESET}"
     echo -e "${F_GRAY}    --------------------------------${F_RESET}"
     
-    echo -ne "${F_ERR}    ›› TYPE 'CONFIRM' TO FORGE: ${F_RESET}"
+    echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO FORGE: ${F_RESET}"
     read confirm_write
     
     if [ "$confirm_write" != "CONFIRM" ]; then
@@ -512,7 +517,7 @@ function _fac_stamp_browser() {
     echo -e "${F_GRAY}    Activity : ${pkg_act:-[Auto]}${F_RESET}"
     echo -e "${F_GRAY}    --------------------------------${F_RESET}"
     
-    echo -ne "${F_ERR}    ›› TYPE 'CONFIRM' TO FORGE: ${F_RESET}"
+    echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO FORGE: ${F_RESET}"
     read confirm_write
     
     if [ "$confirm_write" != "CONFIRM" ]; then
@@ -820,6 +825,33 @@ function _factory_list_links() {
 # 神經鍛造 (Neural Forge)
 function _factory_fzf_menu() {
     echo -e "${F_MAIN} :: Neural Forge (FZF) under construction...${F_RESET}"
+}
+
+# 機體維護工具 (Mechanism Maintenance)
+function _fac_maintenance() {
+    local targets=("$MUX_ROOT/app.sh.temp" "$MUX_ROOT/system.sh" "$MUX_ROOT/vendor.sh")
+    
+    echo -e "${F_MAIN} :: Initiating Mechanism Maintenance...${F_RESET}"
+    
+    for file in "${targets[@]}"; do
+        if [ -f "$file" ]; then
+            echo -e "${F_GRAY}    ›› Scanning: $(basename "$file")...${F_RESET}"
+            
+            if [ -n "$(tail -c 1 "$file")" ]; then
+                echo "" >> "$file"
+                echo -e "${F_WARN}       [Fixed] Missing EOF newline.${F_RESET}"
+            fi
+            
+            if grep -q "^}[^[:space:]]" "$file"; then
+                sed -i 's/^}/}\n/' "$file"
+                echo -e "${F_WARN}       [Fixed] Detached glued functions.${F_RESET}"
+            fi
+        fi
+    done
+    
+    sleep 0.5
+    echo -e ""
+    _bot_say "factory" "Mechanism maintenance complete, Commander."
 }
 
 # 初始化視覺效果 (Initialize Visuals)

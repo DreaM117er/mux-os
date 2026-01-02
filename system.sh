@@ -46,6 +46,7 @@ function _resolve_smart_url() {
     fi
 }
 
+
 # === System Tools ===
 
 # : Termux Terminal

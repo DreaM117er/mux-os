@@ -183,6 +183,11 @@ function mux() {
             echo -e "\033[1;37m    ›› Last Uplink   :\033[0m \033[0;36m$last_commit\033[0m"
             ;;
 
+        # : Neural Link Deploy
+        "nlsdep")
+            _neural_link_deploy
+            ;;
+
         # : Check for Updates
         "update"|"up")
             _mux_update_system
@@ -295,7 +300,16 @@ function _mux_reload_kernel() {
     clear
     unset MUX_INITIALIZED
     source "$MUX_ROOT/core.sh"
-    _system_unlock
+    _mux_integrity_scan
+    if [ $? -eq 0 ]; then
+        _system_unlock
+    else
+        _system_unlock
+        echo -e ""
+        _bot_say "neural" "Neural link stabilized, but structural flaws detected."
+        echo -e "${F_GRAY}    (Hint: Run 'fac check' in factory to auto-repair)${F_RESET}"
+        echo -e ""
+    fi
 }
 
 # 強制同步系統狀態 - Force Sync System State
@@ -377,6 +391,53 @@ function _mux_update_system() {
             echo -e "\033[1;30m    ›› Update canceled.\033[0m"
             _system_unlock
         fi
+    fi
+}
+
+# 神經連結部署協議 - Neural Link Deployment Protocol
+function _neural_link_deploy() {
+    echo -e "${F_MAIN} :: NEURAL LINK DEPLOYMENT PROTOCOL ::${F_RESET}"
+    echo -e "${F_GRAY}    Target Repository: Origin/Main${F_RESET}"
+    echo -e "${F_GRAY}    Payload          : app.sh${F_RESET}"
+    echo -e ""
+    echo -e "${F_WARN} :: PRE-FLIGHT CHECKLIST ::${F_RESET}"
+    echo -e "${F_SUB}    1. Are all 'fac' changes merged?${F_RESET}"
+    echo -e "${F_SUB}    2. Is the formatting integrity verified?${F_RESET}"
+    echo -e "${F_SUB}    3. This action pushes code to the global grid.${F_RESET}"
+    echo -e ""
+    
+    echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO ENGAGE UPLINK: ${F_RESET}"
+    read confirm
+    
+    if [ "$confirm" != "CONFIRM" ]; then
+        echo -e ""
+        echo -e "${F_ERR}    ›› Authorization Failed. Uplink Aborted.${F_RESET}"
+        return 1
+    fi
+
+    echo -e ""
+    _bot_say "system" "Engaging Neural Uplink..."
+    
+    # Git Sequence
+    echo -e "${F_GRAY}    ›› Staging manifest (app.sh)...${F_RESET}"
+    
+    cd "$MUX_ROOT" || return 1
+    
+    git add app.sh
+    
+    local date_str=$(date '+%Y-%m-%d %H:%M')
+    echo -e "${F_GRAY}    ›› Committing neural snapshot...${F_RESET}"
+    git commit -m "Neural Link Deploy $date_str"
+    
+    echo -e "${F_GRAY}    ›› Pushing to Grid...${F_RESET}"
+    git push
+    
+    if [ $? -eq 0 ]; then
+        echo -e ""
+        _bot_say "success" "Deployment Successful. Sync Complete."
+    else
+        echo -e ""
+        _bot_say "error" "Uplink destabilized. Check network."
     fi
 }
 
