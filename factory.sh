@@ -224,6 +224,11 @@ function fac() {
             _fac_wizard_create
             ;;
 
+        # : Edit Neural (Edit Command)
+        "edit"|"e"|"fix")
+            _fac_wizard_edit "$2"
+            ;;
+
         # : Load Neural (Test Command)
         "load") 
             _fac_load
@@ -671,6 +676,154 @@ function _fac_load() {
     _factory_mask_apps
     sleep 0.5
     _bot_say "success" "Sandbox reloaded. Logic active."
+}
+
+# 智慧維修精靈 (Smart Edit Dashboard)
+function _fac_wizard_edit() {
+    local target="$1"
+    local temp_file="$MUX_ROOT/app.sh.temp"
+
+    # 1. 鎖定目標
+    if [ -z "$target" ]; then
+        echo -e ""
+        echo -e "${F_MAIN} :: Neural Link Diagnostics ::${F_RESET}"
+        echo -ne "${F_WARN}    ›› Enter Target Command to Edit: ${F_RESET}"
+        read target
+    fi
+
+    if [ -z "$target" ]; then return; fi
+
+    # 2. 定位座標
+    local start_line=$(grep -n "^function $target() {" "$temp_file" | cut -d: -f1)
+    if [ -z "$start_line" ]; then
+        _bot_say "error" "Target module '$target' not found."
+        return
+    fi
+    
+    local relative_end=$(tail -n +$start_line "$temp_file" | grep -n "^}" | head -n1 | cut -d: -f1)
+    local end_line=$((start_line + relative_end - 1))
+    
+    # 3. 讀取與分析 (DNA Sequencing)
+    local func_body=$(sed -n "${start_line},${end_line}p" "$temp_file")
+    local app_type="UNKNOWN"
+    local current_name="Unknown"
+    local current_pkg="Unknown"
+    local current_act=""
+    local current_engine=""
+
+    # 判斷類型與提取數據
+    if echo "$func_body" | grep -q "_resolve_smart_url"; then
+        app_type="BROWSER"
+        current_pkg=$(echo "$func_body" | grep "local pkg=" | cut -d'"' -f2)
+        current_name=$(echo "$func_body" | grep "_launch_android_app" | head -n1 | cut -d'"' -f2)
+        local engine_raw=$(echo "$func_body" | grep "_resolve_smart_url" | cut -d'"' -f2)
+        current_engine=$(echo "$engine_raw" | sed 's/\$SEARCH_//')
+    else
+        app_type="LAUNCHER"
+        local launch_line=$(echo "$func_body" | grep "_launch_android_app" | head -n1)
+        current_name=$(echo "$launch_line" | cut -d'"' -f2)
+        current_pkg=$(echo "$launch_line" | cut -d'"' -f4)
+        current_act=$(echo "$launch_line" | cut -d'"' -f6)
+    fi
+
+    # 4. 顯示儀表板 (Dashboard)
+    while true; do
+        clear
+        echo -e "${F_MAIN} :: Neural Link Diagnostics ::${F_RESET}"
+        echo -e "${F_GRAY}    Target :${F_RESET} ${F_WARN}$target${F_RESET}"
+        echo -e "${F_GRAY}    Type   :${F_RESET} $app_type"
+        echo -e "${F_GRAY}    Range  :${F_RESET} Lines $start_line-$end_line"
+        echo -e "${F_GRAY}    --------------------------------${F_RESET}"
+        
+        echo -e "${F_SUB} [Current Parameters]${F_RESET}"
+        echo -e "  [1] Name    : \033[1;36m$current_name\033[0m"
+        
+        if [[ "$current_pkg" == "com.null.placeholder" || "$current_pkg" == "com.null.browser" ]]; then
+            echo -e "  [2] Package : \033[1;31m$current_pkg (FIX REQUIRED)\033[0m"
+        else
+            echo -e "  [2] Package : \033[1;32m$current_pkg\033[0m"
+        fi
+        
+        if [ "$app_type" == "LAUNCHER" ]; then
+            echo -e "  [3] Activity: ${F_GRAY}${current_act:-(Auto)}\033[0m"
+        elif [ "$app_type" == "BROWSER" ]; then
+            echo -e "  [3] Engine  : ${F_GRAY}$current_engine\033[0m"
+        fi
+        
+        echo -e ""
+        echo -e "  [0] Save & Exit"
+        echo -e "  [x] Cancel"
+        echo -e "  [m] Manual Edit (Nano)"
+        echo ""
+        
+        echo -ne "${F_WARN}    ›› Select Parameter to Modify: ${F_RESET}"
+        read choice
+
+        case "$choice" in
+            1)
+                echo -ne "${F_SUB}    ›› New Name: ${F_RESET}"
+                read new_val
+                if [ -n "$new_val" ]; then
+                    _bot_say "factory" "Patching Display Name..."
+                    sed -i "${start_line},${end_line}s/\"$current_name\"/\"$new_val\"/g" "$temp_file"
+                    current_name="$new_val"
+                fi
+                ;;
+            2)
+                echo -ne "${F_SUB}    ›› New Package ID: ${F_RESET}"
+                read new_val
+                if [ -n "$new_val" ]; then
+                    _bot_say "factory" "Injecting Package ID..."
+                    if [ "$app_type" == "BROWSER" ]; then
+                         sed -i "${start_line},${end_line}s/local pkg=\"$current_pkg\"/local pkg=\"$new_val\"/" "$temp_file"
+                    else
+                         sed -i "${start_line},${end_line}s/\"$current_pkg\"/\"$new_val\"/g" "$temp_file"
+                    fi
+                    current_pkg="$new_val"
+                fi
+                ;;
+            3)
+                if [ "$app_type" == "LAUNCHER" ]; then
+                    echo -ne "${F_SUB}    ›› New Activity (Enter to clear): ${F_RESET}"
+                    read new_val
+                    
+                    _bot_say "factory" "Re-constructing Launch Vector..."
+                    
+                    local new_line="    _launch_android_app \"$current_name\" \"$current_pkg\" \"$new_val\""
+                    
+                    sed -i "${start_line},${end_line}s|^.*_launch_android_app.*|$new_line|" "$temp_file"
+                    
+                    current_act="$new_val"
+
+                elif [ "$app_type" == "BROWSER" ]; then
+                     echo -ne "${F_SUB}    ›› New Engine (GOOGLE/BING/DUCK/YOUTUBE): ${F_RESET}"
+                     read new_val
+                     new_val=$(echo "$new_val" | tr '[:lower:]' '[:upper:]')
+                     
+                     _bot_say "factory" "Switching Search Engine..."
+                     
+                     local new_resolve="    _resolve_smart_url \"\$SEARCH_$new_val\" \"\$@\""
+                     sed -i "${start_line},${end_line}s|^.*_resolve_smart_url.*|$new_resolve|" "$temp_file"
+                     
+                     current_engine="$new_val"
+                fi
+                ;;
+            0)
+                _bot_say "success" "Patch applied."
+                echo -ne "${F_WARN}    ›› Hot Reload now? (y/n): ${F_RESET}"
+                read r
+                [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load
+                return
+                ;;
+            x)
+                return
+                ;;
+            m)
+                nano "+$start_line" "$temp_file"
+                return
+                ;;
+        esac
+    done
 }
 
 # 刪除模組 - Delete Module
