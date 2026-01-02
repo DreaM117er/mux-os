@@ -479,8 +479,7 @@ function _neural_link_deploy() {
 
     echo -e ""
     _bot_say "system" "Engaging Neural Uplink..."
-    
-    # Git Sequence
+
     echo -e "${F_GRAY}    ›› Staging manifest (app.sh)...${F_RESET}"
     
     cd "$MUX_ROOT" || return 1
