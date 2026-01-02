@@ -263,65 +263,128 @@ function fac() {
 
 # 編輯與鑄造模組 - Edit & Stamp Module
 function _fac_edit() {
-    local func_name="$1"
-    local temp_file="$MUX_ROOT/app.sh.temp"
-    
-    local mold_launcher="$MUX_ROOT/plate/launcher.txt"
-    local mold_browser="$MUX_ROOT/plate/browser.txt"
+    local target="$1"
 
-    if [ -z "$func_name" ]; then
-        _bot_say "factory" "Opening sandbox manifest..."
-        nano "$temp_file"
+    if [ -n "$target" ]; then
+        _fac_wizard_fix "$target"
         return
     fi
 
-    local line_num=$(grep -n "^function $func_name() {" "$temp_file" | cut -d: -f1)
+    echo -e ""
+    echo -e "${F_MAIN} :: Neural Link Editor ::${F_RESET}"
+    echo -e "${F_SUB}    [1] Create Neural Link (Add APP)${F_RESET}"
+    echo -e "${F_SUB}    [2] Fix Neural Link (Edit APP)${F_RESET}"
+    echo -e ""
+    echo -ne "${F_WARN}    ›› Select Operation: ${F_RESET}"
+    read op_choice
+
+    case "$op_choice" in
+        1)
+            _fac_wizard_create
+            ;;
+        2)
+            echo -ne "${F_WARN}    ›› Enter Target Name (e.g., yt): ${F_RESET}"
+            read input_target
+            if [ -n "$input_target" ]; then
+                _fac_wizard_fix "$input_target"
+            else
+                _bot_say "error" "Target name required."
+            fi
+            ;;
+        *)
+            echo -e "${F_GRAY}    ›› Operation canceled.${F_RESET}"
+            ;;
+    esac
+}
+
+# 修復模組 - Fix Module
+function _fac_wizard_create() {
+    echo -e ""
+    echo -e "${F_MAIN} :: Select Module Type ::${F_RESET}"
+    echo -e "${F_SUB}    [1] Normal APP (Standard Launcher)${F_RESET}"
+    echo -e "${F_SUB}    [2] Browser APP (Smart Search)${F_RESET}"
+    echo -e ""
+    echo -ne "${F_WARN}    ›› Select Type: ${F_RESET}"
+    read type_choice
+
+    local mold_file=""
+    case "$type_choice" in
+        1) mold_file="$MUX_ROOT/plate/template.txt" ;;
+        2) mold_file="$MUX_ROOT/plate/browser.txt" ;;
+        *) _bot_say "error" "Invalid type."; return ;;
+    esac
+
+    if [ ! -f "$mold_file" ]; then
+        _bot_say "error" "Mold missing ($mold_file)."
+        return
+    fi
+
+    echo -e ""
+    echo -e "${F_MAIN} :: Module Configuration ::${F_RESET}"
+    
+    echo -ne "${F_SUB}    [Q1] Command Name (e.g., yt): ${F_RESET}"
+    read func_name
+    if [ -z "$func_name" ]; then _bot_say "error" "Command name required."; return; fi
+
+    if grep -q "function $func_name() {" "$MUX_ROOT/app.sh.temp"; then
+        _bot_say "error" "Module '$func_name' already exists."
+        return
+    fi
+
+    echo -ne "${F_SUB}    [Q2] UI Display Name (e.g., YouTube): ${F_RESET}"
+    read app_name
+    [ -z "$app_name" ] && app_name="$func_name"
+
+    echo -ne "${F_SUB}    [Q3] Package Name (e.g., com.google.xxx): ${F_RESET}"
+    read pkg_id
+    if [ -z "$pkg_id" ]; then _bot_say "error" "Package ID required."; return; fi
+
+    echo -ne "${F_SUB}    [Q4] Activity Name (Optional, Enter to skip): ${F_RESET}"
+    read pkg_act
+    
+    local engine_var="GOOGLE"
+    if [ "$type_choice" == "2" ]; then
+        echo -ne "${F_SUB}    [Q5] Search Engine (GOOGLE/BING/DUCK): ${F_RESET}"
+        read input_engine
+        [ -n "$input_engine" ] && engine_var=$(echo "$input_engine" | tr '[:lower:]' '[:upper:]')
+    fi
+
+    _bot_say "factory" "Assembling module '$func_name'..."
+
+    cat "$mold_file" \
+        | sed "s/\[FUNC\]/$func_name/g" \
+        | sed "s/\[NAME\]/$app_name/g" \
+        | sed "s/\[PKG_ID\]/$pkg_id/g" \
+        | sed "s/\[PKG_ACT\]/$pkg_act/g" \
+        | sed "s/\[ENGINE_VAR\]/$engine_var/g" \
+        | sed "s/\[ENGINE_NAME\]/$engine_var/g" \
+        >> "$MUX_ROOT/app.sh.temp"
+
+    echo -e "${F_MAIN} :: Module Installed Successfully ::${F_RESET}"
+    echo -e "${F_GRAY}    ›› Command: $func_name${F_RESET}"
+    echo -e "${F_GRAY}    ›› Target : $pkg_id${F_RESET}"
+    echo -e ""
+    
+    echo -ne "${F_WARN}    ›› Hot Reload now? (y/n): ${F_RESET}"
+    read reload_choice
+    if [[ "$reload_choice" == "y" || "$reload_choice" == "Y" ]]; then
+        _fac_load
+    fi
+}
+
+# 修復模組 - Fix Module
+function _fac_wizard_fix() {
+    local target="$1"
+    local temp_file="$MUX_ROOT/app.sh.temp"
+
+    local line_num=$(grep -n "^function $target() {" "$temp_file" | cut -d: -f1)
 
     if [ -n "$line_num" ]; then
-        _bot_say "factory" "Locating module: $func_name (Line $line_num)"
+        _bot_say "factory" "Opening maintenance hatch for: $target"
+        sleep 0.5
         nano "+$line_num" "$temp_file"
     else
-        echo -e "\033[1;33m :: Select Module Type ::\033[0m"
-        echo -e "    [1] Standard Launcher (Direct App)"
-        echo -e "    [2] Browser Interface (Smart Search)"
-        echo -ne "\033[1;32m    ›› Choice [1]: \033[0m"
-        read type_choice
-
-        local target_mold="$mold_launcher"
-        if [ "$type_choice" == "2" ]; then
-            target_mold="$mold_browser"
-        fi
-        
-        if [ ! -f "$target_mold" ]; then
-            _bot_say "error" "Mold missing ($target_mold). Halting."
-            return 1
-        fi
-
-        echo -ne "\033[1;36m    ›› App Name (UI): \033[0m"; read app_name
-        [ -z "$app_name" ] && app_name="$func_name"
-        
-        local engine_var="GOOGLE"
-        if [ "$type_choice" == "2" ]; then
-            echo -e "\033[1;30m    (Registered: GOOGLE, BING, DUCK, YOUTUBE)\033[0m"
-            echo -ne "\033[1;36m    ›› Search Engine Key (e.g. BING): \033[0m"; read input_engine
-            [ -n "$input_engine" ] && engine_var=$(echo "$input_engine" | tr '[:lower:]' '[:upper:]')
-        fi
-
-        _bot_say "factory" "Stamping module..."
-
-        cat "$target_mold" \
-            | sed "s/\[FUNC\]/$func_name/g" \
-            | sed "s/\[NAME\]/$app_name/g" \
-            | sed "s/\[ENGINE_NAME\]/$engine_var/g" \
-            | sed "s/\[ENGINE_VAR\]/$engine_var/g" \
-            >> "$temp_file"
-
-        local new_line=$(wc -l < "$temp_file")
-        local edit_line=$((new_line - 1))
-        [ "$type_choice" == "2" ] && edit_line=$((new_line - 6))
-
-        _bot_say "success" "Module created using [Type $type_choice]. Engaging editor..."
-        nano "+$edit_line" "$temp_file"
+        _bot_say "error" "Target not found."
     fi
 }
 
