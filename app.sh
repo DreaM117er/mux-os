@@ -550,7 +550,7 @@ function padi() {
 }
 
 
-# === fac test ===
+# === Others ===
 
 # : Console test (Debug)
 function console() {

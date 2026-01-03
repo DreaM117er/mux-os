@@ -901,7 +901,6 @@ function _fac_load() {
     fi
 
     echo -e ""
-    _bot_say "launch" "Firing $target..."
     
     (
         source "$temp_file"
@@ -914,7 +913,6 @@ function _fac_load() {
         "$target"
     )
     
-    echo -e ""
     echo -e "${F_GRAY}    ›› Test sequence complete. Systems normalized.${F_RESET}"
 }
 
@@ -1307,163 +1305,186 @@ function _fac_del() {
 
 # 分類與戰略地圖管理 (Category & Terrain Management)
 function _fac_wizard_category() {
+    _fac_snapshot
     while true; do
-        clear
-        _draw_logo "factory"
-        echo -e "${F_MAIN} :: Terrain & Sector Management ::${F_RESET}"
-        echo -e "${F_GRAY}    Re-organize your neural pathways.${F_RESET}"
-        echo -e "${F_GRAY}    --------------------------------${F_RESET}"
-        
-        echo -e "    [1] ${F_SUB}Add New Sector${F_RESET}    (Create Header)"
-        echo -e "    [2] ${F_SUB}Rename Sector${F_RESET}     (Modify Header)"
-        echo -e "    [3] ${F_SUB}Remove Sector${F_RESET}     (Delete Header Only)"
-        echo -e "    [4] ${F_SUB}Relocate Unit${F_RESET}     (Move App to Category)"
-        echo -e ""
-        echo -e "    [0] Exit"
-        echo -e ""
-        echo -ne "${F_WARN}    ›› Select Operation: ${F_RESET}"
-        read choice
-        
-        case "$choice" in
-            1) _fac_cat_add ;;
-            2) _fac_cat_rename ;;
-            3) _fac_cat_delete ;;
-            4) _fac_cat_move ;;
-            0) break ;;
-            *) ;;
+        local menu_display=""
+        menu_display="${menu_display}[+] Create Sector  : Add New Category Header\n"
+        menu_display="${menu_display}[R] Rename Sector  : Modify Category Label\n"
+        menu_display="${menu_display}[M] Move Sector    : Reorder Entire Category Block\n"
+        menu_display="${menu_display}[X] Remove Sector  : Delete Header (Merge Apps Up)\n"
+        menu_display="${menu_display}\n"
+        menu_display="${menu_display}[<] Return to Base"
+
+        local selection=$(echo -e "$menu_display" | fzf \
+            --ansi \
+            --height=35% \
+            --layout=reverse \
+            --border=bottom \
+            --prompt=" :: Sector Ops › " \
+            --header=" :: Manage Neural Partitions ::" \
+            --pointer="››" \
+            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+            --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+        )
+
+        if [ -z "$selection" ]; then return; fi
+        local key=$(echo "$selection" | awk '{print $1}')
+
+        case "$key" in
+            "[+]") _fac_cat_add ;;
+            "[R]") _fac_cat_rename ;;
+            "[M]") _fac_cat_reorder ;; # The Hard Part
+            "[X]") _fac_cat_delete ;;
+            "[<]") return ;;
         esac
     done
 }
 
 # 新增分類標頭 - Add Category Header
 function _fac_cat_add() {
-    _fac_snapshot
+    local temp_file="$MUX_ROOT/app.sh.temp"
+    
     echo -e ""
     echo -e "${F_MAIN} :: Create New Sector ::${F_RESET}"
     echo -ne "${F_SUB}    ›› Enter New Category Name: ${F_RESET}"
     read new_name
     [ -z "$new_name" ] && return
 
-    local temp_file="$MUX_ROOT/app.sh.temp"
-    local map_file="$MUX_ROOT/.cat_map"
+    # 選擇插入點
+    local cat_list=$(grep "^# ===" "$temp_file" | sed 's/# === //;s/ ===//')
+    local target=$(echo -e "Checking End of File (Bottom)\n$cat_list" | fzf \
+        --height=40% --layout=reverse --border=bottom \
+        --prompt=" :: Insert Before › " \
+        --header=" :: Select Position ::" \
+        --pointer="››" \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
     
-    grep -n "^# ===" "$temp_file" > "$map_file"
-    local lines=()
-    local names=()
-    local i=1
-    
-    echo -e ""
-    echo -e "${F_WARN}    ›› Insert Before Which Sector? (Default: End of File)${F_RESET}"
-    
-    while IFS=: read -r line_no content; do
-        local clean_name=$(echo "$content" | sed 's/# === //;s/ ===//')
-        echo -e "    [$i] $clean_name"
-        lines+=("$line_no")
-        names+=("$clean_name")
-        ((i++))
-    done < "$map_file"
-    rm "$map_file"
-    
-    echo -ne "${F_WARN}    ›› Select [1-$((i-1))] or Enter for Bottom: ${F_RESET}"
-    read pos
-    
+    if [ -z "$target" ]; then return; fi
+
     local insert_str="\n\n# === $new_name ===\n"
-    
-    if [[ "$pos" =~ ^[0-9]+$ ]] && [ "$pos" -le "${#lines[@]}" ] && [ "$pos" -gt 0 ]; then
-        local idx=$((pos - 1))
-        local target_line=${lines[$idx]}
-        sed -i "${target_line}i $insert_str" "$temp_file"
-        _fac_maintenance
-        _bot_say "factory" "Sector '$new_name' inserted before '${names[$idx]}'."
-    else
+
+    if [[ "$target" == "Checking End of File (Bottom)" ]]; then
         echo -e "$insert_str" >> "$temp_file"
-        _fac_maintenance
         _bot_say "factory" "Sector '$new_name' appended to map."
+    else
+        local line=$(grep -n "^# === $target ===" "$temp_file" | cut -d: -f1)
+        sed -i "${line}i $insert_str" "$temp_file"
+        _bot_say "factory" "Sector '$new_name' inserted before '$target'."
     fi
+    _fac_maintenance
 }
 
-# 重命名分類標頭 - Rename Category Header
-function _fac_cat_rename() {
-    _fac_snapshot
+# 區塊移動術 - Block Sector Reorder
+function _fac_cat_reorder() {
     local temp_file="$MUX_ROOT/app.sh.temp"
-    local target_line=""
-    local old_name=""
+    
+    local src_cat=$(grep "^# ===" "$temp_file" | sed 's/# === //;s/ ===//' | fzf \
+        --height=40% --layout=reverse --border=bottom \
+        --prompt=" :: Select Sector to Move › " \
+        --pointer="››" \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
+    
+    [ -z "$src_cat" ] && return
 
-    if command -v fzf &> /dev/null; then
-        local sel=$(grep -n "^# ===" "$temp_file" | fzf \
-            --height=10 --layout=reverse --border=bottom \
-            --prompt=" :: Rename Sector › " \
-            --pointer="››" \
-            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-            --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
-        )
+    local s_start=$(grep -n "^# === $src_cat ===" "$temp_file" | cut -d: -f1)
+    local s_next=$(tail -n +$((s_start + 1)) "$temp_file" | grep -n "^# ===" | head -n1 | cut -d: -f1)
+    
+    local s_end=""
+    if [ -z "$s_next" ]; then
+        s_end=$(wc -l < "$temp_file")
     else
-        local map_file="$MUX_ROOT/.cat_map"
-        grep -n "^# ===" "$temp_file" > "$map_file"
-        local lines=()
-        local i=1
-        while IFS=: read -r ln content; do
-            echo "[$i] $content"
-            lines+=("$ln")
-            ((i++))
-        done < "$map_file"
-        rm "$map_file"
-        echo -ne "Select ID: "
-        read choice
-        target_line=${lines[$((choice-1))]}
-        old_name=$(sed -n "${target_line}p" "$temp_file" | sed 's/# === //;s/ ===//')
+        s_end=$((s_start + s_next - 1))
     fi
 
-    if [ -z "$target_line" ]; then return; fi
+    local block_tmp="$MUX_ROOT/plate/sector.tmp"
+    sed -n "${s_start},${s_end}p" "$temp_file" > "$block_tmp"
+    
+    _bot_say "factory" "Lifting sector '$src_cat'..."
+    sed -i "${s_start},${s_end}d" "$temp_file"
 
-    echo -e "${F_WARN}    ›› Rename '$old_name' to: ${F_RESET}"
+    local cat_list_new=$(grep "^# ===" "$temp_file" | sed 's/# === //;s/ ===//')
+    local target=$(echo -e "Checking End of File (Bottom)\n$cat_list_new" | fzf \
+        --height=40% --layout=reverse --border=bottom \
+        --prompt=" :: Insert Before › " \
+        --header=" :: Select New Position ::" \
+        --pointer="››" \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
+
+    if [ -z "$target" ]; then
+        _bot_say "error" "Operation canceled. Appending block to bottom."
+        cat "$block_tmp" >> "$temp_file"
+        rm "$block_tmp"
+        return
+    fi
+
+    if [[ "$target" == "Checking End of File (Bottom)" ]]; then
+        echo "" >> "$temp_file"
+        cat "$block_tmp" >> "$temp_file"
+    else
+        local t_line=$(grep -n "^# === $target ===" "$temp_file" | cut -d: -f1)
+        
+        if [ "$t_line" -eq 1 ]; then
+             local temp_whole=$(mktemp)
+             cat "$block_tmp" > "$temp_whole"
+             echo "" >> "$temp_whole"
+             cat "$temp_file" >> "$temp_whole"
+             mv "$temp_whole" "$temp_file"
+        else
+             local insert_pos=$((t_line - 1))
+             echo "" >> "$block_tmp"
+             sed -i "${insert_pos}r $block_tmp" "$temp_file"
+        fi
+    fi
+
+    rm "$block_tmp"
+    _fac_maintenance
+    _bot_say "success" "Sector '$src_cat' relocated."
+}
+
+# 重新命名分類標頭 - Rename Category Header
+function _fac_cat_rename() {
+    local temp_file="$MUX_ROOT/app.sh.temp"
+    
+    local old_name=$(grep "^# ===" "$temp_file" | sed 's/# === //;s/ ===//' | fzf \
+        --height=40% --layout=reverse --border=bottom \
+        --prompt=" :: Select Sector to Rename › " \
+        --pointer="››" \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
+    
+    [ -z "$old_name" ] && return
+
+    echo -ne "${F_WARN}    ›› Rename '$old_name' to: ${F_RESET}"
     read new_name
     [ -z "$new_name" ] && return
 
-    sed -i "${target_line}s/=== .* ===/=== $new_name ===/" "$temp_file"
-    _fac_maintenance
+    sed -i "s/^# === $old_name ===/# === $new_name ===/" "$temp_file"
     _bot_say "success" "Sector renamed to '$new_name'."
 }
 
 # 刪除分類標頭 - Delete Category Header
 function _fac_cat_delete() {
-    _fac_snapshot
     local temp_file="$MUX_ROOT/app.sh.temp"
-    local target_line=""
+    
+    local target=$(grep "^# ===" "$temp_file" | sed 's/# === //;s/ ===//' | fzf \
+        --height=40% --layout=reverse --border=bottom \
+        --prompt=" :: Select Sector to Remove › " \
+        --header=" :: WARNING: Apps will merge to previous sector ::" \
+        --pointer="››" \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
+    
+    [ -z "$target" ] && return
 
-    if command -v fzf &> /dev/null; then
-        local sel=$(grep -n "^# ===" "$temp_file" | fzf \
-            --height=10 --layout=reverse --border=bottom \
-            --prompt=" :: Remove Sector › " \
-            --pointer="››" \
-            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-            --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
-        )
-    else
-        local map_file="$MUX_ROOT/.cat_map"
-        grep -n "^# ===" "$temp_file" > "$map_file"
-        local lines=()
-        local i=1
-        while IFS=: read -r ln content; do
-            echo "[$i] $content"
-            lines+=("$ln")
-            ((i++))
-        done < "$map_file"
-        rm "$map_file"
-        echo -ne "Select ID: "
-        read choice
-        target_line=${lines[$((choice-1))]}
-        echo -ne "${F_ERR}    (Legacy mode: Feature requires FZF for safety in this version)${F_RESET}\n"
-        old_name=$(sed -n "${target_line}p" "$temp_file" | sed 's/# === //;s/ ===//')
-        return
-    fi
-
-    echo -e "${F_ERR} :: WARNING :: This will remove the HEADER only.${F_RESET}"
-    echo -e "${F_GRAY}    Apps under this sector will merge into the previous sector.${F_RESET}"
+    echo -e "${F_ERR} :: WARNING :: This will remove the HEADER '$target' only.${F_RESET}"
+    echo -e "${F_GRAY}    Apps under this sector will merge upwards.${F_RESET}"
     echo -ne "${F_WARN}    ›› Confirm delete? (y/n): ${F_RESET}"
     read conf
     if [[ "$conf" == "y" || "$conf" == "Y" ]]; then
-        sed -i "${target_line}d" "$temp_file"
+        sed -i "/^# === $target ===/d" "$temp_file"
         _fac_maintenance
         _bot_say "factory" "Sector header removed."
     fi
