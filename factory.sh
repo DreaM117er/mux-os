@@ -362,29 +362,24 @@ function _fac_stamp_launcher() {
         return 1
     fi
 
-    # --- 初始化變數 ---
     local ui_name="Unknown"
     local pkg_id="com.null.placeholder"
     local pkg_act=""
     local target_cat="Others"
     local func_name=""
     
-    # 狀態標記 (視覺效果)
     local st_req="\033[1;31m[ REQUIRED ]\033[0m"
     local st_dup="\033[1;33m[ DUPLICATE ]\033[0m"
-    local st_ok="\033[1;36m[ CONFIRM ]\033[0m" # Sci-Fi Style Confirm
+    local st_ok="\033[1;36m[ CONFIRM ]\033[0m"
     
     local func_status="$st_req"
     local insert_line_cache=""
 
-    # --- 儀表板循環 ---
     while true; do
         local menu_display=""
         
-        # [1] 指令欄位 (集成狀態顯示)
         menu_display="${menu_display}1. Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET}   ${func_status}\n"
         
-        # [2-5] 其他參數
         menu_display="${menu_display}2. UI Name  : ${F_SUB}${ui_name}${F_RESET}\n"
         menu_display="${menu_display}3. Package  : ${F_SUB}${pkg_id}${F_RESET}\n"
         menu_display="${menu_display}4. Activity : ${F_SUB}${pkg_act:-[Auto]}${F_RESET}\n"
@@ -410,7 +405,7 @@ function _fac_stamp_launcher() {
         local clean_selection=$(echo "$selection" | sed 's/\x1b\[[0-9;]*m//g')
 
         case "$key" in
-            "1.") # Edit Command (Call Universal Module)
+            "1.")
                 local res=$(_fac_query_command_name)
                 local val=$(echo "$res" | cut -d'|' -f1)
                 local sts=$(echo "$res" | cut -d'|' -f2)
@@ -426,25 +421,25 @@ function _fac_stamp_launcher() {
                 fi
                 ;;
 
-            "2.") # Edit UI Name
+            "2.")
                 echo -ne "${F_SUB}    ›› UI Display Name: ${F_RESET}"
                 read input_ui
                 [ -n "$input_ui" ] && ui_name="$input_ui"
                 ;;
 
-            "3.") # Edit Package
+            "3.")
                 echo -ne "${F_SUB}    ›› Package Name: ${F_RESET}"
                 read input_pkg
                 [ -n "$input_pkg" ] && pkg_id="$input_pkg"
                 ;;
 
-            "4.") # Edit Activity
+            "4.")
                 echo -ne "${F_SUB}    ›› Activity (Enter to Auto): ${F_RESET}"
                 read input_act
                 pkg_act="$input_act"
                 ;;
 
-            "5.") # Select Category
+            "5.")
                 _fac_select_category
                 if [ -n "$CATEGORY_NAME" ]; then
                     target_cat="$CATEGORY_NAME"
@@ -465,31 +460,12 @@ function _fac_stamp_launcher() {
                     fi
                 
                 elif [[ "$clean_selection" == *"[ CONFIRM ]"* ]]; then
-                    # 最終驗證
                     if [ -z "$func_name" ]; then
                         _bot_say "error" "Command Name is required."
                         sleep 1
                         continue
                     fi
-                    if [[ "$func_status" == *"[ DUPLICATE ]"* ]]; then
-                        _bot_say "error" "Cannot forge: Command exists."
-                        sleep 1
-                        continue
-                    fi
-
-                    # 補算行號 (如果沒手動選過分類)
-                    if [ -z "$insert_line_cache" ]; then
-                         # 簡易自動歸類邏輯
-                         local header_line=$(grep -n "^# === $target_cat ===" "$MUX_ROOT/app.sh.temp" | head -n 1 | cut -d: -f1)
-                         if [ -n "$header_line" ]; then
-                             local next=$(tail -n +$((header_line + 1)) "$MUX_ROOT/app.sh.temp" | grep -n "^# ===" | head -n 1 | cut -d: -f1)
-                             if [ -n "$next" ]; then insert_line_cache=$((header_line + next - 1)); else insert_line_cache=$(wc -l < "$MUX_ROOT/app.sh.temp"); fi
-                         else
-                             echo -e "\n\n# === Others ===" >> "$MUX_ROOT/app.sh.temp"
-                             insert_line_cache=$(wc -l < "$MUX_ROOT/app.sh.temp")
-                         fi
-                    fi
-
+                    
                     _bot_say "factory" "Forging link '$func_name'..."
                     
                     local temp_block="$MUX_ROOT/plate/block.tmp"
@@ -517,7 +493,7 @@ function _fac_stamp_launcher() {
                     [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load
                     return
 
-                elif [[ "$clean_selection" == *"[ CANCEL ]"* ]]; then
+                elif [[ "$clean_selection" == *"CANCEL"* ]]; then
                     echo -e "\033[1;30m    ›› Operation aborted.\033[0m"
                     return
                 fi
@@ -1631,7 +1607,13 @@ function _factory_fzf_menu() {
 
     while true; do
         local list_data=$(awk '
-            BEGIN { current_cat="Uncategorized" }
+            BEGIN { 
+                current_cat="Uncategorized"
+                # 定義顏色
+                C_CMD="\x1b[1;37m"
+                C_CAT="\x1b[1;32m"
+                C_RESET="\x1b[0m"
+            }
             /^# ===/ {
                 current_cat=$0;
                 gsub(/^# === | ===$/, "", current_cat);
@@ -1640,8 +1622,8 @@ function _factory_fzf_menu() {
                 match($0, /function ([a-zA-Z0-9_]+)/, arr);
                 func_name = arr[1];
                 if (substr(func_name, 1, 1) != "_") {
-                    # 使用 Tab 分隔，方便 FZF 處理
-                    printf "%s\t%s\n", current_cat, func_name;
+                    # 模仿 Core 風格：左邊指令，右邊淡淡的資訊
+                    printf " %s%-14s %s[%s]%s\n", C_CMD, func_name, C_CAT, current_cat, C_RESET;
                 }
             }
         ' "$temp_file")
@@ -1650,26 +1632,30 @@ function _factory_fzf_menu() {
             _bot_say "error" "No neural links found in sandbox."
             return
         fi
+        
+        local total_cmds=$(echo "$list_data" | wc -l)
 
         local selection=$(echo "$list_data" | fzf --ansi \
-            --height=50% --layout=reverse --border=bottom \
-            --delimiter="\t" \
-            --with-nth=1,2 \
+            --height=10 \
+            --layout=reverse \
+            --border=bottom \
             --prompt=" :: Neural Search › " \
-            --header=" :: ENTER: Inspect | ALT-C: Create | ESC: Exit ::" \
-            --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red,border:blue,header:gray \
-            --bind="alt-c:execute(_fac_wizard_create)+reload(cat \"$temp_file\")" \
-            --bind="ctrl-r:reload(cat \"$temp_file\")"
+            --header=" :: Forge Index: [$total_cmds] | ALT-C: Create :: " \
+            --info=hidden \
+            --pointer="››" \
+            --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red,border:blue \
+            --bind="alt-c:execute(_fac_wizard_create)+reload(echo \"$list_data\")" \
+            --bind="resize:clear-screen"
         )
 
         if [ -z "$selection" ]; then
             break
         fi
 
-        local target_cat=$(echo "$selection" | awk -F'\t' '{print $1}')
-        local target_func=$(echo "$selection" | awk -F'\t' '{print $2}')
-
-        _fac_inspector "$target_func" "$target_cat"
+        local target_func=$(echo "$selection" | awk '{print $1}')
+        local target_cat_raw=$(echo "$selection" | awk -F'[][]' '{print $2}')
+        
+        _fac_inspector "$target_func" "$target_cat_raw"
     done
 }
 
