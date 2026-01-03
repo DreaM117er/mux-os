@@ -297,6 +297,37 @@ function fac() {
     esac
 }
 
+# 通用模組：智慧指令輸入器 (Smart Command Input)
+function _fac_query_command_name() {
+    local temp_file="$MUX_ROOT/app.sh.temp"
+
+    local existing_cmds=$(grep "^function" "$temp_file" | sed 's/function //' | sed 's/() {//')
+    
+    local result=$(echo "$existing_cmds" | fzf \
+        --height=30% \
+        --layout=reverse \
+        --border=top \
+        --prompt=" :: Input Command › " \
+        --header=" :: Type to Search. Enter unique name to Create. ::" \
+        --print-query \
+        --color=header:yellow,prompt:cyan,border:magenta
+    )
+    
+    local query=$(echo "$result" | head -n1)
+    local match=$(echo "$result" | tail -n1)
+    
+    if [ -z "$query" ]; then
+        echo "|EMPTY"
+        return
+    fi
+
+    if echo "$existing_cmds" | grep -qx "$query"; then
+        echo "$query|DUPLICATE"
+    else
+        echo "$query|NEW"
+    fi
+}
+
 # 新增模組 - Create Module
 function _fac_wizard_create() {
     local options="Normal APP (Launcher)\t_fac_stamp_launcher\nBrowser APP (Search Engine)\t_fac_stamp_browser\nEcosystem Suite (Multi-App)\t_fac_stamp_suite"
@@ -327,28 +358,31 @@ function _fac_stamp_launcher() {
 
     local mold_file="$MUX_ROOT/plate/template.txt"
     if [ ! -f "$mold_file" ]; then 
-        _bot_say "error" "Launcher mold missing ($mold_file)."
+        _bot_say "error" "Launcher mold missing."
         return 1
     fi
 
-    # --- 初始化變數 (Default Values) ---
+    # --- 初始化變數 ---
     local ui_name="Unknown"
     local pkg_id="com.null.placeholder"
-    local pkg_act=""      # 空白代表 Auto
+    local pkg_act=""
     local target_cat="Others"
     local func_name=""
     
-    # 狀態標記
-    local func_status="${F_ERR}[REQUIRED]${F_RESET}"
-    local insert_line_cache="" # 用來暫存 Category 計算出的行號
+    # 狀態標記 (視覺效果)
+    local st_req="\033[1;31m[ REQUIRED ]\033[0m"
+    local st_dup="\033[1;33m[ DUPLICATE ]\033[0m"
+    local st_ok="\033[1;36m[ CONFIRM ]\033[0m" # Sci-Fi Style Confirm
+    
+    local func_status="$st_req"
+    local insert_line_cache=""
 
     # --- 儀表板循環 ---
     while true; do
-        # 1. 建構選單顯示內容
         local menu_display=""
         
-        # [1] 指令欄位 (動態顯示狀態)
-        menu_display="${menu_display}1. Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET} ${func_status}\n"
+        # [1] 指令欄位 (集成狀態顯示)
+        menu_display="${menu_display}1. Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET}   ${func_status}\n"
         
         # [2-5] 其他參數
         menu_display="${menu_display}2. UI Name  : ${F_SUB}${ui_name}${F_RESET}\n"
@@ -356,51 +390,49 @@ function _fac_stamp_launcher() {
         menu_display="${menu_display}4. Activity : ${F_SUB}${pkg_act:-[Auto]}${F_RESET}\n"
         menu_display="${menu_display}5. Category : ${F_WARN}${target_cat}${F_RESET}\n"
         
-        # [6-8] 功能鍵
         menu_display="${menu_display}\n[ apklist ] : Open APK Reference List"
         menu_display="${menu_display}\n[ CONFIRM ] : Forge Neural Link"
         menu_display="${menu_display}\n[ CANCEL  ] : Abort Operation"
 
-        # 2. FZF 渲染儀表板
         local selection=$(echo -e "$menu_display" | fzf \
             --ansi \
             --height=40% \
             --layout=reverse \
             --border=bottom \
             --prompt=" :: Launcher Forge › " \
-            --header=" :: Fill in parameters. Select to Edit. ::" \
+            --header=" :: Select Field to Modify ::" \
             --color=header:yellow,prompt:cyan,border:blue
         )
 
-        # 3. 處理使用者選擇
-        if [ -z "$selection" ]; then return; fi # ESC
+        if [ -z "$selection" ]; then return; fi
 
-        # 提取選項關鍵字 (1, 2, apklist, CONFIRM...)
         local key=$(echo "$selection" | awk '{print $1}')
-        local clean_selection=$(echo "$selection" | sed 's/\x1b\[[0-9;]*m//g') # 去除顏色碼方便判斷
+        local clean_selection=$(echo "$selection" | sed 's/\x1b\[[0-9;]*m//g')
 
         case "$key" in
-            "1.")
-                echo -ne "${F_MAIN}    ›› Assign Command Name: ${F_RESET}"
-                read input_func
-                if [ -n "$input_func" ]; then
-                    if grep -qE "function[[:space:]]+$input_func[[:space:]]*\(" "$MUX_ROOT/app.sh.temp"; then
-                        func_name="$input_func"
-                        func_status="${F_ERR}[DUPLICATE]${F_RESET}"
-                    else
-                        func_name="$input_func"
-                        func_status="${F_GRE}[OK]${F_RESET}"
-                    fi
+            "1.") # Edit Command (Call Universal Module)
+                local res=$(_fac_query_command_name)
+                local val=$(echo "$res" | cut -d'|' -f1)
+                local sts=$(echo "$res" | cut -d'|' -f2)
+                
+                if [ "$sts" == "NEW" ]; then
+                    func_name="$val"
+                    func_status="$st_ok"
+                elif [ "$sts" == "DUPLICATE" ]; then
+                    func_name="$val"
+                    func_status="$st_dup"
+                    _bot_say "warn" "Command '$val' already exists."
+                    sleep 0.8
                 fi
                 ;;
 
-            "2.")
+            "2.") # Edit UI Name
                 echo -ne "${F_SUB}    ›› UI Display Name: ${F_RESET}"
                 read input_ui
                 [ -n "$input_ui" ] && ui_name="$input_ui"
                 ;;
 
-            "3.")
+            "3.") # Edit Package
                 echo -ne "${F_SUB}    ›› Package Name: ${F_RESET}"
                 read input_pkg
                 [ -n "$input_pkg" ] && pkg_id="$input_pkg"
@@ -409,10 +441,10 @@ function _fac_stamp_launcher() {
             "4.") # Edit Activity
                 echo -ne "${F_SUB}    ›› Activity (Enter to Auto): ${F_RESET}"
                 read input_act
-                pkg_act="$input_act" # 允許為空
+                pkg_act="$input_act"
                 ;;
 
-            "5.")
+            "5.") # Select Category
                 _fac_select_category
                 if [ -n "$CATEGORY_NAME" ]; then
                     target_cat="$CATEGORY_NAME"
@@ -420,41 +452,42 @@ function _fac_stamp_launcher() {
                 fi
                 ;;
 
-            "[")
+            "[") 
                 if [[ "$clean_selection" == *"[ apklist ]"* ]]; then
                     if command -v apklist &> /dev/null; then
                         apklist
                         echo -e ""
-                        echo -ne "\033[1;30m    (Press Enter to return to Dashboard...)\033[0m"
+                        echo -ne "\033[1;30m    (Press Enter to return...)\033[0m"
                         read
                     else
-                        _bot_say "error" "'apklist' module not found."
+                        _bot_say "error" "'apklist' module missing."
                         sleep 1
                     fi
                 
                 elif [[ "$clean_selection" == *"[ CONFIRM ]"* ]]; then
+                    # 最終驗證
                     if [ -z "$func_name" ]; then
                         _bot_say "error" "Command Name is required."
                         sleep 1
                         continue
                     fi
-                    if [[ "$func_status" == *"[DUPLICATE]"* ]]; then
-                        _bot_say "error" "Command '$func_name' already exists."
+                    if [[ "$func_status" == *"[ DUPLICATE ]"* ]]; then
+                        _bot_say "error" "Cannot forge: Command exists."
                         sleep 1
                         continue
                     fi
 
+                    # 補算行號 (如果沒手動選過分類)
                     if [ -z "$insert_line_cache" ]; then
-                        CATEGORY_NAME="$target_cat"
-                        _fac_select_category > /dev/null
-                        local header_line=$(grep -n "^# === $target_cat ===" "$MUX_ROOT/app.sh.temp" | head -n 1 | cut -d: -f1)
-                        if [ -n "$header_line" ]; then
+                         # 簡易自動歸類邏輯
+                         local header_line=$(grep -n "^# === $target_cat ===" "$MUX_ROOT/app.sh.temp" | head -n 1 | cut -d: -f1)
+                         if [ -n "$header_line" ]; then
                              local next=$(tail -n +$((header_line + 1)) "$MUX_ROOT/app.sh.temp" | grep -n "^# ===" | head -n 1 | cut -d: -f1)
                              if [ -n "$next" ]; then insert_line_cache=$((header_line + next - 1)); else insert_line_cache=$(wc -l < "$MUX_ROOT/app.sh.temp"); fi
-                        else
+                         else
                              echo -e "\n\n# === Others ===" >> "$MUX_ROOT/app.sh.temp"
                              insert_line_cache=$(wc -l < "$MUX_ROOT/app.sh.temp")
-                        fi
+                         fi
                     fi
 
                     _bot_say "factory" "Forging link '$func_name'..."
