@@ -85,16 +85,17 @@ function _factory_boot_sequence() {
         sleep 1
         
         echo -ne "${F_GRAY} :: Scanning Combat Equipment... \033[0m"
+        echo -e ""
         sleep 1.2
         
         if ! command -v fzf &> /dev/null; then
-            echo -e "${F_ERR}[MISSING]${F_RESET}"
+            echo -e "${F_ERR} :: EQUIPMENT MISSING :: ${F_RESET}"
             sleep 0.5
             echo -e ""
             _factory_eject_sequence "Equipment Insufficient. Neural Link (fzf) required."
             return 1
         else
-            echo -e "${F_GRE}[ONLINE]${F_RESET}"
+            echo -e "${F_GRE}[ :: EQUIPMENT CONFIRM :: ]${F_RESET}"
             sleep 0.5
         fi
 
@@ -242,6 +243,11 @@ function fac() {
         # : Edit Neural (Edit Command)
         "edit")
             _fac_wizard_edit "$2"
+            ;;
+
+        # : Relocate Unit (Move Command)
+        "move"|"mv")
+            _fac_cat_move "$2"
             ;;
 
         # : Load Neural (Test Command)
@@ -832,35 +838,84 @@ function _fac_select_category() {
     fi
 }
 
-# 加載模組 - Load Module
+# 測試發射器 - Test Fire Protocol (Bypass Interceptor)
 function _fac_load() {
+    local target="$1"
     local temp_file="$MUX_ROOT/app.sh.temp"
-    
-    if [ ! -f "$temp_file" ]; then
-        _bot_say "error" "Sandbox file missing."
-        return 1
+
+    if [ -z "$target" ]; then
+        if ! command -v fzf &> /dev/null; then
+            echo -e "${F_ERR} :: Neural Link (fzf) Required.${F_RESET}"
+            return 1
+        fi
+
+        local list_data=$(awk '
+            BEGIN { 
+                current_cat="Uncategorized"
+                C_CMD="\x1b[1;37m"
+                C_CAT="\x1b[1;30m"
+                C_RESET="\x1b[0m"
+            }
+            /^# ===/ {
+                current_cat=$0;
+                gsub(/^# === | ===$/, "", current_cat);
+            }
+            /^function / {
+                match($0, /function ([a-zA-Z0-9_]+)/, arr);
+                func_name = arr[1];
+                if (substr(func_name, 1, 1) != "_") {
+                    printf " %s%-14s %s[%s]%s\n", C_CMD, func_name, C_CAT, current_cat, C_RESET;
+                }
+            }
+        ' "$temp_file")
+
+        local total_cmds=$(echo "$list_data" | wc -l)
+
+        local selection=$(echo "$list_data" | fzf --ansi \
+            --height=10 \
+            --layout=reverse \
+            --border=bottom \
+            --prompt=" :: Test Fire › " \
+            --header=" :: Select Neural Unit to Execute ::" \
+            --pointer="››" \
+            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+            --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+            --bind="resize:clear-screen"
+        )
+
+        if [ -z "$selection" ]; then return; fi
+        target=$(echo "$selection" | awk '{print $1}')
     fi
 
-    _bot_say "loading" "Scanning structural integrity..."
-    
-    local syntax_error
-    syntax_error=$(bash -n "$temp_file" 2>&1)
-    
-    if [ -n "$syntax_error" ]; then
-        echo ""
-        _bot_say "error" "Syntax corruption detected. Load aborted."
-        echo -e "${F_ERR} :: CRITICAL FAILURE ::${F_RESET}"
-        echo -e "${F_GRAY}$syntax_error${F_RESET}"
-        echo ""
-        return 1
+    echo -e ""
+    echo -e "${F_WARN} :: PREPARING TEST FIRE ::${F_RESET}"
+    echo -e "${F_GRAY}    Target  : ${F_MAIN}$target${F_RESET}"
+    echo -e "${F_GRAY}    Payload : app.sh.temp (Bypassing Safety Interlocks)${F_RESET}"
+    echo -e ""
+    echo -ne "${F_WARN}    ›› Confirm Launch? (y/n): ${F_RESET}"
+    read confirm
+
+    if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+        echo -e "${F_GRAY}    ›› Launch aborted.${F_RESET}"
+        return
     fi
 
-    source "$temp_file"
+    echo -e ""
+    _bot_say "launch" "Firing $target..."
     
-    sleep 0.5
-    _bot_say "success" "Sandbox loaded. Live fire mode active."
-    echo -e "${F_GRAY}    ›› Commands are now executable for testing.${F_RESET}"
-    echo -e "${F_GRAY}    ›› Type your new command to verify launch vector.${F_RESET}"
+    (
+        source "$temp_file"
+        
+        if ! command -v "$target" &> /dev/null; then
+            echo -e "${F_ERR} :: Error: Function '$target' not defined in sandbox.${F_RESET}"
+            exit 1
+        fi
+        
+        "$target"
+    )
+    
+    echo -e ""
+    echo -e "${F_GRAY}    ›› Test sequence complete. Systems normalized.${F_RESET}"
 }
 
 # 智慧維修精靈 (Smart Edit Dashboard)
@@ -1156,21 +1211,26 @@ function _fac_suite_injector() {
 # 刪除模組 - Delete Module
 function _fac_del() {
     _fac_snapshot
-
     local target="$1"
     local temp_file="$MUX_ROOT/app.sh.temp"
 
-    # 1. 鎖定目標
     if [ -z "$target" ]; then
-        echo -e ""
-        echo -e "${F_MAIN} :: Neural Link Destruction Protocol ::${F_RESET}"
-        echo -ne "${F_WARN}    ›› Enter Target Command to Delete: ${F_RESET}"
-        read target
+        if command -v fzf &> /dev/null; then
+            target=$(grep "^function" "$temp_file" | sed 's/function //' | sed 's/() {//' | fzf \
+                --height=10 --layout=reverse --border=bottom \
+                --prompt=" :: Select Target to Terminate › " \
+                --pointer="››" \
+                --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+            )
+        else
+            echo -ne "${F_WARN}    ›› Enter Target Command: ${F_RESET}"
+            read target
+        fi
     fi
 
     if [ -z "$target" ]; then return; fi
 
-    # 2. 計算座標
     local start_line=$(grep -n "^function $target() {" "$temp_file" | cut -d: -f1)
     
     if [ -z "$start_line" ]; then
@@ -1178,7 +1238,6 @@ function _fac_del() {
         return 1
     fi
 
-    # 偵測註解
     local header_line=$((start_line - 1))
     local header_content=$(sed "${header_line}q;d" "$temp_file")
     local delete_start=$start_line
@@ -1187,53 +1246,63 @@ function _fac_del() {
         delete_start=$header_line
     fi
 
-    local relative_end=$(tail -n +$start_line "$temp_file" | grep -n "^[[:space:]]*}" | head -n1 | cut -d: -f1)
+    local relative_end=$(tail -n +$start_line "$temp_file" | grep -n "^}" | head -n1 | cut -d: -f1)
     
-    # 雙重保險：如果找不到結尾，立即中止
     if [ -z "$relative_end" ]; then
         _bot_say "error" "Structural integrity compromised. Cannot find closing brace."
         return 1
     fi
 
     local delete_end=$((start_line + relative_end - 1))
+    local line_count=$((delete_end - delete_start + 1))
 
-    # 3. 毀滅預覽
-    clear
-    echo -e "${F_ERR} :: DESTRUCTION MANIFEST ::${F_RESET}"
-    echo -e "${F_GRAY}    --------------------------------${F_RESET}"
-    echo -e "${F_GRAY}    Target  : ${F_WARN}$target${F_RESET}"
-    echo -e "${F_GRAY}    Range   : Line $delete_start -> $delete_end${F_RESET}"
-    echo -e "${F_GRAY}    Context :${F_RESET}"
-    echo -e ""
-    
-    echo -e "\033[1;31m"
-    sed -n "${delete_start},${delete_end}p" "$temp_file"
-    echo -e "\033[0m"
-    
-    echo -e "${F_GRAY}    --------------------------------${F_RESET}"
+    while true; do
+        local menu_display=""
+        menu_display="${menu_display}Target   : ${F_ERR}${target}${F_RESET}\n"
+        menu_display="${menu_display}Range    : Lines ${delete_start}-${delete_end} (${line_count} lines)\n"
+        menu_display="${menu_display}Status   : ${F_WARN}LOCKED ON TARGET${F_RESET}\n"
+        menu_display="${menu_display}\n"
+        menu_display="${menu_display}[ CONFIRM NUKE ] : Permanently Excise Module\n"
+        menu_display="${menu_display}[ ABORT ]        : Cancel Operation"
 
-    # 4. 紅鈕確認
-    echo -e "${F_ERR} :: WARNING: This action will permanently excise logic from the matrix.${F_RESET}"
-    echo -ne "${F_ERR}    ›› TYPE 'CONFIRM' TO DELETE: ${F_RESET}"
-    read choice
+        local selection=$(echo -e "$menu_display" | fzf \
+            --ansi \
+            --height=50% \
+            --layout=reverse \
+            --border=bottom \
+            --prompt=" :: Destruction Protocol › " \
+            --header=" :: WARNING: Action is Irreversible in Sandbox ::" \
+            --pointer="››" \
+            --preview "sed -n '${delete_start},${delete_end}p' '$temp_file' | nl -v $delete_start -w 3 -s '  '" \
+            --preview-window="right:60%:wrap:border-left" \
+            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+            --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+        )
 
-    if [[ "$choice" == "CONFIRM" ]]; then
-        _bot_say "factory" "Excising module..."
+        if [ -z "$selection" ]; then return; fi
         
-        sed -i "${delete_start},${delete_end}d" "$temp_file"
-        unset -f "$target"
-        
-        _fac_maintenance
+        local clean_selection=$(echo "$selection" | sed 's/\x1b\[[0-9;]*m//g')
 
-        _bot_say "success" "Module '$target' has been terminated."
-        
-        echo -ne "${F_WARN}    ›› Hot Reload now? (y/n): ${F_RESET}"
-        read r
-        [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load
-    else
-        echo -e ""
-        echo -e "${F_GRAY}    ›› Operation aborted. Target lives another day.${F_RESET}"
-    fi
+        if [[ "$clean_selection" == *"[ CONFIRM NUKE ]"* ]]; then
+            _bot_say "factory" "Excising module..."
+            
+            sed -i "${delete_start},${delete_end}d" "$temp_file"
+            
+            unset -f "$target" >/dev/null 2>&1
+            
+            _fac_maintenance
+            _bot_say "success" "Module '$target' terminated."
+            
+            echo -ne "${F_WARN}    ›› Hot Reload now? (y/n): ${F_RESET}"
+            read r
+            [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load
+            return
+            
+        elif [[ "$clean_selection" == *"[ ABORT ]"* ]]; then
+            echo -e "\033[1;30m    ›› Operation aborted. Target lives.\033[0m"
+            return
+        fi
+    done
 }
 
 # 分類與戰略地圖管理 (Category & Terrain Management)
@@ -1612,7 +1681,6 @@ function _factory_fzf_menu() {
     local temp_file="$MUX_ROOT/app.sh.temp"
 
     while true; do
-        # 1. 數據解析
         local list_data=$(awk '
             BEGIN { 
                 current_cat="Uncategorized"
@@ -1641,7 +1709,6 @@ function _factory_fzf_menu() {
         
         local total_cmds=$(echo "$list_data" | wc -l)
 
-        # 2. FZF 渲染 (Factory Orange Theme)
         local selection=$(echo "$list_data" | fzf --ansi \
             --height=10 \
             --layout=reverse \
@@ -1703,76 +1770,43 @@ function _fac_maintenance() {
 function _fac_inspector() {
     local target="$1"
     local category="$2"
-    local temp_file="$MUX_ROOT/app.sh.temp"
+    
+    local meta_raw=$(_fac_get_meta "$target")
+    IFS='|' read -r m_type m_name m_pkg m_extra <<< "$meta_raw"
 
-    while true; do
-        # 1. 獲取元數據 (Metadata)
-        # 返回格式: TYPE|NAME|PKG|EXTRA
-        local meta_raw=$(_fac_get_meta "$target")
-        IFS='|' read -r m_type m_name m_pkg m_extra <<< "$meta_raw"
+    local info_display=""
+    
+    info_display="${info_display} ${F_GRAY}:: Neural Unit Details ::${F_RESET}\n"
+    info_display="${info_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+    info_display="${info_display} Command  : ${F_MAIN}${target}${F_RESET}\n"
+    info_display="${info_display} Sector   : ${F_WARN}${category}${F_RESET}\n"
+    info_display="${info_display} Type     : ${F_CYAN}${m_type}${F_RESET}\n"
+    info_display="${info_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+    
+    info_display="${info_display} UI Name  : ${F_SUB}${m_name}${F_RESET}\n"
+    info_display="${info_display} Package  : ${F_SUB}${m_pkg}${F_RESET}\n"
+    
+    if [ "$m_type" == "LAUNCHER" ]; then
+        info_display="${info_display} Activity : ${F_GRAY}${m_extra:-[Auto]}${F_RESET}\n"
+    elif [ "$m_type" == "BROWSER" ]; then
+        info_display="${info_display} Engine   : ${F_CYAN}${m_extra}${F_RESET}\n"
+    elif [ "$m_type" == "SUITE" ]; then
+        info_display="${info_display} Modules  : ${F_WARN}${m_extra} active${F_RESET}\n"
+    fi
+    
+    info_display="${info_display}\n"
+    info_display="${info_display} [ ENTER ] Return to Radar"
 
-        # 2. 繪製 HUD
-        clear
-        _draw_logo "factory"
-        
-        echo -e "${F_MAIN} :: Neural Unit Inspector ::${F_RESET}"
-        echo -e "${F_GRAY}    --------------------------------${F_RESET}"
-        echo -e "${F_GRAY}    Command  : ${F_WARN}$target${F_RESET}"
-        echo -e "${F_GRAY}    Sector   : ${F_SUB}$category${F_RESET}"
-        echo -e "${F_GRAY}    Type     : ${F_CYAN}$m_type${F_RESET}"
-        echo -e "${F_GRAY}    --------------------------------${F_RESET}"
-        
-        echo -e "${F_SUB}    [Identity Matrix]${F_RESET}"
-        echo -e "      › UI Name  : \033[1;37m$m_name\033[0m"
-        echo -e "      › Package  : \033[1;32m$m_pkg\033[0m"
-        
-        if [ "$m_type" == "LAUNCHER" ]; then
-            echo -e "      › Activity : \033[1;30m${m_extra:-[Auto]}\033[0m"
-        elif [ "$m_type" == "BROWSER" ]; then
-            echo -e "      › Engine   : \033[1;33m$m_extra\033[0m"
-        elif [ "$m_type" == "SUITE" ]; then
-            echo -e "      › Modules  : \033[1;35m$m_extra active\033[0m"
-        fi
-        
-        echo -e ""
-        echo -e "${F_GRAY}    --------------------------------${F_RESET}"
-        echo -e "${F_MAIN}    [Protocol Override]${F_RESET}"
-        echo -e "    [t] Test Fire    (Execute)"
-        echo -e "    [e] Edit Logic   (Modify)"
-        echo -e "    [m] Move Sector  (Relocate)"
-        echo -e "    [d] Terminate    (Delete)"
-        echo -e ""
-        echo -e "    [ESC/0] Return to Radar"
-        echo -e ""
-        
-        echo -ne "${F_WARN}    ›› Awaiting Directive: ${F_RESET}"
-        read -n 1 choice
-        echo ""
-
-        case "$choice" in
-            "t"|"T")
-                _bot_say "launch" "Test firing '$target'..."
-                eval "$target"
-                echo ""
-                echo -ne "\033[1;30m    (Press Enter to continue...)\033[0m"
-                read
-                ;;
-            "e"|"E")
-                _fac_wizard_edit "$target"
-                ;;
-            "m"|"M")
-                _fac_cat_move "$target"
-                return
-                ;;
-            "d"|"D")
-                _fac_del "$target"
-                return
-                ;;
-            "0"|$'\e')
-                break
-                ;;
-        esac
-    done
+    echo -e "$info_display" | fzf \
+        --ansi \
+        --height=40% \
+        --layout=reverse \
+        --border=bottom \
+        --prompt=" :: Inspector › " \
+        --header=" :: Press ENTER to Return ::" \
+        --pointer="››" \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240
 }
 
 # 元數據解析器 - Metadata Extraction Engine
@@ -1832,18 +1866,27 @@ function _fac_init() {
 function _factory_mask_apps() {
     local targets=("$MUX_ROOT/system.sh" "$MUX_ROOT/app.sh.temp" "$MUX_ROOT/vendor.sh")
     
+    local whitelist="mux|fac|wb|apklist|termux|clear|ls|cat|grep|fzf|awk|sed|git"
+
     for file in "${targets[@]}"; do
         if [ -f "$file" ]; then
-            local funcs=$(grep "^function" "$file" | sed 's/function //' | sed 's/() {//' | grep -v "^_")
+            local funcs=$(awk '
+                /^[[:space:]]*function[[:space:]]+[a-zA-Z0-9_]+/ {
+                    gsub(/^[[:space:]]*function[[:space:]]+|\(.*/, ""); print
+                }
+                /^[[:space:]]*[a-zA-Z0-9_]+\(\)[[:space:]]*\{/ {
+                    gsub(/\(.*/, ""); print
+                }
+            ' "$file")
             
             for func_name in $funcs; do
-                case "$func_name" in
-                    "apklist"|"wb"|"termux") 
-                        continue 
-                        ;;
-                esac
+                if [[ "$func_name" == _* ]]; then continue; fi
+                
+                if [[ "$func_name" =~ ^($whitelist)$ ]]; then continue; fi
 
-                eval "function $func_name() { _factory_interceptor \"$func_name\" \"\$@\"; }"
+                if declare -f "$func_name" > /dev/null; then
+                    eval "function $func_name() { _factory_interceptor \"$func_name\" \"\$@\"; }"
+                fi
             done
         fi
     done
