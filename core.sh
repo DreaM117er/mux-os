@@ -233,8 +233,8 @@ function mux() {
                 --header=" :: Select Mobile Suit (Branch) ::" \
                 --info=hidden \
                 --pointer="››" \
-                --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow \
-                --color=info:yellow,prompt:cyan,pointer:red,border:blue,header:gray
+                --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red,border:blue \
+                --bind="resize:clear-screen"
             )
 
             target_branch="${target_branch// /}"

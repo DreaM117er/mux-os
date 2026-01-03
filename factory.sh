@@ -760,8 +760,8 @@ function _fac_select_category() {
         --border=bottom \
         --prompt=" :: Target Sector › " \
         --header=" :: Select Deployment Zone (ESC = Others) ::" \
-        --color=fg:-1,bg:-1,hl:33,fg+:208,bg+:235,hl+:33 \
-        --color=info:240,prompt:208,pointer:208,marker:208,border:208,header:240
+        --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red,border:blue \
+        --bind="resize:clear-screen"
     )
 
     INSERT_LINE=""
