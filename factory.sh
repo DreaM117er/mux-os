@@ -195,8 +195,20 @@ function fac() {
     case "$cmd" in
         # : Open Neural Forge (FZF)
         "menu"|"m")
-            _factory_fzf_menu
+            if command -v fzf &> /dev/null; then
+                _factory_fzf_menu
+            else
+                _factory_legacy_menu
+            fi
             ;;
+
+        "oldmenu"|"om")
+            if command -v fzf &> /dev/null; then
+                 _factory_legacy_menu
+             else
+                 echo -e "${F_SUB} :: Unknown Directive: $cmd${F_RESET}"
+             fi
+             ;;
 
         # : Check & Fix Formatting
         "check"|"chk")
@@ -280,7 +292,7 @@ function _fac_wizard_create() {
     echo -e "${F_SUB}    [2] Browser APP (Smart Search)${F_RESET}"
     echo -e "${F_SUB}    [3] Ecosystem Suite (Multi-App Menu)${F_RESET}"
     echo -e ""
-    echo -ne "${F_WARN} :: Select: ${F_RESET}"
+    echo -ne "${F_WARN} :: Select: (Any key to leave.) ${F_RESET}"
     read type_choice
 
     case "$type_choice" in
@@ -1227,7 +1239,7 @@ function _fac_undo() {
 # 部署序列 (Deploy Sequence)
 function _factory_deploy_sequence() {
     echo ""
-    echo -ne "${F_GRAY} :: Initiating Deployment Sequence...${F_RESET}"
+    echo -ne "${F_WARN} :: Initiating Deployment Sequence...${F_RESET}"
     sleep 2.6
     
     clear
@@ -1328,9 +1340,145 @@ function _factory_list_links() {
     echo ""
 }
 
-# 神經鍛造 (Neural Forge)
+# 神經鍛造中樞 (Neural Forge Nexus) - FZF Version
 function _factory_fzf_menu() {
-    echo -e "${F_MAIN} :: Neural Forge (FZF) under construction...${F_RESET}"
+    local temp_file="$MUX_ROOT/app.sh.temp"
+
+    # [Fallback Protocol] 如果沒有 FZF，切換到傳統數字選單
+    if ! command -v fzf &> /dev/null; then
+        _factory_legacy_menu
+        return
+    fi
+
+    while true; do
+        # 1. 數據解析 (Data Parsing) - 使用 awk 建立結構化清單
+        # 格式: [Line] | [Category] | FunctionName
+        local list_data=$(awk '
+            BEGIN { current_cat="Uncategorized" }
+            /^# ===/ {
+                current_cat=$0;
+                gsub(/^# === | ===$/, "", current_cat);
+            }
+            /^function / {
+                match($0, /function ([a-zA-Z0-9_]+)/, arr);
+                func_name = arr[1];
+                if (substr(func_name, 1, 1) != "_") {
+                    printf "%d\t%s\t%s\n", NR, current_cat, func_name;
+                }
+            }
+        ' "$temp_file")
+
+        if [ -z "$list_data" ]; then
+            _bot_say "error" "No neural links found in sandbox."
+            return
+        fi
+
+        # 2. FZF 渲染 (Rendering)
+        # 左側顯示列表，右側預覽代碼 (Preview Window)
+        local selection=$(echo "$list_data" | fzf --ansi \
+            --height=90% --layout=reverse --border=none \
+            --delimiter="\t" \
+            --with-nth=2,3 \
+            --prompt=" :: Forge Control › " \
+            --header=" :: Select Module to Manage (ESC to Exit) ::" \
+            --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:red,pointer:red \
+            --preview "sed -n {1},/^}/p \"$temp_file\" | awk '{if(NR<=20) print \$0; else if(NR==21) print \"...\"}' | grep --color=always -E 'function|case|_launch_android_app|_resolve_smart_url|$'" \
+            --preview-window=right:50%:wrap \
+            --bind="ctrl-r:reload(cat \"$temp_file\")"
+        )
+
+        # 3. 解析選擇 (Action Handling)
+        if [ -z "$selection" ]; then
+            break # Exit loop
+        fi
+
+        local target_line=$(echo "$selection" | awk -F'\t' '{print $1}')
+        local target_cat=$(echo "$selection" | awk -F'\t' '{print $2}')
+        local target_func=$(echo "$selection" | awk -F'\t' '{print $3}')
+
+        # 4. 戰術分歧選單 (Action Sub-Menu)
+        # 這裡我們再用一個小 FZF 來選動作，保持手不離鍵盤
+        local action=$(echo -e "Edit (Modify Logic)\nTest (Live Fire)\nDelete (Terminate)\nCancel" | fzf \
+            --height=10 --layout=reverse --border=rounded \
+            --prompt=" :: Action for [$target_func] › " \
+            --header=" :: Select Protocol ::"
+        )
+
+        case "$action" in
+            "Edit"*)
+                _fac_wizard_edit "$target_func"
+                ;;
+            "Test"*)
+                _bot_say "launch" "Executing test run for '$target_func'..."
+                eval "$target_func"
+                echo ""
+                echo -ne "\033[1;30m    (Press Enter to return to forge...)\033[0m"
+                read
+                ;;
+            "Delete"*)
+                _fac_del "$target_func"
+                ;;
+            *)
+                # Cancel or nothing
+                ;;
+        esac
+    done
+}
+
+# 傳統數字選單 (Legacy Numeric Menu) - Fallback
+function _factory_legacy_menu() {
+    local temp_file="$MUX_ROOT/app.sh.temp"
+    
+    while true; do
+        clear
+        _draw_logo "factory"
+        echo -e "${F_MAIN} :: Legacy Control Panel ::${F_RESET}"
+        echo -e "${F_GRAY}    (FZF module missing. Running in compatibility mode.)${F_RESET}"
+        echo -e "${F_GRAY}    --------------------------------${F_RESET}"
+
+        local i=1
+        local funcs=()
+        
+        while read -r line; do
+            local func_name=$(echo "$line" | sed 's/function //;s/() {//')
+            echo -e "    [$i] ${F_SUB}$func_name${F_RESET}"
+            funcs+=("$func_name")
+            ((i++))
+        done < <(grep "^function" "$temp_file" | grep -v "^_")
+
+        echo -e ""
+        echo -e "    [0] Exit"
+        echo -e ""
+        echo -ne "${F_WARN}    ›› Select Target by ID: ${F_RESET}"
+        read choice
+
+        if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -gt 0 ] && [ "$choice" -le "${#funcs[@]}" ]; then
+            local idx=$((choice - 1))
+            local target="${funcs[$idx]}"
+            
+            echo -e ""
+            echo -e "${F_MAIN} :: Action for [$target] ::${F_RESET}"
+            echo -e "    [1] Edit"
+            echo -e "    [2] Test (Run)"
+            echo -e "    [3] Delete"
+            echo -e "    [0] Cancel"
+            echo -ne "${F_WARN}    ›› Select Protocol: ${F_RESET}"
+            read action
+            
+            case "$action" in
+                1) _fac_wizard_edit "$target" ;;
+                2) 
+                   _bot_say "launch" "Test run..."
+                   eval "$target" 
+                   read -p "Press Enter..."
+                   ;;
+                3) _fac_del "$target" ;;
+                *) ;;
+            esac
+        elif [ "$choice" == "0" ]; then
+            break
+        fi
+    done
 }
 
 # 機體維護工具 (Mechanism Maintenance)
