@@ -305,10 +305,11 @@ function _fac_query_command_name() {
     local result=$(echo "$existing_cmds" | fzf \
         --height=30% \
         --layout=reverse \
-        --border=top \
+        --border=bottom \
         --prompt=" :: Input Command › " \
         --header=" :: Type to Search. Enter unique name to Create. ::" \
         --print-query \
+        --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
         --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240
     )
@@ -339,6 +340,7 @@ function _fac_wizard_create() {
         --border=bottom \
         --prompt=" :: Forge Type › " \
         --header=" :: Select Neural Template ::" \
+        --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
         --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240
     )
@@ -360,23 +362,24 @@ function _fac_stamp_launcher() {
     local target_cat="Others"
     local func_name=""
     
-    local st_req="\033[1;31m[ REQUIRED ]\033[0m"
-    local st_dup="\033[1;33m[ DUPLICATE ]\033[0m"
-    local st_ok="\033[1;36m[ CONFIRM ]\033[0m"
+    local st_req="\033[1;31m[REQUIRED]\033[0m"
+    local st_dup="\033[1;33m[DUPLICATE]\033[0m"
+    local st_ok="\033[1;36m[CONFIRM]\033[0m"
     
     local func_status="$st_req"
     local insert_line_cache=""
 
     while true; do
         local menu_display=""
-        menu_display="${menu_display}1. Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET}   ${func_status}\n"
-        menu_display="${menu_display}2. UI Name  : ${F_SUB}${ui_name}${F_RESET}\n"
-        menu_display="${menu_display}3. Package  : ${F_SUB}${pkg_id}${F_RESET}\n"
-        menu_display="${menu_display}4. Activity : ${F_SUB}${pkg_act:-[Auto]}${F_RESET}\n"
-        menu_display="${menu_display}5. Category : ${F_WARN}${target_cat}${F_RESET}\n"
-        menu_display="${menu_display}\n[ apklist ] : Open APK Reference List"
-        menu_display="${menu_display}\n[ CONFIRM ] : Forge Neural Link"
-        menu_display="${menu_display}\n[ CANCEL  ] : Abort Operation"
+        menu_display="${menu_display}Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET}  ${func_status}\n"
+        menu_display="${menu_display}UI Name  : ${F_SUB}${ui_name}${F_RESET}\n"
+        menu_display="${menu_display}Package  : ${F_SUB}${pkg_id}${F_RESET}\n"
+        menu_display="${menu_display}Activity : ${F_SUB}${pkg_act:-[Auto]}${F_RESET}\n"
+        menu_display="${menu_display}Category : ${F_WARN}${target_cat}${F_RESET}\n"
+        menu_display="${menu_display}\n"
+        menu_display="${menu_display}apklist  : Open APK Reference List\n"
+        menu_display="${menu_display}Confirm  : Forge Neural Link\n"
+        menu_display="${menu_display}Cancel   : Abort Operation"
 
         local selection=$(echo -e "$menu_display" | fzf \
             --ansi \
@@ -385,43 +388,130 @@ function _fac_stamp_launcher() {
             --border=bottom \
             --prompt=" :: Launcher Forge › " \
             --header=" :: Select Field to Modify ::" \
+            --pointer="››" \
             --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
             --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240
         )
 
         if [ -z "$selection" ]; then return; fi
+
         local key=$(echo "$selection" | awk '{print $1}')
+        
         local clean_selection=$(echo "$selection" | sed 's/\x1b\[[0-9;]*m//g')
 
         case "$key" in
-            "1.") 
+            "Command") 
                 local res=$(_fac_query_command_name)
                 local val=$(echo "$res" | cut -d'|' -f1)
                 local sts=$(echo "$res" | cut -d'|' -f2)
-                if [ "$sts" == "NEW" ]; then func_name="$val"; func_status="$st_ok";
-                elif [ "$sts" == "DUPLICATE" ]; then func_name="$val"; func_status="$st_dup"; _bot_say "warn" "Exists."; sleep 0.8; fi
+                
+                if [ "$sts" == "NEW" ]; then 
+                    func_name="$val"
+                    func_status="$st_ok"
+                elif [ "$sts" == "DUPLICATE" ]; then 
+                    func_name="$val"
+                    func_status="$st_dup"
+                    _bot_say "warn" "Command '$val' already exists."
+                    sleep 0.8
+                fi
                 ;;
-            "2.") echo -ne "${F_SUB}    ›› UI Display Name: ${F_RESET}"; read input_ui; [ -n "$input_ui" ] && ui_name="$input_ui" ;;
-            "3.") echo -ne "${F_SUB}    ›› Package Name: ${F_RESET}"; read input_pkg; [ -n "$input_pkg" ] && pkg_id="$input_pkg" ;;
-            "4.") echo -ne "${F_SUB}    ›› Activity (Enter to Auto): ${F_RESET}"; read input_act; pkg_act="$input_act" ;;
-            "5.") _fac_select_category; if [ -n "$CATEGORY_NAME" ]; then target_cat="$CATEGORY_NAME"; insert_line_cache="$INSERT_LINE"; fi ;;
-            "[") 
-                if [[ "$clean_selection" == *"[ apklist ]"* ]]; then command -v apklist &> /dev/null && { apklist; echo -ne "\033[1;30m(Enter)\033[0m"; read; }
-                elif [[ "$clean_selection" == *"[ CONFIRM ]"* ]]; then
-                    [ -z "$func_name" ] && continue
-                    [[ "$func_status" == *"[ DUPLICATE ]"* ]] && continue
-                    if [ -z "$insert_line_cache" ]; then
-                         local header_line=$(grep -n "^# === $target_cat ===" "$MUX_ROOT/app.sh.temp" | head -n 1 | cut -d: -f1)
-                         if [ -n "$header_line" ]; then local next=$(tail -n +$((header_line + 1)) "$MUX_ROOT/app.sh.temp" | grep -n "^# ===" | head -n 1 | cut -d: -f1); if [ -n "$next" ]; then insert_line_cache=$((header_line + next - 1)); else insert_line_cache=$(wc -l < "$MUX_ROOT/app.sh.temp"); fi
-                         else echo -e "\n\n# === Others ===" >> "$MUX_ROOT/app.sh.temp"; insert_line_cache=$(wc -l < "$MUX_ROOT/app.sh.temp"); fi
-                    fi
-                    _bot_say "factory" "Forging link '$func_name'..."
-                    local temp_block="$MUX_ROOT/plate/block.tmp"
-                    cat "$mold_file" | sed "s/\[FUNC\]/$func_name/g" | sed "s/\[NAME\]/$ui_name/g" | sed "s/\[PKG_ID\]/$pkg_id/g" | sed "s/\[PKG_ACT\]/$pkg_act/g" > "$temp_block"
-                    echo "" >> "$temp_block"
-                    local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp"); if [ "$insert_line_cache" -ge "$total_lines" ]; then cat "$temp_block" >> "$MUX_ROOT/app.sh.temp"; else sed -i "${insert_line_cache}r $temp_block" "$MUX_ROOT/app.sh.temp"; fi
-                    rm "$temp_block"; _fac_maintenance; _bot_say "success" "Deployed."; echo -ne "${F_WARN}Hot Reload? (y/n): ${F_RESET}"; read r; [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load; return
-                elif [[ "$clean_selection" == *"CANCEL"* ]]; then return; fi
+
+            "UI") 
+                echo -ne "${F_SUB}    ›› UI Display Name: ${F_RESET}"
+                read input_ui
+                [ -n "$input_ui" ] && ui_name="$input_ui" 
+                ;;
+
+            "Package") 
+                echo -ne "${F_SUB}    ›› Package Name: ${F_RESET}"
+                read input_pkg
+                [ -n "$input_pkg" ] && pkg_id="$input_pkg" 
+                ;;
+
+            "Activity") 
+                echo -ne "${F_SUB}    ›› Activity (Enter to Auto): ${F_RESET}"
+                read input_act
+                pkg_act="$input_act" 
+                ;;
+
+            "Category") 
+                _fac_select_category
+                if [ -n "$CATEGORY_NAME" ]; then 
+                    target_cat="$CATEGORY_NAME"
+                    insert_line_cache="$INSERT_LINE"
+                fi 
+                ;;
+
+            "apklist") 
+                if command -v apklist &> /dev/null; then 
+                    apklist
+                    echo -ne "\033[1;30m    (Press Enter to return...)\033[0m"
+                    read
+                else
+                    _bot_say "error" "'apklist' module missing."
+                    sleep 1
+                fi
+                ;;
+
+            "Confirm")
+                if [ -z "$func_name" ]; then
+                    _bot_say "error" "Command Name is required."
+                    sleep 0.8
+                    continue
+                fi
+                if [[ "$func_status" == *"[DUPLICATE]"* ]]; then
+                    _bot_say "error" "Cannot forge: Command exists."
+                    sleep 0.8
+                    continue
+                fi
+
+                if [ -z "$insert_line_cache" ]; then
+                     local header_line=$(grep -n "^# === $target_cat ===" "$MUX_ROOT/app.sh.temp" | head -n 1 | cut -d: -f1)
+                     if [ -n "$header_line" ]; then 
+                        local next=$(tail -n +$((header_line + 1)) "$MUX_ROOT/app.sh.temp" | grep -n "^# ===" | head -n 1 | cut -d: -f1)
+                        if [ -n "$next" ]; then 
+                            insert_line_cache=$((header_line + next - 1))
+                        else 
+                            insert_line_cache=$(wc -l < "$MUX_ROOT/app.sh.temp")
+                        fi
+                     else 
+                        echo -e "\n\n# === Others ===" >> "$MUX_ROOT/app.sh.temp"
+                        insert_line_cache=$(wc -l < "$MUX_ROOT/app.sh.temp")
+                     fi
+                fi
+
+                _bot_say "factory" "Forging link '$func_name'..."
+                local temp_block="$MUX_ROOT/plate/block.tmp"
+                
+                cat "$mold_file" \
+                    | sed "s/\[FUNC\]/$func_name/g" \
+                    | sed "s/\[NAME\]/$ui_name/g" \
+                    | sed "s/\[PKG_ID\]/$pkg_id/g" \
+                    | sed "s/\[PKG_ACT\]/$pkg_act/g" \
+                    > "$temp_block"
+                
+                echo "" >> "$temp_block"
+
+                local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp")
+                if [ "$insert_line_cache" -ge "$total_lines" ]; then
+                    cat "$temp_block" >> "$MUX_ROOT/app.sh.temp"
+                else
+                    sed -i "${insert_line_cache}r $temp_block" "$MUX_ROOT/app.sh.temp"
+                fi
+                
+                rm "$temp_block"
+                _fac_maintenance
+                _bot_say "success" "Module '$func_name' deployed."
+                
+                echo -ne "${F_WARN}    ›› Hot Reload now? (y/n): ${F_RESET}"
+                read r
+                [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load
+                return
+                ;;
+
+            "Cancel") 
+                _bot_say "factory" "Operation aborted."
+                return 
                 ;;
         esac
     done
@@ -429,329 +519,288 @@ function _fac_stamp_launcher() {
 
 # 鑄造工序：瀏覽器應用 (Browser App Stamp)
 function _fac_stamp_browser() {
+    Commander，收到。
+
+這兩具模具的改造目標非常明確：「儀表板化 (Dashboard-ization)」。 我們要將原本線性的問答流程，轉變為全 FZF 驅動的非線性儀表板，並維持視覺與操作邏輯的高度統一。
+
+以下是 factory.sh 的修正代碼，包含 _fac_stamp_browser (瀏覽器鑄造) 與 _fac_stamp_suite (生態系鑄造) 的完全重構版本。
+
+🛠️ factory.sh - Advanced Stamping Protocols
+請將這兩個函式覆蓋原有的版本。
+
+1. _fac_stamp_browser (瀏覽器儀表板)
+特點：新增了 Engine 選項，點擊後會彈出 FZF 讓你選擇搜尋引擎 (Google/Bing/Duck...)。
+
+邏輯：繼承了 Launcher 的所有優點，包括重複檢查與 APK 查閱。
+
+Bash
+
+# 鑄造工序：瀏覽器應用 - Browser App Stamp (Dashboard)
+function _fac_stamp_browser() {
     _fac_snapshot
-
     local mold_file="$MUX_ROOT/plate/browser.txt"
-    
-    if [ ! -f "$mold_file" ]; then 
-        _bot_say "error" "Browser mold missing ($mold_file)."
-        return 1
-    fi
+    [ ! -f "$mold_file" ] && return 1
 
-    # Step 1: Pre-flight (APK Check
-    echo -ne "${F_WARN} :: Launch 'apklist' helper? (y/n): ${F_RESET}"
-    read launch_apk
-    if [[ "$launch_apk" == "y" || "$launch_apk" == "Y" ]]; then
-        apklist
-    fi
-
-    # Step 2: Data Collection
-    # 2.1 UI Display Name
-    echo -e ""
-    echo -ne "${F_SUB} :: UI Display Name (e.g. Brave): ${F_RESET}"
-    read app_name
-    [ -z "$app_name" ] && app_name="Unknown Browser"
-
-    # 2.2 Package Name
-    echo -ne "${F_SUB} :: Package Name (Enter to skip): ${F_RESET}"
-    read pkg_id
-    
-    if [ -z "$pkg_id" ]; then 
-        echo -e "${F_WARN}    ›› No Package ID detected. Using placeholder.${F_RESET}"
-        pkg_id="com.null.browser"
-    fi
-
-    # 2.3 Activity Name (Optional)
-    echo -ne "${F_SUB} :: Activity Name (Optional): ${F_RESET}"
-    read pkg_act
-
-    # 2.4 Search Engine Selection (Browser Exclusive)
-    echo -e ""
-    echo -e "${F_MAIN} :: Select Default Search Engine ::${F_RESET}"
-    echo -e "${F_SUB}    [1] Google${F_RESET}"
-    echo -e "${F_SUB}    [2] Bing${F_RESET}"
-    echo -e "${F_SUB}    [3] DuckDuckGo${F_RESET}"
-    echo -e "${F_SUB}    [4] YouTube${F_RESET}"
-    echo -e "${F_SUB}    [5] GitHub${F_RESET}"
-    echo -ne "${F_WARN}    ›› Select Engine: ${F_RESET}"
-    read engine_choice
-
-    local engine_var="GOOGLE" # Default
-    case "$engine_choice" in
-        1) engine_var="GOOGLE" ;;
-        2) engine_var="BING" ;;
-        3) engine_var="DUCK" ;;
-        4) engine_var="YOUTUBE" ;;
-        5) engine_var="GITHUB" ;;
-        *) engine_var="GOOGLE" ;;
-    esac
-
-    # 2.5 Command Name (Auto-Gen)
-    echo -e ""
-    echo -ne "${F_MAIN} :: Assign Command Name (Enter to auto-gen): ${F_RESET}"
-    read input_func
-    
+    # === 初始化變數 ===
+    local ui_name="Unknown Browser"
+    local pkg_id="com.null.browser"
+    local pkg_act="" # Optional
+    local engine_var="GOOGLE"
+    local target_cat="Network & Cloud"
     local func_name=""
-    if [ -z "$input_func" ]; then
-        local clean_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
-        func_name="$clean_name"
-        echo -e "${F_WARN}    ›› Auto-assigned command: $func_name${F_RESET}"
-    else
-        func_name="$input_func"
-    fi
 
-    if [ -z "$func_name" ]; then
-        _bot_say "error" "Command name generation failed."
-        return 1
-    fi
-
-    # Step 3: Safety Check
-    if grep -qE "function[[:space:]]+$func_name[[:space:]]*\(" "$MUX_ROOT/app.sh.temp"; then
-        _bot_say "error" "Module '$func_name' already exists."
-        return 1
-    fi
-
-    # Step 4: Category Selection
-    _fac_select_category 
+    # 狀態標記
+    local st_req="\033[1;31m[REQUIRED]\033[0m"
+    local st_dup="\033[1;33m[DUPLICATE]\033[0m"
+    local st_ok="\033[1;36m[CONFIRM]\033[0m"
     
-    if [ -z "$INSERT_LINE" ]; then
-        _bot_say "error" "Placement calculation failed."
-        return 1
-    fi
+    local func_status="$st_req"
+    local insert_line_cache=""
 
-    # Step 5: Final Manifest Review
-    echo -e ""
-    echo -e "${F_MAIN} :: Final Manifest Review ::${F_RESET}"
-    echo -e "${F_GRAY}    --------------------------------${F_RESET}"
-    echo -e "${F_GRAY}    Type     : ${F_MAIN}Browser Module${F_RESET}"
-    echo -e "${F_GRAY}    Sector   : ${F_WARN}$CATEGORY_NAME${F_RESET}"
-    echo -e "${F_GRAY}    Command  : ${F_WARN}$func_name${F_RESET}"
-    echo -e "${F_GRAY}    Engine   : ${F_SUB}$engine_var${F_RESET}"
-    echo -e "${F_GRAY}    Package  : $pkg_id${F_RESET}"
-    echo -e "${F_GRAY}    Activity : ${pkg_act:-[Auto]}${F_RESET}"
-    echo -e "${F_GRAY}    --------------------------------${F_RESET}"
-    
-    echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO FORGE: ${F_RESET}"
-    read confirm_write
-    
-    if [ "$confirm_write" != "CONFIRM" ]; then
-        echo -e ""
-        _bot_say "error" "Authentication Failed. Fabrication Aborted."
-        echo -e "${F_GRAY}    ›› Material scrapped. All data discarded.${F_RESET}"
-        return 1
-    fi
+    while true; do
+        # === 1. 建構儀表板 ===
+        local menu_display=""
+        menu_display="${menu_display}Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET}  ${func_status}\n"
+        menu_display="${menu_display}UI Name  : ${F_SUB}${ui_name}${F_RESET}\n"
+        menu_display="${menu_display}Package  : ${F_SUB}${pkg_id}${F_RESET}\n"
+        menu_display="${menu_display}Activity : ${F_SUB}${pkg_act:-[Auto]}${F_RESET}\n"
+        menu_display="${menu_display}Engine   : ${F_CYAN}${engine_var}${F_RESET}\n"
+        menu_display="${menu_display}Category : ${F_WARN}${target_cat}${F_RESET}\n"
+        menu_display="${menu_display}\n"
+        menu_display="${menu_display}apklist  : Open APK Reference List\n"
+        menu_display="${menu_display}Confirm  : Forge Neural Link\n"
+        menu_display="${menu_display}Cancel   : Abort Operation"
 
-    # Step 6: Assembly
-    _bot_say "factory" "Stamping browser module..."
+        # === 2. FZF 渲染 ===
+        local selection=$(echo -e "$menu_display" | fzf \
+            --ansi \
+            --height=45% \
+            --layout=reverse \
+            --border=bottom \
+            --prompt=" :: Browser Forge › " \
+            --header=" :: Select Field to Modify ::" \
+            --pointer="››" \
+            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+            --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240
+        )
 
-    local temp_block="$MUX_ROOT/plate/block.tmp"
-    
-    cat "$mold_file" \
-        | sed "s/\[FUNC\]/$func_name/g" \
-        | sed "s/\[NAME\]/$app_name/g" \
-        | sed "s/\[PKG_ID\]/$pkg_id/g" \
-        | sed "s/\[PKG_ACT\]/$pkg_act/g" \
-        | sed "s/\[ENGINE_VAR\]/$engine_var/g" \
-        | sed "s/\[ENGINE_NAME\]/$engine_var/g" \
-        > "$temp_block"
-    
-    local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp")
-    if [ "$INSERT_LINE" -ge "$total_lines" ]; then
-        cat "$temp_block" >> "$MUX_ROOT/app.sh.temp"
-    else
-        sed -i "${INSERT_LINE}r $temp_block" "$MUX_ROOT/app.sh.temp"
-    fi
-    rm "$temp_block"
+        if [ -z "$selection" ]; then return; fi
 
-    echo "" >> "$temp_block"
-    
-    local last_char=$(tail -c 1 "$MUX_ROOT/app.sh.temp")
-    if [ "$last_char" != "" ]; then echo "" >> "$MUX_ROOT/app.sh.temp"; fi
+        # === 3. 邏輯判斷 ===
+        local key=$(echo "$selection" | awk '{print $1}')
+        
+        case "$key" in
+            "Command") 
+                local res=$(_fac_query_command_name)
+                local val=$(echo "$res" | cut -d'|' -f1)
+                local sts=$(echo "$res" | cut -d'|' -f2)
+                if [ "$sts" == "NEW" ]; then func_name="$val"; func_status="$st_ok";
+                elif [ "$sts" == "DUPLICATE" ]; then func_name="$val"; func_status="$st_dup"; _bot_say "warn" "Exists."; sleep 0.8; fi
+                ;;
+            "UI") echo -ne "${F_SUB}    ›› UI Display Name: ${F_RESET}"; read input_ui; [ -n "$input_ui" ] && ui_name="$input_ui" ;;
+            "Package") echo -ne "${F_SUB}    ›› Package Name: ${F_RESET}"; read input_pkg; [ -n "$input_pkg" ] && pkg_id="$input_pkg" ;;
+            "Activity") echo -ne "${F_SUB}    ›› Activity (Enter to Auto): ${F_RESET}"; read input_act; pkg_act="$input_act" ;;
+            "Category") _fac_select_category; if [ -n "$CATEGORY_NAME" ]; then target_cat="$CATEGORY_NAME"; insert_line_cache="$INSERT_LINE"; fi ;;
+            
+            "Engine")
+                local eng_sel=$(echo -e "GOOGLE\nBING\nDUCK\nYOUTUBE\nGITHUB" | fzf \
+                    --height=20% --layout=reverse --border=bottom \
+                    --prompt=" :: Select Engine › " --pointer="››" \
+                    --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                    --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
+                [ -n "$eng_sel" ] && engine_var="$eng_sel"
+                ;;
 
-    echo -e "${F_GRE} :: Browser Module Installed Successfully ::${F_RESET}"
-    echo -e ""
-    
-    # === Step 7: Reload ===
-    echo -ne "${F_WARN} :: Hot Reload now? (y/n): ${F_RESET}"
-    read reload_choice
-    if [[ "$reload_choice" == "y" || "$reload_choice" == "Y" ]]; then
-        _fac_load
-    fi
+            "apklist") command -v apklist &> /dev/null && { apklist; echo -ne "\033[1;30m(Enter)\033[0m"; read; } ;;
+            
+            "Confirm")
+                if [ -z "$func_name" ] || [[ "$func_status" == *"[DUPLICATE]"* ]]; then continue; fi
+                
+                # 自動補算分類位置
+                if [ -z "$insert_line_cache" ]; then
+                     local header_line=$(grep -n "^# === $target_cat ===" "$MUX_ROOT/app.sh.temp" | head -n 1 | cut -d: -f1)
+                     if [ -n "$header_line" ]; then 
+                        local next=$(tail -n +$((header_line + 1)) "$MUX_ROOT/app.sh.temp" | grep -n "^# ===" | head -n 1 | cut -d: -f1)
+                        if [ -n "$next" ]; then insert_line_cache=$((header_line + next - 1)); else insert_line_cache=$(wc -l < "$MUX_ROOT/app.sh.temp"); fi
+                     else 
+                        echo -e "\n\n# === Others ===" >> "$MUX_ROOT/app.sh.temp"
+                        insert_line_cache=$(wc -l < "$MUX_ROOT/app.sh.temp")
+                     fi
+                fi
+
+                _bot_say "factory" "Forging browser '$func_name'..."
+                local temp_block="$MUX_ROOT/plate/block.tmp"
+                cat "$mold_file" \
+                    | sed "s/\[FUNC\]/$func_name/g" \
+                    | sed "s/\[NAME\]/$ui_name/g" \
+                    | sed "s/\[PKG_ID\]/$pkg_id/g" \
+                    | sed "s/\[PKG_ACT\]/$pkg_act/g" \
+                    | sed "s/\[ENGINE_VAR\]/$engine_var/g" \
+                    | sed "s/\[ENGINE_NAME\]/$engine_var/g" \
+                    > "$temp_block"
+                echo "" >> "$temp_block"
+
+                local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp")
+                if [ "$insert_line_cache" -ge "$total_lines" ]; then cat "$temp_block" >> "$MUX_ROOT/app.sh.temp"; else sed -i "${insert_line_cache}r $temp_block" "$MUX_ROOT/app.sh.temp"; fi
+                rm "$temp_block"; _fac_maintenance; _bot_say "success" "Deployed."; echo -ne "${F_WARN}Hot Reload? (y/n): ${F_RESET}"; read r; [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load; return
+                ;;
+            "Cancel") return ;;
+        esac
+    done
 }
 
 # 鑄造工序：生態系套件 - Ecosystem Suite Stamp
 function _fac_stamp_suite() {
     _fac_snapshot
-
     local mold_file="$MUX_ROOT/plate/suite.txt"
-    
-    # 自動建立模具 (如果不存在)
     if [ ! -f "$mold_file" ]; then
         echo -e "# : [SUITE_NAME] Suite\nfunction [FUNC]() {\n    local target=\"\$1\"\n    if [ -z \"\$target\" ]; then\n        if command -v fzf &> /dev/null; then\n            target=\$(echo -e \"[OPTION_LIST]\" | fzf --height=8 --layout=reverse --prompt=\" :: Select [SUITE_NAME] › \" --border=none)\n        else\n            echo \" :: Select Module:\"\n            select t in [OPTION_SELECT]; do target=\$t; break; done\n        fi\n    fi\n\n    case \"\$target\" in\n[CASE_LOGIC]\n        *)\n            [ -n \"\$target\" ] && echo -e \"\\033[1;30m    ›› Operation canceled or unknown module.\\033[0m\"\n            ;;\n    esac\n}" > "$mold_file"
     fi
 
-    # Step 1: Suite Basic Info
-    echo -e ""
-    echo -e "${F_MAIN} :: Ecosystem Suite Construction ::${F_RESET}"
-    
-    echo -ne "${F_SUB}    [Data] Suite Name (e.g. Adobe Creative): ${F_RESET}"
-    read suite_name
-    [ -z "$suite_name" ] && suite_name="Unknown Suite"
-
-    echo -ne "${F_MAIN}    ›› Assign Command Name (e.g. adobe): ${F_RESET}"
-    read input_func
-    
+    local suite_name="Unknown Suite"
     local func_name=""
-    if [ -z "$input_func" ]; then
-        local clean_name=$(echo "$suite_name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
-        func_name="$clean_name"
-    else
-        func_name="$input_func"
-    fi
+    local target_cat="Ecosystems"
+    
+    local sub_keys=()
+    local sub_names=()
+    local sub_pkgs=()
+    local sub_acts=()
 
-    # Check Duplicate
-    if grep -qE "function[[:space:]]+$func_name[[:space:]]*\(" "$MUX_ROOT/app.sh.temp"; then
-        _bot_say "error" "Module '$func_name' already exists."
-        return 1
-    fi
-
-    # Step 2: Sub-Modules Loop
-    local option_list_fzf=""
-    local option_list_select=""
-    local case_logic=""
-    local count=0
-
-    echo -e ""
-    echo -e "${F_WARN} :: Adding Sub-Modules...${F_RESET}"
+    local st_req="\033[1;31m[REQUIRED]\033[0m"
+    local st_dup="\033[1;33m[DUPLICATE]\033[0m"
+    local st_ok="\033[1;36m[CONFIRM]\033[0m"
+    local func_status="$st_req"
+    local insert_line_cache=""
 
     while true; do
-        ((count++))
-        echo -e "${F_GRAY}    --------------------------------${F_RESET}"
-        echo -e "${F_MAIN}    [Sub-Module #$count]${F_RESET}"
-        
-        # 2.1 Trigger Key
-        echo -ne "${F_SUB}    ›› Trigger Key (e.g. ps): ${F_RESET}"
-        read sub_key
-        if [ -z "$sub_key" ]; then break; fi
+        local mod_count=${#sub_keys[@]}
+        local mod_status="${F_WARN}[ $mod_count Items ]${F_RESET}"
+        if [ "$mod_count" -eq 0 ]; then mod_status="\033[1;31m[ EMPTY ]\033[0m"; fi
 
-        # 2.2 App Name
-        echo -ne "${F_SUB}    ›› Display Name (e.g. Photoshop): ${F_RESET}"
-        read sub_name
-        [ -z "$sub_name" ] && sub_name="$sub_key"
+        local menu_display=""
+        menu_display="${menu_display}Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET}  ${func_status}\n"
+        menu_display="${menu_display}Suite    : ${F_SUB}${suite_name}${F_RESET}\n"
+        menu_display="${menu_display}Category : ${F_WARN}${target_cat}${F_RESET}\n"
+        menu_display="${menu_display}Modules  : ${mod_status} (Click to Manage)\n"
+        menu_display="${menu_display}\n"
+        menu_display="${menu_display}Confirm  : Forge Neural Link\n"
+        menu_display="${menu_display}Cancel   : Abort Operation"
 
-        # 2.3 Package
-        echo -ne "${F_SUB}    ›› Package Name: ${F_RESET}"
-        read sub_pkg
-        [ -z "$sub_pkg" ] && sub_pkg="com.null.placeholder"
+        local selection=$(echo -e "$menu_display" | fzf \
+            --ansi --height=40% --layout=reverse --border=bottom \
+            --prompt=" :: Suite Forge › " --header=" :: Configure Ecosystem ::" --pointer="››" \
+            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+            --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
 
-        # 2.4 Activity
-        echo -ne "${F_SUB}    ›› Activity (Optional): ${F_RESET}"
-        read sub_act
+        if [ -z "$selection" ]; then return; fi
+        local key=$(echo "$selection" | awk '{print $1}')
 
-        # Build Logic Chunks
-        
-        # FZF List (Newline separated)
-        if [ -z "$option_list_fzf" ]; then
-            option_list_fzf="$sub_key"
-        else
-            option_list_fzf="$option_list_fzf\\\\n$sub_key"
-        fi
+        case "$key" in
+            "Command")
+                local res=$(_fac_query_command_name)
+                local val=$(echo "$res" | cut -d'|' -f1)
+                local sts=$(echo "$res" | cut -d'|' -f2)
+                if [ "$sts" == "NEW" ]; then func_name="$val"; func_status="$st_ok";
+                elif [ "$sts" == "DUPLICATE" ]; then func_name="$val"; func_status="$st_dup"; _bot_say "warn" "Exists."; sleep 0.8; fi
+                ;;
+            "Suite") echo -ne "${F_SUB}    ›› Suite Display Name: ${F_RESET}"; read input_s; [ -n "$input_s" ] && suite_name="$input_s" ;;
+            "Category") _fac_select_category; if [ -n "$CATEGORY_NAME" ]; then target_cat="$CATEGORY_NAME"; insert_line_cache="$INSERT_LINE"; fi ;;
+            
+            "Modules")
+                while true; do
+                    local comp_menu="[+] Add New Module\n[-] Remove Last Module\n[<] Return to Dashboard"
+                    local comp_header=" :: Current Modules ::"
+                    if [ ${#sub_keys[@]} -gt 0 ]; then
+                        for i in "${!sub_keys[@]}"; do
+                            comp_header="$comp_header | ${sub_keys[$i]}"
+                        done
+                    else
+                        comp_header="$comp_header (None)"
+                    fi
 
-        # Select List (Space separated quotes)
-        if [ -z "$option_list_select" ]; then
-            option_list_select="\"$sub_key\""
-        else
-            option_list_select="$option_list_select \"$sub_key\""
-        fi
+                    local comp_sel=$(echo -e "$comp_menu" | fzf \
+                        --height=30% --layout=reverse --border=bottom \
+                        --prompt=" :: Module Manager › " --header="$comp_header" --pointer="››" \
+                        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
+                    
+                    if [[ "$comp_sel" == *"[+]"* ]]; then
+                        echo -e "\n${F_MAIN} :: Add Sub-Module ::${F_RESET}"
+                        echo -ne "${F_SUB}    ›› Trigger Key (e.g. ps): ${F_RESET}"; read k
+                        [ -z "$k" ] && continue
+                        echo -ne "${F_SUB}    ›› App Name (e.g. Photoshop): ${F_RESET}"; read n
+                        [ -z "$n" ] && n="$k"
+                        echo -ne "${F_SUB}    ›› Package: ${F_RESET}"; read p
+                        [ -z "$p" ] && p="com.null.placeholder"
+                        echo -ne "${F_SUB}    ›› Activity: ${F_RESET}"; read a
+                        
+                        sub_keys+=("$k"); sub_names+=("$n"); sub_pkgs+=("$p"); sub_acts+=("$a")
+                    elif [[ "$comp_sel" == *"[-]"* ]]; then
+                        if [ ${#sub_keys[@]} -gt 0 ]; then
+                            unset 'sub_keys[${#sub_keys[@]}-1]'; unset 'sub_names[${#sub_names[@]}-1]'
+                            unset 'sub_pkgs[${#sub_pkgs[@]}-1]'; unset 'sub_acts[${#sub_acts[@]}-1]'
+                        fi
+                    else
+                        break
+                    fi
+                done
+                ;;
 
-        # Case Logic Block
-        # Indentation is key for pretty code
-        local case_block="        \"$sub_key\")\n            _launch_android_app \"$sub_name\" \"$sub_pkg\" \"$sub_act\"\n            ;;"
-        
-        if [ -z "$case_logic" ]; then
-            case_logic="$case_block"
-        else
-            case_logic="$case_logic\n$case_block"
-        fi
+            "Confirm")
+                if [ -z "$func_name" ] || [[ "$func_status" == *"[DUPLICATE]"* ]]; then continue; fi
+                if [ ${#sub_keys[@]} -eq 0 ]; then _bot_say "error" "Suite must have at least one module."; sleep 1; continue; fi
 
-        echo -e "${F_GRE}    ›› Module #$count added.${F_RESET}"
-        
-        # Continue?
-        echo -ne "${F_WARN}    ›› Add another? (y/n): ${F_RESET}"
-        read cont
-        if [[ "$cont" != "y" && "$cont" != "Y" ]]; then break; fi
+                local option_list_fzf=""
+                local option_list_select=""
+                local case_logic=""
+                
+                for i in "${!sub_keys[@]}"; do
+                    local k="${sub_keys[$i]}"; local n="${sub_names[$i]}"; local p="${sub_pkgs[$i]}"; local a="${sub_acts[$i]}"
+                    
+                    if [ -z "$option_list_fzf" ]; then option_list_fzf="$k"; else option_list_fzf="$option_list_fzf\\\\n$k"; fi
+                    if [ -z "$option_list_select" ]; then option_list_select="\"$k\""; else option_list_select="$option_list_select \"$k\""; fi
+                    
+                    local case_block="        \"$k\")\n            _launch_android_app \"$n\" \"$p\" \"$a\"\n            ;;"
+                    if [ -z "$case_logic" ]; then case_logic="$case_block"; else case_logic="$case_logic\n$case_block"; fi
+                done
+
+                if [ -z "$insert_line_cache" ]; then
+                     local header_line=$(grep -n "^# === $target_cat ===" "$MUX_ROOT/app.sh.temp" | head -n 1 | cut -d: -f1)
+                     if [ -n "$header_line" ]; then 
+                        local next=$(tail -n +$((header_line + 1)) "$MUX_ROOT/app.sh.temp" | grep -n "^# ===" | head -n 1 | cut -d: -f1)
+                        if [ -n "$next" ]; then insert_line_cache=$((header_line + next - 1)); else insert_line_cache=$(wc -l < "$MUX_ROOT/app.sh.temp"); fi
+                     else 
+                        echo -e "\n\n# === Others ===" >> "$MUX_ROOT/app.sh.temp"
+                        insert_line_cache=$(wc -l < "$MUX_ROOT/app.sh.temp")
+                     fi
+                fi
+
+                _bot_say "factory" "Assembling suite '$func_name'..."
+                local temp_block="$MUX_ROOT/plate/block.tmp"
+                cp "$mold_file" "$temp_block"
+                
+                sed -i "s|\[SUITE_NAME\]|$suite_name|g" "$temp_block"
+                sed -i "s|\[FUNC\]|$func_name|g" "$temp_block"
+                sed -i "s|\[OPTION_LIST\]|$option_list_fzf|g" "$temp_block"
+                sed -i "s|\[OPTION_SELECT\]|$option_list_select|g" "$temp_block"
+                
+                awk -v logic="$case_logic" '{ gsub(/\[CASE_LOGIC\]/, logic); print }' "$temp_block" > "${temp_block}.2" && mv "${temp_block}.2" "$temp_block"
+                sed -i 's/\\n/\n/g' "$temp_block"
+                echo "" >> "$temp_block"
+
+                local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp")
+                if [ "$insert_line_cache" -ge "$total_lines" ]; then cat "$temp_block" >> "$MUX_ROOT/app.sh.temp"; else sed -i "${insert_line_cache}r $temp_block" "$MUX_ROOT/app.sh.temp"; fi
+                rm "$temp_block"; _fac_maintenance; _bot_say "success" "Deployed."; echo -ne "${F_WARN}Hot Reload? (y/n): ${F_RESET}"; read r; [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load; return
+                ;;
+            "Cancel") return ;;
+        esac
     done
-
-    if [ "$count" -eq 0 ]; then
-        _bot_say "error" "No modules added. Aborting."
-        return 1
-    fi
-
-    # Step 3: Category Selection
-    _fac_select_category 
-    if [ -z "$INSERT_LINE" ]; then return 1; fi
-
-    # Step 4: Final Review
-    echo -e ""
-    echo -e "${F_MAIN} :: Final Manifest Review ::${F_RESET}"
-    echo -e "${F_GRAY}    --------------------------------${F_RESET}"
-    echo -e "${F_GRAY}    Type     : ${F_MAIN}Ecosystem Suite${F_RESET}"
-    echo -e "${F_GRAY}    Command  : ${F_WARN}$func_name${F_RESET}"
-    echo -e "${F_GRAY}    Sub-Apps : ${F_WARN}$count modules${F_RESET}"
-    echo -e "${F_GRAY}    Keys     : $(echo -e "$option_list_fzf" | sed 's/\\n/, /g')${F_RESET}"
-    echo -e "${F_GRAY}    --------------------------------${F_RESET}"
-    
-    echo -ne "${F_ERR}    ›› TYPE 'CONFIRM' TO FORGE: ${F_RESET}"
-    read confirm_write
-    
-    if [ "$confirm_write" != "CONFIRM" ]; then
-        _bot_say "error" "Fabrication Aborted."
-        return 1
-    fi
-
-    # === Step 5: Assembly ===
-    _bot_say "factory" "Assembling ecosystem suite..."
-
-    local temp_block="$MUX_ROOT/plate/block.tmp"
-    
-    cp "$mold_file" "$temp_block"
-    
-    sed -i "s|\[SUITE_NAME\]|$suite_name|g" "$temp_block"
-    sed -i "s|\[FUNC\]|$func_name|g" "$temp_block"
-    sed -i "s|\[OPTION_LIST\]|$option_list_fzf|g" "$temp_block"
-    sed -i "s|\[OPTION_SELECT\]|$option_list_select|g" "$temp_block"
-    
-    awk -v logic="$case_logic" '{
-        gsub(/\[CASE_LOGIC\]/, logic)
-        print
-    }' "$temp_block" > "${temp_block}.2" && mv "${temp_block}.2" "$temp_block"
-    
-    sed -i 's/\\n/\n/g' "$temp_block"
-
-    # Injection
-    local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp")
-    if [ "$INSERT_LINE" -ge "$total_lines" ]; then
-        cat "$temp_block" >> "$MUX_ROOT/app.sh.temp"
-    else
-        sed -i "${INSERT_LINE}r $temp_block" "$MUX_ROOT/app.sh.temp"
-    fi
-    rm "$temp_block"
-    
-    echo "" >> "$MUX_ROOT/app.sh.temp"
-
-    echo -e "${F_GRE} :: Suite Installed Successfully ::${F_RESET}"
-    
-    echo -ne "${F_WARN}    ›› Hot Reload now? (y/n): ${F_RESET}"
-    read r
-    [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load
 }
 
 # 分類選擇器 (Category Selector Helper)
 function _fac_select_category() {
     local temp_file="$MUX_ROOT/app.sh.temp"
-    
     local cat_list=$(grep "^# ===" "$temp_file" | sed 's/# === //;s/ ===//')
-    
     local menu_items="[+] Create New Sector\n$cat_list"
     
     local selection=$(echo -e "$menu_items" | fzf \
@@ -760,6 +809,7 @@ function _fac_select_category() {
         --border=bottom \
         --prompt=" :: Target Sector › " \
         --header=" :: Select Deployment Zone (ESC = Others) ::" \
+        --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
         --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
         --bind="resize:clear-screen"
@@ -845,10 +895,18 @@ function _fac_wizard_edit() {
     local temp_file="$MUX_ROOT/app.sh.temp"
 
     if [ -z "$target" ]; then
-        echo -e ""
-        echo -e "${F_MAIN} :: Neural Link Diagnostics ::${F_RESET}"
-        echo -ne "${F_WARN}    ›› Enter Target Command to Edit: ${F_RESET}"
-        read target
+        if command -v fzf &> /dev/null; then
+             target=$(grep "^function" "$temp_file" | sed 's/function //' | sed 's/() {//' | fzf \
+                --height=10 --layout=reverse --border=bottom \
+                --prompt=" :: Select Target to Edit › " \
+                --header=" :: Neural Link Diagnostics ::" \
+                --pointer="››" \
+                --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
+        else
+            echo -ne "${F_WARN}    ›› Enter Target Command: ${F_RESET}"
+            read target
+        fi
     fi
 
     if [ -z "$target" ]; then return; fi
@@ -861,10 +919,9 @@ function _fac_wizard_edit() {
     
     local relative_end=$(tail -n +$start_line "$temp_file" | grep -n "^}" | head -n1 | cut -d: -f1)
     local end_line=$((start_line + relative_end - 1))
-    
     local func_body=$(sed -n "${start_line},${end_line}p" "$temp_file")
-    local app_type="UNKNOWN"
     
+    local app_type="UNKNOWN"
     if echo "$func_body" | grep -q "case \"\$target\" in"; then
         app_type="SUITE"
     elif echo "$func_body" | grep -q "_resolve_smart_url"; then
@@ -873,69 +930,20 @@ function _fac_wizard_edit() {
         app_type="LAUNCHER"
     fi
 
+    local current_cat="Unknown"
+    local header_line=$(grep -n "^# ===" "$temp_file" | awk -v sl="$start_line" -F: '$1 < sl {line=$1; content=$0} END {print content}' | sed 's/# === //;s/ ===//')
+    [ -n "$header_line" ] && current_cat="$header_line"
+
     if [ "$app_type" == "SUITE" ]; then
-        while true; do
-            clear
-            _draw_logo "factory"
-
-            echo -e "${F_MAIN} :: Ecosystem Suite Diagnostics ::${F_RESET}"
-            echo -e "${F_GRAY}    Target :${F_RESET} ${F_WARN}$target${F_RESET}"
-            echo -e "${F_GRAY}    Range  :${F_RESET} Lines $start_line-$end_line"
-            echo -e "${F_GRAY}    Type   :${F_RESET} Multi-App Suite"
-            echo -e "${F_GRAY}    --------------------------------${F_RESET}"
-            
-            echo -e "${F_SUB}    [Active Sub-Modules]${F_RESET}"
-            
-            local map_file="$MUX_ROOT/.suite_map"
-            sed -n "${start_line},${end_line}p" "$temp_file" | grep -n "^[[:space:]]*\".*\")" > "$map_file"
-            
-            local i=1
-            local lines=()
-            local keys=()
-            
-            while IFS=: read -r rel_line content; do
-                local abs_line=$((start_line + rel_line - 1))
-                local key_name=$(echo "$content" | cut -d'"' -f2)
-                
-                echo -e "    [$i] \033[1;36m$key_name\033[0m \033[1;30m(Line $abs_line)\033[0m"
-                lines+=("$abs_line")
-                keys+=("$key_name")
-                ((i++))
-            done < "$map_file"
-            rm "$map_file"
-            
-            echo -e ""
-            echo -e "    [a] Add New Module (Injection)"
-            echo -e "    [m] Manual Edit (Nano)"
-            echo -e "    [0] Exit"
-            echo ""
-            
-            echo -ne "${F_WARN}    ›› Select Module to Edit (or Action): ${F_RESET}"
-            read choice
-
-            if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -gt 0 ] && [ "$choice" -le "${#lines[@]}" ]; then
-                local idx=$((choice - 1))
-                local target_line=${lines[$idx]}
-                _bot_say "factory" "Opening maintenance hatch at line $target_line..."
-                nano "+$target_line" "$temp_file"
-            elif [ "$choice" == "a" ]; then
-                _fac_suite_injector "$target" "$start_line" "$end_line"
-                break 
-            elif [ "$choice" == "m" ]; then
-                nano "+$start_line" "$temp_file"
-                break
-            elif [ "$choice" == "0" ]; then
-                break
-            fi
-        done
+        _fac_edit_dashboard_suite "$target" "$start_line" "$end_line" "$current_cat"
         return
     fi
 
     local current_name="Unknown"
     local current_pkg="Unknown"
     local current_act=""
-    local current_engine=""
-
+    local current_engine="GOOGLE"
+    
     if [ "$app_type" == "BROWSER" ]; then
         current_pkg=$(echo "$func_body" | grep "local pkg=" | cut -d'"' -f2)
         current_name=$(echo "$func_body" | grep "_launch_android_app" | head -n1 | cut -d'"' -f2)
@@ -948,98 +956,184 @@ function _fac_wizard_edit() {
         current_act=$(echo "$launch_line" | cut -d'"' -f6)
     fi
 
-    while true; do
-        clear
-        _draw_logo "factory"
+    local ui_name="$current_name"
+    local pkg_id="$current_pkg"
+    local pkg_act="$current_act"
+    local engine_var="$current_engine"
+    local func_name="$target"
+    local target_cat="$current_cat"
+    
+    local st_ok="\033[1;36m[CONFIRM]\033[0m"
+    local st_mod="\033[1;33m[MODIFIED]\033[0m"
+    local func_status="$st_ok"
 
-        echo -e "${F_MAIN} :: Neural Link Diagnostics ::${F_RESET}"
-        echo -e "${F_GRAY}    Target :${F_RESET} ${F_WARN}$target${F_RESET}"
-        echo -e "${F_GRAY}    Type   :${F_RESET} $app_type"
-        echo -e "${F_GRAY}    Range  :${F_RESET} Lines $start_line-$end_line"
-        echo -e "${F_GRAY}    --------------------------------${F_RESET}"
+    while true; do
+        local menu_display=""
+        menu_display="${menu_display}Command  : ${F_MAIN}${func_name}${F_RESET}  ${func_status}\n"
+        menu_display="${menu_display}UI Name  : ${F_SUB}${ui_name}${F_RESET}\n"
+        menu_display="${menu_display}Package  : ${F_SUB}${pkg_id}${F_RESET}\n"
         
-        echo -e "${F_SUB}    [Current Parameters]${F_RESET}"
-        echo -e "    [1] Name    : \033[1;36m$current_name\033[0m"
-        echo -e "    [2] Package : \033[1;32m$current_pkg\033[0m"
-        
-        if [ "$app_type" == "LAUNCHER" ]; then
-            echo -e "    [3] Activity: ${F_GRAY}${current_act:-(Auto)}\033[0m"
-        elif [ "$app_type" == "BROWSER" ]; then
-            echo -e "    [3] Engine  : ${F_GRAY}$current_engine\033[0m"
+        if [ "$app_type" == "BROWSER" ]; then
+            menu_display="${menu_display}Engine   : ${F_CYAN}${engine_var}${F_RESET}\n"
+        else
+            menu_display="${menu_display}Activity : ${F_SUB}${pkg_act:-[Auto]}${F_RESET}\n"
         fi
         
-        echo -e ""
-        echo -e "    [r] Rename Command (Refactor)"
-        echo -e "    [m] Manual Edit (Nano)"
-        echo -e "    [0] Save & Exit"
-        echo ""
-        
-        echo -ne "${F_WARN}    ›› Select Parameter to Modify: ${F_RESET}"
-        read choice
+        menu_display="${menu_display}Category : ${F_WARN}${target_cat}${F_RESET}\n"
+        menu_display="${menu_display}\n"
+        menu_display="${menu_display}Manual   : Edit Source Code (Nano)\n"
+        menu_display="${menu_display}Delete   : Terminate Neural Link\n"
+        menu_display="${menu_display}Confirm  : Apply Changes\n"
+        menu_display="${menu_display}Cancel   : Discard Changes"
 
-        case "$choice" in
-            1)
-                echo -ne "${F_SUB}    ›› New Name: ${F_RESET}"
-                read new_val
-                if [ -n "$new_val" ]; then
-                    _bot_say "factory" "Patching Display Name..."
-                    sed -i "${start_line},${end_line}s/\"$current_name\"/\"$new_val\"/g" "$temp_file"
-                    current_name="$new_val"
-                fi
-                ;;
-            2)
-                echo -ne "${F_SUB}    ›› New Package ID: ${F_RESET}"
-                read new_val
-                if [ -n "$new_val" ]; then
-                    _bot_say "factory" "Injecting Package ID..."
-                    if [ "$app_type" == "BROWSER" ]; then
-                         sed -i "${start_line},${end_line}s/local pkg=\"$current_pkg\"/local pkg=\"$new_val\"/" "$temp_file"
-                    else
-                         sed -i "${start_line},${end_line}s/\"$current_pkg\"/\"$new_val\"/g" "$temp_file"
-                    fi
-                    current_pkg="$new_val"
-                fi
-                ;;
-            3)
-                if [ "$app_type" == "LAUNCHER" ]; then
-                    echo -ne "${F_SUB}    ›› New Activity (Enter to clear): ${F_RESET}"
-                    read new_val
-                    _bot_say "factory" "Re-constructing Launch Vector..."
-                    local new_line="    _launch_android_app \"$current_name\" \"$current_pkg\" \"$new_val\""
-                    sed -i "${start_line},${end_line}s|^.*_launch_android_app.*|$new_line|" "$temp_file"
-                    current_act="$new_val"
-                elif [ "$app_type" == "BROWSER" ]; then
-                     echo -ne "${F_SUB}    ›› New Engine (GOOGLE/BING/DUCK/YOUTUBE): ${F_RESET}"
-                     read new_val
-                     new_val=$(echo "$new_val" | tr '[:lower:]' '[:upper:]')
-                     _bot_say "factory" "Switching Search Engine..."
-                     local new_resolve="    _resolve_smart_url \"\$SEARCH_$new_val\" \"\$@\""
-                     sed -i "${start_line},${end_line}s|^.*_resolve_smart_url.*|$new_resolve|" "$temp_file"
-                     current_engine="$new_val"
-                fi
-                ;;
-            r|R)
-                echo -ne "${F_WARN}    ›› New Command Alias (e.g. yt -> youtube): ${F_RESET}"
+        local selection=$(echo -e "$menu_display" | fzf \
+            --ansi --height=45% --layout=reverse --border=bottom \
+            --prompt=" :: Edit ${app_type} › " --header=" :: Modify Neural Parameters ::" --pointer="››" \
+            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+            --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
+
+        if [ -z "$selection" ]; then return; fi
+        local key=$(echo "$selection" | awk '{print $1}')
+
+        case "$key" in
+            "Command")
+                echo -ne "${F_MAIN}    ›› Rename Command (Current: $func_name): ${F_RESET}"
                 read new_cmd
-                if [ -n "$new_cmd" ]; then
+                if [ -n "$new_cmd" ] && [ "$new_cmd" != "$func_name" ]; then
                     if grep -q "function $new_cmd() {" "$temp_file"; then
                         _bot_say "error" "Command '$new_cmd' already exists."
+                        sleep 1
                     else
-                        _bot_say "factory" "Refactoring neural pathway..."
-                        sed -i "${start_line}s/function $target() {/function $new_cmd() {/" "$temp_file"
-                        target="$new_cmd"
-                        _bot_say "success" "Command renamed to '$new_cmd'."
+                        func_name="$new_cmd"
+                        func_status="$st_mod"
                     fi
                 fi
                 ;;
-            m) nano "+$start_line" "$temp_file"; return ;;
-            0) return ;;
-            *) return ;;
+            "UI") echo -ne "${F_SUB}    ›› New UI Name: ${F_RESET}"; read val; [ -n "$val" ] && ui_name="$val" ;;
+            "Package") echo -ne "${F_SUB}    ›› New Package: ${F_RESET}"; read val; [ -n "$val" ] && pkg_id="$val" ;;
+            "Activity") echo -ne "${F_SUB}    ›› New Activity: ${F_RESET}"; read val; pkg_act="$val" ;; # Allow empty
+            "Engine")
+                local eng=$(echo -e "GOOGLE\nBING\nDUCK\nYOUTUBE\nGITHUB" | fzf --height=20% --layout=reverse --border=bottom --prompt=" :: Select Engine › " --pointer="››" --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
+                [ -n "$eng" ] && engine_var="$eng"
+                ;;
+            "Category") _fac_select_category; if [ -n "$CATEGORY_NAME" ]; then target_cat="$CATEGORY_NAME"; fi ;;
+            
+            "Manual") nano "+$start_line" "$temp_file"; return ;;
+            "Delete") _fac_del "$target"; return ;;
+            
+            "Confirm")
+                _bot_say "factory" "Refactoring module '$target'..."
+                
+                if [ "$func_name" != "$target" ]; then
+                    sed -i "${start_line}s/function $target() {/function $func_name() {/" "$temp_file"
+                    target="$func_name"
+                fi
+                
+                if [ "$ui_name" != "$current_name" ]; then
+                    sed -i "${start_line},${end_line}s/\"$current_name\"/\"$ui_name\"/" "$temp_file"
+                fi
+                
+                if [ "$pkg_id" != "$current_pkg" ]; then
+                    if [ "$app_type" == "BROWSER" ]; then
+                        sed -i "${start_line},${end_line}s/local pkg=\"$current_pkg\"/local pkg=\"$pkg_id\"/" "$temp_file"
+                    else
+                        sed -i "${start_line},${end_line}s/\"$current_pkg\"/\"$pkg_id\"/" "$temp_file"
+                    fi
+                fi
+                
+                if [ "$app_type" == "LAUNCHER" ] && [ "$pkg_act" != "$current_act" ]; then
+                     local new_line="    _launch_android_app \"$ui_name\" \"$pkg_id\" \"$pkg_act\""
+                     sed -i "${start_line},${end_line}s|^.*_launch_android_app.*|$new_line|" "$temp_file"
+                fi
+                
+                if [ "$app_type" == "BROWSER" ] && [ "$engine_var" != "$current_engine" ]; then
+                     local new_res="    _resolve_smart_url \"\$SEARCH_$engine_var\" \"\$@\""
+                     sed -i "${start_line},${end_line}s|^.*_resolve_smart_url.*|$new_res|" "$temp_file"
+                fi
+
+                if [ "$target_cat" != "$current_cat" ]; then
+                    _fac_cat_move "$target"
+                fi
+                
+                _fac_maintenance
+                _bot_say "success" "Modifications applied."
+                return
+                ;;
+                
+            "Cancel") return ;;
         esac
     done
 }
 
-# 生態系套件注入器 - Suite Injector
+# 輔助：Suite 編輯儀表板 (Sub-routine)
+function _fac_edit_dashboard_suite() {
+    local target="$1"
+    local start_line="$2"
+    local end_line="$3"
+    local current_cat="$4"
+    local temp_file="$MUX_ROOT/app.sh.temp"
+
+    while true; do
+        local sub_count=$(sed -n "${start_line},${end_line}p" "$temp_file" | grep -c "\")")
+        local mod_status="${F_WARN}[ $sub_count Items ]${F_RESET}"
+
+        local menu_display=""
+        menu_display="${menu_display}Command  : ${F_MAIN}${target}${F_RESET}\n"
+        menu_display="${menu_display}Type     : ${F_CYAN}Ecosystem Suite${F_RESET}\n"
+        menu_display="${menu_display}Category : ${F_WARN}${current_cat}${F_RESET}\n"
+        menu_display="${menu_display}Modules  : ${mod_status} (Click to Manage)\n"
+        menu_display="${menu_display}\n"
+        menu_display="${menu_display}Manual   : Edit Source Code (Nano)\n"
+        menu_display="${menu_display}Delete   : Terminate Suite\n"
+        menu_display="${menu_display}Cancel   : Return to Radar"
+
+        local selection=$(echo -e "$menu_display" | fzf \
+            --ansi --height=40% --layout=reverse --border=bottom \
+            --prompt=" :: Edit Suite › " --header=" :: Ecosystem Diagnostics ::" --pointer="››" \
+            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+            --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
+
+        if [ -z "$selection" ]; then return; fi
+        local key=$(echo "$selection" | awk '{print $1}')
+
+        case "$key" in
+            "Modules")
+                local map_file="$MUX_ROOT/.suite_map"
+                sed -n "${start_line},${end_line}p" "$temp_file" | grep -n "^[[:space:]]*\".*\")" > "$map_file"
+                
+                local sub_menu="[+] Add New Module\n"
+                local i=1
+                local lines=()
+                
+                while IFS=: read -r rel_line content; do
+                    local key_name=$(echo "$content" | cut -d'"' -f2)
+                    sub_menu="${sub_menu}[$i] Edit Module: $key_name\n"
+                    lines+=("$((start_line + rel_line - 1))")
+                    ((i++))
+                done < "$map_file"
+                rm "$map_file"
+
+                local sub_sel=$(echo -e "$sub_menu" | fzf --height=40% --layout=reverse --border=bottom --prompt=" :: Module Manager › " --pointer="››" --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
+                
+                if [[ "$sub_sel" == *"[+]"* ]]; then
+                    _fac_suite_injector "$target" "$start_line" "$end_line"
+                elif [[ "$sub_sel" =~ \[([0-9]+)\] ]]; then
+                    local idx=$((${BASH_REMATCH[1]} - 1))
+                    local target_line=${lines[$idx]}
+                    _bot_say "factory" "Opening maintenance hatch..."
+                    nano "+$target_line" "$temp_file"
+                fi
+                ;;
+            
+            "Category") _fac_cat_move "$target"; return ;;
+            "Manual") nano "+$start_line" "$temp_file"; return ;;
+            "Delete") _fac_del "$target"; return ;;
+            "Cancel") return ;;
+        esac
+    done
+}
+
+# 生態系套件注入器 - Suite Injector (Optimized)
 function _fac_suite_injector() {
     local target="$1"
     local start_line="$2"
@@ -1066,13 +1160,10 @@ function _fac_suite_injector() {
 
     _bot_say "factory" "Injecting module '$sub_key' into suite '$target'..."
 
-    # 1. Update FZF List
     sed -i "${start_line},${end_line}s/\" | fzf/\\\\n$sub_key\" | fzf/" "$temp_file"
 
-    # 2. Update Select List
     sed -i "${start_line},${end_line}s/; do/ \"$sub_key\"; do/" "$temp_file"
 
-    # 3. Insert Case Logic
     local rel_esac=$(sed -n "${start_line},${end_line}p" "$temp_file" | grep -n "esac" | tail -n1 | cut -d: -f1)
     
     if [ -n "$rel_esac" ]; then
@@ -1254,10 +1345,13 @@ function _fac_cat_rename() {
     local old_name=""
 
     if command -v fzf &> /dev/null; then
-        local sel=$(grep -n "^# ===" "$temp_file" | fzf --height=10 --layout=reverse --prompt=" :: Rename Sector › " --border=none)
-        [ -z "$sel" ] && return
-        target_line=$(echo "$sel" | cut -d: -f1)
-        old_name=$(echo "$sel" | cut -d: -f2 | sed 's/# === //;s/ ===//')
+        local sel=$(grep -n "^# ===" "$temp_file" | fzf \
+            --height=10 --layout=reverse --border=bottom \
+            --prompt=" :: Rename Sector › " \
+            --pointer="››" \
+            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+            --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+        )
     else
         local map_file="$MUX_ROOT/.cat_map"
         grep -n "^# ===" "$temp_file" > "$map_file"
@@ -1293,10 +1387,13 @@ function _fac_cat_delete() {
     local target_line=""
 
     if command -v fzf &> /dev/null; then
-        local sel=$(grep -n "^# ===" "$temp_file" | fzf --height=10 --layout=reverse --prompt=" :: Rename Sector › " --border=none)
-        [ -z "$sel" ] && return
-        target_line=$(echo "$sel" | cut -d: -f1)
-        old_name=$(echo "$sel" | cut -d: -f2 | sed 's/# === //;s/ ===//')
+        local sel=$(grep -n "^# ===" "$temp_file" | fzf \
+            --height=10 --layout=reverse --border=bottom \
+            --prompt=" :: Remove Sector › " \
+            --pointer="››" \
+            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+            --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+        )
     else
         local map_file="$MUX_ROOT/.cat_map"
         grep -n "^# ===" "$temp_file" > "$map_file"
@@ -1335,7 +1432,13 @@ function _fac_cat_move() {
 
     if [ -z "$target_app" ]; then
         if command -v fzf &> /dev/null; then
-            target_app=$(grep "^function" "$temp_file" | sed 's/function //' | sed 's/() {//' | fzf --height=10 --layout=reverse --prompt=" :: Select Unit to Relocate › " --border=bottom)
+            target_app=$(grep "^function" "$temp_file" | sed 's/function //' | sed 's/() {//' | fzf \
+                --height=10 --layout=reverse --border=bottom \
+                --prompt=" :: Select Unit to Relocate › " \
+                --pointer="››" \
+                --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+            )
         else
             echo -ne "${F_WARN}    ›› Enter App Name: ${F_RESET}"
             read target_app
