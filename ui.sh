@@ -409,19 +409,72 @@ function _mux_uplink_sequence() {
 
 # 顯示兵工廠狀態 - Display Factory Status
 function _factory_show_status() {
-    local func_count=$(grep -c "^function" "$MUX_ROOT/app.sh")
-    local backup_count=$(ls "$MUX_ROOT/bak/" 2>/dev/null | wc -l)
-    local last_sync=$(grep "Last Sync" "$MUX_ROOT/app.sh" | cut -d: -f2- | sed 's/::/\n/' | xargs)
-    [ -z "$last_sync" ] && last_sync="Unknown"
-
     local F_MAIN="\033[1;38;5;208m"
     local F_SUB="\033[1;37m"
     local F_WARN="\033[1;33m"
+    local F_ERR="\033[1;31m"
+    local F_GRAY="\033[1;30m"
+    local F_CYAN="\033[1;36m"
+    local F_RESET="\033[0m"
+
+    local temp_file="$MUX_ROOT/app.sh.temp"
     
-    echo -e "${F_MAIN} :: Factory Operational Status \033[0m"
-    echo -e "${F_SUB}    ›› Active Links  :\033[0m ${F_WARN}$func_count\033[0m"
-    echo -e "${F_SUB}    ›› Secure Backups:\033[0m ${F_WARN}$backup_count\033[0m"
-    echo -e "${F_SUB}    ›› Last Deploy   :\033[0m \033[1;36m$last_sync\033[0m"
+    echo -e ""
+    echo -e "${F_MAIN} :: Neural Forge Status Report ::${F_RESET}"
+    echo -e "${F_GRAY}    --------------------------------${F_RESET}"
+
+    if [ -f "$temp_file" ]; then
+        local line_count=$(wc -l < "$temp_file")
+        local func_count=$(grep "^function" "$temp_file" | wc -l)
+        local size=$(du -h "$temp_file" | cut -f1)
+        
+        echo -e "${F_GRAY}    Target  : ${F_WARN}app.sh.temp${F_RESET}"
+        echo -e "${F_GRAY}    Size    : $size ($line_count lines)"
+        echo -e "${F_GRAY}    Modules : ${F_SUB}$func_count active links${F_RESET}"
+    else
+        echo -e "${F_ERR}    Target  : CRITICAL ERROR (Sandbox Missing)${F_RESET}"
+    fi
+
+    echo -e ""
+    echo -e "${F_SUB} [Temporal Snapshots (Time Stone)]${F_RESET}"
+    
+    local snapshots=(".app.sh.undo1" ".app.sh.undo2" ".app.sh.undo3")
+    local labels=("Recent (Undo 1)" "Backup (Undo 2)" "Oldest (Undo 3)")
+    local found_any=0
+    
+    for i in {0..2}; do
+        local f="${snapshots[$i]}"
+        local path="$MUX_ROOT/$f"
+        local label="${labels[$i]}"
+        
+        if [ -f "$path" ]; then
+            local ts=$(date -r "$path" "+%Y-%m-%d %H:%M:%S" 2>/dev/null)
+            if [ -z "$ts" ]; then
+                ts=$(stat -c %y "$path" 2>/dev/null | cut -d. -f1)
+            fi
+            
+            local f_size=$(du -h "$path" 2>/dev/null | cut -f1)
+            
+            echo -e "    ${F_CYAN}[$label]${F_RESET}"
+            echo -e "      › Time : $ts"
+            echo -e "      › Size : $f_size"
+            found_any=1
+        else
+            echo -e "    ${F_GRAY}[$label]${F_RESET}"
+            echo -e "      › -- Empty Slot --"
+        fi
+    done
+    
+    if [ "$found_any" -eq 0 ]; then
+        echo -e ""
+        echo -e "${F_GRAY}    (No temporal snapshots available. Make a change to trigger backup.)${F_RESET}"
+    fi
+
+    echo -e "${F_GRAY}    --------------------------------${F_RESET}"
+    
+    if command -v _bot_say &> /dev/null; then
+        _bot_say "factory" "Status report generated."
+    fi
 }
 
 # 顯示兵工廠資訊 - Display Factory Info Manifest
