@@ -326,126 +326,171 @@ function _fac_stamp_launcher() {
     _fac_snapshot
 
     local mold_file="$MUX_ROOT/plate/template.txt"
-    
     if [ ! -f "$mold_file" ]; then 
         _bot_say "error" "Launcher mold missing ($mold_file)."
         return 1
     fi
 
-    # Step 1: Pre-flight
-    echo -ne "${F_WARN} :: Launch 'apklist' helper? (y/n): ${F_RESET}"
-    read launch_apk
-    if [[ "$launch_apk" == "y" || "$launch_apk" == "Y" ]]; then
-        apklist
-    fi
-
-    # Step 2: Data Collection
-    # 2.1 UI Display Name
-    echo -e ""
-    echo -ne "${F_SUB} :: UI Display Name (e.g. YouTube): ${F_RESET}"
-    read app_name
-    [ -z "$app_name" ] && app_name="Unknown App"
-
-    # 2.2 Package Name
-    echo -ne "${F_SUB} :: Package Name (Enter to skip): ${F_RESET}"
-    read pkg_id
-    
-    if [ -z "$pkg_id" ]; then 
-        echo -e "${F_WARN}    ›› No Package ID detected. Using placeholder.${F_RESET}"
-        pkg_id="com.null.placeholder"
-    fi
-
-    # 2.3 Activity Name
-    echo -ne "${F_SUB} :: Activity Name (Optional): ${F_RESET}"
-    read pkg_act
-
-    # 2.4 Command Name (Auto-Gen Fix)
-    echo -e ""
-    echo -ne "${F_MAIN} :: Assign Command Name (Enter to auto-gen): ${F_RESET}"
-    read input_func
-    
+    # --- 初始化變數 (Default Values) ---
+    local ui_name="Unknown"
+    local pkg_id="com.null.placeholder"
+    local pkg_act=""      # 空白代表 Auto
+    local target_cat="Others"
     local func_name=""
-    if [ -z "$input_func" ]; then
-        local clean_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
-        func_name="$clean_name"
-        echo -e "${F_WARN}    ›› Auto-assigned command: $func_name${F_RESET}"
-    else
-        func_name="$input_func"
-    fi
-
-    if [ -z "$func_name" ]; then
-        _bot_say "error" "Command name generation failed."
-        return 1
-    fi
-
-    # Step 3: Safety Check
-    if grep -qE "function[[:space:]]+$func_name[[:space:]]*\(" "$MUX_ROOT/app.sh.temp"; then
-        _bot_say "error" "Module '$func_name' already exists."
-        return 1
-    fi
-
-    # Step 4: Category Selection
-    _fac_select_category 
     
-    if [ -z "$INSERT_LINE" ]; then
-        _bot_say "error" "Placement calculation failed."
-        return 1
-    fi
+    # 狀態標記
+    local func_status="${F_ERR}[REQUIRED]${F_RESET}"
+    local insert_line_cache="" # 用來暫存 Category 計算出的行號
 
-    # Step 5: Final Manifest Review
-    echo -e ""
-    echo -e "${F_MAIN} :: Final Manifest Review ::${F_RESET}"
-    echo -e "${F_GRAY}    --------------------------------${F_RESET}"
-    echo -e "${F_GRAY}    Sector   : ${F_WARN}$CATEGORY_NAME${F_RESET}"
-    echo -e "${F_GRAY}    Command  : ${F_WARN}$func_name${F_RESET}"
-    echo -e "${F_GRAY}    Package  : $pkg_id${F_RESET}"
-    echo -e "${F_GRAY}    Activity : ${pkg_act:-[Auto]}${F_RESET}"
-    echo -e "${F_GRAY}    --------------------------------${F_RESET}"
-    
-    echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO FORGE: ${F_RESET}"
-    read confirm_write
-    
-    if [ "$confirm_write" != "CONFIRM" ]; then
-        echo -e ""
-        _bot_say "error" "Authentication Failed. Fabrication Aborted."
-        echo -e "${F_GRAY}    ›› Material scrapped. All data discarded.${F_RESET}"
-        return 1
-    fi
+    # --- 儀表板循環 ---
+    while true; do
+        # 1. 建構選單顯示內容
+        local menu_display=""
+        
+        # [1] 指令欄位 (動態顯示狀態)
+        menu_display="${menu_display}1. Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET} ${func_status}\n"
+        
+        # [2-5] 其他參數
+        menu_display="${menu_display}2. UI Name  : ${F_SUB}${ui_name}${F_RESET}\n"
+        menu_display="${menu_display}3. Package  : ${F_SUB}${pkg_id}${F_RESET}\n"
+        menu_display="${menu_display}4. Activity : ${F_SUB}${pkg_act:-[Auto]}${F_RESET}\n"
+        menu_display="${menu_display}5. Category : ${F_WARN}${target_cat}${F_RESET}\n"
+        
+        # [6-8] 功能鍵
+        menu_display="${menu_display}\n[ apklist ] : Open APK Reference List"
+        menu_display="${menu_display}\n[ CONFIRM ] : Forge Neural Link"
+        menu_display="${menu_display}\n[ CANCEL  ] : Abort Operation"
 
-    # Step 6: Assembly
-    _bot_say "factory" "Stamping module..."
+        # 2. FZF 渲染儀表板
+        local selection=$(echo -e "$menu_display" | fzf \
+            --ansi \
+            --height=40% \
+            --layout=reverse \
+            --border=bottom \
+            --prompt=" :: Launcher Forge › " \
+            --header=" :: Fill in parameters. Select to Edit. ::" \
+            --color=header:yellow,prompt:cyan,border:blue
+        )
 
-    local temp_block="$MUX_ROOT/plate/block.tmp"
-    
-    cat "$mold_file" \
-        | sed "s/\[FUNC\]/$func_name/g" \
-        | sed "s/\[NAME\]/$app_name/g" \
-        | sed "s/\[PKG_ID\]/$pkg_id/g" \
-        | sed "s/\[PKG_ACT\]/$pkg_act/g" \
-        > "$temp_block"
+        # 3. 處理使用者選擇
+        if [ -z "$selection" ]; then return; fi # ESC
 
-    echo "" >> "$temp_block"
-    
-    local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp")
-    if [ "$INSERT_LINE" -ge "$total_lines" ]; then
-        cat "$temp_block" >> "$MUX_ROOT/app.sh.temp"
-    else
-        sed -i "${INSERT_LINE}r $temp_block" "$MUX_ROOT/app.sh.temp"
-    fi
-    rm "$temp_block"
-    
-    local last_char=$(tail -c 1 "$MUX_ROOT/app.sh.temp")
-    if [ "$last_char" != "" ]; then echo "" >> "$MUX_ROOT/app.sh.temp"; fi
+        # 提取選項關鍵字 (1, 2, apklist, CONFIRM...)
+        local key=$(echo "$selection" | awk '{print $1}')
+        local clean_selection=$(echo "$selection" | sed 's/\x1b\[[0-9;]*m//g') # 去除顏色碼方便判斷
 
-    echo -e "${F_GRE} :: Module Installed Successfully ::${F_RESET}"
-    echo -e ""
-    
-    # Step 7: Reload
-    echo -ne "${F_WARN} :: Hot Reload now? (y/n): ${F_RESET}"
-    read reload_choice
-    if [[ "$reload_choice" == "y" || "$reload_choice" == "Y" ]]; then
-        _fac_load
-    fi
+        case "$key" in
+            "1.")
+                echo -ne "${F_MAIN}    ›› Assign Command Name: ${F_RESET}"
+                read input_func
+                if [ -n "$input_func" ]; then
+                    if grep -qE "function[[:space:]]+$input_func[[:space:]]*\(" "$MUX_ROOT/app.sh.temp"; then
+                        func_name="$input_func"
+                        func_status="${F_ERR}[DUPLICATE]${F_RESET}"
+                    else
+                        func_name="$input_func"
+                        func_status="${F_GRE}[OK]${F_RESET}"
+                    fi
+                fi
+                ;;
+
+            "2.")
+                echo -ne "${F_SUB}    ›› UI Display Name: ${F_RESET}"
+                read input_ui
+                [ -n "$input_ui" ] && ui_name="$input_ui"
+                ;;
+
+            "3.")
+                echo -ne "${F_SUB}    ›› Package Name: ${F_RESET}"
+                read input_pkg
+                [ -n "$input_pkg" ] && pkg_id="$input_pkg"
+                ;;
+
+            "4.") # Edit Activity
+                echo -ne "${F_SUB}    ›› Activity (Enter to Auto): ${F_RESET}"
+                read input_act
+                pkg_act="$input_act" # 允許為空
+                ;;
+
+            "5.")
+                _fac_select_category
+                if [ -n "$CATEGORY_NAME" ]; then
+                    target_cat="$CATEGORY_NAME"
+                    insert_line_cache="$INSERT_LINE"
+                fi
+                ;;
+
+            "[")
+                if [[ "$clean_selection" == *"[ apklist ]"* ]]; then
+                    if command -v apklist &> /dev/null; then
+                        apklist
+                        echo -e ""
+                        echo -ne "\033[1;30m    (Press Enter to return to Dashboard...)\033[0m"
+                        read
+                    else
+                        _bot_say "error" "'apklist' module not found."
+                        sleep 1
+                    fi
+                
+                elif [[ "$clean_selection" == *"[ CONFIRM ]"* ]]; then
+                    if [ -z "$func_name" ]; then
+                        _bot_say "error" "Command Name is required."
+                        sleep 1
+                        continue
+                    fi
+                    if [[ "$func_status" == *"[DUPLICATE]"* ]]; then
+                        _bot_say "error" "Command '$func_name' already exists."
+                        sleep 1
+                        continue
+                    fi
+
+                    if [ -z "$insert_line_cache" ]; then
+                        CATEGORY_NAME="$target_cat"
+                        _fac_select_category > /dev/null
+                        local header_line=$(grep -n "^# === $target_cat ===" "$MUX_ROOT/app.sh.temp" | head -n 1 | cut -d: -f1)
+                        if [ -n "$header_line" ]; then
+                             local next=$(tail -n +$((header_line + 1)) "$MUX_ROOT/app.sh.temp" | grep -n "^# ===" | head -n 1 | cut -d: -f1)
+                             if [ -n "$next" ]; then insert_line_cache=$((header_line + next - 1)); else insert_line_cache=$(wc -l < "$MUX_ROOT/app.sh.temp"); fi
+                        else
+                             echo -e "\n\n# === Others ===" >> "$MUX_ROOT/app.sh.temp"
+                             insert_line_cache=$(wc -l < "$MUX_ROOT/app.sh.temp")
+                        fi
+                    fi
+
+                    _bot_say "factory" "Forging link '$func_name'..."
+                    
+                    local temp_block="$MUX_ROOT/plate/block.tmp"
+                    cat "$mold_file" \
+                        | sed "s/\[FUNC\]/$func_name/g" \
+                        | sed "s/\[NAME\]/$ui_name/g" \
+                        | sed "s/\[PKG_ID\]/$pkg_id/g" \
+                        | sed "s/\[PKG_ACT\]/$pkg_act/g" \
+                        > "$temp_block"
+                    echo "" >> "$temp_block"
+
+                    local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp")
+                    if [ "$insert_line_cache" -ge "$total_lines" ]; then
+                        cat "$temp_block" >> "$MUX_ROOT/app.sh.temp"
+                    else
+                        sed -i "${insert_line_cache}r $temp_block" "$MUX_ROOT/app.sh.temp"
+                    fi
+                    rm "$temp_block"
+                    
+                    _fac_maintenance
+                    _bot_say "success" "Module '$func_name' deployed."
+                    
+                    echo -ne "${F_WARN}    ›› Hot Reload now? (y/n): ${F_RESET}"
+                    read r
+                    [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load
+                    return
+
+                elif [[ "$clean_selection" == *"[ CANCEL ]"* ]]; then
+                    echo -e "\033[1;30m    ›› Operation aborted.\033[0m"
+                    return
+                fi
+                ;;
+        esac
+    done
 }
 
 # 鑄造工序：瀏覽器應用 (Browser App Stamp)
