@@ -1,5 +1,10 @@
 # system.sh - 系統基礎建設
 
+if [ -z "$__MUX_CORE_ACTIVE" ]; then
+    echo -e "\033[1;31m :: ACCESS DENIED :: Core Uplink Required.\033[0m"
+    return 1 2>/dev/null || exit 1
+fi
+
 function _sys_cmd() {
     local name="$1"
     local intent="$2"
@@ -11,6 +16,9 @@ function _sys_cmd() {
 # 瀏覽器網址搜尋引擎 - https://engine.com/search?q=
 export SEARCH_GOOGLE="https://www.google.com/search?q="
 export SEARCH_BING="https://www.bing.com/search?q="
+export SEARCH_DUCK="https://duckduckgo.com/?q="
+export SEARCH_YOUTUBE="https://www.youtube.com/results?search_query="
+export SEARCH_GITHUB="https://github.com/search?q="
 
 export __GO_TARGET=""
 export __GO_MODE=""
@@ -37,6 +45,7 @@ function _resolve_smart_url() {
         __GO_MODE="neural"
     fi
 }
+
 
 # === System Tools ===
 
@@ -82,12 +91,6 @@ function wb() {
 function ai() {
     _require_no_args "$@" || return 1
     am start -a android.intent.action.VOICE_COMMAND >/dev/null 2>&1
-}
-
-# : Console test (Debug)
-function console() {
-    _require_no_args "$@" || return 1
-    _launch_android_app "Ghost App" "com.ghost.not.exist" ""
 }
 
 

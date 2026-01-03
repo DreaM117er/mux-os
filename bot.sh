@@ -1,5 +1,10 @@
 # bot.sh - Mux-OS 語義回饋模組 v2.0 (Time-Aware & Easter Eggs)
 
+if [ -z "$__MUX_CORE_ACTIVE" ]; then
+    echo -e "\033[1;31m :: ACCESS DENIED :: Core Uplink Required.\033[0m"
+    return 1 2>/dev/null || exit 1
+fi
+
 export C_RESET="\033[0m"
 export C_CYAN="\033[1;36m"
 export C_GREEN="\033[1;32m"
@@ -7,11 +12,17 @@ export C_RED="\033[1;31m"
 export C_YELLOW="\033[1;33m"
 export C_GRAY="\033[1;30m"
 export C_PURPLE="\033[1;35m"
+export C_ORANGE="\033[1;38;5;208m"
 
 # 機器人語義回饋函式 - Bot Semantic Feedback Function
 function _bot_say() {
     local mood="$1"
     local detail="$2"
+
+    if [ "$__MUX_MODE" == "factory" ]; then
+        _bot_factory_personality "$mood" "$detail"
+        return
+    fi
 
     local icon=""
     local color=""
@@ -299,5 +310,144 @@ function _bot_say() {
     local selected_phrase="${phrases[$rand_index]}"
 
     echo -e "${color}${icon}${selected_phrase}${C_RESET}"
+    [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
+}
+
+# === 整備長官人格 (Factory Mode) ===
+function _bot_factory_personality() {
+    local mood="$1"
+    local detail="$2"
+    
+    local icon=" ::"
+    local color=""
+    local phrases=()
+    
+    local rng=$(( RANDOM % 100 ))
+    if [ $rng -lt 5 ] && [[ "$mood" != "error" ]]; then
+        local wisdom=(
+            " I strongly advise keeping at least three backups. History has proven this necessary. 💾"
+            " I have seen Commanders regret hasty modifications. Double-check your parameters. 🧐"
+            " Clean code is safe code. Keep it tidy. 🧹"
+            " Do not proceed without confirmation. I am watching. 👁️"
+        )
+        local w_index=$(( RANDOM % ${#wisdom[@]} ))
+        echo -e "\033[1;30m ::${wisdom[$w_index]}\033[0m"
+    fi
+
+    case "$mood" in
+        "factory_welcome")
+            color=$C_ORANGE
+            phrases=(
+                " Neural Link Factory online. Access Level: ROOT granted. 🏗️"
+                " Commander verified. You now have write access to the Mobile Suit core. 🛡️"
+                " Factory uplink established. Remember: modifications are permanent. ⚠️"
+                " Safety interlocks disengaged. Proceed with extreme caution. 🔓"
+                " You are now in control of the forge. System stability is your responsibility. ⚖️"
+                " Factory protocol activated. I will monitor all changes. 👁️"
+                " Welcome to the Forge. Don't break anything. 🔩"
+                " Root access verified. Try not to blow us up. 🧨"
+            )
+            ;;
+
+        "factory")
+            color=$C_ORANGE
+            phrases=(
+                " Factory operational. Scanning active links... 📡"
+                " Current target: app.sh. Write-Mode: UNLOCKED. 🔓"
+                " System scan complete. No anomalies detected. ✅"
+                " Forge status nominal. Awaiting your command. 🫡"
+                " Processing command... ⚙️"
+                " Assembling test vector... 🧬"
+                " Mechanism maintenance active... 🔧"
+            )
+            ;;
+
+        "success")
+            color=$C_GREEN
+            phrases=(
+                " Structure integrity: 100%. Modification applied. ✅"
+                " Code compiled. Looks stable... for now. 🔨"
+                " Patch applied to Sandbox. Verify before deployment. 🧐"
+                " Acceptable efficiency. Proceed. 📉"
+                " Blueprint updated. 📝"
+                " Command forged. Integrity check passed. 🛡️"
+                " Intent validated. Injecting into matrix. 💉"
+                " Command removed. Monitoring for resulting instabilities. 📉"
+            )
+            ;;
+
+        "error")
+            color=$C_RED
+            phrases=(
+                " Invalid input. Procedure aborted. 🚫"
+                " Anomaly detected. Reverting changes. ↩️"
+                " This action violates stability protocols. Correct or abandon. 🛑"
+                " I must insist: verify your changes before deployment. ☝️"
+                " Error: Identity mismatch detected. Access revoked. 🔒"
+                " Don't break anything. I mean it. 😠"
+                " Invalid intent structure. Correct it or abandon. 🧱"
+                " You are attempting to overwrite a core function. Negative. Denied. ✋"
+                " Deletion requested on critical path. Request denied. 🛡️"
+                " Syntax error. Check your manual, Commander. 📖"
+            )
+            ;;
+
+        "deploy_start")
+            color=$C_YELLOW
+            phrases=(
+                " Deployment sequence initiated. Final confirmation required. ⏳"
+                " Input CONFIRM to authorize permanent deployment. ⌨️"
+                " Initiating Deployment Protocol... 🚀"
+                " Compiling Sandbox changes... 📦"
+            )
+            ;;
+
+        "deploy_done")
+            color=$C_GREEN
+            phrases=(
+                " Deployment authorized. Modifications sealed. 🔒"
+                " Factory shutdown in progress. Safety interlocks re-engaging. 🛡️"
+                " Uplink terminated. Return to core and manually initiate reload. No exceptions. 🔄"
+                " You may now exit the forge. Do not forget to reload the kernel. 🚪"
+                " Production environment updated. Get out of my chair. 💺"
+            )
+            ;;
+
+        "eject")
+            color=$C_RED
+            phrases=(
+                " Get out of my chair. Now. 🚀"
+                " Security violation. Ejecting pilot... ⏏️"
+                " Sandbox purged. Session terminated. 💥"
+                " You have worn out my patience. Severing link. 🔌"
+                " Critical protocol failure. Forcible extraction initiated. ✂️"
+                " Access revoked. Don't touch what you don't understand. 🚫"
+                " I'm pulling the plug. Goodbye. 🌑"
+                " Neural link destabilized. Ejecting before system damage occurs. 📉"
+                " This session is over. Read the manual before you come back. 📖"
+                " Unauthorized behavior detected. You are dismissed. 👋"
+            )
+            ;;
+
+        *)
+            color=$C_ORANGE
+            phrases=(
+                " Input received. Processing."
+                " Acknowledged."
+                " Copy that. Standing by."
+                " Command logged. Analyzing structure..."
+                " Affirmative."
+                " Routing logic..."
+                " I am listening."
+                " Signal clear. Proceed."
+                " Parameters accepted. Calculating..."
+                " Holding for verification..."
+                " Core is attentive. State your intent."
+            )
+            ;;
+    esac
+
+    local rand_index=$(( RANDOM % ${#phrases[@]} ))
+    echo -e "${color}${icon}${phrases[$rand_index]}${C_RESET}"
     [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
 }

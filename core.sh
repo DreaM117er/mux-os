@@ -2,9 +2,10 @@
 
 # 基礎路徑與版本定義 - Base Paths and Version Definition
 export MUX_REPO="https://github.com/DreaM117er/mux-os"
-export MUX_VERSION="4.1.0"
+export MUX_VERSION="5.0.0"
 export MUX_ROOT="$HOME/mux-os"
 export BASE_DIR="$MUX_ROOT"
+export __MUX_CORE_ACTIVE=true
 
 # 模組註冊表 - Module Registry
 export CORE_MOD="$BASE_DIR/core.sh"
@@ -13,6 +14,7 @@ export UI_MOD="$BASE_DIR/ui.sh"
 export SYSTEM_MOD="$BASE_DIR/system.sh"
 export VENDOR_MOD="$BASE_DIR/vendor.sh"
 export APP_MOD="$BASE_DIR/app.sh"
+export IDENTITY_MOD="$BASE_DIR/identity.sh"
 
 # 按依賴順序排列：Bot & UI 必須最先載入 - Order by dependency: Bot & UI must load first
 MODULES=(
@@ -110,6 +112,11 @@ function _safe_ui_calc() {
 # : Core Command Entry
 function mux() {
     local cmd="$1"
+    if [ "$__MUX_MODE" == "factory" ]; then
+        echo -e "\033[1;31m :: Core commands disabled during Factory session.\033[0m"
+        return 1
+    fi
+
     if [ -z "$cmd" ]; then
         _bot_say "hello"
         return
@@ -176,6 +183,11 @@ function mux() {
             echo -e "\033[1;37m    ›› Last Uplink   :\033[0m \033[0;36m$last_commit\033[0m"
             ;;
 
+        # : Neural Link Deploy
+        "nlsdep")
+            _neural_link_deploy
+            ;;
+
         # : Check for Updates
         "update"|"up")
             _mux_update_system
@@ -210,73 +222,105 @@ function mux() {
 
         # : Multiverse Warp Drive
         "warpto"|"jumpto")
-        echo -e "\033[1;36m :: Scanning Multiverse Coordinates...\033[0m"
-        git fetch --all >/dev/null 2>&1
+            echo -e "\033[1;36m :: Scanning Multiverse Coordinates...\033[0m"
+            git fetch --all >/dev/null 2>&1
 
-        local target_branch=$(git branch -r | grep -v '\->' | sed 's/origin\///' | fzf --height=10 --layout=reverse --prompt=" :: Select Mobile Suit to Pilot › " --border=none)
+            local target_branch=$(git branch -r | grep -v '\->' | sed 's/origin\///' | fzf --ansi \
+                --height=10 \
+                --layout=reverse \
+                --border=bottom \
+                --prompt=" :: Warp Target › " \
+                --header=" :: Select Timeline (Branch) ::" \
+                --info=hidden \
+                --pointer="››" \
+                --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                --color=info:yellow,prompt:cyan,pointer:red,marker:green,border:blue,header:240 \
+                --bind="resize:clear-screen"
+            )
 
-        target_branch="${target_branch// /}"
+            target_branch="${target_branch// /}"
 
-        if [ -z "$target_branch" ]; then
-            _bot_say "warp" "fail"
-            return 1
-        fi
+            if [ -z "$target_branch" ]; then
+                _bot_say "warp" "fail"
+                return 1
+            fi
 
-        local warp_type="start_local"
-        if [ "$target_branch" == "main" ] || [ "$target_branch" == "master" ]; then
-            warp_type="home"
-        elif [[ "$target_branch" != *"$(whoami)"* ]] && [[ "$target_branch" != *"DreaM117er"* ]]; then
-            warp_type="start_remote"
-        fi
+            local warp_type="start_local"
+            if [ "$target_branch" == "main" ] || [ "$target_branch" == "master" ]; then
+                warp_type="home"
+            elif [[ "$target_branch" != *"$(whoami)"* ]] && [[ "$target_branch" != *"DreaM117er"* ]]; then
+                warp_type="start_remote"
+            fi
 
-        _bot_say "warp" "$warp_type" "$target_branch"
-        
-        if [ -n "$(git status --porcelain)" ]; then
-            echo -e "    ›› Stashing local modifications..."
-            git stash push -m "Auto-stash before warp to $target_branch" >/dev/null 2>&1
-        fi
+            _bot_say "warp" "$warp_type" "$target_branch"
+            
+            if [ -n "$(git status --porcelain)" ]; then
+                echo -e "    ›› Stashing local modifications..."
+                git stash push -m "Auto-stash before warp to $target_branch" >/dev/null 2>&1
+            fi
 
-        git checkout "$target_branch" 2>/dev/null
+            git checkout "$target_branch" 2>/dev/null
 
-        if [ $? -eq 0 ]; then
-            echo -e "\033[1;30m    ›› Stabilizing Reality Matrix...\033[0m"
-            sleep 1.2
-            echo -e "\033[1;30m    ›› Flushing Quantum Cache...\033[0m"
-            sleep 0.8
-            echo -e "\033[1;30m    ›› Realigning Neural Pathways...\033[0m"
-            sleep 1
-            echo -e "\033[1;30m    ›› System Link Established.\033[0m"
-            sleep 0.5
-            echo -e "\033[1;33m :: Reloading System Core...\033[0m"
-            sleep 1.6
-            mux reload
-        else
-            _bot_say "warp" "fail"
-        fi
+            if [ $? -eq 0 ]; then
+                echo -e "\033[1;30m    ›› Stabilizing Reality Matrix...\033[0m"
+                sleep 1.2
+                echo -e "\033[1;30m    ›› Flushing Quantum Cache...\033[0m"
+                sleep 0.8
+                echo -e "\033[1;30m    ›› Realigning Neural Pathways...\033[0m"
+                sleep 1
+                echo -e "\033[1;30m    ›› System Link Established.\033[0m"
+                sleep 0.5
+                echo -e "\033[1;33m :: Reloading System Core...\033[0m"
+                sleep 1.6
+                mux reload
+            else
+                _bot_say "warp" "fail"
+            fi
         ;;
 
+        # : Enter the Arsenal (Factory Mode)
+        "factory"|"fac"|"intofac")
+            echo ""
+            echo -ne "\033[1;30m :: Initializing Factory Protocol...\033[0m"
+            sleep 2.6
+            
+            if [ -f "$MUX_ROOT/factory.sh" ]; then
+                source "$MUX_ROOT/factory.sh"
+                _enter_factory_mode
+            else
+                _bot_say "error" "Factory module not found."
+            fi
+            ;;
+
         *)
-            echo "Unknown command: '$cmd'. Try input 'mux help'."
+            if command -v "$cmd" &> /dev/null; then
+                "$cmd" "${@:2}"
+                return
+            fi
+            
+            echo -e "\033[1;37m :: Unknown Directive: $cmd\033[0m"
             ;;
     esac
-}
-
-function menu() {
-    mux menu
-}
-
-function oldmenu() {
-    mux oldmenu
 }
 
 # 重新載入核心模組 - Reload Core Modules
 function _mux_reload_kernel() {
     _system_lock
-    clear
     echo -e "\033[1;33m :: System Reload Initiated...\033[0m"
+    sleep 1.6
+    clear
     unset MUX_INITIALIZED
     source "$MUX_ROOT/core.sh"
-    _system_unlock
+    _mux_integrity_scan
+    if [ $? -eq 0 ]; then
+        _system_unlock
+    else
+        _system_unlock
+        echo -e ""
+        _bot_say "neural" "Neural link stabilized, but structural flaws detected."
+        echo -e "${F_GRAY}    (Hint: Run 'fac check' in factory to auto-repair)${F_RESET}"
+        echo -e ""
+    fi
 }
 
 # 強制同步系統狀態 - Force Sync System State
@@ -359,6 +403,132 @@ function _mux_update_system() {
             _system_unlock
         fi
     fi
+}
+
+function _git_preflight_check() {
+    echo -e "${F_GRAY} :: Verifying Neural Signature (Git Identity)...${F_RESET}"
+
+    local git_user=$(git config user.name)
+    local git_email=$(git config user.email)
+    
+    if [ -z "$git_user" ] || [ -z "$git_email" ]; then
+        echo -e ""
+        _bot_say "error" "Identity Unknown. Protocol blocked."
+        echo -e "${F_GRAY}    The Grid requires a signature to accept your code.${F_RESET}"
+        
+        echo -e ""
+        echo -ne "${F_WARN}    ›› Enter GitHub Name: ${F_RESET}"
+        read input_name
+        echo -ne "${F_WARN}    ›› Enter GitHub Email: ${F_RESET}"
+        read input_email
+        
+        if [ -n "$input_name" ] && [ -n "$input_email" ]; then
+            git config --global user.name "$input_name"
+            git config --global user.email "$input_email"
+            _bot_say "success" "Identity matrix updated: $input_name"
+            echo -e ""
+        else
+            _bot_say "error" "Identity required. Aborting."
+            return 1
+        fi
+    else
+        echo -e "${F_GRAY}    ›› Identity Confirmed: $git_user${F_RESET}"
+    fi
+
+    echo -ne "${F_GRAY} :: Testing Uplink Connection... ${F_RESET}"
+    
+    if git ls-remote --heads origin >/dev/null 2>&1; then
+        echo -e "\033[1;32m[CONNECTED]\033[0m"
+    else
+        echo -e "\033[1;31m[REJECTED]\033[0m"
+        echo -e ""
+        _bot_say "error" "Uplink Authentication Failed."
+        echo -e "${F_SUB}    Possible causes:${F_RESET}"
+        echo -e "${F_GRAY}    1. Personal Access Token (PAT) expired.${F_RESET}"
+        echo -e "${F_GRAY}    2. 'gh auth login' not configured.${F_RESET}"
+        echo -e "${F_GRAY}    3. Network firewall active.${F_RESET}"
+        
+        if command -v gh &> /dev/null; then
+            echo -e ""
+            echo -ne "${F_WARN}    ›› Attempt re-login via GH CLI? (y/n): ${F_RESET}"
+            read try_login
+            if [[ "$try_login" == "y" || "$try_login" == "Y" ]]; then
+                gh auth login
+                _git_preflight_check
+                return $?
+            fi
+        fi
+        
+        return 1
+    fi
+    
+    return 0
+}
+
+# 神經連結部署協議 - Neural Link Deployment Protocol
+function _neural_link_deploy() {
+    _git_preflight_check || return 1
+
+    echo -e "${F_MAIN} :: NEURAL LINK DEPLOYMENT PROTOCOL ::${F_RESET}"
+    echo -e "${F_GRAY}    Target Repository: Origin/Main${F_RESET}"
+    echo -e "${F_GRAY}    Payload          : app.sh${F_RESET}"
+    echo -e ""
+    echo -e "${F_WARN} :: PRE-FLIGHT CHECKLIST ::${F_RESET}"
+    echo -e "${F_SUB}    1. Are all 'fac' changes merged?${F_RESET}"
+    echo -e "${F_SUB}    2. Is the formatting integrity verified?${F_RESET}"
+    echo -e "${F_SUB}    3. This action pushes code to the global grid.${F_RESET}"
+    echo -e ""
+    
+    echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO ENGAGE UPLINK: ${F_RESET}"
+    read confirm
+    
+    if [ "$confirm" != "CONFIRM" ]; then
+        echo -e ""
+        echo -e "${F_ERR}    ›› Authorization Failed. Uplink Aborted.${F_RESET}"
+        return 1
+    fi
+
+    echo -e ""
+    _bot_say "system" "Engaging Neural Uplink..."
+
+    echo -e "${F_GRAY}    ›› Staging manifest (app.sh)...${F_RESET}"
+    
+    cd "$MUX_ROOT" || return 1
+    
+    git add app.sh
+    
+    local date_str=$(date '+%Y-%m-%d %H:%M')
+    echo -e "${F_GRAY}    ›› Committing neural snapshot...${F_RESET}"
+    git commit -m "Neural Link Deploy $date_str"
+    
+    echo -e "${F_GRAY}    ›› Pushing to Grid...${F_RESET}"
+    git push
+    
+    if [ $? -eq 0 ]; then
+        _bot_say "success" "Deployment Successful. Sync Complete."
+    else
+        _bot_say "error" "Uplink destabilized. Check network."
+    fi
+}
+
+# 系統完整性掃描器 (System Integrity Scanner)
+function _mux_integrity_scan() {
+    local targets=("$MUX_ROOT/app.sh" "$MUX_ROOT/system.sh" "$MUX_ROOT/vendor.sh")
+    local flaws_detected=0
+
+    for file in "${targets[@]}"; do
+        if [ -f "$file" ]; then
+            if [ -n "$(tail -c 1 "$file")" ]; then
+                flaws_detected=1
+            fi
+            
+            if grep -q "^}[^[:space:]]" "$file"; then
+                flaws_detected=1
+            fi
+        fi
+    done
+
+    return $flaws_detected
 }
 
 # 主程式啟動體感動畫 - Main Program Startup Animation
