@@ -363,7 +363,8 @@ function _mux_fuzzy_menu() {
         --header=" :: Slot Capacity: [6/$total_cmds] :: " \
         --info=hidden \
         --pointer="››" \
-        --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red,border:blue \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:yellow,prompt:cyan,pointer:red,marker:green,border:blue,header:240 \
         --bind="resize:clear-screen"
     )
 

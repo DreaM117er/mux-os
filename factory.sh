@@ -309,8 +309,8 @@ function _fac_query_command_name() {
         --prompt=" :: Input Command › " \
         --header=" :: Type to Search. Enter unique name to Create. ::" \
         --print-query \
-        --color=fg:-1,bg:-1,hl:33,fg+:208,bg+:235,hl+:33 \
-        --color=info:240,prompt:208,pointer:208,marker:208,border:208,header:240
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240
     )
     
     local query=$(echo "$result" | head -n1)
@@ -339,8 +339,8 @@ function _fac_wizard_create() {
         --border=bottom \
         --prompt=" :: Forge Type › " \
         --header=" :: Select Neural Template ::" \
-        --color=fg:-1,bg:-1,hl:33,fg+:208,bg+:235,hl+:33 \
-        --color=info:240,prompt:208,pointer:208,marker:208,border:208,header:240
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240
     )
 
     if [ -z "$selection" ]; then return; fi
@@ -385,8 +385,8 @@ function _fac_stamp_launcher() {
             --border=bottom \
             --prompt=" :: Launcher Forge › " \
             --header=" :: Select Field to Modify ::" \
-            --color=fg:-1,bg:-1,hl:33,fg+:208,bg+:235,hl+:33 \
-            --color=info:240,prompt:208,pointer:208,marker:208,border:208,header:240
+            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+            --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240
         )
 
         if [ -z "$selection" ]; then return; fi
@@ -760,7 +760,8 @@ function _fac_select_category() {
         --border=bottom \
         --prompt=" :: Target Sector › " \
         --header=" :: Select Deployment Zone (ESC = Others) ::" \
-        --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red,border:blue \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
         --bind="resize:clear-screen"
     )
 
@@ -1570,8 +1571,8 @@ function _factory_fzf_menu() {
             --header=" :: Forge Index: [$total_cmds] | ALT-C: Create :: " \
             --info=hidden \
             --pointer="››" \
-            --color=fg:-1,bg:-1,hl:33,fg+:208,bg+:235,hl+:33 \
-            --color=info:240,prompt:208,pointer:208,marker:208,border:208,header:240 \
+            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+            --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
             --bind="alt-c:execute(_fac_wizard_create)+reload(echo \"$list_data\")" \
             --bind="resize:clear-screen"
         )
