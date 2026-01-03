@@ -211,19 +211,19 @@ function fac() {
              ;;
 
         # : Check & Fix Formatting
-        "check"|"chk")
+        "check")
             _fac_maintenance
             ;;
 
         # : List all links
-        "list"|"l")
+        "list"|"ls")
             echo -e "${F_MAIN} :: Current Sandbox Links:${F_RESET}"
             grep "^function" "$MUX_ROOT/app.sh.temp" | sed 's/function //' | sed 's/() {//' | column
             echo ""
             ;;
 
         # : Show Factory Status
-        "status"|"st")
+        "status"|"sts")
             if command -v _factory_show_status &> /dev/null; then
                 _factory_show_status
             else
@@ -251,6 +251,10 @@ function fac() {
             _fac_del "$2"
             ;;
 
+        "category"|"cat")
+            _fac_wizard_category
+            ;;
+
         # : Show Factory Info
         "info"|"i")
             if command -v _factory_show_info &> /dev/null; then
@@ -259,7 +263,7 @@ function fac() {
             ;;
 
         # : Deploy Changes
-        "deploy"|"dep"|"exit")
+        "deploy"|"dep")
             _factory_deploy_sequence
             ;;
 
@@ -1195,6 +1199,226 @@ function _fac_del() {
     fi
 }
 
+# 分類與戰略地圖管理 (Category & Terrain Management)
+function _fac_wizard_category() {
+    while true; do
+        clear
+        _draw_logo "factory"
+        echo -e "${F_MAIN} :: Terrain & Sector Management ::${F_RESET}"
+        echo -e "${F_GRAY}    Re-organize your neural pathways.${F_RESET}"
+        echo -e "${F_GRAY}    --------------------------------${F_RESET}"
+        
+        echo -e "    [1] ${F_SUB}Add New Sector${F_RESET}    (Create Header)"
+        echo -e "    [2] ${F_SUB}Rename Sector${F_RESET}     (Modify Header)"
+        echo -e "    [3] ${F_SUB}Remove Sector${F_RESET}     (Delete Header Only)"
+        echo -e "    [4] ${F_SUB}Relocate Unit${F_RESET}     (Move App to Category)"
+        echo -e ""
+        echo -e "    [0] Exit"
+        echo -e ""
+        echo -ne "${F_WARN}    ›› Select Operation: ${F_RESET}"
+        read choice
+        
+        case "$choice" in
+            1) _fac_cat_add ;;
+            2) _fac_cat_rename ;;
+            3) _fac_cat_delete ;;
+            4) _fac_cat_move ;;
+            0) break ;;
+            *) ;;
+        esac
+    done
+}
+
+# 新增分類標頭 - Add Category Header
+function _fac_cat_add() {
+    _fac_snapshot
+    echo -e ""
+    echo -e "${F_MAIN} :: Create New Sector ::${F_RESET}"
+    echo -ne "${F_SUB}    ›› Enter New Category Name: ${F_RESET}"
+    read new_name
+    [ -z "$new_name" ] && return
+
+    local temp_file="$MUX_ROOT/app.sh.temp"
+    local map_file="$MUX_ROOT/.cat_map"
+    
+    grep -n "^# ===" "$temp_file" > "$map_file"
+    local lines=()
+    local names=()
+    local i=1
+    
+    echo -e ""
+    echo -e "${F_WARN}    ›› Insert Before Which Sector? (Default: End of File)${F_RESET}"
+    
+    while IFS=: read -r line_no content; do
+        local clean_name=$(echo "$content" | sed 's/# === //;s/ ===//')
+        echo -e "    [$i] $clean_name"
+        lines+=("$line_no")
+        names+=("$clean_name")
+        ((i++))
+    done < "$map_file"
+    rm "$map_file"
+    
+    echo -ne "${F_WARN}    ›› Select [1-$((i-1))] or Enter for Bottom: ${F_RESET}"
+    read pos
+    
+    local insert_str="\n\n# === $new_name ===\n"
+    
+    if [[ "$pos" =~ ^[0-9]+$ ]] && [ "$pos" -le "${#lines[@]}" ] && [ "$pos" -gt 0 ]; then
+        local idx=$((pos - 1))
+        local target_line=${lines[$idx]}
+        sed -i "${target_line}i $insert_str" "$temp_file"
+        _fac_maintenance
+        _bot_say "factory" "Sector '$new_name' inserted before '${names[$idx]}'."
+    else
+        echo -e "$insert_str" >> "$temp_file"
+        _fac_maintenance
+        _bot_say "factory" "Sector '$new_name' appended to map."
+    fi
+}
+
+# 重命名分類標頭 - Rename Category Header
+function _fac_cat_rename() {
+    _fac_snapshot
+    local temp_file="$MUX_ROOT/app.sh.temp"
+    local target_line=""
+    local old_name=""
+
+    if command -v fzf &> /dev/null; then
+        local sel=$(grep -n "^# ===" "$temp_file" | fzf --height=10 --layout=reverse --prompt=" :: Rename Sector › " --border=none)
+        [ -z "$sel" ] && return
+        target_line=$(echo "$sel" | cut -d: -f1)
+        old_name=$(echo "$sel" | cut -d: -f2 | sed 's/# === //;s/ ===//')
+    else
+        local map_file="$MUX_ROOT/.cat_map"
+        grep -n "^# ===" "$temp_file" > "$map_file"
+        local lines=()
+        local i=1
+        while IFS=: read -r ln content; do
+            echo "[$i] $content"
+            lines+=("$ln")
+            ((i++))
+        done < "$map_file"
+        rm "$map_file"
+        echo -ne "Select ID: "
+        read choice
+        target_line=${lines[$((choice-1))]}
+        old_name=$(sed -n "${target_line}p" "$temp_file" | sed 's/# === //;s/ ===//')
+    fi
+
+    if [ -z "$target_line" ]; then return; fi
+
+    echo -e "${F_WARN}    ›› Rename '$old_name' to: ${F_RESET}"
+    read new_name
+    [ -z "$new_name" ] && return
+
+    sed -i "${target_line}s/=== .* ===/=== $new_name ===/" "$temp_file"
+    _fac_maintenance
+    _bot_say "success" "Sector renamed to '$new_name'."
+}
+
+# 刪除分類標頭 - Delete Category Header
+function _fac_cat_delete() {
+    _fac_snapshot
+    local temp_file="$MUX_ROOT/app.sh.temp"
+    local target_line=""
+
+    if command -v fzf &> /dev/null; then
+        local sel=$(grep -n "^# ===" "$temp_file" | fzf --height=10 --layout=reverse --prompt=" :: Rename Sector › " --border=none)
+        [ -z "$sel" ] && return
+        target_line=$(echo "$sel" | cut -d: -f1)
+        old_name=$(echo "$sel" | cut -d: -f2 | sed 's/# === //;s/ ===//')
+    else
+        local map_file="$MUX_ROOT/.cat_map"
+        grep -n "^# ===" "$temp_file" > "$map_file"
+        local lines=()
+        local i=1
+        while IFS=: read -r ln content; do
+            echo "[$i] $content"
+            lines+=("$ln")
+            ((i++))
+        done < "$map_file"
+        rm "$map_file"
+        echo -ne "Select ID: "
+        read choice
+        target_line=${lines[$((choice-1))]}
+        echo -ne "${F_ERR}    (Legacy mode: Feature requires FZF for safety in this version)${F_RESET}\n"
+        old_name=$(sed -n "${target_line}p" "$temp_file" | sed 's/# === //;s/ ===//')
+        return
+    fi
+
+    echo -e "${F_ERR} :: WARNING :: This will remove the HEADER only.${F_RESET}"
+    echo -e "${F_GRAY}    Apps under this sector will merge into the previous sector.${F_RESET}"
+    echo -ne "${F_WARN}    ›› Confirm delete? (y/n): ${F_RESET}"
+    read conf
+    if [[ "$conf" == "y" || "$conf" == "Y" ]]; then
+        sed -i "${target_line}d" "$temp_file"
+        _fac_maintenance
+        _bot_say "factory" "Sector header removed."
+    fi
+}
+
+# 單元移動器 - Unit Relocator
+function _fac_cat_move() {
+    _fac_snapshot
+    local temp_file="$MUX_ROOT/app.sh.temp"
+    local target_app=""
+
+    # 1. 選擇要移動的 App
+    if command -v fzf &> /dev/null; then
+        target_app=$(grep "^function" "$temp_file" | sed 's/function //' | sed 's/() {//' | fzf --height=10 --layout=reverse --prompt=" :: Select Unit to Relocate › " --border=none)
+    else
+        echo -ne "${F_WARN}    ›› Enter App Name: ${F_RESET}"
+        read target_app
+    fi
+    [ -z "$target_app" ] && return
+
+    # 2. 定位並提取代碼
+    local start_line=$(grep -n "^function $target_app() {" "$temp_file" | cut -d: -f1)
+    if [ -z "$start_line" ]; then _bot_say "error" "Unit not found."; return; fi
+
+    local header_line=$((start_line - 1))
+    local header_content=$(sed "${header_line}q;d" "$temp_file")
+    local cut_start=$start_line
+    
+    if [[ "$header_content" == "# :"* ]]; then
+        cut_start=$header_line
+    fi
+
+    local relative_end=$(tail -n +$start_line "$temp_file" | grep -n "^}" | head -n1 | cut -d: -f1)
+    local cut_end=$((start_line + relative_end - 1))
+    
+    local move_block="$MUX_ROOT/plate/move.tmp"
+    sed -n "${cut_start},${cut_end}p" "$temp_file" > "$move_block"
+    echo "" >> "$move_block"
+
+    # 3. 刪除原始代碼
+    _bot_say "factory" "Extracting unit '$target_app'..."
+    sed -i "${cut_start},${cut_end}d" "$temp_file"
+
+    _fac_select_category
+    
+    if [ -z "$INSERT_LINE" ]; then
+        _bot_say "error" "Destination lost. Restoring unit..."
+        cat "$move_block" >> "$temp_file"
+        rm "$move_block"
+        return
+    fi
+
+    # 5. 插入到新位置
+    _bot_say "factory" "Relocating to $CATEGORY_NAME..."
+    
+    local total_lines=$(wc -l < "$temp_file")
+    if [ "$INSERT_LINE" -ge "$total_lines" ]; then
+        cat "$move_block" >> "$temp_file"
+    else
+        sed -i "${INSERT_LINE}r $move_block" "$temp_file"
+    fi
+    rm "$move_block"
+    
+    _fac_maintenance
+    _bot_say "success" "Unit relocated successfully."
+}
+
 # 自動備份 - Auto Backup
 function _factory_auto_backup() {
     local bak_dir="$MUX_ROOT/bak"
@@ -1374,7 +1598,6 @@ function _factory_fzf_menu() {
         fi
 
         # 2. FZF 渲染 (Rendering)
-        # 左側顯示列表，右側預覽代碼 (Preview Window)
         local selection=$(echo "$list_data" | fzf --ansi \
             --height=90% --layout=reverse --border=none \
             --delimiter="\t" \
@@ -1389,7 +1612,7 @@ function _factory_fzf_menu() {
 
         # 3. 解析選擇 (Action Handling)
         if [ -z "$selection" ]; then
-            break # Exit loop
+            break
         fi
 
         local target_line=$(echo "$selection" | awk -F'\t' '{print $1}')
@@ -1397,7 +1620,6 @@ function _factory_fzf_menu() {
         local target_func=$(echo "$selection" | awk -F'\t' '{print $3}')
 
         # 4. 戰術分歧選單 (Action Sub-Menu)
-        # 這裡我們再用一個小 FZF 來選動作，保持手不離鍵盤
         local action=$(echo -e "Edit (Modify Logic)\nTest (Live Fire)\nDelete (Terminate)\nCancel" | fzf \
             --height=10 --layout=reverse --border=rounded \
             --prompt=" :: Action for [$target_func] › " \
