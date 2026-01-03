@@ -1,5 +1,6 @@
 # app.sh - 個人應用生態系
 
+
 # === Network & Cloud ===
 
 # : Edge & Bing search
@@ -74,6 +75,7 @@ function onedrive() {
     _require_no_args "$@" || return 1
     _launch_android_app "OneDrive" "com.microsoft.skydrive" "com.microsoft.skydrive.MainActivity"
 }
+
 
 # === Google Suite ===
 
@@ -315,10 +317,20 @@ function ezway() {
     _launch_android_app "EZ Way" "com.tradevan.android.forms" "com.tradevan.android.forms.ui.activity.SplashActivity"
 }
 
+
 # === Tools & Utilities ===
 
 # : RAR Archiver
 function rartool() {
     _require_no_args "$@" || return 1
     _launch_android_app "RAR" "com.rarlab.rar" "com.rarlab.rar.MainActivity"
+}
+
+
+# === Others ===
+
+# : Console test (Debug)
+function rartool() {
+    _require_no_args "$@" || return 1
+    _launch_android_app "Ghost App" "com.ghost.not.exist" ""
 }
