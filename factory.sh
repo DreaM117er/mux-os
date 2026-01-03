@@ -519,37 +519,17 @@ function _fac_stamp_launcher() {
 
 # 鑄造工序：瀏覽器應用 (Browser App Stamp)
 function _fac_stamp_browser() {
-    Commander，收到。
-
-這兩具模具的改造目標非常明確：「儀表板化 (Dashboard-ization)」。 我們要將原本線性的問答流程，轉變為全 FZF 驅動的非線性儀表板，並維持視覺與操作邏輯的高度統一。
-
-以下是 factory.sh 的修正代碼，包含 _fac_stamp_browser (瀏覽器鑄造) 與 _fac_stamp_suite (生態系鑄造) 的完全重構版本。
-
-🛠️ factory.sh - Advanced Stamping Protocols
-請將這兩個函式覆蓋原有的版本。
-
-1. _fac_stamp_browser (瀏覽器儀表板)
-特點：新增了 Engine 選項，點擊後會彈出 FZF 讓你選擇搜尋引擎 (Google/Bing/Duck...)。
-
-邏輯：繼承了 Launcher 的所有優點，包括重複檢查與 APK 查閱。
-
-Bash
-
-# 鑄造工序：瀏覽器應用 - Browser App Stamp (Dashboard)
-function _fac_stamp_browser() {
     _fac_snapshot
     local mold_file="$MUX_ROOT/plate/browser.txt"
     [ ! -f "$mold_file" ] && return 1
 
-    # === 初始化變數 ===
     local ui_name="Unknown Browser"
     local pkg_id="com.null.browser"
-    local pkg_act="" # Optional
+    local pkg_act=""
     local engine_var="GOOGLE"
     local target_cat="Network & Cloud"
     local func_name=""
 
-    # 狀態標記
     local st_req="\033[1;31m[REQUIRED]\033[0m"
     local st_dup="\033[1;33m[DUPLICATE]\033[0m"
     local st_ok="\033[1;36m[CONFIRM]\033[0m"
@@ -558,7 +538,6 @@ function _fac_stamp_browser() {
     local insert_line_cache=""
 
     while true; do
-        # === 1. 建構儀表板 ===
         local menu_display=""
         menu_display="${menu_display}Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET}  ${func_status}\n"
         menu_display="${menu_display}UI Name  : ${F_SUB}${ui_name}${F_RESET}\n"
@@ -571,7 +550,6 @@ function _fac_stamp_browser() {
         menu_display="${menu_display}Confirm  : Forge Neural Link\n"
         menu_display="${menu_display}Cancel   : Abort Operation"
 
-        # === 2. FZF 渲染 ===
         local selection=$(echo -e "$menu_display" | fzf \
             --ansi \
             --height=45% \
@@ -586,7 +564,6 @@ function _fac_stamp_browser() {
 
         if [ -z "$selection" ]; then return; fi
 
-        # === 3. 邏輯判斷 ===
         local key=$(echo "$selection" | awk '{print $1}')
         
         case "$key" in
@@ -616,7 +593,6 @@ function _fac_stamp_browser() {
             "Confirm")
                 if [ -z "$func_name" ] || [[ "$func_status" == *"[DUPLICATE]"* ]]; then continue; fi
                 
-                # 自動補算分類位置
                 if [ -z "$insert_line_cache" ]; then
                      local header_line=$(grep -n "^# === $target_cat ===" "$MUX_ROOT/app.sh.temp" | head -n 1 | cut -d: -f1)
                      if [ -n "$header_line" ]; then 
