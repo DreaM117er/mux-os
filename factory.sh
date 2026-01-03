@@ -225,12 +225,12 @@ function fac() {
             ;;
 
         # : Edit Neural (Edit Command)
-        "edit"|"e"|"fix")
+        "edit")
             _fac_wizard_edit "$2"
             ;;
 
         # : Load Neural (Test Command)
-        "load") 
+        "load"|"test") 
             _fac_load
             ;;
 
@@ -257,7 +257,7 @@ function fac() {
             _bot_say "factory_welcome"
             ;;
             
-        # Reset Factory Change
+        # : Reset Factory Change
         "reset")
             _factory_reset
             ;;
@@ -293,6 +293,8 @@ function _fac_wizard_create() {
 
 # 鑄造工序：標準啟動器 - Standard Launcher Stamp
 function _fac_stamp_launcher() {
+    _fac_snapshot
+
     local mold_file="$MUX_ROOT/plate/template.txt"
     
     if [ ! -f "$mold_file" ]; then 
@@ -418,6 +420,8 @@ function _fac_stamp_launcher() {
 
 # 鑄造工序：瀏覽器應用 (Browser App Stamp)
 function _fac_stamp_browser() {
+    _fac_snapshot
+
     local mold_file="$MUX_ROOT/plate/browser.txt"
     
     if [ ! -f "$mold_file" ]; then 
@@ -568,6 +572,8 @@ function _fac_stamp_browser() {
 
 # 鑄造工序：生態系套件 - Ecosystem Suite Stamp
 function _fac_stamp_suite() {
+    _fac_snapshot
+
     local mold_file="$MUX_ROOT/plate/suite.txt"
     
     # 自動建立模具 (如果不存在)
@@ -832,15 +838,32 @@ function _fac_load() {
         return 1
     fi
 
-    _bot_say "loading" "Compiling sandbox logic..."
+    _bot_say "loading" "Scanning structural integrity..."
+    
+    local syntax_error
+    syntax_error=$(bash -n "$temp_file" 2>&1)
+    
+    if [ -n "$syntax_error" ]; then
+        echo ""
+        _bot_say "error" "Syntax corruption detected. Load aborted."
+        echo -e "${F_ERR} :: CRITICAL FAILURE ::${F_RESET}"
+        echo -e "${F_GRAY}$syntax_error${F_RESET}"
+        echo ""
+        return 1
+    fi
+
     source "$temp_file"
-    _factory_mask_apps
+    
     sleep 0.5
-    _bot_say "success" "Sandbox reloaded. Logic active."
+    _bot_say "success" "Sandbox loaded. Live fire mode active."
+    echo -e "${F_GRAY}    ›› Commands are now executable for testing.${F_RESET}"
+    echo -e "${F_GRAY}    ›› Type your new command to verify launch vector.${F_RESET}"
 }
 
 # 智慧維修精靈 (Smart Edit Dashboard)
 function _fac_wizard_edit() {
+    _fac_snapshot
+
     local target="$1"
     local temp_file="$MUX_ROOT/app.sh.temp"
 
@@ -876,6 +899,8 @@ function _fac_wizard_edit() {
     if [ "$app_type" == "SUITE" ]; then
         while true; do
             clear
+            _draw_logo "factory"
+
             echo -e "${F_MAIN} :: Ecosystem Suite Diagnostics ::${F_RESET}"
             echo -e "${F_GRAY}    Target :${F_RESET} ${F_WARN}$target${F_RESET}"
             echo -e "${F_GRAY}    Range  :${F_RESET} Lines $start_line-$end_line"
@@ -948,6 +973,8 @@ function _fac_wizard_edit() {
 
     while true; do
         clear
+        _draw_logo "factory"
+
         echo -e "${F_MAIN} :: Neural Link Diagnostics ::${F_RESET}"
         echo -e "${F_GRAY}    Target :${F_RESET} ${F_WARN}$target${F_RESET}"
         echo -e "${F_GRAY}    Type   :${F_RESET} $app_type"
@@ -1016,14 +1043,10 @@ function _fac_wizard_edit() {
                 ;;
             0)
                 _bot_say "success" "Patch applied."
-                echo -ne "${F_WARN}    ›› Hot Reload now? (y/n): ${F_RESET}"
-                read r
-                [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load
                 return
                 ;;
             x)
                 return
-                _fac_init
                 ;;
             m) nano "+$start_line" "$temp_file"; return ;;
         esac
@@ -1079,6 +1102,8 @@ function _fac_suite_injector() {
 
 # 刪除模組 - Delete Module
 function _fac_del() {
+    _fac_snapshot
+
     local target="$1"
     local temp_file="$MUX_ROOT/app.sh.temp"
 
@@ -1166,6 +1191,39 @@ function _factory_auto_backup() {
     ls -t "$bak_dir"/app.sh_* 2>/dev/null | tail -n +4 | xargs rm -- 2>/dev/null
 }
 
+# 快照機制 - Snapshot Protocol (3-Level Rotation)
+function _fac_snapshot() {
+    local temp_file="$MUX_ROOT/app.sh.temp"
+    local undo1="$MUX_ROOT/.app.sh.undo1"
+    local undo2="$MUX_ROOT/.app.sh.undo2"
+    local undo3="$MUX_ROOT/.app.sh.undo3"
+
+    [ ! -f "$temp_file" ] && return
+
+    [ -f "$undo2" ] && cp "$undo2" "$undo3"
+    [ -f "$undo1" ] && cp "$undo1" "$undo2"
+    cp "$temp_file" "$undo1"
+}
+
+# 回朔指令 - Undo Protocol
+function _fac_undo() {
+    local temp_file="$MUX_ROOT/app.sh.temp"
+    local undo1="$MUX_ROOT/.app.sh.undo1"
+
+    if [ ! -f "$undo1" ]; then
+        _bot_say "error" "No temporal snapshot found."
+        return
+    fi
+
+    echo -e "${F_WARN} :: Time Stone Activated...${F_RESET}"
+    echo -e "${F_GRAY}    Reverting to previous timeline state...${F_RESET}"
+    
+    cp "$undo1" "$temp_file"
+    
+    _fac_load
+    _bot_say "success" "Timeline reverted."
+}
+
 # 部署序列 (Deploy Sequence)
 function _factory_deploy_sequence() {
     echo ""
@@ -1179,7 +1237,13 @@ function _factory_deploy_sequence() {
     echo ""
     
     if command -v diff &> /dev/null; then
-        diff -U 0 "$MUX_ROOT/app.sh" "$MUX_ROOT/app.sh.temp" | grep -v "^---" | grep -v "^+++" | grep -v "^@" | head -n 20
+        diff -U 0 "$MUX_ROOT/app.sh" "$MUX_ROOT/app.sh.temp" | \
+        grep -v "^---" | grep -v "^+++" | grep -v "^@" | head -n 20 | \
+        awk '
+            /^\+/ {print "\033[1;32m" $0 "\033[0m"; next}
+            /^-/ {print "\033[1;31m" $0 "\033[0m"; next}
+            {print}
+        '
     else
         echo -e "${F_WARN}    (Diff module unavailable. Changes hidden.)${F_RESET}"
     fi
@@ -1191,7 +1255,12 @@ function _factory_deploy_sequence() {
     
     if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
         _fac_init
-        _bot_say "factory_welcome" "Deployment canceled. Resume editing."
+        echo -e ""
+        echo -e "${F_GRAY}    --------------------------------${F_RESET}"
+        _bot_say "factory" "Deployment canceled. Sandbox state retained."
+        echo -e "${F_GRAY}    ›› To discard changes: type 'fac reset'${F_RESET}"
+        echo -e "${F_GRAY}    ›› To resume editing : type 'fac edit'${F_RESET}"
+        echo -e "${F_GRAY}    --------------------------------${F_RESET}"
         return
     fi
     

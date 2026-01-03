@@ -1,6 +1,10 @@
 #!/bin/bash
 # setup.sh - Mux-OS 生命週期管理器 (Lifecycle Manager)
 
+# 定義身份
+SYSTEM_STATUS="OFFLINE"
+COMMANDER_ID=""
+
 # 定義路徑
 MUX_ROOT="$HOME/mux-os"
 RC_FILE="$HOME/.bashrc"
@@ -14,8 +18,18 @@ C_YELLOW="\033[1;33m"
 C_RED="\033[1;31m"
 C_GRAY="\033[1;30m"
 
-# 輔助函式 
+# 讀取身份檔案
+if [ -f "$MUX_ROOT/core.sh" ]; then
+    if [ -f "$MUX_ROOT/.mux_identity" ]; then
+        source "$MUX_ROOT/.mux_identity" 2>/dev/null
+        if [ "$MUX_ROLE" == "COMMANDER" ]; then
+            SYSTEM_STATUS="ONLINE"
+            COMMANDER_ID="$MUX_ID"
+        fi
+    fi
+fi
 
+# 輔助函式 
 function _banner() {
     clear
     echo -e "${C_GRAY}"
@@ -27,7 +41,7 @@ function _banner() {
  |_|  |_|\__,_/_/\_\     \___/|____/ 
 EOF
     echo -e "${C_RESET}"
-    echo -e " ${C_GRAY}:: Lifecycle Manager :: v2.2.0 ::${C_RESET}"
+    echo -e " ${C_GRAY}:: Lifecycle Manager :: v2.4.0 ::${C_RESET}"
     echo ""
 }
 
@@ -63,6 +77,26 @@ function _install_protocol() {
             pkg install "$pkg" -y
         fi
     done
+
+    echo -e "${C_YELLOW} :: Synchronizing Neural Core...${C_RESET}"
+    
+    REPO_URL="https://github.com/DreaM117er/mux-os"
+    
+    if [ ! -d "$MUX_ROOT/.git" ]; then
+        echo "    ›› Cloning from Origin..."
+        if [ -d "$MUX_ROOT" ]; then
+            mv "$MUX_ROOT" "${MUX_ROOT}_bak_$(date +%s)"
+        fi
+        git clone "$REPO_URL" "$MUX_ROOT"
+    else
+        echo "    ›› Forcing Timeline Sync (Repair)..."
+        cd "$MUX_ROOT"
+        git fetch --all
+        local branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
+        git reset --hard "origin/$branch"
+    fi
+
+    chmod +x "$MUX_ROOT/"*.sh
 
     echo "    ›› Calibrating Vendor Ecosystem..."
     BRAND=$(getprop ro.product.brand | tr '[:upper:]' '[:lower:]' | xargs)
@@ -150,8 +184,8 @@ function _uninstall_protocol() {
 
 _banner
 
-if [ -f "$MUX_ROOT/core.sh" ]; then
-    echo -e "${C_CYAN} :: System Status: ${C_GREEN}ONLINE${C_RESET}"
+if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
+    echo -e "${C_CYAN} :: System Status: ${C_GREEN}ONLINE${C_RESET} ${C_GRAY}(Commander: $COMMANDER_ID)${C_RESET}"
     echo ""
     echo " [1] Repair / Reinstall (Update)"
     echo " [2] Uninstall (Self-Destruct)"
@@ -172,6 +206,7 @@ if [ -f "$MUX_ROOT/core.sh" ]; then
             exit 0
             ;;
     esac
+
 else
     echo -e "${C_CYAN} :: System Status: ${C_GRAY}OFFLINE${C_RESET}"
     echo ""
