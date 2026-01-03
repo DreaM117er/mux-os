@@ -222,49 +222,59 @@ function mux() {
 
         # : Multiverse Warp Drive
         "warpto"|"jumpto")
-        echo -e "\033[1;36m :: Scanning Multiverse Coordinates...\033[0m"
-        git fetch --all >/dev/null 2>&1
+            echo -e "\033[1;36m :: Scanning Multiverse Coordinates...\033[0m"
+            git fetch --all >/dev/null 2>&1
 
-        local target_branch=$(git branch -r | grep -v '\->' | sed 's/origin\///' | fzf --height=10 --layout=reverse --prompt=" :: Select Mobile Suit to Pilot › " --border=none)
+            local target_branch=$(git branch -r | grep -v '\->' | sed 's/origin\///' | fzf --ansi \
+                --height=10 \
+                --layout=reverse \
+                --border=bottom \
+                --prompt=" :: Pilot Select › " \
+                --header=" :: Select Mobile Suit (Branch) ::" \
+                --info=hidden \
+                --pointer="››" \
+                --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow \
+                --color=info:yellow,prompt:cyan,pointer:red,border:blue,header:gray
+            )
 
-        target_branch="${target_branch// /}"
+            target_branch="${target_branch// /}"
 
-        if [ -z "$target_branch" ]; then
-            _bot_say "warp" "fail"
-            return 1
-        fi
+            if [ -z "$target_branch" ]; then
+                _bot_say "warp" "fail"
+                return 1
+            fi
 
-        local warp_type="start_local"
-        if [ "$target_branch" == "main" ] || [ "$target_branch" == "master" ]; then
-            warp_type="home"
-        elif [[ "$target_branch" != *"$(whoami)"* ]] && [[ "$target_branch" != *"DreaM117er"* ]]; then
-            warp_type="start_remote"
-        fi
+            local warp_type="start_local"
+            if [ "$target_branch" == "main" ] || [ "$target_branch" == "master" ]; then
+                warp_type="home"
+            elif [[ "$target_branch" != *"$(whoami)"* ]] && [[ "$target_branch" != *"DreaM117er"* ]]; then
+                warp_type="start_remote"
+            fi
 
-        _bot_say "warp" "$warp_type" "$target_branch"
-        
-        if [ -n "$(git status --porcelain)" ]; then
-            echo -e "    ›› Stashing local modifications..."
-            git stash push -m "Auto-stash before warp to $target_branch" >/dev/null 2>&1
-        fi
+            _bot_say "warp" "$warp_type" "$target_branch"
+            
+            if [ -n "$(git status --porcelain)" ]; then
+                echo -e "    ›› Stashing local modifications..."
+                git stash push -m "Auto-stash before warp to $target_branch" >/dev/null 2>&1
+            fi
 
-        git checkout "$target_branch" 2>/dev/null
+            git checkout "$target_branch" 2>/dev/null
 
-        if [ $? -eq 0 ]; then
-            echo -e "\033[1;30m    ›› Stabilizing Reality Matrix...\033[0m"
-            sleep 1.2
-            echo -e "\033[1;30m    ›› Flushing Quantum Cache...\033[0m"
-            sleep 0.8
-            echo -e "\033[1;30m    ›› Realigning Neural Pathways...\033[0m"
-            sleep 1
-            echo -e "\033[1;30m    ›› System Link Established.\033[0m"
-            sleep 0.5
-            echo -e "\033[1;33m :: Reloading System Core...\033[0m"
-            sleep 1.6
-            mux reload
-        else
-            _bot_say "warp" "fail"
-        fi
+            if [ $? -eq 0 ]; then
+                echo -e "\033[1;30m    ›› Stabilizing Reality Matrix...\033[0m"
+                sleep 1.2
+                echo -e "\033[1;30m    ›› Flushing Quantum Cache...\033[0m"
+                sleep 0.8
+                echo -e "\033[1;30m    ›› Realigning Neural Pathways...\033[0m"
+                sleep 1
+                echo -e "\033[1;30m    ›› System Link Established.\033[0m"
+                sleep 0.5
+                echo -e "\033[1;33m :: Reloading System Core...\033[0m"
+                sleep 1.6
+                mux reload
+            else
+                _bot_say "warp" "fail"
+            fi
         ;;
 
         # : Enter the Arsenal (Factory Mode)

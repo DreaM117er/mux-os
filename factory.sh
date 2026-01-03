@@ -300,7 +300,6 @@ function fac() {
 # 通用模組：智慧指令輸入器 (Smart Command Input)
 function _fac_query_command_name() {
     local temp_file="$MUX_ROOT/app.sh.temp"
-
     local existing_cmds=$(grep "^function" "$temp_file" | sed 's/function //' | sed 's/() {//')
     
     local result=$(echo "$existing_cmds" | fzf \
@@ -310,11 +309,11 @@ function _fac_query_command_name() {
         --prompt=" :: Input Command › " \
         --header=" :: Type to Search. Enter unique name to Create. ::" \
         --print-query \
-        --color=header:yellow,prompt:cyan,border:magenta
+        --color=fg:-1,bg:-1,hl:33,fg+:208,bg+:235,hl+:33 \
+        --color=info:240,prompt:208,pointer:208,marker:208,border:208,header:240
     )
     
     local query=$(echo "$result" | head -n1)
-    local match=$(echo "$result" | tail -n1)
     
     if [ -z "$query" ]; then
         echo "|EMPTY"
@@ -340,14 +339,11 @@ function _fac_wizard_create() {
         --border=bottom \
         --prompt=" :: Forge Type › " \
         --header=" :: Select Neural Template ::" \
-        --color=header:yellow,prompt:cyan,border:blue
+        --color=fg:-1,bg:-1,hl:33,fg+:208,bg+:235,hl+:33 \
+        --color=info:240,prompt:208,pointer:208,marker:208,border:208,header:240
     )
 
-    if [ -z "$selection" ]; then
-        echo -e "\033[1;30m    ›› Operation canceled.\033[0m"
-        return
-    fi
-
+    if [ -z "$selection" ]; then return; fi
     local target_func=$(echo "$selection" | awk -F'\t' '{print $2}')
     $target_func
 }
@@ -355,12 +351,8 @@ function _fac_wizard_create() {
 # 鑄造工序：標準啟動器 - Standard Launcher Stamp
 function _fac_stamp_launcher() {
     _fac_snapshot
-
     local mold_file="$MUX_ROOT/plate/template.txt"
-    if [ ! -f "$mold_file" ]; then 
-        _bot_say "error" "Launcher mold missing."
-        return 1
-    fi
+    [ ! -f "$mold_file" ] && return 1
 
     local ui_name="Unknown"
     local pkg_id="com.null.placeholder"
@@ -377,14 +369,11 @@ function _fac_stamp_launcher() {
 
     while true; do
         local menu_display=""
-        
         menu_display="${menu_display}1. Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET}   ${func_status}\n"
-        
         menu_display="${menu_display}2. UI Name  : ${F_SUB}${ui_name}${F_RESET}\n"
         menu_display="${menu_display}3. Package  : ${F_SUB}${pkg_id}${F_RESET}\n"
         menu_display="${menu_display}4. Activity : ${F_SUB}${pkg_act:-[Auto]}${F_RESET}\n"
         menu_display="${menu_display}5. Category : ${F_WARN}${target_cat}${F_RESET}\n"
-        
         menu_display="${menu_display}\n[ apklist ] : Open APK Reference List"
         menu_display="${menu_display}\n[ CONFIRM ] : Forge Neural Link"
         menu_display="${menu_display}\n[ CANCEL  ] : Abort Operation"
@@ -396,107 +385,43 @@ function _fac_stamp_launcher() {
             --border=bottom \
             --prompt=" :: Launcher Forge › " \
             --header=" :: Select Field to Modify ::" \
-            --color=header:yellow,prompt:cyan,border:blue
+            --color=fg:-1,bg:-1,hl:33,fg+:208,bg+:235,hl+:33 \
+            --color=info:240,prompt:208,pointer:208,marker:208,border:208,header:240
         )
 
         if [ -z "$selection" ]; then return; fi
-
         local key=$(echo "$selection" | awk '{print $1}')
         local clean_selection=$(echo "$selection" | sed 's/\x1b\[[0-9;]*m//g')
 
         case "$key" in
-            "1.")
+            "1.") 
                 local res=$(_fac_query_command_name)
                 local val=$(echo "$res" | cut -d'|' -f1)
                 local sts=$(echo "$res" | cut -d'|' -f2)
-                
-                if [ "$sts" == "NEW" ]; then
-                    func_name="$val"
-                    func_status="$st_ok"
-                elif [ "$sts" == "DUPLICATE" ]; then
-                    func_name="$val"
-                    func_status="$st_dup"
-                    _bot_say "warn" "Command '$val' already exists."
-                    sleep 0.8
-                fi
+                if [ "$sts" == "NEW" ]; then func_name="$val"; func_status="$st_ok";
+                elif [ "$sts" == "DUPLICATE" ]; then func_name="$val"; func_status="$st_dup"; _bot_say "warn" "Exists."; sleep 0.8; fi
                 ;;
-
-            "2.")
-                echo -ne "${F_SUB}    ›› UI Display Name: ${F_RESET}"
-                read input_ui
-                [ -n "$input_ui" ] && ui_name="$input_ui"
-                ;;
-
-            "3.")
-                echo -ne "${F_SUB}    ›› Package Name: ${F_RESET}"
-                read input_pkg
-                [ -n "$input_pkg" ] && pkg_id="$input_pkg"
-                ;;
-
-            "4.")
-                echo -ne "${F_SUB}    ›› Activity (Enter to Auto): ${F_RESET}"
-                read input_act
-                pkg_act="$input_act"
-                ;;
-
-            "5.")
-                _fac_select_category
-                if [ -n "$CATEGORY_NAME" ]; then
-                    target_cat="$CATEGORY_NAME"
-                    insert_line_cache="$INSERT_LINE"
-                fi
-                ;;
-
+            "2.") echo -ne "${F_SUB}    ›› UI Display Name: ${F_RESET}"; read input_ui; [ -n "$input_ui" ] && ui_name="$input_ui" ;;
+            "3.") echo -ne "${F_SUB}    ›› Package Name: ${F_RESET}"; read input_pkg; [ -n "$input_pkg" ] && pkg_id="$input_pkg" ;;
+            "4.") echo -ne "${F_SUB}    ›› Activity (Enter to Auto): ${F_RESET}"; read input_act; pkg_act="$input_act" ;;
+            "5.") _fac_select_category; if [ -n "$CATEGORY_NAME" ]; then target_cat="$CATEGORY_NAME"; insert_line_cache="$INSERT_LINE"; fi ;;
             "[") 
-                if [[ "$clean_selection" == *"[ apklist ]"* ]]; then
-                    if command -v apklist &> /dev/null; then
-                        apklist
-                        echo -e ""
-                        echo -ne "\033[1;30m    (Press Enter to return...)\033[0m"
-                        read
-                    else
-                        _bot_say "error" "'apklist' module missing."
-                        sleep 1
-                    fi
-                
+                if [[ "$clean_selection" == *"[ apklist ]"* ]]; then command -v apklist &> /dev/null && { apklist; echo -ne "\033[1;30m(Enter)\033[0m"; read; }
                 elif [[ "$clean_selection" == *"[ CONFIRM ]"* ]]; then
-                    if [ -z "$func_name" ]; then
-                        _bot_say "error" "Command Name is required."
-                        sleep 1
-                        continue
+                    [ -z "$func_name" ] && continue
+                    [[ "$func_status" == *"[ DUPLICATE ]"* ]] && continue
+                    if [ -z "$insert_line_cache" ]; then
+                         local header_line=$(grep -n "^# === $target_cat ===" "$MUX_ROOT/app.sh.temp" | head -n 1 | cut -d: -f1)
+                         if [ -n "$header_line" ]; then local next=$(tail -n +$((header_line + 1)) "$MUX_ROOT/app.sh.temp" | grep -n "^# ===" | head -n 1 | cut -d: -f1); if [ -n "$next" ]; then insert_line_cache=$((header_line + next - 1)); else insert_line_cache=$(wc -l < "$MUX_ROOT/app.sh.temp"); fi
+                         else echo -e "\n\n# === Others ===" >> "$MUX_ROOT/app.sh.temp"; insert_line_cache=$(wc -l < "$MUX_ROOT/app.sh.temp"); fi
                     fi
-                    
                     _bot_say "factory" "Forging link '$func_name'..."
-                    
                     local temp_block="$MUX_ROOT/plate/block.tmp"
-                    cat "$mold_file" \
-                        | sed "s/\[FUNC\]/$func_name/g" \
-                        | sed "s/\[NAME\]/$ui_name/g" \
-                        | sed "s/\[PKG_ID\]/$pkg_id/g" \
-                        | sed "s/\[PKG_ACT\]/$pkg_act/g" \
-                        > "$temp_block"
+                    cat "$mold_file" | sed "s/\[FUNC\]/$func_name/g" | sed "s/\[NAME\]/$ui_name/g" | sed "s/\[PKG_ID\]/$pkg_id/g" | sed "s/\[PKG_ACT\]/$pkg_act/g" > "$temp_block"
                     echo "" >> "$temp_block"
-
-                    local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp")
-                    if [ "$insert_line_cache" -ge "$total_lines" ]; then
-                        cat "$temp_block" >> "$MUX_ROOT/app.sh.temp"
-                    else
-                        sed -i "${insert_line_cache}r $temp_block" "$MUX_ROOT/app.sh.temp"
-                    fi
-                    rm "$temp_block"
-                    
-                    _fac_maintenance
-                    _bot_say "success" "Module '$func_name' deployed."
-                    
-                    echo -ne "${F_WARN}    ›› Hot Reload now? (y/n): ${F_RESET}"
-                    read r
-                    [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load
-                    return
-
-                elif [[ "$clean_selection" == *"CANCEL"* ]]; then
-                    echo -e "\033[1;30m    ›› Operation aborted.\033[0m"
-                    return
-                fi
+                    local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp"); if [ "$insert_line_cache" -ge "$total_lines" ]; then cat "$temp_block" >> "$MUX_ROOT/app.sh.temp"; else sed -i "${insert_line_cache}r $temp_block" "$MUX_ROOT/app.sh.temp"; fi
+                    rm "$temp_block"; _fac_maintenance; _bot_say "success" "Deployed."; echo -ne "${F_WARN}Hot Reload? (y/n): ${F_RESET}"; read r; [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load; return
+                elif [[ "$clean_selection" == *"CANCEL"* ]]; then return; fi
                 ;;
         esac
     done
@@ -835,7 +760,8 @@ function _fac_select_category() {
         --border=bottom \
         --prompt=" :: Target Sector › " \
         --header=" :: Select Deployment Zone (ESC = Others) ::" \
-        --color=header:yellow,prompt:green,border:blue
+        --color=fg:-1,bg:-1,hl:33,fg+:208,bg+:235,hl+:33 \
+        --color=info:240,prompt:208,pointer:208,marker:208,border:208,header:240
     )
 
     INSERT_LINE=""
@@ -1606,12 +1532,12 @@ function _factory_fzf_menu() {
     local temp_file="$MUX_ROOT/app.sh.temp"
 
     while true; do
+        # 1. 數據解析
         local list_data=$(awk '
             BEGIN { 
                 current_cat="Uncategorized"
-                # 定義顏色
-                C_CMD="\x1b[1;37m"
-                C_CAT="\x1b[1;32m"
+                C_CMD="\x1b[1;37m"    # White
+                C_CAT="\x1b[1;30m"    # Gray (Factory Style)
                 C_RESET="\x1b[0m"
             }
             /^# ===/ {
@@ -1622,7 +1548,7 @@ function _factory_fzf_menu() {
                 match($0, /function ([a-zA-Z0-9_]+)/, arr);
                 func_name = arr[1];
                 if (substr(func_name, 1, 1) != "_") {
-                    # 模仿 Core 風格：左邊指令，右邊淡淡的資訊
+                    # 格式: Command    [Category]
                     printf " %s%-14s %s[%s]%s\n", C_CMD, func_name, C_CAT, current_cat, C_RESET;
                 }
             }
@@ -1635,6 +1561,7 @@ function _factory_fzf_menu() {
         
         local total_cmds=$(echo "$list_data" | wc -l)
 
+        # 2. FZF 渲染 (Factory Orange Theme)
         local selection=$(echo "$list_data" | fzf --ansi \
             --height=10 \
             --layout=reverse \
@@ -1643,7 +1570,8 @@ function _factory_fzf_menu() {
             --header=" :: Forge Index: [$total_cmds] | ALT-C: Create :: " \
             --info=hidden \
             --pointer="››" \
-            --color=fg:white,bg:-1,hl:green,fg+:cyan,bg+:black,hl+:yellow,info:yellow,prompt:cyan,pointer:red,border:blue \
+            --color=fg:-1,bg:-1,hl:33,fg+:208,bg+:235,hl+:33 \
+            --color=info:240,prompt:208,pointer:208,marker:208,border:208,header:240 \
             --bind="alt-c:execute(_fac_wizard_create)+reload(echo \"$list_data\")" \
             --bind="resize:clear-screen"
         )
