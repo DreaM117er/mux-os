@@ -15,6 +15,14 @@ export MUX_ROOT="$HOME/mux-os"
 export BASE_DIR="$MUX_ROOT"
 export __MUX_CORE_ACTIVE=true
 
+# 載入核心模組
+export BOT_MOD="$MUX_ROOT/bot.sh"
+export UI_MOD="$MUX_ROOT/ui.sh"
+export IDENTITY_MOD="$MUX_ROOT/identity.sh"
+export SYSTEM_MOD="$MUX_ROOT/system.sh"
+export VENDOR_MOD="$MUX_ROOT/vendor.sh"
+export APP_MOD="$MUX_ROOT/app.sh"
+
 # 模組註冊表
 MODULES=("$BOT_MOD" "$UI_MOD" "$IDENTITY_MOD" "$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD")
 for mod in "${MODULES[@]}"; do
