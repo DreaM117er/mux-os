@@ -1,5 +1,17 @@
 #!/bin/bash
 
+# 安全檢測：確保核心模組授權載入 - Security Check: Ensure Core Module Authorized Load
+if [ -f "$HOME/mux-os/setup.sh" ] && [ ! -f "$HOME/mux-os/.mux_identity" ]; then
+    if [ -z "$__MUX_SETUP_ACTIVE" ]; then
+        echo -e "\033[1;31m"
+        echo " :: SECURITY ALERT :: System Not Initialized."
+        echo " :: Identity Signature Missing."
+        echo " :: Access Denied. Please execute './setup.sh' to initialize."
+        echo -e "\033[0m"
+        return 1 2>/dev/null || exit 1
+    fi
+fi
+
 # 基礎路徑與版本定義 - Base Paths and Version Definition
 export MUX_REPO="https://github.com/DreaM117er/mux-os"
 export MUX_VERSION="5.0.0"

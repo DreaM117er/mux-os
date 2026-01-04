@@ -1,6 +1,8 @@
 #!/bin/bash
 # setup.sh - Mux-OS 生命週期管理器 (Lifecycle Manager)
 
+export __MUX_SETUP_ACTIVE=true
+
 # 定義身份
 SYSTEM_STATUS="OFFLINE"
 COMMANDER_ID=""
@@ -19,14 +21,13 @@ C_RED="\033[1;31m"
 C_GRAY="\033[1;30m"
 
 # 讀取身份檔案
-if [ -f "$MUX_ROOT/core.sh" ]; then
-    if [ -f "$MUX_ROOT/.mux_identity" ]; then
-        source "$MUX_ROOT/.mux_identity" 2>/dev/null
-        if [ "$MUX_ROLE" == "COMMANDER" ]; then
-            SYSTEM_STATUS="ONLINE"
-            COMMANDER_ID="$MUX_ID"
-        fi
-    fi
+if [ -f "$MUX_ROOT/.mux_identity" ]; then
+    SYSTEM_STATUS="ONLINE"
+    source "$MUX_ROOT/.mux_identity" 2>/dev/null
+    COMMANDER_ID="$MUX_ID"
+else
+    SYSTEM_STATUS="OFFLINE"
+    COMMANDER_ID="Unknown"
 fi
 
 # 輔助函式 
@@ -41,7 +42,7 @@ function _banner() {
  |_|  |_|\__,_/_/\_\     \___/|____/ 
 EOF
     echo -e "${C_RESET}"
-    echo -e " ${C_GRAY}:: Lifecycle Manager :: v2.4.0 ::${C_RESET}"
+    echo -e " ${C_GRAY}:: Lifecycle Manager :: v3.4.0 ::${C_RESET}"
     echo ""
 }
 
@@ -122,15 +123,12 @@ function _install_protocol() {
     fi
     chmod +x "$VENDOR_TARGET"
 
-    LOAD_CMD="source $MUX_ROOT/core.sh"
-    if ! grep -Fq "$LOAD_CMD" "$RC_FILE"; then
-        echo -e "\n# === Mux-OS Auto-Loader ===\n$LOAD_CMD" >> "$RC_FILE"
-        echo "    ›› Bootloader injected."
-    else
-        echo "    ›› Bootloader already present."
+    if [ ! -f "$MUX_ROOT/.mux_identity" ]; then
+        echo ""
+        echo -e "${C_YELLOW} :: Initializing Identity Protocol...${C_RESET}"
+        sleep 1
+        bash "$MUX_ROOT/identity.sh"
     fi
-
-    chmod +x "$MUX_ROOT/"*.sh
 
     echo ""
     echo -e "${C_GREEN} :: System Ready. Re-engaging Terminal...${C_RESET}"
