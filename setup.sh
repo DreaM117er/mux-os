@@ -30,7 +30,7 @@ else
     COMMANDER_ID="Unknown"
 fi
 
-# 輔助函式 
+# 輔助函式：Banner
 function _banner() {
     clear
     echo -e "${C_GRAY}"
@@ -42,11 +42,41 @@ function _banner() {
  |_|  |_|\__,_/_/\_\     \___/|____/ 
 EOF
     echo -e "${C_RESET}"
-    echo -e " ${C_GRAY}:: Lifecycle Manager :: v3.4.0 ::${C_RESET}"
+    echo -e " ${C_GRAY}:: Lifecycle Manager :: v3.6.0 ::${C_RESET}"
     echo ""
 }
 
-# 安裝協議 - Installation Protocol
+# 退出協議
+function _exit_protocol() {
+    echo ""
+    echo -e "${C_GRAY}    ›› Operations complete. Returning to Core...${C_RESET}"
+    sleep 0.5
+    exit 0
+}
+
+# 身份重置協議
+function _reauth_protocol() {
+    echo ""
+    echo -e "${C_YELLOW} :: Identity Reset Sequence Initiated...${C_RESET}"
+    echo -e "${C_GRAY}    Current Signature: $COMMANDER_ID${C_RESET}"
+    echo ""
+    
+    if [ -f "$MUX_ROOT/.mux_identity" ]; then
+        rm "$MUX_ROOT/.mux_identity"
+        echo -e "${C_RED}    ›› Old identity purged.${C_RESET}"
+    fi
+    
+    sleep 1
+    __MUX_CORE_ACTIVE=true bash "$MUX_ROOT/identity.sh"
+    
+    echo ""
+    echo -e "${C_GREEN} :: Identity Matrix Updated.${C_RESET}"
+    sleep 1
+    
+    _exit_protocol
+}
+
+# 安裝協議
 function _install_protocol() {
     local cols=$(tput cols)
     if [ "$cols" -lt 50 ]; then
@@ -71,7 +101,11 @@ function _install_protocol() {
     read choice
     if [[ "$choice" != "y" && "$choice" != "Y" && "$choice" != "" ]]; then
         echo -e "${C_GRAY}    ›› Construction canceled.${C_RESET}"
-        exit 0
+        if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
+            _exit_protocol
+        else
+            exit 0
+        fi
     fi
 
     echo ""
@@ -147,30 +181,21 @@ function _install_protocol() {
         echo ""
         echo -e "${C_YELLOW} :: Initializing Identity Protocol...${C_RESET}"
         sleep 1
-        
         __MUX_CORE_ACTIVE=true bash "$MUX_ROOT/identity.sh"
     fi
 
     echo ""
     echo -e "${C_GREEN} :: System Ready. Re-engaging Terminal...${C_RESET}"
     sleep 1
-    exec bash
-}
-
-# 輔助函式：退出並重載 (Exit & Reload Strategy)
-function _exit_and_reload() {
-    echo -e "${C_GRAY}    ›› Operations complete. Resyncing Core...${C_RESET}"
-    sleep 0.5
     
-    if command -v mux &> /dev/null; then
-        mux reload
+    if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
+        exit 0
     else
         exec bash
     fi
-    exit 0
 }
 
-# 卸載協議 - Uninstallation Protocol
+# 卸載協議
 function _uninstall_protocol() {
     _banner
     echo -e "${C_RED} :: WARNING: Self-Destruct Sequence Requested.${C_RESET}"
@@ -188,7 +213,7 @@ function _uninstall_protocol() {
     
     if [ "$input" != "CONFIRM" ]; then
         echo -e "${C_GREEN} :: Safety lock engaged. Aborting destruction.${C_RESET}"
-        exit 0
+        _exit_protocol
     fi
 
     echo ""
@@ -203,7 +228,6 @@ function _uninstall_protocol() {
 
     if [ -d "$MUX_ROOT" ]; then
         unset -f mux _bot_say _mux_init 2>/dev/null
-        
         rm -rf "$MUX_ROOT"
         echo "    ›› Core files vaporized."
     fi
@@ -228,21 +252,10 @@ if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
     read choice
 
     case "$choice" in
-        1)
-            _install_protocol
-            ;;
-        2)
-            _reauth_protocol
-            ;;
-        3)
-            _uninstall_protocol
-            ;;
-        4)
-            _exit_and_reload
-            ;;
-        *)
-            _exit_and_reload
-            ;;
+        1) _install_protocol ;;
+        2) _reauth_protocol ;;
+        3) _uninstall_protocol ;;
+        *) _exit_protocol ;;
     esac
 
 else
@@ -256,15 +269,11 @@ else
     read choice
 
     case "$choice" in
-        1)
-            _install_protocol
-            ;;
-        2)
-            _uninstall_protocol
-            ;;
-        *)
-            echo "    ›› Standing by."
-            exit 0
-            ;;
+        1) _install_protocol ;;
+        2) _uninstall_protocol ;;
+        *) 
+           echo "    ›› Standing by."
+           exit 0 
+           ;;
     esac
 fi
