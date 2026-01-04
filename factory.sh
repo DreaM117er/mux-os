@@ -1941,12 +1941,10 @@ function _fac_deploy() {
     fi
     
     mv "$MUX_ROOT/app.sh.temp" "$MUX_ROOT/app.sh"
-    
     _mux_uplink
-    
     echo -e "\033[1;32m :: System Reloading... \033[0m"
     sleep 1
-    
+    rm "$MUX_ROOT/.mux_state" 2>/dev/null
     unset __MUX_TARGET_MODE
     exec bash
 }
@@ -1956,7 +1954,7 @@ function _fac_exit() {
     echo -e "\033[1;33m :: Leaving Factory (Changes Discarded)... \033[0m"
     sleep 0.5
     rm "$MUX_ROOT/app.sh.temp" 2>/dev/null
-    
+    rm "$MUX_ROOT/.mux_state" 2>/dev/null
     unset __MUX_TARGET_MODE
     exec bash
 }

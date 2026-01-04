@@ -307,7 +307,7 @@ function mux() {
                 _factory_boot_sequence
                 if [ $? -ne 0 ]; then return; fi
 
-                export __MUX_TARGET_MODE="factory"
+                echo "factory" > "$MUX_ROOT/.mux_state"
 
                 echo -e "\n\033[1;33m :: Switching to Neural Forge... \033[0m"
                 sleep 0.5
@@ -574,7 +574,12 @@ function _mux_init() {
     _bot_say "hello"
 }
 
-if [ "$__MUX_TARGET_MODE" == "factory" ]; then
+TARGET_MODE=""
+if [ -f "$MUX_ROOT/.mux_state" ]; then
+    TARGET_MODE=$(cat "$MUX_ROOT/.mux_state")
+fi
+
+if [ "$TARGET_MODE" == "factory" ]; then
     if [ -f "$BASE_DIR/factory.sh" ]; then
         source "$BASE_DIR/factory.sh"
     fi
@@ -582,8 +587,8 @@ if [ "$__MUX_TARGET_MODE" == "factory" ]; then
     if command -v _factory_system_boot &> /dev/null; then
         _factory_system_boot
     else
-        echo -e "\033[1;31m :: Critical Error: Factory module missing or corrupt. Reverting to Core.\033[0m"
-        unset __MUX_TARGET_MODE
+        echo -e "\033[1;31m :: Critical Error: Factory module corrupt. Reverting to Core.\033[0m"
+        rm "$MUX_ROOT/.mux_state" 2>/dev/null
         _mux_init
     fi
 else
