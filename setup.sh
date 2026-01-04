@@ -123,11 +123,25 @@ function _install_protocol() {
     fi
     chmod +x "$VENDOR_TARGET"
 
+    echo "    ›› Installing Bootloader..."
+    if ! grep -q "source $MUX_ROOT/core.sh" "$RC_FILE"; then
+        echo "" >> "$RC_FILE"
+        echo "# === Mux-OS Auto-Loader ===" >> "$RC_FILE"
+        echo "if [ -f \"$MUX_ROOT/core.sh\" ]; then" >> "$RC_FILE"
+        echo "    source \"$MUX_ROOT/core.sh\"" >> "$RC_FILE"
+        echo "fi" >> "$RC_FILE"
+        echo "    ›› Bootloader injected into $RC_FILE"
+    else
+        echo "    ›› Bootloader already active."
+    fi
+
     if [ ! -f "$MUX_ROOT/.mux_identity" ]; then
         echo ""
         echo -e "${C_YELLOW} :: Initializing Identity Protocol...${C_RESET}"
-        export __MUX_CORE_ACTIVE=true
         sleep 1
+        
+        export __MUX_CORE_ACTIVE=true
+        
         bash "$MUX_ROOT/identity.sh"
     fi
 
