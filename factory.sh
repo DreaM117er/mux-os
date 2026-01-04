@@ -1750,12 +1750,12 @@ function _fac_maintenance() {
             
             if [ -n "$(tail -c 1 "$file")" ]; then
                 echo "" >> "$file"
-                echo -e "${F_WARN}       [Fixed] Missing EOF newline.${F_RESET}"
+                echo -e "${F_WARN}    ›› Missing EOF newline. ✅${F_RESET}"
             fi
             
             if grep -q "^}[^[:space:]]" "$file"; then
                 sed -i 's/^}/}\n/' "$file"
-                echo -e "${F_WARN}       [Fixed] Detached glued functions.${F_RESET}"
+                echo -e "${F_WARN}    ›› Detached glued functions. ✅${F_RESET}"
             fi
 
             if grep -E "^function" "$file" | grep -vE "^function [a-zA-Z0-9_]+\(\) \{$" >/dev/null; then
@@ -1763,13 +1763,13 @@ function _fac_maintenance() {
                  
                  sed -i -E 's/\([[:space:]]*\)[[:space:]]*\{/() {/' "$file"
                  
-                 echo -e "${F_WARN}       [Fixed] Normalized function syntax strictness.${F_RESET}"
+                 echo -e "${F_WARN}    ›› Normalized function syntax strictness. ✅${F_RESET}"
             fi
 
             if [[ "$file" == *"app.sh.temp" ]]; then
                 if ! grep -q "^# === Others ===" "$file"; then
                     echo -e "\n\n# === Others ===\n" >> "$file"
-                    echo -e "${F_WARN}       [Fixed] Restored 'Others' safety net.${F_RESET}"
+                    echo -e "${F_WARN}    ›› Restored 'Others' safety net. ✅${F_RESET}"
                 fi
             fi
         fi
