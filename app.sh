@@ -184,6 +184,7 @@ function ms365() {
     _launch_android_app "M365 Copilot" "com.microsoft.office.officehubrow" "com.microsoft.office.officesuite.OfficeSuiteActivity"
 }
 
+
 # === Engineering ===
 
 # : GitHub
