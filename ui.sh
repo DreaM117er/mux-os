@@ -278,7 +278,7 @@ function _show_menu_dashboard() {
 
     awk -v C_CAT="$cat_color" -v C_FUNC="$func_color" -v C_RST="\033[0m" '
     BEGIN {
-        # awk 變數傳入
+
     }
 
     /^# ===|^# ---/ {
@@ -406,16 +406,18 @@ function _mux_uplink_sequence() {
     sleep 0.8
     echo -e "\033[1;36m :: Constructing interface matrix (fzf)...\033[0m"
     sleep 0.5
+    echo -e ""
 
     pkg install fzf -y > /dev/null 2>&1
 
     if command -v fzf &> /dev/null; then
         echo -e "\033[1;35m :: SYNCHRONIZATION COMPLETE :: \033[0m"
+        echo -e ""
         sleep 0.5
         _bot_say "neural" "Welcome to the Grid, Commander."
         
-        sleep 1
-        _mux_fuzzy_menu
+        sleep 1.4
+        mux reload
     else
         _bot_say "error" "Link failed. Neural rejection detected."
     fi
@@ -450,7 +452,7 @@ function _factory_show_status() {
     fi
 
     echo -e ""
-    echo -e "${F_SUB} [Temporal Snapshots (Time Stone)]${F_RESET}"
+    echo -e "${F_SUB}    [Temporal Snapshots (Time Stone)]${F_RESET}"
     
     local snapshots=(".app.sh.undo1" ".app.sh.undo2" ".app.sh.undo3")
     local labels=("Recent (Undo 1)" "Backup (Undo 2)" "Oldest (Undo 3)")
@@ -470,18 +472,17 @@ function _factory_show_status() {
             local f_size=$(du -h "$path" 2>/dev/null | cut -f1)
             
             echo -e "    ${F_CYAN}[$label]${F_RESET}"
-            echo -e "      › Time : $ts"
-            echo -e "      › Size : $f_size"
+            echo -e "    ›› Time : $ts"
+            echo -e "    ›› Size : $f_size"
             found_any=1
         else
             echo -e "    ${F_GRAY}[$label]${F_RESET}"
-            echo -e "      › -- Empty Slot --"
+            echo -e "    ›› -- Empty Slot --"
         fi
     done
-    
+
     if [ "$found_any" -eq 0 ]; then
-        echo -e ""
-        echo -e "${F_GRAY}    (No temporal snapshots available. Make a change to trigger backup.)${F_RESET}"
+        echo -e "${F_GRAY} :: No temporal snapshots available. Make a change to trigger backup.${F_RESET}"
     fi
 
     echo -e "${F_GRAY}    --------------------------------${F_RESET}"

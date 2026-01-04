@@ -291,7 +291,7 @@ function mux() {
         ;;
 
         # : Enter the Arsenal (Factory Mode)
-        "factory"|"fac"|"intofac")
+        "factory"|"tofac")
             echo ""
             echo -ne "\033[1;30m :: Initializing Factory Protocol...\033[0m"
             sleep 2.6

@@ -157,6 +157,20 @@ function _install_protocol() {
     exec bash
 }
 
+# 輔助函式：退出並重載 (Exit & Reload Strategy)
+function _exit_and_reload() {
+    echo ""
+    echo -e "${C_GRAY}    ›› Operations complete. Resyncing Core...${C_RESET}"
+    sleep 0.5
+    
+    if command -v mux &> /dev/null; then
+        mux reload
+    else
+        exec bash
+    fi
+    exit 0
+}
+
 # 卸載協議 - Uninstallation Protocol
 function _uninstall_protocol() {
     _banner
@@ -207,7 +221,33 @@ if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
     echo -e "${C_CYAN} :: System Status: ${C_GREEN}ONLINE${C_RESET} ${C_GRAY}(Commander: $COMMANDER_ID)${C_RESET}"
     echo ""
     echo " [1] Repair / Reinstall (Update)"
-    echo " [2] Uninstall (Self-Destruct)"
+    echo " [2] Reset Identity (Re-auth)"
+    echo " [3] Uninstall (Self-Destruct)"
+    echo " [4] Cancel (Reload Core)"
+    echo ""
+    echo -ne "${C_CYAN} :: Select Protocol [1-3]: ${C_RESET}"
+    read choice
+
+    case "$choice" in
+        1)
+            _install_protocol
+            ;;
+        2)
+            _reauth_protocol
+            ;;
+        3)
+            _uninstall_protocol
+            ;;
+        *)
+            _exit_and_reload
+            ;;
+    esac
+
+else
+    echo -e "${C_CYAN} :: System Status: ${C_GRAY}OFFLINE${C_RESET}"
+    echo ""
+    echo " [1] Install"
+    echo " [2] Delete (All Mux-OS Data)"
     echo " [3] Cancel"
     echo ""
     echo -ne "${C_CYAN} :: Select Protocol [1-3]: ${C_RESET}"
@@ -225,9 +265,4 @@ if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
             exit 0
             ;;
     esac
-
-else
-    echo -e "${C_CYAN} :: System Status: ${C_GRAY}OFFLINE${C_RESET}"
-    echo ""
-    _install_protocol
 fi
