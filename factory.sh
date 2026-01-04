@@ -1605,7 +1605,7 @@ function _fac_undo() {
 function _factory_deploy_sequence() {
     echo ""
     echo -ne "${F_WARN} :: Initiating Deployment Sequence...${F_RESET}"
-    sleep 2.6
+    sleep 1.5
     
     clear
     _draw_logo "gray"
@@ -1654,7 +1654,7 @@ function _factory_deploy_sequence() {
     fi
 
     _bot_say "deploy_start"
-    sleep 1.5
+    sleep 1.0
     
     local time_str="#Last Sync: $(date '+%Y-%m-%d %H:%M:%S') ::"
     local temp_file="$MUX_ROOT/app.sh.temp"
@@ -1674,26 +1674,15 @@ function _factory_deploy_sequence() {
     
     echo ""
     echo -e "${F_MAIN} :: DEPLOYMENT SUCCESSFUL ::${F_RESET}"
-    echo -e "${F_SUB}    System requires manual reload to re-align kernel.${F_RESET}"
-    echo ""
-    echo -e "${F_ERR} :: Waiting for manual restart...${F_RESET}"
-    echo ""
+    echo -e "${F_SUB}    Re-aligning Neural Kernel (Atomic Restart)...${F_RESET}"
+    sleep 1
     
     if [ -f "$temp_file" ]; then rm "$temp_file"; fi
-    export __MUX_MODE="core"
     
-    while true; do
-        _system_unlock
-        echo -ne "${F_WARN} :: Type 'mux reload' to reboot: ${F_RESET}"
-        read reboot_cmd
-        
-        if [ "$reboot_cmd" == "mux reload" ]; then
-            mux reload
-            break
-        else
-            echo -e "${F_ERR} :: Command rejected. System is halted.${F_RESET}"
-        fi
-    done
+    export __MUX_MODE="core"
+    echo "core" > "$MUX_ROOT/.mux_state"
+    
+    exec bash
 }
 
 # 神經鍛造中樞 (Neural Forge Nexus) - The Radar

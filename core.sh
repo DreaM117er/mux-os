@@ -335,15 +335,7 @@ function _mux_reload_kernel() {
     sleep 1.6
     clear
     unset MUX_INITIALIZED
-    source "$MUX_ROOT/core.sh"
-    _mux_integrity_scan
-    if [ $? -eq 0 ]; then
-        _system_unlock
-    else
-        _system_unlock
-        echo -e "\033[1;30m    ›› Neural link stabilized, but structural flaws detected.\033[0m"
-        echo -e "    (Run 'fac check' in factory to auto-repair)"
-    fi
+    exec bash
 }
 
 # 強制同步系統狀態 - Force Sync System State
