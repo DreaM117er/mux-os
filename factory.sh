@@ -41,6 +41,7 @@ function _enter_factory_mode() {
 
 # 啟動序列 (Boot Sequence)
 function _factory_boot_sequence() {
+    export __MUX_MODE="factory"
     clear
     _draw_logo "gray"
     
@@ -95,7 +96,7 @@ function _factory_boot_sequence() {
             _factory_eject_sequence "Equipment Insufficient. Neural Link (fzf) required."
             return 1
         else
-            echo -e "${F_GRE}[ :: EQUIPMENT CONFIRM :: ]${F_RESET}"
+            echo -e "${F_GRE} :: EQUIPMENT CONFIRM :: ${F_RESET}"
             sleep 0.5
         fi
 
@@ -135,7 +136,6 @@ function _factory_boot_sequence() {
 function _factory_eject_sequence() {
     local reason="$1"
     if [ -f "$MUX_ROOT/app.sh.temp" ]; then rm "$MUX_ROOT/app.sh.temp"; fi
-    export __MUX_MODE="core"
     source "$MUX_ROOT/app.sh"
 
     echo ""
@@ -157,6 +157,7 @@ function _factory_eject_sequence() {
     echo ""
     _bot_say "eject"
     sleep 2.6
+    export __MUX_MODE="core"
     _system_unlock
     clear
     mux reload
@@ -1615,11 +1616,9 @@ function _factory_deploy_sequence() {
     if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
         _fac_init
         echo -e ""
-        echo -e "${F_GRAY}    --------------------------------${F_RESET}"
         _bot_say "factory" "Deployment canceled. Sandbox state retained."
         echo -e "${F_GRAY}    ›› To discard changes: type 'fac reset'${F_RESET}"
         echo -e "${F_GRAY}    ›› To resume editing : type 'fac edit'${F_RESET}"
-        echo -e "${F_GRAY}    --------------------------------${F_RESET}"
         return
     fi
     
