@@ -209,6 +209,7 @@ function mux() {
         "setup")
             if [ -f "$MUX_ROOT/setup.sh" ]; then
                 bash "$MUX_ROOT/setup.sh"
+                _mux_reload_kernel
             else
                 _bot_say "error" "Lifecycle module (setup.sh) missing."
                 echo -e "\033[1;30m    ›› Please re-download setup.sh from repository.\033[0m"
