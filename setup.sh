@@ -48,7 +48,13 @@ EOF
 
 # 安裝協議 - Installation Protocol
 function _install_protocol() {
-    _banner
+    local cols=$(tput cols)
+    if [ "$cols" -lt 50 ]; then
+        clear
+        echo -e "${C_CYAN} :: Mux-OS Lifecycle Manager ::${C_RESET}\n"
+    else
+        _banner
+    fi
     echo -e "${C_YELLOW} :: Initialize System Construction?${C_RESET}"
     echo ""
 
@@ -124,6 +130,8 @@ function _install_protocol() {
     chmod +x "$VENDOR_TARGET"
 
     echo "    ›› Installing Bootloader..."
+    if [ ! -f "$RC_FILE" ]; then touch "$RC_FILE"; fi
+    
     if ! grep -q "source $MUX_ROOT/core.sh" "$RC_FILE"; then
         echo "" >> "$RC_FILE"
         echo "# === Mux-OS Auto-Loader ===" >> "$RC_FILE"
@@ -140,9 +148,7 @@ function _install_protocol() {
         echo -e "${C_YELLOW} :: Initializing Identity Protocol...${C_RESET}"
         sleep 1
         
-        export __MUX_CORE_ACTIVE=true
-        
-        bash "$MUX_ROOT/identity.sh"
+        __MUX_CORE_ACTIVE=true bash "$MUX_ROOT/identity.sh"
     fi
 
     echo ""

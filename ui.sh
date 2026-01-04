@@ -12,23 +12,35 @@ function _draw_logo() {
     local color_sub=""
     local label=""
 
-    case "$mode" in
+case "$mode" in
         "factory")
             color_primary="\033[1;38;5;208m"
             color_sub="\033[1;30m"
-            label=":: Mux-OS v$MUX_VERSION Factory :: Neural Link Create ::"
+            if [ "$cols" -lt 52 ]; then
+                label=":: Mux-OS v$MUX_VERSION Factory ::"
+            else
+                label=":: Mux-OS v$MUX_VERSION Factory :: Neural Link Create ::"
+            fi
             ;;
 
         "gray")
             color_primary="\033[1;30m"
             color_sub="\033[1;30m"
-            label=":: SYSTEM LOCKED :: AUTHENTICATION REQUIRED ::"
+            if [ "$cols" -lt 52 ]; then
+                label=":: SYSTEM LOCKED ::"
+            else
+                label=":: SYSTEM LOCKED :: AUTHENTICATION REQUIRED ::"
+            fi
             ;;
 
         *)
             color_primary="\033[1;36m"
             color_sub="\033[1;30m"
-            label=":: Mux-OS v$MUX_VERSION Core :: Target: Android/Termux ::"
+            if [ "$cols" -lt 52 ]; then
+                label=":: Mux-OS v$MUX_VERSION Core ::"
+            else
+                label=":: Mux-OS v$MUX_VERSION Core :: Target: Android/Termux ::"
+            fi
             ;;
     esac
 

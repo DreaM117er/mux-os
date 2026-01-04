@@ -530,11 +530,17 @@ function _mux_integrity_scan() {
 
     for file in "${targets[@]}"; do
         if [ -f "$file" ]; then
+            # Check 1: EOF Newline
             if [ -n "$(tail -c 1 "$file")" ]; then
                 flaws_detected=1
             fi
             
+            # Check 2: Glued Functions
             if grep -q "^}[^[:space:]]" "$file"; then
+                flaws_detected=1
+            fi
+
+            if grep -E "^function" "$file" | grep -vE "^function [a-zA-Z0-9_]+\(\) \{$" >/dev/null; then
                 flaws_detected=1
             fi
         fi
