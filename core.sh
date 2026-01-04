@@ -186,8 +186,12 @@ function mux() {
 
         # : Show System Status
         "status"|"st"|"v")
-            local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "Unknown")
+            local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
             local last_commit=$(git log -1 --format='%h - %s (%cr)' 2>/dev/null)
+
+            if [ "$current_branch" == "main" ]; then
+                    export MUX_ID="Unknown (main)"
+            fi
             
             echo -e "\033[1;34m :: Mux-OS System Status \033[0m"
             echo -e "\033[1;37m    ›› Core Protocol :\033[0m \033[1;33mv$MUX_VERSION\033[0m"
