@@ -946,7 +946,7 @@ function _fac_wizard_edit() {
         return
     fi
     
-    local relative_end=$(tail -n +$start_line "$temp_file" | grep -n "^}" | head -n1 | cut -d: -f1)
+    local relative_end=$(tail -n +$start_line "v$temp_file" | grep -n "^}" | head -n1 | cut -d: -f1)
     local end_line=$((start_line + relative_end - 1))
     local func_body=$(sed -n "${start_line},${end_line}p" "$temp_file")
     
@@ -1214,8 +1214,8 @@ function _fac_del() {
 
     if [ -z "$target" ]; then
         if command -v fzf &> /dev/null; then
-            target=$(grep "^function" "$temp_file" | sed 's/function //' | sed 's/() {//' | fzf \
-                --height=10 --layout=reverse --border=bottom \
+            target=$(grep "^[[:space:]]*function" "$temp_file" | sed 's/^[[:space:]]*function[[:space:]]\+//' | sed 's/[[:space:]]*() {//' | fzf \
+                --height=20% --layout=reverse --border=bottom \
                 --prompt=" :: Select Target to Terminate › " \
                 --pointer="››" \
                 --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
@@ -1229,7 +1229,7 @@ function _fac_del() {
 
     if [ -z "$target" ]; then return; fi
 
-    local start_line=$(grep -n "^function $target() {" "$temp_file" | cut -d: -f1)
+    local start_line=$(grep -n "^[[:space:]]*function[[:space:]]\+$target[[:space:]]*(" "$temp_file" | head -n1 | cut -d: -f1)
     
     if [ -z "$start_line" ]; then
         _bot_say "error" "Target '$target' not found in Sandbox."
@@ -1245,11 +1245,7 @@ function _fac_del() {
     fi
 
     local relative_end=$(tail -n +$start_line "$temp_file" | grep -n "^}" | head -n1 | cut -d: -f1)
-    
-    if [ -z "$relative_end" ]; then
-        _bot_say "error" "Structural integrity compromised. Cannot find closing brace."
-        return 1
-    fi
+    if [ -z "$relative_end" ]; then return 1; fi
 
     local delete_end=$((start_line + relative_end - 1))
     local line_count=$((delete_end - delete_start + 1))
@@ -1258,7 +1254,6 @@ function _fac_del() {
         local menu_display=""
         menu_display="${menu_display}Target   : ${F_ERR}${target}${F_RESET}\n"
         menu_display="${menu_display}Range    : Lines ${delete_start}-${delete_end} (${line_count} lines)\n"
-        menu_display="${menu_display}Status   : ${F_WARN}LOCKED ON TARGET${F_RESET}\n"
         menu_display="${menu_display}\n"
         menu_display="${menu_display}[ CONFIRM NUKE ] : Permanently Excise Module\n"
         menu_display="${menu_display}[ ABORT ]        : Cancel Operation"
@@ -1272,32 +1267,20 @@ function _fac_del() {
             --header=" :: WARNING: Action is Irreversible in Sandbox ::" \
             --pointer="››" \
             --preview "sed -n '${delete_start},${delete_end}p' '$temp_file' | nl -v $delete_start -w 3 -s '  '" \
-            --preview-window="right:60%:wrap:border-left" \
+            --preview-window="down:40%:wrap:border-top" \
             --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
             --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
         )
 
         if [ -z "$selection" ]; then return; fi
         
-        local clean_selection=$(echo "$selection" | sed 's/\x1b\[[0-9;]*m//g')
-
-        if [[ "$clean_selection" == *"[ CONFIRM NUKE ]"* ]]; then
-            _bot_say "factory" "Excising module..."
-            
+        if [[ "$selection" == *"[ CONFIRM NUKE ]"* ]]; then
             sed -i "${delete_start},${delete_end}d" "$temp_file"
-            
             unset -f "$target" >/dev/null 2>&1
-            
             _fac_maintenance
             _bot_say "success" "Module '$target' terminated."
-            
-            echo -ne "${F_WARN}    ›› Hot Reload now? (y/n): ${F_RESET}"
-            read r
-            [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load
             return
-            
-        elif [[ "$clean_selection" == *"[ ABORT ]"* ]]; then
-            echo -e "\033[1;30m    ›› Operation aborted. Target lives.\033[0m"
+        elif [[ "$selection" == *"[ ABORT ]"* ]]; then
             return
         fi
     done
@@ -1775,6 +1758,14 @@ function _fac_maintenance() {
                 echo -e "${F_WARN}       [Fixed] Detached glued functions.${F_RESET}"
             fi
 
+            if grep -E "^function" "$file" | grep -vE "^function [a-zA-Z0-9_]+\(\) \{$" >/dev/null; then
+                 sed -i -E 's/^function[[:space:]]+([a-zA-Z0-9_]+)/function \1/' "$file"
+                 
+                 sed -i -E 's/\([[:space:]]*\)[[:space:]]*\{/() {/' "$file"
+                 
+                 echo -e "${F_WARN}       [Fixed] Normalized function syntax strictness.${F_RESET}"
+            fi
+
             if [[ "$file" == *"app.sh.temp" ]]; then
                 if ! grep -q "^# === Others ===" "$file"; then
                     echo -e "\n\n# === Others ===\n" >> "$file"
@@ -1839,7 +1830,7 @@ function _fac_get_meta() {
     
     local type="UNKNOWN"
     local name="Unknown"
-    local pkg="Unknown"
+    local pkg="Unknown"v
     local extra=""
 
     if echo "$func_body" | grep -q "case \"\$target\" in"; then
