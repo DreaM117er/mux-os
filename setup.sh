@@ -126,6 +126,7 @@ function _install_protocol() {
     if [ ! -f "$MUX_ROOT/.mux_identity" ]; then
         echo ""
         echo -e "${C_YELLOW} :: Initializing Identity Protocol...${C_RESET}"
+        export __MUX_CORE_ACTIVE=true
         sleep 1
         bash "$MUX_ROOT/identity.sh"
     fi
