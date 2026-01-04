@@ -3,11 +3,7 @@
 # 安全檢測：確保核心模組授權載入 - Security Check: Ensure Core Module Authorized Load
 if [ -f "$HOME/mux-os/setup.sh" ] && [ ! -f "$HOME/mux-os/.mux_identity" ]; then
     if [ -z "$__MUX_SETUP_ACTIVE" ]; then
-        echo -e "\033[1;31m"
-        echo " :: SECURITY ALERT :: System Not Initialized."
-        echo " :: Identity Signature Missing."
-        echo " :: Access Denied. Please execute './setup.sh' to initialize."
-        echo -e "\033[0m"
+        echo -e "\033[1;31m :: SECURITY ALERT :: System Not Initialized.\033[0m"
         return 1 2>/dev/null || exit 1
     fi
 fi
@@ -20,45 +16,14 @@ export BASE_DIR="$MUX_ROOT"
 export __MUX_CORE_ACTIVE=true
 
 # 模組註冊表 - Module Registry
-export CORE_MOD="$BASE_DIR/core.sh"
-export BOT_MOD="$BASE_DIR/bot.sh"
-export UI_MOD="$BASE_DIR/ui.sh"
-export SYSTEM_MOD="$BASE_DIR/system.sh"
-export VENDOR_MOD="$BASE_DIR/vendor.sh"
-export APP_MOD="$BASE_DIR/app.sh"
-export IDENTITY_MOD="$BASE_DIR/identity.sh"
-
-# 按依賴順序排列：Bot & UI 必須最先載入 - Order by dependency: Bot & UI must load first
-MODULES=(
-    "$BOT_MOD"
-    "$UI_MOD"
-    "$IDENTITY_MOD"
-    "$SYSTEM_MOD"
-    "$VENDOR_MOD"
-    "$APP_MOD"
-)
-
-# 核心自動掃描 - Core Auto-Scan & Load
+MODULES=("$BOT_MOD" "$UI_MOD" "$IDENTITY_MOD" "$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD")
 for mod in "${MODULES[@]}"; do
-    if [ -f "$mod" ]; then
-        source "$mod"
-    else
-        case "$mod" in
-            "$SYSTEM_MOD") echo -e "\033[1;31m :: Critical Error: system.sh missing!\033[0m" ;;
-            "$APP_MOD")    echo "# === My Apps ===" > "$mod" && source "$mod" ;;
-            *)             : ;;
-        esac
-    fi
+    if [ -f "$mod" ]; then source "$mod"; fi
 done
 
-# 初始化身份矩陣
-if command -v _init_identity &> /dev/null; then
-    _init_identity
-fi
+if command -v _init_identity &> /dev/null; then _init_identity; fi
 
-# 環境初始化檢測 (僅在必要時運行) - Environment Initialization Check (Run if necessary)
-[ ! -d "$HOME/storage" ] && { echo -e "\033[1;33m :: Setup Storage...\033[0m"; termux-setup-storage; sleep 2; }
-[ ! -f "$VENDOR_MOD" ] && [ -f "$INSTALLER" ] && { chmod +x "$INSTALLER"; "$INSTALLER"; }
+[ ! -d "$HOME/storage" ] && { termux-setup-storage; sleep 1; }
 
 # 核心指令項 - Core Command Functions
 function _launch_android_app() {
@@ -90,6 +55,29 @@ function _launch_android_app() {
             return 1
         fi
         return 1
+    fi
+}
+
+function _mux_boot_sequence() {
+    if [ "$MUX_INITIALIZED" = "true" ]; then return; fi
+    
+    local TARGET_MODE=""
+    if [ -f "$MUX_ROOT/.mux_state" ]; then
+        TARGET_MODE=$(cat "$MUX_ROOT/.mux_state")
+    fi
+
+    if [ "$TARGET_MODE" == "factory" ]; then
+        if [ -f "$BASE_DIR/factory.sh" ]; then
+            export __MUX_MODE="factory"
+            source "$BASE_DIR/factory.sh"
+            _factory_boot_sequence
+        else
+            echo "core" > "$MUX_ROOT/.mux_state"
+            _mux_init
+        fi
+    else
+        if [ -f "$MUX_ROOT/.mux_state" ]; then rm "$MUX_ROOT/.mux_state"; fi
+        _mux_init
     fi
 }
 
@@ -565,29 +553,3 @@ function _mux_init() {
     _system_unlock
     _bot_say "hello"
 }
-
-# 狀態鎖讀取 - Read State Lock
-TARGET_MODE=""
-if [ -f "$MUX_ROOT/.mux_state" ]; then
-    TARGET_MODE=$(cat "$MUX_ROOT/.mux_state")
-fi
-
-if [ "$TARGET_MODE" == "factory" ]; then
-    if [ -f "$BASE_DIR/factory.sh" ]; then
-        source "$BASE_DIR/factory.sh"
-    fi
-
-    if command -v _factory_system_boot &> /dev/null; then
-        _factory_system_boot
-    else
-        echo -e "\033[1;31m :: Critical Error: Factory module corrupt. Reverting to Core.\033[0m"
-        echo "core" > "$MUX_ROOT/.mux_state"
-        _mux_init
-    fi
-
-elif [ "$TARGET_MODE" == "core" ]; then
-    rm "$MUX_ROOT/.mux_state" 2>/dev/null
-    _mux_init
-else
-    _mux_init
-fi
