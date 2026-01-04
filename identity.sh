@@ -1,11 +1,45 @@
 #!/bin/bash
+# identity.sh - Mux-OS 身份識別矩陣
+
+export MUX_ROOT="${MUX_ROOT:-$HOME/mux-os}"
+export IDENTITY_FILE="$MUX_ROOT/.mux_identity"
 
 if [ -z "$__MUX_CORE_ACTIVE" ]; then
     echo -e "\033[1;31m :: ACCESS DENIED :: Core Uplink Required.\033[0m"
     return 1 2>/dev/null || exit 1
 fi
 
-# identity.sh - Mux-OS 身份識別矩陣
+function _register_commander_interactive() {
+    echo -e "\033[1;33m :: Mux-OS Identity Registration ::\033[0m"
+    echo ""
+    
+    local git_user=$(git config user.name 2>/dev/null)
+    [ -z "$git_user" ] && git_user="Unknown"
+    
+    echo -e "    Detected Signal: \033[1;36m$git_user\033[0m"
+    echo -ne "\033[1;32m :: Input Commander ID: \033[0m"
+    read input_id
+
+    if [ -z "$input_id" ]; then
+        input_id="Commander"
+    fi
+
+    echo ""
+    echo -e "\033[1;35m :: Encoding Identity...\033[0m"
+    sleep 1
+    
+    echo "MUX_ID=$input_id" > "$IDENTITY_FILE"
+    echo "MUX_ROLE=COMMANDER" >> "$IDENTITY_FILE"
+    echo "MUX_ACCESS_LEVEL=5" >> "$IDENTITY_FILE"
+    echo "MUX_CREATED_AT=$(date +%s)" >> "$IDENTITY_FILE"
+    
+    echo -e "\033[1;32m :: Identity Confirmed: $input_id \033[0m"
+    sleep 1
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    _register_commander_interactive
+fi
 
 export IDENTITY_FILE="$MUX_ROOT/.mux_identity"
 
