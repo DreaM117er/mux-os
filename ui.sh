@@ -11,6 +11,7 @@ function _draw_logo() {
     local color_primary=""
     local color_sub=""
     local label=""
+    local cols=$(tput cols)
 
 case "$mode" in
         "factory")
