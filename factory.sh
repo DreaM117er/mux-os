@@ -24,11 +24,14 @@ function _factory_system_boot() {
         source "$MUX_ROOT/app.sh.temp"
     fi
     
-    _factory_mask_apps
+    _factory_mask_apps > /dev/null 2>&1
     _factory_auto_backup > /dev/null 2>&1
 
     if command -v _fac_init &> /dev/null; then
         _fac_init
+    else
+        clear
+        _draw_logo "factory"
     fi
 
     _bot_say "factory_welcome"
