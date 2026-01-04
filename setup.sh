@@ -259,7 +259,7 @@ if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
     esac
 
 else
-    echo -e "${C_CYAN} :: System Status: ${C_GRAY}OFFLINE${C_RESET}"
+    echo -e "${C_CYAN} :: System Status: ${C_RED}OFFLINE${C_RESET}"
     echo ""
     echo " [1] Install"
     echo " [2] Delete (All Mux-OS Data)"
