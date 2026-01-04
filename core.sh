@@ -328,10 +328,8 @@ function _mux_reload_kernel() {
         _system_unlock
     else
         _system_unlock
-        echo -e ""
-        _bot_say "neural" "Neural link stabilized, but structural flaws detected."
-        echo -e "${F_GRAY}    (Hint: Run 'fac check' in factory to auto-repair)${F_RESET}"
-        echo -e ""
+        echo -e "\033[1;30m    ›› Neural link stabilized, but structural flaws detected.\033[0m"
+        echo -e "    (Run 'fac check' in factory to auto-repair)"
     fi
 }
 
