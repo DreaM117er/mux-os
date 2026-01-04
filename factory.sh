@@ -128,7 +128,7 @@ function _factory_boot_sequence() {
         echo -e "${F_SUB} 5. You are responsible for system stability.${F_RESET}"
         echo ""
         _system_unlock
-        echo -ne "${F_WARN} :: Proceed? [y/n]: ${F_RESET}"
+        echo -ne "${F_WARN} :: Proceed? [Y/n]: ${F_RESET}"
         read choice
         
         if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
@@ -524,7 +524,7 @@ function _fac_stamp_launcher() {
                 _fac_maintenance
                 _bot_say "success" "Module '$func_name' deployed."
                 
-                echo -ne "${F_WARN}    ›› Hot Reload now? (y/n): ${F_RESET}"
+                echo -ne "${F_WARN}    ›› Hot Reload now? (Y/n): ${F_RESET}"
                 read r
                 [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load
                 return
@@ -639,7 +639,7 @@ function _fac_stamp_browser() {
 
                 local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp")
                 if [ "$insert_line_cache" -ge "$total_lines" ]; then cat "$temp_block" >> "$MUX_ROOT/app.sh.temp"; else sed -i "${insert_line_cache}r $temp_block" "$MUX_ROOT/app.sh.temp"; fi
-                rm "$temp_block"; _fac_maintenance; _bot_say "success" "Deployed."; echo -ne "${F_WARN}Hot Reload? (y/n): ${F_RESET}"; read r; [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load; return
+                rm "$temp_block"; _fac_maintenance; _bot_say "success" "Deployed."; echo -ne "${F_WARN}Hot Reload? (Y/n): ${F_RESET}"; read r; [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load; return
                 ;;
             "Cancel") return ;;
         esac
@@ -787,7 +787,7 @@ function _fac_stamp_suite() {
 
                 local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp")
                 if [ "$insert_line_cache" -ge "$total_lines" ]; then cat "$temp_block" >> "$MUX_ROOT/app.sh.temp"; else sed -i "${insert_line_cache}r $temp_block" "$MUX_ROOT/app.sh.temp"; fi
-                rm "$temp_block"; _fac_maintenance; _bot_say "success" "Deployed."; echo -ne "${F_WARN}Hot Reload? (y/n): ${F_RESET}"; read r; [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load; return
+                rm "$temp_block"; _fac_maintenance; _bot_say "success" "Deployed."; echo -ne "${F_WARN}Hot Reload? (Y/n): ${F_RESET}"; read r; [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load; return
                 ;;
             "Cancel") return ;;
         esac
@@ -907,7 +907,7 @@ function _fac_load() {
     echo -e "${F_GRAY}    Target  : ${F_MAIN}$target${F_RESET}"
     echo -e "${F_GRAY}    Payload : app.sh.temp (Bypassing Safety Interlocks)${F_RESET}"
     echo -e ""
-    echo -ne "${F_WARN}    ›› Confirm Launch? (y/n): ${F_RESET}"
+    echo -ne "${F_WARN}    ›› Confirm Launch? (Y/n): ${F_RESET}"
     read confirm
 
     if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
@@ -1479,7 +1479,7 @@ function _fac_cat_delete() {
 
     echo -e "${F_ERR} :: WARNING :: This will remove the HEADER '$target' only.${F_RESET}"
     echo -e "${F_GRAY}    Apps under this sector will merge upwards.${F_RESET}"
-    echo -ne "${F_WARN}    ›› Confirm delete? (y/n): ${F_RESET}"
+    echo -ne "${F_WARN}    ›› Confirm delete? (Y/n): ${F_RESET}"
     read conf
     if [[ "$conf" == "y" || "$conf" == "Y" ]]; then
         sed -i "/^# === $target ===/d" "$temp_file"
@@ -1624,7 +1624,7 @@ function _factory_deploy_sequence() {
     echo ""
     
     _system_unlock
-    echo -ne "${F_WARN} :: Modifications verified? [y/n]: ${F_RESET}"
+    echo -ne "${F_WARN} :: Modifications verified? [Y/n]: ${F_RESET}"
     read choice
     
     if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
@@ -1941,6 +1941,7 @@ function _fac_deploy() {
     echo -e "\033[1;32m :: System Reloading... \033[0m"
     sleep 1
     echo "core" > "$MUX_ROOT/.mux_state"
+    unset MUX_INITIALIZED
     unset __MUX_TARGET_MODE
     exec bash
 }
@@ -1951,6 +1952,7 @@ function _fac_exit() {
     sleep 0.5
     rm "$MUX_ROOT/app.sh.temp" 2>/dev/null
     echo "core" > "$MUX_ROOT/.mux_state"
+    unset MUX_INITIALIZED
     unset __MUX_TARGET_MODE
     exec bash
 }

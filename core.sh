@@ -79,7 +79,7 @@ function _launch_android_app() {
         _bot_say "error" "Launch Failed: Target package not found."
         echo -e "    Target: $package_name"
         echo ""
-        echo -ne "\033[1;32m :: Install from Google Play? (y/n): \033[0m"
+        echo -ne "\033[1;32m :: Install from Google Play? (Y/n): \033[0m"
         read choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
@@ -353,7 +353,7 @@ function _mux_force_reset() {
     echo -e "\033[1;31m :: WARNING: Obliterating all local modifications.\033[0m"
     echo ""
     _system_unlock
-    echo -ne "\033[1;32m :: Confirm system restore? (y/n): \033[0m"
+    echo -ne "\033[1;32m :: Confirm system restore? (Y/n): \033[0m"
     read choice
     
     if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
@@ -404,7 +404,7 @@ function _mux_update_system() {
         echo -e "\033[1;33m :: New version available!\033[0m"
         echo ""
         _system_unlock
-        echo -ne "\033[1;32m :: Update Mux-OS now? (y/n): \033[0m"
+        echo -ne "\033[1;32m :: Update Mux-OS now? (Y/n): \033[0m"
         read choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
@@ -473,7 +473,7 @@ function _git_preflight_check() {
         
         if command -v gh &> /dev/null; then
             echo -e ""
-            echo -ne "${F_WARN}    ›› Attempt re-login via GH CLI? (y/n): ${F_RESET}"
+            echo -ne "${F_WARN}    ›› Attempt re-login via GH CLI? (Y/n): ${F_RESET}"
             read try_login
             if [[ "$try_login" == "y" || "$try_login" == "Y" ]]; then
                 gh auth login
@@ -594,6 +594,7 @@ if [ "$TARGET_MODE" == "factory" ]; then
     fi
 
 elif [ "$TARGET_MODE" == "core" ]; then
+    rm "$MUX_ROOT/.mux_state" 2>/dev/null
     _mux_init
 else
     _mux_init
