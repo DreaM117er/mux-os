@@ -159,7 +159,6 @@ function _install_protocol() {
 
 # 輔助函式：退出並重載 (Exit & Reload Strategy)
 function _exit_and_reload() {
-    echo ""
     echo -e "${C_GRAY}    ›› Operations complete. Resyncing Core...${C_RESET}"
     sleep 0.5
     
@@ -225,7 +224,7 @@ if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
     echo " [3] Uninstall (Self-Destruct)"
     echo " [4] Cancel (Reload Core)"
     echo ""
-    echo -ne "${C_CYAN} :: Select Protocol [1-3]: ${C_RESET}"
+    echo -ne "${C_CYAN} :: Select Protocol [1-4]: ${C_RESET}"
     read choice
 
     case "$choice" in
@@ -237,6 +236,9 @@ if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
             ;;
         3)
             _uninstall_protocol
+            ;;
+        4)
+            _exit_and_reload
             ;;
         *)
             _exit_and_reload
