@@ -574,6 +574,7 @@ function _mux_init() {
     _bot_say "hello"
 }
 
+# 狀態鎖讀取 - Read State Lock
 TARGET_MODE=""
 if [ -f "$MUX_ROOT/.mux_state" ]; then
     TARGET_MODE=$(cat "$MUX_ROOT/.mux_state")
@@ -588,9 +589,12 @@ if [ "$TARGET_MODE" == "factory" ]; then
         _factory_system_boot
     else
         echo -e "\033[1;31m :: Critical Error: Factory module corrupt. Reverting to Core.\033[0m"
-        rm "$MUX_ROOT/.mux_state" 2>/dev/null
+        echo "core" > "$MUX_ROOT/.mux_state"
         _mux_init
     fi
+
+elif [ "$TARGET_MODE" == "core" ]; then
+    _mux_init
 else
     _mux_init
 fi

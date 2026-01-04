@@ -23,19 +23,15 @@ function _factory_system_boot() {
         cp "$MUX_ROOT/app.sh" "$MUX_ROOT/app.sh.temp"
         source "$MUX_ROOT/app.sh.temp"
     fi
-
-    clear
-    _draw_logo "factory"
     
     _factory_mask_apps
-    
     _factory_auto_backup > /dev/null 2>&1
-    
-    _bot_say "factory_welcome"
-    
+
     if command -v _fac_init &> /dev/null; then
         _fac_init
     fi
+
+    _bot_say "factory_welcome"
 }
 
 # 進入兵工廠模式 (Entry Point)
@@ -1944,7 +1940,7 @@ function _fac_deploy() {
     _mux_uplink
     echo -e "\033[1;32m :: System Reloading... \033[0m"
     sleep 1
-    rm "$MUX_ROOT/.mux_state" 2>/dev/null
+    echo "core" > "$MUX_ROOT/.mux_state"
     unset __MUX_TARGET_MODE
     exec bash
 }
@@ -1954,7 +1950,7 @@ function _fac_exit() {
     echo -e "\033[1;33m :: Leaving Factory (Changes Discarded)... \033[0m"
     sleep 0.5
     rm "$MUX_ROOT/app.sh.temp" 2>/dev/null
-    rm "$MUX_ROOT/.mux_state" 2>/dev/null
+    echo "core" > "$MUX_ROOT/.mux_state"
     unset __MUX_TARGET_MODE
     exec bash
 }
