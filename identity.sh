@@ -13,15 +13,33 @@ function _register_commander_interactive() {
     echo -e "\033[1;33m :: Mux-OS Identity Registration ::\033[0m"
     echo ""
     
+    local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
+    
+    if [ "$current_branch" == "main" ]; then
+        echo -e "    Detected Branch: \033[1;31m$current_branch (Public)\033[0m"
+        echo -e "    \033[1;33m:: Notice: Identity is locked to 'Unknown' on main branch.\033[0m"
+        sleep 1
+        
+        echo "MUX_ID=Unknown" > "$IDENTITY_FILE"
+        echo "MUX_ROLE=GUEST" >> "$IDENTITY_FILE"
+        echo "MUX_ACCESS_LEVEL=0" >> "$IDENTITY_FILE"
+        echo "MUX_CREATED_AT=$(date +%s)" >> "$IDENTITY_FILE"
+        
+        echo ""
+        echo -e "\033[1;32m :: Identity Set: Unknown (main) \033[0m"
+        sleep 1
+        return
+    fi
+
     local git_user=$(git config user.name 2>/dev/null)
-    [ -z "$git_user" ] && git_user="Unknown"
+    [ -z "$git_user" ] && git_user="$current_branch"
     
     echo -e "    Detected Signal: \033[1;36m$git_user\033[0m"
     echo -ne "\033[1;32m :: Input Commander ID: \033[0m"
     read input_id
 
     if [ -z "$input_id" ]; then
-        input_id="Commander"
+        input_id="$git_user"
     fi
 
     echo ""
