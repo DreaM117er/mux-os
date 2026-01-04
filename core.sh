@@ -62,7 +62,6 @@ function _mux_boot_sequence() {
     if [ "$MUX_INITIALIZED" = "true" ]; then return; fi
     
     local TARGET_MODE=""
-    if [ -f "$MUX_ROOT/.mux_state" ]; then
         TARGET_MODE=$(cat "$MUX_ROOT/.mux_state")
     fi
 
@@ -73,11 +72,8 @@ function _mux_boot_sequence() {
             _factory_boot_sequence
         else
             echo "core" > "$MUX_ROOT/.mux_state"
-            _mux_init
         fi
     else
-        if [ -f "$MUX_ROOT/.mux_state" ]; then rm "$MUX_ROOT/.mux_state"; fi
-        _mux_init
     fi
 }
 
@@ -541,7 +537,6 @@ function _mux_integrity_scan() {
 }
 
 # 主程式啟動體感動畫 - Main Program Startup Animation
-function _mux_init() {
     if [ "$MUX_INITIALIZED" = "true" ]; then return; fi
     _system_lock
     _safe_ui_calc
