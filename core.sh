@@ -301,13 +301,17 @@ function mux() {
 
         # : Enter the Arsenal (Factory Mode)
         "factory"|"tofac")
-            echo ""
-            echo -ne "\033[1;30m :: Initializing Factory Protocol...\033[0m"
-            sleep 2.6
-            
             if [ -f "$MUX_ROOT/factory.sh" ]; then
                 source "$MUX_ROOT/factory.sh"
-                _enter_factory_mode
+                
+                _factory_boot_sequence
+                if [ $? -ne 0 ]; then return; fi
+
+                export __MUX_TARGET_MODE="factory"
+
+                echo -e "\n\033[1;33m :: Switching to Neural Forge... \033[0m"
+                sleep 0.5
+                exec bash
             else
                 _bot_say "error" "Factory module not found."
             fi
@@ -570,4 +574,18 @@ function _mux_init() {
     _bot_say "hello"
 }
 
-_mux_init
+if [ "$__MUX_TARGET_MODE" == "factory" ]; then
+    if [ -f "$BASE_DIR/factory.sh" ]; then
+        source "$BASE_DIR/factory.sh"
+    fi
+
+    if command -v _factory_system_boot &> /dev/null; then
+        _factory_system_boot
+    else
+        echo -e "\033[1;31m :: Critical Error: Factory module missing or corrupt. Reverting to Core.\033[0m"
+        unset __MUX_TARGET_MODE
+        _mux_init
+    fi
+else
+    _mux_init
+fi

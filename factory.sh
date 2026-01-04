@@ -15,6 +15,36 @@ F_GRAY="\033[1;30m"
 F_RESET="\033[0m"
 F_GRE="\n\033[1;32m"
 
+# 兵工廠系統啟動 (Factory System Boot)
+function _factory_system_boot() {
+    # 設定環境
+    export __MUX_MODE="factory"
+    
+    # 建立沙盒
+    if [ -f "$MUX_ROOT/app.sh" ]; then
+        cp "$MUX_ROOT/app.sh" "$MUX_ROOT/app.sh.temp"
+        source "$MUX_ROOT/app.sh.temp"
+    fi
+
+    # 啟動 UI
+    clear
+    _draw_logo "factory"
+    
+    # 應用攔截器 (這時候環境是乾淨的，攔截更穩定)
+    _factory_mask_apps
+    
+    # 自動備份
+    _factory_auto_backup > /dev/null 2>&1
+    
+    # 顯示歡迎
+    _bot_say "factory_welcome"
+    
+    # 初始化工廠指令集 (如果有的話)
+    if command -v _fac_init &> /dev/null; then
+        _fac_init
+    fi
+}
+
 # 進入兵工廠模式 (Entry Point)
 function _enter_factory_mode() {
     _factory_boot_sequence
@@ -199,10 +229,14 @@ function _factory_reset() {
 function fac() {
     local cmd="$1"
     
-    if [ "$__MUX_MODE" != "factory" ]; then
-        echo -e "\033[1;31m :: Error: Link Offline. Use 'mux fac'.\033[0m"
-        return 1
-    fi
+    _factory_boot_sequence
+    if [ $? -ne 0 ]; then return; fi
+
+    export __MUX_TARGET_MODE="factory"
+
+    echo -e "\n\033[1;33m :: Switching to Neural Forge... \033[0m"
+    sleep 0.5
+    exec bash
 
     if [ -z "$cmd" ]; then
         _bot_say "factory_welcome"
@@ -1910,4 +1944,35 @@ function _factory_interceptor() {
     echo -e "${F_ERR} :: WARNING: Target '$func_name' is locked in Modification Mode.${F_RESET}"
     
     _bot_say "error" "Function locked. Use 'fac' commands to modify."
+}
+
+# 部署模組 - Deployment Module
+function _fac_deploy() {
+    echo -e "\n\033[1;33m :: Initiating Deployment Sequence... \033[0m"
+    
+    _mux_integrity_scan
+    if [ $? -ne 0 ]; then
+        _bot_say "error" "Integrity check failed. Aborting."
+        return 1
+    fi
+    
+    mv "$MUX_ROOT/app.sh.temp" "$MUX_ROOT/app.sh"
+    
+    _mux_uplink
+    
+    echo -e "\033[1;32m :: System Reloading... \033[0m"
+    sleep 1
+    
+    unset __MUX_TARGET_MODE
+    exec bash
+}
+
+# 離開工廠 - Exit Factory
+function _fac_exit() {
+    echo -e "\033[1;33m :: Leaving Factory (Changes Discarded)... \033[0m"
+    sleep 0.5
+    rm "$MUX_ROOT/app.sh.temp" 2>/dev/null
+    
+    unset __MUX_TARGET_MODE
+    exec bash
 }
