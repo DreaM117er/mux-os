@@ -17,29 +17,22 @@ F_GRE="\n\033[1;32m"
 
 # 兵工廠系統啟動 (Factory System Boot)
 function _factory_system_boot() {
-    # 設定環境
     export __MUX_MODE="factory"
     
-    # 建立沙盒
     if [ -f "$MUX_ROOT/app.sh" ]; then
         cp "$MUX_ROOT/app.sh" "$MUX_ROOT/app.sh.temp"
         source "$MUX_ROOT/app.sh.temp"
     fi
 
-    # 啟動 UI
     clear
     _draw_logo "factory"
     
-    # 應用攔截器 (這時候環境是乾淨的，攔截更穩定)
     _factory_mask_apps
     
-    # 自動備份
     _factory_auto_backup > /dev/null 2>&1
     
-    # 顯示歡迎
     _bot_say "factory_welcome"
     
-    # 初始化工廠指令集 (如果有的話)
     if command -v _fac_init &> /dev/null; then
         _fac_init
     fi
@@ -228,15 +221,6 @@ function _factory_reset() {
 # : Factory Command Entry
 function fac() {
     local cmd="$1"
-    
-    _factory_boot_sequence
-    if [ $? -ne 0 ]; then return; fi
-
-    export __MUX_TARGET_MODE="factory"
-
-    echo -e "\n\033[1;33m :: Switching to Neural Forge... \033[0m"
-    sleep 0.5
-    exec bash
 
     if [ -z "$cmd" ]; then
         _bot_say "factory_welcome"
