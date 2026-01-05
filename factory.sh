@@ -202,13 +202,18 @@ function fac() {
             ;;
 
         # : Reload Factory
-        "reload"|"r")
-            _fac_init
-            _bot_say "factory_welcome"
+        "reload"|"rl")
+            echo -e "\033[1;33m :: Cycling Factory Power... \033[0m"
+            sleep 0.5
+            if [ -f "$MUX_ROOT/gate.sh" ]; then
+                exec "$MUX_ROOT/gate.sh" "factory"
+            else
+                exec bash
+            fi
             ;;
             
         # : Reset Factory Change
-        "reset")
+        "reset"|"rst")
             _factory_reset
             ;;
 

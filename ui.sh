@@ -516,3 +516,74 @@ function _factory_show_info() {
     
     _bot_say "system" "Returning to forge..."
 }
+
+# 偽・星門 (UI Mask / Fake Gate)
+function _ui_fake_gate() {
+    local target_system="${1:-core}"
+    local theme_color=""
+    local theme_text=""
+    local icon=""
+    
+    if [ "$target_system" == "factory" ]; then
+        theme_color="\033[1;38;5;208m"
+        theme_text="NEURAL FORGE"
+        icon=""
+    else
+        theme_color="\033[1;36m"
+        theme_text="SYSTEM CORE"
+        icon=""
+    fi
+
+    local C_TXT="\033[1;30m"
+    local C_RESET="\033[0m"
+
+    tput civis
+    clear
+
+    local rows=$(tput lines)
+    local cols=$(tput cols)
+    local bar_len=$(( cols * 45 / 100 ))
+    if [ "$bar_len" -lt 15 ]; then bar_len=15; fi
+
+    local center_row=$(( rows / 2 ))
+    local bar_start_col=$(( (cols - bar_len - 2) / 2 ))
+    local stats_start_col=$(( (cols - 24) / 2 ))
+    local title_start_col=$(( (cols - 25) / 2 ))
+
+    tput cup $((center_row - 2)) $title_start_col
+    echo -e "${C_TXT}:: ACCESSING ${theme_color}${theme_text} ${icon}${C_TXT} ::${C_RESET}"
+
+    for i in $(seq 1 "$bar_len"); do
+        local pct=$(( i * 100 / bar_len ))
+        
+        tput cup $center_row $bar_start_col
+        echo -ne "${C_TXT}[${C_RESET}"
+        
+        if [ "$i" -gt 0 ]; then
+            printf "${theme_color}%.0s#${C_RESET}" $(seq 1 "$i")
+        fi
+        
+        local remain=$(( bar_len - i ))
+        if [ "$remain" -gt 0 ]; then
+            printf "%.0s " $(seq 1 "$remain")
+        fi
+        echo -ne "${C_TXT}]${C_RESET}"
+
+        tput cup $((center_row + 2)) $stats_start_col
+        
+        local hex_addr=""
+        if [ $((i % 2)) -eq 0 ]; then
+            hex_addr=$(printf "0x%04X" $((RANDOM%65535)))
+        fi
+        
+        echo -ne "${C_TXT}:: ${theme_color}"
+        printf "%3d%%" "$pct"
+        echo -ne "${C_TXT} :: MEM: ${hex_addr}${C_RESET}\033[K"
+
+        sleep 0.012
+    done
+
+    tput cnorm
+    stty sane
+    clear
+}

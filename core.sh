@@ -228,12 +228,12 @@ function mux() {
             ;;
 
         # : Reload System Kernel
-        "reload"|"r")
+        "reload"|"rl")
             _mux_reload_kernel
             ;;
 
         # : Force System Sync
-        "reset")
+        "reset"|"rst")
             _mux_force_reset
             if [ $? -eq 0 ]; then
                 _mux_reload_kernel
@@ -278,51 +278,134 @@ function _core_pre_factory_auth() {
     local F_RED="\033[1;31m"
     local F_WARN="\033[1;33m"
     local F_RESET="\033[0m"
+    local F_GRE="\033[1;32m"
+    local F_SUB="\033[1;37m"
 
+    clear
+    _draw_logo "gray"
+    
     _system_lock
-    echo -e "${F_GRAY} :: SECURITY CHECKPOINT :: Identity Verification Required.${F_RESET}"
-    sleep 0.3
+    echo -e "${F_GRAY} :: SECURITY CHECKPOINT ::${F_RESET}"
+    echo -e "${F_GRAY}    Identity Verification Required.${F_RESET}"
+    sleep 0.5
+    echo ""
     
     _system_unlock
-    echo -ne "${F_RESET} :: Commander ID: " 
+    echo -ne "${F_SUB} :: Commander ID: ${F_RESET}" 
     read input_id
     
+    local verify_success=0
     if [ -f "$MUX_ROOT/.mux_identity" ]; then
         local REAL_ID=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2)
-        if [ "$input_id" != "$REAL_ID" ] && [ "$REAL_ID" != "Unknown" ]; then
-            echo ""
-            _bot_say "error" "Identity Mismatch. Access Denied."
-            return 1
+        if [ "$input_id" == "$REAL_ID" ] || [ "$REAL_ID" == "Unknown" ]; then
+            verify_success=1
         fi
+    else
+        verify_success=1
+    fi
+
+    if [ "$verify_success" -ne 1 ]; then
+        _core_eject_sequence "Identity Mismatch."
+        return 1
+    fi
+
+    echo -ne "${F_WARN} :: CONFIRM IDENTITY (Type 'CONFIRM'): ${F_RESET}"
+    read confirm
+    
+    if [ "$confirm" != "CONFIRM" ]; then
+        _core_eject_sequence "Confirmation Failed."
+        return 1
+    fi
+
+    echo ""
+    _system_lock
+    echo -ne "${F_GRAY} :: Verifying Neural Signature... ${F_RESET}"
+    sleep 0.8
+    echo -e "\r${F_GRE} :: ACCESS GRANTED ::                     ${F_RESET}"
+    sleep 0.5
+    
+    echo -ne "${F_GRAY} :: Scanning Combat Equipment... ${F_RESET}"
+    sleep 0.5
+    if ! command -v fzf &> /dev/null; then
+        echo -e "\n${F_RED} :: EQUIPMENT MISSING :: ${F_RESET}"
+        sleep 1
+        _core_eject_sequence "Neural Link (fzf) Required."
+        return 1
+    else
+        echo -e "\r${F_GRE} :: EQUIPMENT CONFIRM :: ${F_RESET}"
+        sleep 0.3
     fi
 
     echo ""
     echo -e "${F_RED} :: WARNING: FACTORY PROTOCOL :: ${F_RESET}"
-    echo -e "${F_GRAY} 1. Modifications here are permanent.${F_RESET}"
-    echo -e "${F_GRAY} 2. Sandbox Environment Active (.temp).${F_RESET}"
-    echo -e "${F_GRAY} 3. Core 'mux' commands are ${F_RED}LOCKED${F_RESET}. Use 'fac'.${F_RESET}"
-    echo -e "${F_GRAY} 4. App launches are ${F_RED}LOCKED${F_RESET} (Except: wb, apklist).${F_RESET}"
-    echo -e "${F_GRAY} 5. You are responsible for system stability.${F_RESET}"
+    echo -e "${F_GRAY}    1. Modifications are permanent.${F_RESET}"
+    echo -e "${F_GRAY}    2. Sandbox Environment Active (.temp).${F_RESET}"
+    echo -e "${F_GRAY}    3. Core 'mux' commands are ${F_RED}LOCKED${F_RESET}.${F_RESET}"
+    echo -e "${F_GRAY}    4. App launches are ${F_RED}LOCKED${F_RESET}.${F_RESET}"
+    echo -e "${F_GRAY}    5. You are responsible for system stability.${F_RESET}"
     echo ""
     
-    echo -ne "${F_WARN} :: TYPE 'CONFIRM' TO ENTER: ${F_RESET}"
-    read confirm
+    _system_unlock
+    echo -ne "${F_WARN} :: Proceed? [Y/n]: ${F_RESET}"
+    read choice
     
-    if [ "$confirm" == "CONFIRM" ]; then
-        _system_lock
-        echo -e "\033[1;32m :: ACCESS GRANTED. Opening Gate...${F_RESET}"
-        sleep 0.5
-        
-        if [ -f "$MUX_ROOT/gate.sh" ]; then
-            exec "$MUX_ROOT/gate.sh" "factory"
-        else
-            echo "factory" > "$MUX_ROOT/.mux_state"
-            exec bash
-        fi
-    else
-        echo -e "${F_GRAY}    ›› Access denied.${F_RESET}"
+    if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
+        _core_eject_sequence "User Aborted."
         return 1
     fi
+    
+    _system_lock
+    local steps=("Injecting Logic..." "Desynchronizing Core..." "Loading Arsenal..." "Entering Factory...")
+    for step in "${steps[@]}"; do
+        echo -e "${F_GRAY}    ›› $step${F_RESET}"
+        sleep 0.4
+    done
+    sleep 0.5
+    
+    if [ -f "$MUX_ROOT/gate.sh" ]; then
+        exec "$MUX_ROOT/gate.sh" "factory"
+    else
+        echo "factory" > "$MUX_ROOT/.mux_state"
+        exec bash
+    fi
+}
+
+# 彈射序列 (The Ejection - Core Simulation)
+function _core_eject_sequence() {
+    local reason="$1"
+    local F_ERR="\033[1;31m"
+    local F_RESET="\033[0m"
+    
+    _system_lock
+    echo ""
+    echo -e "${F_ERR} :: ACCESS DENIED :: ${reason}${F_RESET}"
+    echo ""
+    sleep 0.8
+    echo -e "${F_ERR} :: Initiating Eviction Protocol...${F_RESET}"
+    sleep 0.4
+    echo -e "${F_ERR} :: Locking Cockpit...${F_RESET}"
+    sleep 0.6
+    echo -e "${F_ERR} :: Auto-Eject System Activated.${F_RESET}"
+    sleep 1
+    
+    for i in {3..1}; do
+        echo -e "${F_ERR}    ›› Ejection in $i...${F_RESET}"
+        sleep 1
+    done
+    
+    echo ""
+    if command -v _bot_say &> /dev/null; then
+        _bot_say "eject"
+    fi
+    sleep 2.0
+    
+    if command -v _ui_fake_gate &> /dev/null; then
+        _ui_fake_gate "core"
+    else
+        clear
+    fi
+    
+    _mux_init
 }
 
 # 重新載入核心模組
