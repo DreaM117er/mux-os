@@ -295,26 +295,21 @@ function _core_pre_factory_auth() {
     _system_lock
     echo -e "${F_GRAY} :: SECURITY CHECKPOINT ::${F_RESET}"
     echo -e "${F_GRAY}    Identity Verification Required.${F_RESET}"
-    sleep 0.8
+    sleep 0.6
     echo ""
     
     _system_unlock
     echo -ne "${F_SUB} :: Commander ID: ${F_RESET}" 
     read input_id
     
-    local verify_success=0
+    local identity_valid=0
     if [ -f "$MUX_ROOT/.mux_identity" ]; then
         local REAL_ID=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2)
         if [ "$input_id" == "$REAL_ID" ] || [ "$REAL_ID" == "Unknown" ]; then
-            verify_success=1
+            identity_valid=1
         fi
     else
-        verify_success=1
-    fi
-
-    if [ "$verify_success" -ne 1 ]; then
-        _core_eject_sequence "Identity Mismatch."
-        return 1
+        identity_valid=1
     fi
 
     echo -ne "${F_WARN} :: CONFIRM IDENTITY (Type 'CONFIRM'): ${F_RESET}"
@@ -327,12 +322,24 @@ function _core_pre_factory_auth() {
 
     echo ""
     _system_lock
-    echo -ne "${F_GRAY} :: Verifying Neural Signature... ${F_RESET}"
+    echo -e "${F_GRAY} :: Verifying Neural Signature... ${F_RESET}"
+    echo ""
     sleep 0.8
-    echo -e "\r${F_GRE} :: ACCESS GRANTED ::                     ${F_RESET}"
+
+    if [ "$identity_valid" -ne 1 ]; then
+        echo -e "${F_WARN} :: ACCESS DENIED ::${F_RESET}"
+        echo ""
+        sleep 0.5
+        _core_eject_sequence "Identity Mismatch."
+        return 1
+    fi
+
+
+    echo -e "${F_GRE} :: ACCESS GRANTED ::${F_RESET}"
+    echo ""
     sleep 0.5
     
-    echo -ne "${F_GRAY} :: Scanning Combat Equipment... ${F_RESET}"
+    echo -e "${F_GRAY} :: Scanning Combat Equipment... ${F_RESET}"
     sleep 1.6
     if ! command -v fzf &> /dev/null; then
         echo -e "\n${F_RED} :: EQUIPMENT MISSING :: ${F_RESET}"
