@@ -40,7 +40,7 @@ case "$mode" in
             if [ "$cols" -lt 52 ]; then
                 label=":: Mux-OS v$MUX_VERSION Core ::"
             else
-                label=":: Mux-OS v$MUX_VERSION Core :: Dual Core Arch ::"
+                label=":: Mux-OS v$MUX_VERSION Core :: Gate System ::"
             fi
             ;;
     esac
