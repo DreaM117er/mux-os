@@ -70,7 +70,7 @@ for i in $(seq 1 "$BAR_LEN"); do
     printf "%3d%%" "$PCT"
     echo -ne "${C_TXT} :: MEM: ${HEX_ADDR}${C_RESET}\033[K"
 
-    sleep 0.012
+    sleep 0.015
 done
 
 if [ "$NEXT_STATE" == "factory" ] && [ ! -f "$MUX_ROOT/factory.sh" ]; then

@@ -581,7 +581,7 @@ function _ui_fake_gate() {
         printf "%3d%%" "$pct"
         echo -ne "${C_TXT} :: MEM: ${hex_addr}${C_RESET}\033[K"
 
-        sleep 0.012
+        sleep 0.015
     done
 
     tput cnorm
