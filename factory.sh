@@ -310,23 +310,25 @@ function _fac_stamp_launcher() {
 
     while true; do
         local menu_display=""
-        menu_display="${menu_display}Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET}  ${func_status}\n"
-        menu_display="${menu_display}UI Name  : ${F_SUB}${ui_name}${F_RESET}\n"
-        menu_display="${menu_display}Package  : ${F_SUB}${pkg_id}${F_RESET}\n"
-        menu_display="${menu_display}Activity : ${F_SUB}${pkg_act:-[Auto]}${F_RESET}\n"
-        menu_display="${menu_display}Category : ${F_WARN}${target_cat}${F_RESET}\n"
-        menu_display="${menu_display}\n"
-        menu_display="${menu_display}apklist  : Open APK Reference List\n"
-        menu_display="${menu_display}Confirm  : Forge Neural Link\n"
-        menu_display="${menu_display}Cancel   : Abort Operation"
+        menu_display="${menu_display} ${F_GRAY}:: Launcher Forge ::${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET}  ${func_status}\n"
+        menu_display="${menu_display} Category : ${F_WARN}${target_cat}${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} UI Name  : ${F_SUB}${ui_name}${F_RESET}\n"
+        menu_display="${menu_display} Package  : ${F_SUB}${pkg_id}${F_RESET}\n"
+        menu_display="${menu_display} Activity : ${F_SUB}${pkg_act:-[Auto]}${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} apklist  : Open APK Reference List\n"
+        menu_display="${menu_display} Confirm  : Forge Neural Link\n"
+        menu_display="${menu_display} Cancel   : Abort Operation"
 
         local selection=$(echo -e "$menu_display" | fzf \
             --ansi \
-            --height=40% \
+            --height=50% \
             --layout=reverse \
             --border=bottom \
             --prompt=" :: Launcher Forge › " \
-            --header=" :: Select Field to Modify ::" \
             --pointer="››" \
             --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
             --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240
@@ -336,8 +338,6 @@ function _fac_stamp_launcher() {
 
         local key=$(echo "$selection" | awk '{print $1}')
         
-        local clean_selection=$(echo "$selection" | sed 's/\x1b\[[0-9;]*m//g')
-
         case "$key" in
             "Command") 
                 local res=$(_fac_query_command_name)
@@ -478,24 +478,27 @@ function _fac_stamp_browser() {
 
     while true; do
         local menu_display=""
-        menu_display="${menu_display}Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET}  ${func_status}\n"
-        menu_display="${menu_display}UI Name  : ${F_SUB}${ui_name}${F_RESET}\n"
-        menu_display="${menu_display}Package  : ${F_SUB}${pkg_id}${F_RESET}\n"
-        menu_display="${menu_display}Activity : ${F_SUB}${pkg_act:-[Auto]}${F_RESET}\n"
-        menu_display="${menu_display}Engine   : ${F_CYAN}${engine_var}${F_RESET}\n"
-        menu_display="${menu_display}Category : ${F_WARN}${target_cat}${F_RESET}\n"
-        menu_display="${menu_display}\n"
-        menu_display="${menu_display}apklist  : Open APK Reference List\n"
-        menu_display="${menu_display}Confirm  : Forge Neural Link\n"
-        menu_display="${menu_display}Cancel   : Abort Operation"
+        # 套用 Inspector 模板
+        menu_display="${menu_display} ${F_GRAY}:: Browser Forge ::${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET}  ${func_status}\n"
+        menu_display="${menu_display} Category : ${F_WARN}${target_cat}${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} UI Name  : ${F_SUB}${ui_name}${F_RESET}\n"
+        menu_display="${menu_display} Package  : ${F_SUB}${pkg_id}${F_RESET}\n"
+        menu_display="${menu_display} Activity : ${F_SUB}${pkg_act:-[Auto]}${F_RESET}\n"
+        menu_display="${menu_display} Engine   : ${F_CYAN}${engine_var}${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} apklist  : Open APK Reference List\n"
+        menu_display="${menu_display} Confirm  : Forge Neural Link\n"
+        menu_display="${menu_display} Cancel   : Abort Operation"
 
         local selection=$(echo -e "$menu_display" | fzf \
             --ansi \
-            --height=45% \
+            --height=50% \
             --layout=reverse \
             --border=bottom \
             --prompt=" :: Browser Forge › " \
-            --header=" :: Select Field to Modify ::" \
             --pointer="››" \
             --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
             --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240
@@ -557,7 +560,7 @@ function _fac_stamp_browser() {
 
                 local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp")
                 if [ "$insert_line_cache" -ge "$total_lines" ]; then cat "$temp_block" >> "$MUX_ROOT/app.sh.temp"; else sed -i "${insert_line_cache}r $temp_block" "$MUX_ROOT/app.sh.temp"; fi
-                rm "$temp_block"; _fac_maintenance; _bot_say "success" "Deployed."; echo -ne "${F_WARN}Hot Reload? (Y/n): ${F_RESET}"; read r; [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load; return
+                rm "$temp_block"; _fac_maintenance; _bot_say "success" "Deployed."; echo -ne "${F_WARN}Hot Reload? (y/n): ${F_RESET}"; read r; [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load; return
                 ;;
             "Cancel") return ;;
         esac
@@ -593,17 +596,21 @@ function _fac_stamp_suite() {
         if [ "$mod_count" -eq 0 ]; then mod_status="\033[1;31m[ EMPTY ]\033[0m"; fi
 
         local menu_display=""
-        menu_display="${menu_display}Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET}  ${func_status}\n"
-        menu_display="${menu_display}Suite    : ${F_SUB}${suite_name}${F_RESET}\n"
-        menu_display="${menu_display}Category : ${F_WARN}${target_cat}${F_RESET}\n"
-        menu_display="${menu_display}Modules  : ${mod_status} (Click to Manage)\n"
-        menu_display="${menu_display}\n"
-        menu_display="${menu_display}Confirm  : Forge Neural Link\n"
-        menu_display="${menu_display}Cancel   : Abort Operation"
+        # 套用 Inspector 模板
+        menu_display="${menu_display} ${F_GRAY}:: Suite Forge ::${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET}  ${func_status}\n"
+        menu_display="${menu_display} Category : ${F_WARN}${target_cat}${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} Suite    : ${F_SUB}${suite_name}${F_RESET}\n"
+        menu_display="${menu_display} Modules  : ${mod_status}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} Confirm  : Forge Neural Link\n"
+        menu_display="${menu_display} Cancel   : Abort Operation"
 
         local selection=$(echo -e "$menu_display" | fzf \
-            --ansi --height=40% --layout=reverse --border=bottom \
-            --prompt=" :: Suite Forge › " --header=" :: Configure Ecosystem ::" --pointer="››" \
+            --ansi --height=50% --layout=reverse --border=bottom \
+            --prompt=" :: Suite Forge › " --pointer="››" \
             --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
             --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
 
@@ -705,7 +712,7 @@ function _fac_stamp_suite() {
 
                 local total_lines=$(wc -l < "$MUX_ROOT/app.sh.temp")
                 if [ "$insert_line_cache" -ge "$total_lines" ]; then cat "$temp_block" >> "$MUX_ROOT/app.sh.temp"; else sed -i "${insert_line_cache}r $temp_block" "$MUX_ROOT/app.sh.temp"; fi
-                rm "$temp_block"; _fac_maintenance; _bot_say "success" "Deployed."; echo -ne "${F_WARN}Hot Reload? (Y/n): ${F_RESET}"; read r; [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load; return
+                rm "$temp_block"; _fac_maintenance; _bot_say "success" "Deployed."; echo -ne "${F_WARN}Hot Reload? (y/n): ${F_RESET}"; read r; [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load; return
                 ;;
             "Cancel") return ;;
         esac
@@ -771,7 +778,7 @@ function _fac_select_category() {
     fi
 }
 
-# 測試發射器 - Test Fire Protocol (Bypass Interceptor)
+# 測試發射器 - Test Fire Protocol
 function _fac_load() {
     local target="$1"
     local temp_file="$MUX_ROOT/app.sh.temp"
@@ -805,14 +812,16 @@ function _fac_load() {
         local total_cmds=$(echo "$list_data" | wc -l)
 
         local selection=$(echo "$list_data" | fzf --ansi \
-            --height=10 \
+            --height=60% \
             --layout=reverse \
             --border=bottom \
             --prompt=" :: Test Fire › " \
-            --header=" :: Select Neural Unit to Execute ::" \
+            --header=" :: Select Target to Execute (Dry Run) ::" \
             --pointer="››" \
-            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-            --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+            --preview "func=\$(echo {} | awk '{print \$1}'); sed -n \"/^function \$func() {/,/^}/p\" '$temp_file' | head -n 100" \
+            --preview-window="right:55%:wrap:border-left" \
+            --color=fg:white,bg:-1,hl:208,fg+:white,bg+:235,hl+:208 \
+            --color=info:240,prompt:208,pointer:196,marker:208,border:208,header:240 \
             --bind="resize:clear-screen"
         )
 
@@ -931,26 +940,29 @@ function _fac_wizard_edit() {
 
     while true; do
         local menu_display=""
-        menu_display="${menu_display}Command  : ${F_MAIN}${func_name}${F_RESET}  ${func_status}\n"
-        menu_display="${menu_display}UI Name  : ${F_SUB}${ui_name}${F_RESET}\n"
-        menu_display="${menu_display}Package  : ${F_SUB}${pkg_id}${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}:: Neural Modifier ::${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} Command  : ${F_MAIN}${func_name}${F_RESET}  ${func_status}\n"
+        menu_display="${menu_display} Category : ${F_WARN}${target_cat}${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} UI Name  : ${F_SUB}${ui_name}${F_RESET}\n"
+        menu_display="${menu_display} Package  : ${F_SUB}${pkg_id}${F_RESET}\n"
         
         if [ "$app_type" == "BROWSER" ]; then
-            menu_display="${menu_display}Engine   : ${F_CYAN}${engine_var}${F_RESET}\n"
+            menu_display="${menu_display} Engine   : ${F_CYAN}${engine_var}${F_RESET}\n"
         else
-            menu_display="${menu_display}Activity : ${F_SUB}${pkg_act:-[Auto]}${F_RESET}\n"
+            menu_display="${menu_display} Activity : ${F_SUB}${pkg_act:-[Auto]}${F_RESET}\n"
         fi
         
-        menu_display="${menu_display}Category : ${F_WARN}${target_cat}${F_RESET}\n"
-        menu_display="${menu_display}\n"
-        menu_display="${menu_display}Manual   : Edit Source Code (Nano)\n"
-        menu_display="${menu_display}Delete   : Terminate Neural Link\n"
-        menu_display="${menu_display}Confirm  : Apply Changes\n"
-        menu_display="${menu_display}Cancel   : Discard Changes"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} Manual   : Edit Source Code (Nano)\n"
+        menu_display="${menu_display} Delete   : Terminate Neural Link\n"
+        menu_display="${menu_display} Confirm  : Apply Changes\n"
+        menu_display="${menu_display} Cancel   : Discard Changes"
 
         local selection=$(echo -e "$menu_display" | fzf \
-            --ansi --height=45% --layout=reverse --border=bottom \
-            --prompt=" :: Edit ${app_type} › " --header=" :: Modify Neural Parameters ::" --pointer="››" \
+            --ansi --height=50% --layout=reverse --border=bottom \
+            --prompt=" :: Edit ${app_type} › " --pointer="››" \
             --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
             --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
 
@@ -973,7 +985,7 @@ function _fac_wizard_edit() {
                 ;;
             "UI") echo -ne "${F_SUB}    ›› New UI Name: ${F_RESET}"; read val; [ -n "$val" ] && ui_name="$val" ;;
             "Package") echo -ne "${F_SUB}    ›› New Package: ${F_RESET}"; read val; [ -n "$val" ] && pkg_id="$val" ;;
-            "Activity") echo -ne "${F_SUB}    ›› New Activity: ${F_RESET}"; read val; pkg_act="$val" ;; # Allow empty
+            "Activity") echo -ne "${F_SUB}    ›› New Activity: ${F_RESET}"; read val; pkg_act="$val" ;; 
             "Engine")
                 local eng=$(echo -e "GOOGLE\nBING\nDUCK\nYOUTUBE\nGITHUB" | fzf --height=20% --layout=reverse --border=bottom --prompt=" :: Select Engine › " --pointer="››" --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
                 [ -n "$eng" ] && engine_var="$eng"
@@ -1051,6 +1063,7 @@ function _fac_edit_dashboard_suite() {
 
         local selection=$(echo -e "$menu_display" | fzf \
             --ansi --height=40% --layout=reverse --border=bottom \
+            --info=hidden \
             --prompt=" :: Edit Suite › " --header=" :: Ecosystem Diagnostics ::" --pointer="››" \
             --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
             --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
@@ -1185,19 +1198,20 @@ function _fac_del() {
 
     while true; do
         local menu_display=""
-        menu_display="${menu_display}Target   : ${F_ERR}${target}${F_RESET}\n"
-        menu_display="${menu_display}Range    : Lines ${delete_start}-${delete_end} (${line_count} lines)\n"
-        menu_display="${menu_display}\n"
-        menu_display="${menu_display}[ CONFIRM NUKE ] : Permanently Excise Module\n"
-        menu_display="${menu_display}[ ABORT ]        : Cancel Operation"
+        menu_display="${menu_display} ${F_GRAY}:: Destruction Protocol ::${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} Target   : ${F_ERR}${target}${F_RESET}\n"
+        menu_display="${menu_display} Range    : Lines ${delete_start}-${delete_end} (${line_count} lines)\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} [ CONFIRM NUKE ] : Permanently Excise Module\n"
+        menu_display="${menu_display} [ ABORT ]        : Cancel Operation"
 
         local selection=$(echo -e "$menu_display" | fzf \
             --ansi \
             --height=50% \
             --layout=reverse \
             --border=bottom \
-            --prompt=" :: Destruction Protocol › " \
-            --header=" :: WARNING: Action is Irreversible in Sandbox ::" \
+            --prompt=" :: Confirm Kill › " \
             --pointer="››" \
             --preview "sed -n '${delete_start},${delete_end}p' '$temp_file' | nl -v $delete_start -w 3 -s '  '" \
             --preview-window="down:40%:wrap:border-top" \
@@ -1235,6 +1249,7 @@ function _fac_wizard_category() {
             --ansi \
             --height=35% \
             --layout=reverse \
+            --info=hidden \
             --border=bottom \
             --prompt=" :: Sector Ops › " \
             --header=" :: Manage Neural Partitions ::" \
@@ -1785,6 +1800,7 @@ function _fac_inspector() {
         --height=40% \
         --layout=reverse \
         --border=bottom \
+        --info=hidden \
         --prompt=" :: Neural Unit Details › " \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
