@@ -136,7 +136,11 @@ function _safe_ui_calc() {
     content_limit=$(( width > 10 ? width - 10 : 2 ))
 }
 
-# Mux-OS 主指令入口
+
+# Mux-OS 指令入口 - Core Command Entry
+# === Mux ===
+
+# : Core Command Entry
 function mux() {
     local cmd="$1"
     if [ "$__MUX_MODE" == "factory" ]; then
@@ -158,7 +162,7 @@ function mux() {
                 _show_menu_dashboard
             fi
             ;;
-            
+
         "oldmenu"|"om")
             _show_menu_dashboard
             ;;
