@@ -1,13 +1,14 @@
 #!/bin/bash
-# gate.sh - Mux-OS Stargate Protocol v5.0.1
+# gate.sh - Mux-OS Stargate Protocol v5.0.2
 
 TARGET_SYSTEM="$1"
 MUX_ROOT="$HOME/mux-os"
 STATE_FILE="$MUX_ROOT/.mux_state"
 
-# 系統選擇與主題設定
+if [ -z "$TARGET_SYSTEM" ]; then TARGET_SYSTEM="core"; fi
+
 if [ "$TARGET_SYSTEM" == "factory" ]; then
-    THEME_COLOR="\033[1;38;5;208m"
+    THEME_COLOR="\033[1;38;5;208m" 
     THEME_TEXT="NEURAL FORGE"
     NEXT_STATE="factory"
     ICON="⚙️"
@@ -22,63 +23,67 @@ fi
 C_TXT="\033[1;30m"
 C_RESET="\033[0m"
 
-# 系統準備 - 隱藏游標與清屏
 tput civis
 clear
 
 echo "$NEXT_STATE" > "$STATE_FILE"
 
-# 動畫序列 - Data Stream 模擬
 ROWS=$(tput lines)
 COLS=$(tput cols)
-CENTER_ROW=$(( ROWS / 2 ))
-CENTER_COL=$(( (COLS - 30) / 2 ))
 
-# 1. 標題與圖標
-tput cup $((CENTER_ROW - 2)) $CENTER_COL
+BAR_LEN=$(( COLS * 60 / 100 ))
+if [ "$BAR_LEN" -lt 20 ]; then BAR_LEN=20; fi
+if [ "$BAR_LEN" -gt 50 ]; then BAR_LEN=50; fi
+
+CENTER_ROW=$(( ROWS / 2 ))
+BAR_START_COL=$(( (COLS - BAR_LEN - 9) / 2 )) 
+TITLE_START_COL=$(( (COLS - 25) / 2 ))
+
+tput cup $((CENTER_ROW - 2)) $TITLE_START_COL
 echo -e "${C_TXT}:: ACCESSING ${THEME_COLOR}${THEME_TEXT} ${ICON}${C_TXT} ::${C_RESET}"
 
-# 2. 數據流模擬 (Data Stream)
-BAR_LEN=30
-for i in {1..30}; do
-    PCT=$(( i * 100 / 30 )) 
+for i in $(seq 1 "$BAR_LEN"); do
+    PCT=$(( i * 100 / BAR_LEN ))
     
-    tput cup $CENTER_ROW $CENTER_COL
+    tput cup $CENTER_ROW $BAR_START_COL
     
     echo -ne "${C_TXT}[${C_RESET}"
     
-    for ((j=0; j<i; j++)); do 
-        if [ $((j % 5)) -eq 0 ]; then
-            echo -ne "${C_RESET}#${THEME_COLOR}"
-        else
-            echo -ne "#"
-        fi
-    done
+    if [ "$i" -gt 0 ]; then
+        printf "${THEME_COLOR}%.0s#${C_RESET}" $(seq 1 "$i")
+    fi
     
-    for ((j=i; j<30; j++)); do echo -ne " "; done
+    REMAIN=$(( BAR_LEN - i ))
+    if [ "$REMAIN" -gt 0 ]; then
+        printf "%.0s " $(seq 1 "$REMAIN")
+    fi
     
     echo -ne "${C_TXT}] ${PCT}%${C_RESET}"
     
     if [ $((i % 3)) -eq 0 ]; then
-        RAND_HEX=$(openssl rand -hex 2 2>/dev/null || echo "FA0${i}")
-        tput cup $((CENTER_ROW + 2)) $((CENTER_COL + 5))
-        echo -e "${C_TXT}>> HEX_ADDR: 0x${RAND_HEX^^} <<${C_RESET}"
+        HEX_ADDR=$(printf "0x%X%X" $((RANDOM%255)) $((RANDOM%255)))
+        tput cup $((CENTER_ROW + 2)) $((CENTER_COL + 2))
+        echo -e "\033[K${C_TXT}>> MEM_ALLOC: ${HEX_ADDR} <<${C_RESET}"
     fi
 
     sleep 0.015
 done
 
-# 3. 完整性檢查
 if [ "$NEXT_STATE" == "factory" ] && [ ! -f "$MUX_ROOT/factory.sh" ]; then
-    tput cup $((CENTER_ROW + 4)) $CENTER_COL
-    echo -e "${C_TXT}:: CRITICAL ERROR :: MODULE MISSING${C_RESET}"
+    tput cup $((CENTER_ROW + 4)) $TITLE_START_COL
+    echo -e "${C_TXT}:: CRITICAL: MODULE MISSING ::${C_RESET}"
     sleep 1
     echo "core" > "$STATE_FILE"
     exec "$MUX_ROOT/gate.sh" "core"
 fi
 
-# 4. 啟動目標系統
+unset MUX_INITIALIZED 
+unset __MUX_CORE_ACTIVE
+unset __MUX_MODE 
+
 tput cnorm
-stty sane 
+stty sane
 clear
+
+# 啟動新靈魂
 exec bash
