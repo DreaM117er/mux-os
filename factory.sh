@@ -1674,15 +1674,14 @@ function _factory_deploy_sequence() {
     
     echo ""
     echo -e "${F_MAIN} :: DEPLOYMENT SUCCESSFUL ::${F_RESET}"
-    echo -e "${F_SUB}    Re-aligning Neural Kernel (Atomic Restart)...${F_RESET}"
-    sleep 1
+    sleep 0.5
     
-    if [ -f "$temp_file" ]; then rm "$temp_file"; fi
-    
-    export __MUX_MODE="core"
-    echo "core" > "$MUX_ROOT/.mux_state"
-    
-    exec bash
+    if [ -f "$MUX_ROOT/gate.sh" ]; then
+        exec "$MUX_ROOT/gate.sh" "core"
+    else
+        echo "core" > "$MUX_ROOT/.mux_state"
+        exec bash
+    fi
 }
 
 # 神經鍛造中樞 (Neural Forge Nexus) - The Radar
@@ -1940,11 +1939,10 @@ function _fac_deploy() {
 
 # 離開工廠 - Exit Factory
 function _fac_exit() {
-    echo -e "\033[1;33m :: Leaving Factory (Changes Discarded)... \033[0m"
-    sleep 0.5
-    rm "$MUX_ROOT/app.sh.temp" 2>/dev/null
-    echo "core" > "$MUX_ROOT/.mux_state"
-    unset MUX_INITIALIZED
-    unset __MUX_TARGET_MODE
-    exec bash
+    if [ -f "$MUX_ROOT/gate.sh" ]; then
+        exec "$MUX_ROOT/gate.sh" "core"
+    else
+        echo "core" > "$MUX_ROOT/.mux_state"
+        exec bash
+    fi
 }

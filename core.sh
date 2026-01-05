@@ -261,17 +261,12 @@ function mux() {
         ;;
 
         # : Enter the Arsenal (Factory Mode)
-        "factory"|"tofac")
-            if [ -f "$MUX_ROOT/factory.sh" ]; then
-                source "$MUX_ROOT/factory.sh"
-                _factory_boot_sequence
-                if [ $? -ne 0 ]; then return; fi
-                echo "factory" > "$MUX_ROOT/.mux_state"
-                echo -e "\n\033[1;33m :: Switching to Neural Forge... \033[0m"
-                sleep 0.5
-                exec bash
+        "factory"|"tofac"|"fac")
+        if [ -f "$MUX_ROOT/gate.sh" ]; then
+                exec "$MUX_ROOT/gate.sh" "factory"
             else
-                _bot_say "error" "Factory module not found."
+                echo "factory" > "$MUX_ROOT/.mux_state"
+                exec bash
             fi
             ;;
 
@@ -285,10 +280,13 @@ function mux() {
 # 重新載入核心模組
 function _mux_reload_kernel() {
     _system_lock
-    echo -e "\033[1;33m :: System Reload Initiated (Atomic)...\033[0m"
-    sleep 0.5
     unset MUX_INITIALIZED
-    exec bash
+    
+    if [ -f "$MUX_ROOT/gate.sh" ]; then
+        exec "$MUX_ROOT/gate.sh" "core"
+    else
+        exec bash
+    fi
 }
 
 # 強制同步系統狀態
