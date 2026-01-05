@@ -287,7 +287,7 @@ function _core_pre_factory_auth() {
     _system_lock
     echo -e "${F_GRAY} :: SECURITY CHECKPOINT ::${F_RESET}"
     echo -e "${F_GRAY}    Identity Verification Required.${F_RESET}"
-    sleep 0.5
+    sleep 0.8
     echo ""
     
     _system_unlock
@@ -325,15 +325,15 @@ function _core_pre_factory_auth() {
     sleep 0.5
     
     echo -ne "${F_GRAY} :: Scanning Combat Equipment... ${F_RESET}"
-    sleep 0.5
+    sleep 1.6
     if ! command -v fzf &> /dev/null; then
         echo -e "\n${F_RED} :: EQUIPMENT MISSING :: ${F_RESET}"
-        sleep 1
+        sleep 0.5
         _core_eject_sequence "Neural Link (fzf) Required."
         return 1
     else
         echo -e "\r${F_GRE} :: EQUIPMENT CONFIRM :: ${F_RESET}"
-        sleep 0.3
+        sleep 0.5
     fi
 
     echo ""
@@ -395,16 +395,10 @@ function _core_eject_sequence() {
     
     echo ""
     if command -v _bot_say &> /dev/null; then
-        _bot_say "eject"
+        _bot_factory_personality "eject"
     fi
-    sleep 2.0
-    
-    if command -v _ui_fake_gate &> /dev/null; then
-        _ui_fake_gate "core"
-    else
-        clear
-    fi
-    
+    sleep 2.6
+    _ui_fake_gate "core"
     _mux_init
 }
 

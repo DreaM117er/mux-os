@@ -126,6 +126,10 @@ function _factory_reset() {
 # : Factory Command Entry
 function fac() {
     local cmd="$1"
+    if [ "$__MUX_MODE" == "core" ]; then
+        echo -e "\033[1;31m :: Factory commands disabled during Core session.\033[0m"
+        return 1
+    fi
 
     if [ -z "$cmd" ]; then
         _bot_say "factory_welcome"
@@ -1497,19 +1501,76 @@ function _fac_snapshot() {
 function _fac_undo() {
     local temp_file="$MUX_ROOT/app.sh.temp"
     local undo1="$MUX_ROOT/.app.sh.undo1"
+    local undo2="$MUX_ROOT/.app.sh.undo2"
+    local undo3="$MUX_ROOT/.app.sh.undo3"
 
     if [ ! -f "$undo1" ]; then
-        _bot_say "error" "No temporal snapshot found."
+        _bot_say "error" "No temporal snapshots found."
         return
     fi
 
-    echo -e "${F_WARN} :: Time Stone Activated...${F_RESET}"
-    echo -e "${F_GRAY}    Reverting to previous timeline state...${F_RESET}"
+    local list_data=""
+    local files=("$undo1" "$undo2" "$undo3")
+    local labels=("Undo 1 (Latest)" "Undo 2 (Previous)" "Undo 3 (Oldest)")
     
-    cp "$undo1" "$temp_file"
-    
-    _fac_load
-    _bot_say "success" "Timeline reverted."
+    for i in {0..2}; do
+        if [ -f "${files[$i]}" ]; then
+            local ts=""
+            if date --version >/dev/null 2>&1; then
+                ts=$(date -r "${files[$i]}" "+%H:%M:%S")
+            else
+                ts=$(date -r "${files[$i]}" "+%H:%M:%S" 2>/dev/null || stat -c %y "${files[$i]}" | cut -d' ' -f2 | cut -d'.' -f1)
+            fi
+            
+            local size=$(du -h "${files[$i]}" | cut -f1)
+            list_data="${list_data}[${labels[$i]}] ${ts} (${size})\n"
+        fi
+    done
+
+    local selection=$(echo -e "$list_data" | fzf \
+        --height=20% --layout=reverse --border=bottom \
+        --prompt=" :: Time Stone › " \
+        --header=" :: Select Timeline to Restore ::" \
+        --pointer="››" \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+    )
+
+    if [ -z "$selection" ]; then return; fi
+
+    local target_file=""
+    if [[ "$selection" == *"[Undo 1]"* ]]; then target_file="$undo1"; fi
+    if [[ "$selection" == *"[Undo 2]"* ]]; then target_file="$undo2"; fi
+    if [[ "$selection" == *"[Undo 3]"* ]]; then target_file="$undo3"; fi
+
+    if [ -f "$target_file" ]; then
+        echo -e ""
+        echo -e "\033[1;33m :: WARP WARNING ::\033[0m"
+        echo -e "\033[1;37m    Target Snapshot : \033[1;36m$(basename "$target_file")\033[0m"
+        echo -e "\033[1;31m    Current Work    : Will be OVERWRITTEN.\033[0m"
+        echo -e ""
+        
+        echo -ne "\033[1;33m :: Confirm Restore? [y/N]: \033[0m"
+        read fuse_check
+        
+        if [[ "$fuse_check" != "y" && "$fuse_check" != "Y" ]]; then
+            _bot_say "factory" "Time jump aborted. Current timeline retained."
+            return
+        fi
+
+        echo -e "\033[1;35m :: Reality shifting...\033[0m"
+        cp "$target_file" "$temp_file"
+        sleep 0.5
+        _fac_maintenance
+        _bot_say "success" "Timeline restored."
+        
+        if command -v _factory_show_status &> /dev/null; then
+            echo ""
+            _factory_show_status
+        fi
+    else
+        _bot_say "error" "Target snapshot anomaly. File lost."
+    fi
 }
 
 # 部署序列 (Deploy Sequence)
@@ -1780,8 +1841,7 @@ function _fac_get_meta() {
 # 初始化視覺效果 (Initialize Visuals)
 function _fac_init() {
     _system_lock
-    echo -e "\033[1;33m :: System Reload Initiated...\033[0m"
-    sleep 1.6
+    _safe_ui_calc
     clear
     _draw_logo "factory"
     _system_check "factory"
