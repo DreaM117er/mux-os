@@ -434,8 +434,7 @@ function _factory_show_status() {
     local F_RESET="\033[0m"
 
     local temp_file="$MUX_ROOT/app.sh.temp"
-    
-    echo -e ""
+
     echo -e "${F_MAIN} :: Neural Forge Status Report ::${F_RESET}"
     echo -e "${F_GRAY}    --------------------------------${F_RESET}"
 

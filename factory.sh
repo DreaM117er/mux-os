@@ -1676,7 +1676,6 @@ function _factory_fzf_menu() {
                 match($0, /function ([a-zA-Z0-9_]+)/, arr);
                 func_name = arr[1];
                 if (substr(func_name, 1, 1) != "_") {
-                    # 格式: Command    [Category]
                     printf " %s%-14s %s[%s]%s\n", C_CMD, func_name, C_CAT, current_cat, C_RESET;
                 }
             }
@@ -1781,9 +1780,6 @@ function _fac_inspector() {
     elif [ "$m_type" == "SUITE" ]; then
         info_display="${info_display} Modules  : ${F_WARN}${m_extra} active${F_RESET}\n"
     fi
-    
-    info_display="${info_display}\n"
-    info_display="${info_display} [ ENTER ] Return to Radar"
 
     echo -e "$info_display" | fzf \
         --ansi \
@@ -1791,7 +1787,6 @@ function _fac_inspector() {
         --layout=reverse \
         --border=bottom \
         --prompt=" :: Inspector › " \
-        --header=" :: Press ENTER to Return ::" \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
         --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240
