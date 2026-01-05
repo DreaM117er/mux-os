@@ -16,6 +16,7 @@ export BASE_DIR="$MUX_ROOT"
 export __MUX_CORE_ACTIVE=true
 
 # 載入核心模組
+export CORE_MOD="$MUX_ROOT/core.sh"
 export BOT_MOD="$MUX_ROOT/bot.sh"
 export UI_MOD="$MUX_ROOT/ui.sh"
 export IDENTITY_MOD="$MUX_ROOT/identity.sh"
