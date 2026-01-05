@@ -63,7 +63,7 @@ for i in $(seq 1 "$BAR_LEN"); do
     if [ "$REMAIN" -gt 0 ]; then
         printf "%.0s " $(seq 1 "$REMAIN")
     fi
-    
+    echo -ne ""
     echo -ne "${C_TXT}] ${THEME_COLOR}"
     printf "%3d%%" "$PCT"
     echo -ne "${C_RESET}"
