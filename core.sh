@@ -296,7 +296,7 @@ function _core_pre_factory_auth() {
     _system_lock
     echo -e "${F_ORG} :: SECURITY CHECKPOINT ::${F_RESET}"
     echo -e "${F_GRAY}    ›› Identity Verification Required.${F_RESET}"
-    sleep 0.8
+    sleep 0.4
     echo ""
     
     _system_unlock
@@ -329,14 +329,14 @@ function _core_pre_factory_auth() {
     echo ""
     _system_lock
     echo -e "${F_GRAY} :: Verifying Neural Signature... ${F_RESET}"
-    echo ""
     sleep 0.8
-    echo -e "\r${F_GRE} :: ACCESS GRANTED :: ${F_RESET}"
     echo ""
+    echo -e "${F_GRE} :: ACCESS GRANTED :: ${F_RESET}"
     sleep 0.5
-    echo -e "${F_GRAY} :: Scanning Combat Equipment... ${F_RESET}"
     echo ""
+    echo -e "${F_GRAY} :: Scanning Combat Equipment... ${F_RESET}"
     sleep 1
+    echo ""
     if ! command -v fzf &> /dev/null; then
         echo -e "\n${F_RED} :: EQUIPMENT MISSING :: ${F_RESET}"
         echo ""
@@ -390,10 +390,10 @@ function _core_eject_sequence() {
     local F_GRAY="\033[1;30m"
     
     _system_lock
-    echo -e ""
+    echo ""
     echo -e "${F_ERR} :: ACCESS DENIED :: ${reason}${F_RESET}"
-    echo -e ""
     sleep 0.8
+    echo ""
     echo -e "${F_ERR} :: Initiating Eviction Protocol...${F_RESET}"
     sleep 0.4
     echo -e "${F_ERR} :: Locking Cockpit...${F_RESET}"
