@@ -394,10 +394,8 @@ function _core_eject_sequence() {
     done
     
     echo ""
-    if command -v _bot_say &> /dev/null; then
-        _bot_factory_personality "eject"
-    fi
-    sleep 2.6
+    _bot_factory_personality "eject"
+    sleep 1.9
     _ui_fake_gate "core"
     _mux_init
 }
