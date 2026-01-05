@@ -288,20 +288,21 @@ function _core_pre_factory_auth() {
     local F_RESET="\033[0m"
     local F_GRE="\033[1;32m"
     local F_SUB="\033[1;37m"
+    local F_ORG="\033[1;38;5;208m"
 
     clear
     _draw_logo "gray"
     
     _system_lock
-    echo -e "${F_GRAY} :: SECURITY CHECKPOINT ::${F_RESET}"
-    echo -e "${F_GRAY}    Identity Verification Required.${F_RESET}"
-    sleep 0.6
+    echo -e "${F_ORG} :: SECURITY CHECKPOINT ::${F_RESET}"
+    echo -e "${F_GRAY}    ›› Identity Verification Required.${F_RESET}"
+    sleep 0.8
     echo ""
     
     _system_unlock
     echo -ne "${F_SUB} :: Commander ID: ${F_RESET}" 
     read input_id
-    
+
     local identity_valid=0
     if [ -f "$MUX_ROOT/.mux_identity" ]; then
         local REAL_ID=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2)
@@ -327,17 +328,18 @@ function _core_pre_factory_auth() {
 
     echo ""
     _system_lock
-    echo -e "${F_GRAY} :: Verifying Neural Signature... ${F_RESET}"
+    echo -ne "${F_GRAY} :: Verifying Neural Signature... ${F_RESET}"
     echo ""
     sleep 0.8
-    echo -e "${F_GRE} :: ACCESS GRANTED ::${F_RESET}"
-    echo ""
+    echo -e "\r${F_GRE} :: ACCESS GRANTED ::                     ${F_RESET}"
     sleep 0.5
     
-    echo -e "${F_GRAY} :: Scanning Combat Equipment... ${F_RESET}"
-    sleep 1.6
+    echo -ne "${F_GRAY} :: Scanning Combat Equipment... ${F_RESET}"
+    echo ""
+    sleep 1
     if ! command -v fzf &> /dev/null; then
         echo -e "\n${F_RED} :: EQUIPMENT MISSING :: ${F_RESET}"
+        echo ""
         sleep 0.5
         _core_eject_sequence "Neural Link (fzf) Required."
         return 1
@@ -385,6 +387,7 @@ function _core_eject_sequence() {
     local reason="$1"
     local F_ERR="\033[1;31m"
     local F_RESET="\033[0m"
+    local F_GRAY="\033[1;30m"
     
     _system_lock
     echo ""
@@ -399,8 +402,8 @@ function _core_eject_sequence() {
     sleep 1
     
     for i in {3..1}; do
-        echo -e "${F_ERR}    ›› Ejection in $i...${F_RESET}"
-        sleep 1
+        echo -e "${F_GRAY}    ›› Ejection in $i...${F_RESET}"
+        sleep 0.99
     done
     
     echo ""
