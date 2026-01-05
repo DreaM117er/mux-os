@@ -158,9 +158,11 @@ function mux() {
                 _show_menu_dashboard
             fi
             ;;
+            
         "oldmenu"|"om")
             _show_menu_dashboard
             ;;
+
         # : Infomation
         "info"|"i")
             _mux_show_info
@@ -239,6 +241,7 @@ function mux() {
                 _mux_reload_kernel
             fi
             ;;
+
         # : Multiverse Warp Drive
         "warpto"|"jumpto")
             echo -e "\033[1;36m :: Scanning Multiverse Coordinates...\033[0m"
