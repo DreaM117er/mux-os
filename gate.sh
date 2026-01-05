@@ -11,13 +11,13 @@ if [ "$TARGET_SYSTEM" == "factory" ]; then
     THEME_COLOR="\033[1;38;5;208m"
     THEME_TEXT="NEURAL FORGE"
     NEXT_STATE="factory"
-    ICON="⚙️"
+    ICON=""
 else
     THEME_COLOR="\033[1;36m"
     THEME_TEXT="SYSTEM CORE"
     NEXT_STATE="core"
     TARGET_SYSTEM="core"
-    ICON="💠"
+    ICON=""
 fi
 
 C_TXT="\033[1;30m"
