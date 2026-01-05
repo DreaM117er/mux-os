@@ -320,21 +320,16 @@ function _core_pre_factory_auth() {
         return 1
     fi
 
+    if [ "$identity_valid" -ne 1 ]; then
+        _core_eject_sequence "Identity Mismatch."
+        return 1
+    fi
+
     echo ""
     _system_lock
     echo -e "${F_GRAY} :: Verifying Neural Signature... ${F_RESET}"
     echo ""
     sleep 0.8
-
-    if [ "$identity_valid" -ne 1 ]; then
-        echo -e "${F_WARN} :: ACCESS DENIED ::${F_RESET}"
-        echo ""
-        sleep 0.5
-        _core_eject_sequence "Identity Mismatch."
-        return 1
-    fi
-
-
     echo -e "${F_GRE} :: ACCESS GRANTED ::${F_RESET}"
     echo ""
     sleep 0.5
