@@ -527,11 +527,11 @@ function _ui_fake_gate() {
     if [ "$target_system" == "factory" ]; then
         theme_color="\033[1;38;5;208m"
         theme_text="NEURAL FORGE"
-        icon=""
+        icon="⚙️"
     else
         theme_color="\033[1;36m"
         theme_text="SYSTEM CORE"
-        icon=""
+        icon="💠"
     fi
 
     local C_TXT="\033[1;30m"
@@ -553,6 +553,8 @@ function _ui_fake_gate() {
     tput cup $((center_row - 2)) $title_start_col
     echo -e "${C_TXT}:: ACCESSING ${theme_color}${theme_text} ${icon}${C_TXT} ::${C_RESET}"
 
+    local hex_addr="0x0000"
+
     for i in $(seq 1 "$bar_len"); do
         local pct=$(( i * 100 / bar_len ))
         
@@ -571,7 +573,6 @@ function _ui_fake_gate() {
 
         tput cup $((center_row + 2)) $stats_start_col
         
-        local hex_addr=""
         if [ $((i % 2)) -eq 0 ]; then
             hex_addr=$(printf "0x%04X" $((RANDOM%65535)))
         fi

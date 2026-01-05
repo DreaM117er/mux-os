@@ -397,7 +397,11 @@ function _core_eject_sequence() {
     _bot_factory_personality "eject"
     sleep 1.9
     _ui_fake_gate "core"
-    _mux_init
+    _safe_ui_calc
+    clear
+    _draw_logo "core"
+    _system_unlock
+    _bot_say "hello"
 }
 
 # 重新載入核心模組
