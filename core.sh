@@ -328,13 +328,12 @@ function _core_pre_factory_auth() {
 
     echo -e ""
     _system_lock
-    echo -ne "${F_GRAY} :: Verifying Neural Signature... ${F_RESET}"
+    echo -e "${F_GRAY} :: Verifying Neural Signature... ${F_RESET}"
     echo -e ""
     sleep 0.8
-    echo -e "\r${F_GRE} :: ACCESS GRANTED ::                     ${F_RESET}"
+    echo -e "\r${F_GRE} :: ACCESS GRANTED :: ${F_RESET}"
     sleep 0.5
-    
-    echo -ne "${F_GRAY} :: Scanning Combat Equipment... ${F_RESET}"
+    echo -e "${F_GRAY} :: Scanning Combat Equipment... ${F_RESET}"
     echo -e ""
     sleep 1
     if ! command -v fzf &> /dev/null; then
