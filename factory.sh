@@ -1764,12 +1764,11 @@ function _fac_inspector() {
     local info_display=""
     
     info_display="${info_display} ${F_GRAY}:: Neural Unit Details ::${F_RESET}\n"
+    info_display="${info_display} Sector   : ${F_WARN}${category}${F_RESET}\n"
     info_display="${info_display} ${F_GRAY}--------------------------------${F_RESET}\n"
     info_display="${info_display} Command  : ${F_MAIN}${target}${F_RESET}\n"
-    info_display="${info_display} Sector   : ${F_WARN}${category}${F_RESET}\n"
     info_display="${info_display} Type     : ${F_CYAN}${m_type}${F_RESET}\n"
     info_display="${info_display} ${F_GRAY}--------------------------------${F_RESET}\n"
-    
     info_display="${info_display} UI Name  : ${F_SUB}${m_name}${F_RESET}\n"
     info_display="${info_display} Package  : ${F_SUB}${m_pkg}${F_RESET}\n"
     
@@ -1786,7 +1785,7 @@ function _fac_inspector() {
         --height=40% \
         --layout=reverse \
         --border=bottom \
-        --prompt=" :: Inspector › " \
+        --prompt=" :: Neural Unit Details › " \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
         --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240
