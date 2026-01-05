@@ -390,9 +390,9 @@ function _core_eject_sequence() {
     local F_GRAY="\033[1;30m"
     
     _system_lock
-    echo ""
+    echo -e ""
     echo -e "${F_ERR} :: ACCESS DENIED :: ${reason}${F_RESET}"
-    echo ""
+    echo -e ""
     sleep 0.8
     echo -e "${F_ERR} :: Initiating Eviction Protocol...${F_RESET}"
     sleep 0.4
@@ -405,8 +405,7 @@ function _core_eject_sequence() {
         echo -e "${F_GRAY}    ›› Ejection in $i...${F_RESET}"
         sleep 0.99
     done
-    
-    echo ""
+
     _bot_factory_personality "eject"
     sleep 1.9
     _ui_fake_gate "core"
