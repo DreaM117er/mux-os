@@ -138,7 +138,7 @@ function fac() {
 
     case "$cmd" in
         # : Open Neural Forge Menu
-        "menu"|"m")
+        "menu")
             _factory_fzf_menu
             ;;
 
@@ -164,7 +164,7 @@ function fac() {
             ;;
 
         # : Neural Forge (Create Command)
-        "add"|"create") 
+        "add"|"new") 
             _fac_wizard_create
             ;;
 
@@ -174,7 +174,7 @@ function fac() {
             ;;
 
         # : Relocate Unit (Move Command)
-        "move"|"mv")
+        "move")
             _fac_cat_move "$2"
             ;;
 
@@ -194,19 +194,19 @@ function fac() {
             ;;
 
         # : Time Stone Undo (Restored)
-        "undo"|"u")
+        "undo"|"ud")
             _fac_undo
             ;;
 
         # : Show Factory Info
-        "info"|"i")
+        "info")
             if command -v _factory_show_info &> /dev/null; then
                 _factory_show_info
             fi
             ;;
 
         # : Reload Factory
-        "reload"|"rl")
+        "reload")
             echo -e "\033[1;33m :: Cycling Factory Power... \033[0m"
             sleep 0.5
             if [ -f "$MUX_ROOT/gate.sh" ]; then
@@ -217,16 +217,16 @@ function fac() {
             ;;
             
         # : Reset Factory Change
-        "reset"|"rst")
+        "reset")
             _factory_reset
             ;;
 
         # : Deploy Changes
-        "deploy"|"dep")
+        "deploy")
             _factory_deploy_sequence
             ;;
 
-        "help"|"h")
+        "help")
                 _mux_dynamic_help_factory
             ;;
 

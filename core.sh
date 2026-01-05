@@ -156,7 +156,7 @@ function mux() {
 
     case "$cmd" in
         # : Open Command Dashboard
-        "menu"|"m")
+        "menu")
             if command -v fzf &> /dev/null; then
                 _mux_fuzzy_menu
             else
@@ -164,12 +164,12 @@ function mux() {
             fi
             ;;
 
-        "oldmenu"|"om")
+        "oldmenu"|"omenu")
             _show_menu_dashboard
             ;;
 
         # : Infomation
-        "info"|"i")
+        "info")
             _mux_show_info
             ;;
 
@@ -194,7 +194,7 @@ function mux() {
             ;;
         
         # : Show System Status
-        "status"|"st"|"v")
+        "status"|"sts")
             local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
             local last_commit=$(git log -1 --format='%h - %s (%cr)' 2>/dev/null)
             if [ "$current_branch" == "main" ]; then
@@ -207,12 +207,12 @@ function mux() {
             ;;
         
         # : Neural Link Deploy
-        "nlsdep")
+        "nldeploy")
             _neural_link_deploy
             ;;
 
         # : Check for Updates
-        "update"|"up")
+        "update")
             _mux_update_system
             ;;
 
@@ -230,17 +230,17 @@ function mux() {
             fi
             ;;
 
-        "help"|"h")
+        "help")
             _mux_dynamic_help_core
             ;;
 
         # : Reload System Kernel
-        "reload"|"rl")
+        "reload")
             _mux_reload_kernel
             ;;
 
         # : Force System Sync
-        "reset"|"rst")
+        "reset")
             _mux_force_reset
             if [ $? -eq 0 ]; then
                 _mux_reload_kernel
@@ -248,7 +248,7 @@ function mux() {
             ;;
 
         # : Multiverse Warp Drive
-        "warpto"|"jumpto")
+        "warpto"|"wrp2")
             echo -e "\033[1;36m :: Scanning Multiverse Coordinates...\033[0m"
             git fetch --all >/dev/null 2>&1
             local target_branch=$(git branch -r | grep -v '\->' | sed 's/origin\///' | fzf --ansi --height=10 --layout=reverse --border=bottom --prompt=" :: Warp Target › " --pointer="››")
@@ -269,7 +269,7 @@ function mux() {
         ;;
 
         # : Enter the Arsenal (Factory Mode)
-        "factory"|"tofac"|"fac")
+        "factory"|"tofac")
             _core_pre_factory_auth
             ;;
 
