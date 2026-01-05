@@ -79,7 +79,7 @@ function _mux_boot_sequence() {
         if [ -f "$BASE_DIR/factory.sh" ]; then
             export __MUX_MODE="factory"
             source "$BASE_DIR/factory.sh"
-            _factory_boot_sequence
+            _factory_system_boot 
         else
             echo "core" > "$MUX_ROOT/.mux_state"
             _mux_init
@@ -262,12 +262,7 @@ function mux() {
 
         # : Enter the Arsenal (Factory Mode)
         "factory"|"tofac"|"fac")
-        if [ -f "$MUX_ROOT/gate.sh" ]; then
-                exec "$MUX_ROOT/gate.sh" "factory"
-            else
-                echo "factory" > "$MUX_ROOT/.mux_state"
-                exec bash
-            fi
+            _core_pre_factory_auth
             ;;
 
         *)
@@ -275,6 +270,57 @@ function mux() {
             echo -e "\033[1;37m :: Unknown Directive: $cmd\033[0m"
             ;;
     esac
+}
+
+# 工廠前置驗證協議 (Pre-Flight Auth)
+function _core_pre_factory_auth() {
+    local F_GRAY="\033[1;30m"
+    local F_RED="\033[1;31m"
+    local F_WARN="\033[1;33m"
+    local F_RESET="\033[0m"
+
+    _system_lock
+    echo -e "${F_GRAY} :: SECURITY CHECKPOINT :: Identity Verification Required.${F_RESET}"
+    sleep 0.3
+    
+    _system_unlock
+    echo -ne "${F_RESET} :: Commander ID: " 
+    read input_id
+    
+    if [ -f "$MUX_ROOT/.mux_identity" ]; then
+        local REAL_ID=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2)
+        if [ "$input_id" != "$REAL_ID" ] && [ "$REAL_ID" != "Unknown" ]; then
+            echo ""
+            _bot_say "error" "Identity Mismatch. Access Denied."
+            return 1
+        fi
+    fi
+
+    echo ""
+    echo -e "${F_RED} :: WARNING: FACTORY PROTOCOL :: ${F_RESET}"
+    echo -e "${F_GRAY}    1. Modifications are permanent.${F_RESET}"
+    echo -e "${F_GRAY}    2. Core commands are locked.${F_RESET}"
+    echo ""
+    
+    echo -ne "${F_WARN} :: TYPE 'CONFIRM' TO ENTER: ${F_RESET}"
+    read confirm
+    
+    if [ "$confirm" == "CONFIRM" ]; then
+        _system_lock
+        echo -e "\033[1;32m :: ACCESS GRANTED. Opening Gate...${F_RESET}"
+        sleep 0.5
+        
+        # 呼叫星門，目標 Factory
+        if [ -f "$MUX_ROOT/gate.sh" ]; then
+            exec "$MUX_ROOT/gate.sh" "factory"
+        else
+            echo "factory" > "$MUX_ROOT/.mux_state"
+            exec bash
+        fi
+    else
+        echo -e "${F_GRAY}    ›› Access denied.${F_RESET}"
+        return 1
+    fi
 }
 
 # 重新載入核心模組

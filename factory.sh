@@ -39,7 +39,6 @@ function _factory_system_boot() {
 
 # 進入兵工廠模式 (Entry Point)
 function _enter_factory_mode() {
-    _factory_boot_sequence
     if [ $? -ne 0 ]; then return; fi
 
     export __MUX_MODE="factory"
@@ -59,99 +58,6 @@ function _enter_factory_mode() {
     fi
     
     _bot_say "factory_welcome"
-}
-
-# 啟動序列 (Boot Sequence)
-function _factory_boot_sequence() {
-    export __MUX_MODE="factory"
-    clear
-    _draw_logo "gray"
-    
-    _system_lock
-    echo -e "${F_GRAY} :: SECURITY CHECKPOINT ::${F_RESET}"
-    echo -e "${F_GRAY}    Identity Verification Required.${F_RESET}"
-    sleep 0.5
-    echo ""
-    
-    local git_user=$(git config user.name 2>/dev/null)
-    [ -z "$git_user" ] && git_user="Unknown"
-    
-    _system_unlock
-    echo -ne "\033[1;37m :: Commander ID: \033[0m" 
-    read input_id
-    
-    echo -ne "\033[1;33m :: CONFIRM IDENTITY (Type 'CONFIRM'): \033[0m"
-    read confirm
-    
-    echo ""
-    _system_lock
-    echo -ne "${F_GRAY} :: Scanning Biometrics... \033[0m"
-    sleep 0.8
-    echo -ne "\r${F_GRAY} :: Verifying Neural Signature... \033[0m"
-    sleep 0.8
-    echo ""
-
-    local verify_success=0
-    if [ "$confirm" == "CONFIRM" ] && [ -n "$input_id" ]; then
-        if [ -f "$MUX_ROOT/.mux_identity" ]; then
-            source "$MUX_ROOT/.mux_identity"
-            if [ "$input_id" == "$MUX_ID" ]; then
-                verify_success=1
-            fi
-        else
-             verify_success=1
-        fi
-    fi
-    
-    if [ "$verify_success" -eq 1 ]; then
-        echo -e "${F_GRE} :: ACCESS GRANTED :: \033[0m${F_RESET}"
-        sleep 1
-        
-        echo -ne "${F_GRAY} :: Scanning Combat Equipment... \033[0m"
-        echo -e ""
-        sleep 1.2
-        
-        if ! command -v fzf &> /dev/null; then
-            echo -e "${F_ERR} :: EQUIPMENT MISSING :: ${F_RESET}"
-            sleep 0.5
-            echo -e ""
-            _factory_eject_sequence "Equipment Insufficient. Neural Link (fzf) required."
-            return 1
-        else
-            echo -e "${F_GRE} :: EQUIPMENT CONFIRM :: ${F_RESET}"
-            sleep 0.5
-        fi
-
-        echo ""
-        echo -e "${F_ERR} :: WARNING: FACTORY PROTOCOL :: ${F_RESET}"
-        echo -e "${F_SUB} 1. Modifications here are permanent.${F_RESET}"
-        echo -e "${F_SUB} 2. Sandbox Environment Active (.temp).${F_RESET}"
-        echo -e "${F_SUB} 3. Core 'mux' commands are ${F_ERR}LOCKED${F_SUB}. Use 'fac'.${F_RESET}"
-        echo -e "${F_SUB} 4. App launches are ${F_ERR}LOCKED${F_SUB} (Except: wb, apklist).${F_RESET}"
-        echo -e "${F_SUB} 5. You are responsible for system stability.${F_RESET}"
-        echo ""
-        _system_unlock
-        echo -ne "${F_WARN} :: Proceed? [Y/n]: ${F_RESET}"
-        read choice
-        
-        if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
-            _factory_eject_sequence "User aborted."
-            return 1
-        fi
-        
-        _system_lock
-        local steps=("Injecting Logic..." "Desynchronizing Core..." "Loading Arsenal..." "Entering Factory...")
-        for step in "${steps[@]}"; do
-            echo -e "${F_GRAY}    ›› $step${F_RESET}"
-            sleep 0.6
-        done
-        sleep 0.5
-        _system_unlock
-        return 0
-    else
-        _factory_eject_sequence "Identity Mismatch."
-        return 1 
-    fi
 }
 
 # 彈射序列 (The Ejection)
