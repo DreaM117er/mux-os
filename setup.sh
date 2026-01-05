@@ -191,7 +191,7 @@ function _install_protocol() {
     if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
         exit 0
     else
-        exec bash
+        mux reload
     fi
 }
 
