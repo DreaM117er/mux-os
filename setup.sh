@@ -164,18 +164,18 @@ function _install_protocol() {
     chmod +x "$VENDOR_TARGET"
 
     echo "    ›› Installing Bootloader..."
-    if [ ! -f "$RC_FILE" ]; then touch "$RC_FILE"; fi
+
+    sed -i '/# === Mux-OS Auto-Loader ===/d' "$RC_FILE"
+    sed -i "\#source $MUX_ROOT/core.sh#d" "$RC_FILE"
+    sed -i '/_mux_boot_sequence/d' "$RC_FILE"
     
-    if ! grep -q "source $MUX_ROOT/core.sh" "$RC_FILE"; then
-        echo "" >> "$RC_FILE"
-        echo "# === Mux-OS Auto-Loader ===" >> "$RC_FILE"
-        echo "if [ -f \"$MUX_ROOT/core.sh\" ]; then" >> "$RC_FILE"
-        echo "    source \"$MUX_ROOT/core.sh\"" >> "$RC_FILE"
-        echo "fi" >> "$RC_FILE"
-        echo "    ›› Bootloader injected into $RC_FILE"
-    else
-        echo "    ›› Bootloader already active."
-    fi
+    echo "" >> "$RC_FILE"
+    echo "# === Mux-OS Auto-Loader ===" >> "$RC_FILE"
+    echo "if [ -f \"$MUX_ROOT/core.sh\" ]; then" >> "$RC_FILE"
+    echo "    source \"$MUX_ROOT/core.sh\"" >> "$RC_FILE"
+    echo "    _mux_boot_sequence" >> "$RC_FILE"
+    echo "fi" >> "$RC_FILE"
+    echo "    ›› Bootloader injected into $RC_FILE (v5.0.1 structure)"
 
     if [ ! -f "$MUX_ROOT/.mux_identity" ]; then
         echo ""

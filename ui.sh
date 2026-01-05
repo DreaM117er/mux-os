@@ -20,7 +20,7 @@ case "$mode" in
             if [ "$cols" -lt 52 ]; then
                 label=":: Mux-OS v$MUX_VERSION Factory ::"
             else
-                label=":: Mux-OS v$MUX_VERSION Factory :: Neural Link Create ::"
+                label=":: Mux-OS v$MUX_VERSION Factory :: Neural Forge ::"
             fi
             ;;
 
@@ -40,7 +40,7 @@ case "$mode" in
             if [ "$cols" -lt 52 ]; then
                 label=":: Mux-OS v$MUX_VERSION Core ::"
             else
-                label=":: Mux-OS v$MUX_VERSION Core :: Target: Android/Termux ::"
+                label=":: Mux-OS v$MUX_VERSION Core :: Dual Core Arch ::"
             fi
             ;;
     esac
@@ -188,7 +188,7 @@ function _mux_show_info() {
     echo -e "  ${C_GRAY}Repo       :${C_RESET} ${C_WHITE}$MUX_REPO${C_RESET}"
     echo ""
     
-    echo -ne " ${C_GREEN}:: Open GitHub Repository? (y/n): ${C_RESET}"
+    echo -ne " ${C_GREEN}:: Open GitHub Repository? (Y/n): ${C_RESET}"
     read choice
     
     if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
@@ -322,7 +322,7 @@ function _show_menu_dashboard() {
 function _mux_fuzzy_menu() {
     if ! command -v fzf &> /dev/null; then
         echo -e "\n\033[1;31m :: Neural Search Module (fzf) is missing.\033[0m"
-        echo -ne "\033[1;32m :: Install interactive interface? (y/n): \033[0m"
+        echo -ne "\033[1;32m :: Install interactive interface? (Y/n): \033[0m"
         read choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
@@ -434,8 +434,7 @@ function _factory_show_status() {
     local F_RESET="\033[0m"
 
     local temp_file="$MUX_ROOT/app.sh.temp"
-    
-    echo -e ""
+
     echo -e "${F_MAIN} :: Neural Forge Status Report ::${F_RESET}"
     echo -e "${F_GRAY}    --------------------------------${F_RESET}"
 
@@ -515,4 +514,76 @@ function _factory_show_info() {
     echo ""
     
     _bot_say "system" "Returning to forge..."
+}
+
+# 偽・星門 (UI Mask / Fake Gate)
+function _ui_fake_gate() {
+    local target_system="${1:-core}"
+    local theme_color=""
+    local theme_text=""
+    local icon=""
+    
+    if [ "$target_system" == "factory" ]; then
+        theme_color="\033[1;38;5;208m"
+        theme_text="NEURAL FORGE"
+        icon=""
+    else
+        theme_color="\033[1;36m"
+        theme_text="SYSTEM CORE"
+        icon=""
+    fi
+
+    local C_TXT="\033[1;30m"
+    local C_RESET="\033[0m"
+
+    tput civis
+    clear
+
+    local rows=$(tput lines)
+    local cols=$(tput cols)
+    local bar_len=$(( cols * 45 / 100 ))
+    if [ "$bar_len" -lt 15 ]; then bar_len=15; fi
+
+    local center_row=$(( rows / 2 ))
+    local bar_start_col=$(( (cols - bar_len - 2) / 2 ))
+    local stats_start_col=$(( (cols - 24) / 2 ))
+    local title_start_col=$(( (cols - 25) / 2 ))
+
+    tput cup $((center_row - 2)) $title_start_col
+    echo -e "${C_TXT}:: GATE ${theme_color}${theme_text} ${icon}${C_TXT}::${C_RESET}"
+
+    local hex_addr="0x0000"
+
+    for i in $(seq 1 "$bar_len"); do
+        local pct=$(( i * 100 / bar_len ))
+        
+        tput cup $center_row $bar_start_col
+        echo -ne "${C_TXT}[${C_RESET}"
+        
+        if [ "$i" -gt 0 ]; then
+            printf "${theme_color}%.0s#${C_RESET}" $(seq 1 "$i")
+        fi
+        
+        local remain=$(( bar_len - i ))
+        if [ "$remain" -gt 0 ]; then
+            printf "%.0s " $(seq 1 "$remain")
+        fi
+        echo -ne "${C_TXT}]${C_RESET}"
+
+        tput cup $((center_row + 2)) $stats_start_col
+        
+        if [ $((i % 2)) -eq 0 ]; then
+            hex_addr=$(printf "0x%04X" $((RANDOM%65535)))
+        fi
+        
+        echo -ne "${C_TXT}:: ${theme_color}"
+        printf "%3d%%" "$pct"
+        echo -ne "${C_TXT} :: MEM: ${hex_addr}${C_RESET}\033[K"
+
+        sleep 0.015
+    done
+
+    tput cnorm
+    stty sane
+    clear
 }

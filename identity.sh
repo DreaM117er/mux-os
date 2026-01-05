@@ -15,7 +15,7 @@ function _register_commander_interactive() {
     
     local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
     
-    if [ "$current_branch" == "main" ]; then
+    if [ "false" == "true" ]; then
         echo -e "    Detected Branch: \033[1;31m$current_branch (Public)\033[0m"
         echo -e "    \033[1;33m:: Notice: Identity is locked to 'Unknown' on main branch.\033[0m"
         sleep 1

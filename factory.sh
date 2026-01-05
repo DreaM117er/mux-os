@@ -15,9 +15,30 @@ F_GRAY="\033[1;30m"
 F_RESET="\033[0m"
 F_GRE="\n\033[1;32m"
 
+# 兵工廠系統啟動 (Factory System Boot)
+function _factory_system_boot() {
+    export __MUX_MODE="factory"
+    
+    if [ -f "$MUX_ROOT/app.sh" ]; then
+        cp "$MUX_ROOT/app.sh" "$MUX_ROOT/app.sh.temp"
+        source "$MUX_ROOT/app.sh.temp"
+    fi
+    
+    _factory_mask_apps > /dev/null 2>&1
+    _factory_auto_backup > /dev/null 2>&1
+
+    if command -v _fac_init &> /dev/null; then
+        _fac_init
+    else
+        clear
+        _draw_logo "factory"
+    fi
+
+    _bot_say "factory_welcome"
+}
+
 # 進入兵工廠模式 (Entry Point)
 function _enter_factory_mode() {
-    _factory_boot_sequence
     if [ $? -ne 0 ]; then return; fi
 
     export __MUX_MODE="factory"
@@ -37,99 +58,6 @@ function _enter_factory_mode() {
     fi
     
     _bot_say "factory_welcome"
-}
-
-# 啟動序列 (Boot Sequence)
-function _factory_boot_sequence() {
-    export __MUX_MODE="factory"
-    clear
-    _draw_logo "gray"
-    
-    _system_lock
-    echo -e "${F_GRAY} :: SECURITY CHECKPOINT ::${F_RESET}"
-    echo -e "${F_GRAY}    Identity Verification Required.${F_RESET}"
-    sleep 0.5
-    echo ""
-    
-    local git_user=$(git config user.name 2>/dev/null)
-    [ -z "$git_user" ] && git_user="Unknown"
-    
-    _system_unlock
-    echo -ne "\033[1;37m :: Commander ID: \033[0m" 
-    read input_id
-    
-    echo -ne "\033[1;33m :: CONFIRM IDENTITY (Type 'CONFIRM'): \033[0m"
-    read confirm
-    
-    echo ""
-    _system_lock
-    echo -ne "${F_GRAY} :: Scanning Biometrics... \033[0m"
-    sleep 0.8
-    echo -ne "\r${F_GRAY} :: Verifying Neural Signature... \033[0m"
-    sleep 0.8
-    echo ""
-
-    local verify_success=0
-    if [ "$confirm" == "CONFIRM" ] && [ -n "$input_id" ]; then
-        if [ -f "$MUX_ROOT/.mux_identity" ]; then
-            source "$MUX_ROOT/.mux_identity"
-            if [ "$input_id" == "$MUX_ID" ]; then
-                verify_success=1
-            fi
-        else
-             verify_success=1
-        fi
-    fi
-    
-    if [ "$verify_success" -eq 1 ]; then
-        echo -e "${F_GRE} :: ACCESS GRANTED :: \033[0m${F_RESET}"
-        sleep 1
-        
-        echo -ne "${F_GRAY} :: Scanning Combat Equipment... \033[0m"
-        echo -e ""
-        sleep 1.2
-        
-        if ! command -v fzf &> /dev/null; then
-            echo -e "${F_ERR} :: EQUIPMENT MISSING :: ${F_RESET}"
-            sleep 0.5
-            echo -e ""
-            _factory_eject_sequence "Equipment Insufficient. Neural Link (fzf) required."
-            return 1
-        else
-            echo -e "${F_GRE} :: EQUIPMENT CONFIRM :: ${F_RESET}"
-            sleep 0.5
-        fi
-
-        echo ""
-        echo -e "${F_ERR} :: WARNING: FACTORY PROTOCOL :: ${F_RESET}"
-        echo -e "${F_SUB} 1. Modifications here are permanent.${F_RESET}"
-        echo -e "${F_SUB} 2. Sandbox Environment Active (.temp).${F_RESET}"
-        echo -e "${F_SUB} 3. Core 'mux' commands are ${F_ERR}LOCKED${F_SUB}. Use 'fac'.${F_RESET}"
-        echo -e "${F_SUB} 4. App launches are ${F_ERR}LOCKED${F_SUB} (Except: wb, apklist).${F_RESET}"
-        echo -e "${F_SUB} 5. You are responsible for system stability.${F_RESET}"
-        echo ""
-        _system_unlock
-        echo -ne "${F_WARN} :: Proceed? [y/n]: ${F_RESET}"
-        read choice
-        
-        if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
-            _factory_eject_sequence "User aborted."
-            return 1
-        fi
-        
-        _system_lock
-        local steps=("Injecting Logic..." "Desynchronizing Core..." "Loading Arsenal..." "Entering Factory...")
-        for step in "${steps[@]}"; do
-            echo -e "${F_GRAY}    ›› $step${F_RESET}"
-            sleep 0.6
-        done
-        sleep 0.5
-        _system_unlock
-        return 0
-    else
-        _factory_eject_sequence "Identity Mismatch."
-        return 1 
-    fi
 }
 
 # 彈射序列 (The Ejection)
@@ -198,9 +126,8 @@ function _factory_reset() {
 # : Factory Command Entry
 function fac() {
     local cmd="$1"
-    
-    if [ "$__MUX_MODE" != "factory" ]; then
-        echo -e "\033[1;31m :: Error: Link Offline. Use 'mux fac'.\033[0m"
+    if [ "$__MUX_MODE" == "core" ]; then
+        echo -e "\033[1;31m :: Factory commands disabled during Core session.\033[0m"
         return 1
     fi
 
@@ -211,7 +138,7 @@ function fac() {
 
     case "$cmd" in
         # : Open Neural Forge Menu
-        "menu"|"m")
+        "menu")
             _factory_fzf_menu
             ;;
 
@@ -237,7 +164,7 @@ function fac() {
             ;;
 
         # : Neural Forge (Create Command)
-        "add"|"create") 
+        "add"|"new") 
             _fac_wizard_create
             ;;
 
@@ -247,7 +174,7 @@ function fac() {
             ;;
 
         # : Relocate Unit (Move Command)
-        "move"|"mv")
+        "move")
             _fac_cat_move "$2"
             ;;
 
@@ -267,21 +194,26 @@ function fac() {
             ;;
 
         # : Time Stone Undo (Restored)
-        "undo"|"u")
+        "undo"|"ud")
             _fac_undo
             ;;
 
         # : Show Factory Info
-        "info"|"i")
+        "info")
             if command -v _factory_show_info &> /dev/null; then
                 _factory_show_info
             fi
             ;;
 
         # : Reload Factory
-        "reload"|"r")
-            _fac_init
-            _bot_say "factory_welcome"
+        "reload")
+            echo -e "\033[1;33m :: Cycling Factory Power... \033[0m"
+            sleep 0.5
+            if [ -f "$MUX_ROOT/gate.sh" ]; then
+                exec "$MUX_ROOT/gate.sh" "factory"
+            else
+                exec bash
+            fi
             ;;
             
         # : Reset Factory Change
@@ -290,11 +222,11 @@ function fac() {
             ;;
 
         # : Deploy Changes
-        "deploy"|"dep")
+        "deploy")
             _factory_deploy_sequence
             ;;
 
-        "help"|"h")
+        "help")
                 _mux_dynamic_help_factory
             ;;
 
@@ -378,23 +310,25 @@ function _fac_stamp_launcher() {
 
     while true; do
         local menu_display=""
-        menu_display="${menu_display}Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET}  ${func_status}\n"
-        menu_display="${menu_display}UI Name  : ${F_SUB}${ui_name}${F_RESET}\n"
-        menu_display="${menu_display}Package  : ${F_SUB}${pkg_id}${F_RESET}\n"
-        menu_display="${menu_display}Activity : ${F_SUB}${pkg_act:-[Auto]}${F_RESET}\n"
-        menu_display="${menu_display}Category : ${F_WARN}${target_cat}${F_RESET}\n"
-        menu_display="${menu_display}\n"
-        menu_display="${menu_display}apklist  : Open APK Reference List\n"
-        menu_display="${menu_display}Confirm  : Forge Neural Link\n"
-        menu_display="${menu_display}Cancel   : Abort Operation"
+        menu_display="${menu_display} ${F_GRAY}:: Launcher Forge ::${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET}  ${func_status}\n"
+        menu_display="${menu_display} Category : ${F_WARN}${target_cat}${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} UI Name  : ${F_SUB}${ui_name}${F_RESET}\n"
+        menu_display="${menu_display} Package  : ${F_SUB}${pkg_id}${F_RESET}\n"
+        menu_display="${menu_display} Activity : ${F_SUB}${pkg_act:-[Auto]}${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} apklist  : Open APK Reference List\n"
+        menu_display="${menu_display} Confirm  : Forge Neural Link\n"
+        menu_display="${menu_display} Cancel   : Abort Operation"
 
         local selection=$(echo -e "$menu_display" | fzf \
             --ansi \
-            --height=40% \
+            --height=50% \
             --layout=reverse \
             --border=bottom \
             --prompt=" :: Launcher Forge › " \
-            --header=" :: Select Field to Modify ::" \
             --pointer="››" \
             --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
             --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240
@@ -404,8 +338,6 @@ function _fac_stamp_launcher() {
 
         local key=$(echo "$selection" | awk '{print $1}')
         
-        local clean_selection=$(echo "$selection" | sed 's/\x1b\[[0-9;]*m//g')
-
         case "$key" in
             "Command") 
                 local res=$(_fac_query_command_name)
@@ -510,7 +442,7 @@ function _fac_stamp_launcher() {
                 _fac_maintenance
                 _bot_say "success" "Module '$func_name' deployed."
                 
-                echo -ne "${F_WARN}    ›› Hot Reload now? (y/n): ${F_RESET}"
+                echo -ne "${F_WARN}    ›› Hot Reload now? (Y/n): ${F_RESET}"
                 read r
                 [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load
                 return
@@ -546,24 +478,26 @@ function _fac_stamp_browser() {
 
     while true; do
         local menu_display=""
-        menu_display="${menu_display}Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET}  ${func_status}\n"
-        menu_display="${menu_display}UI Name  : ${F_SUB}${ui_name}${F_RESET}\n"
-        menu_display="${menu_display}Package  : ${F_SUB}${pkg_id}${F_RESET}\n"
-        menu_display="${menu_display}Activity : ${F_SUB}${pkg_act:-[Auto]}${F_RESET}\n"
-        menu_display="${menu_display}Engine   : ${F_CYAN}${engine_var}${F_RESET}\n"
-        menu_display="${menu_display}Category : ${F_WARN}${target_cat}${F_RESET}\n"
-        menu_display="${menu_display}\n"
-        menu_display="${menu_display}apklist  : Open APK Reference List\n"
-        menu_display="${menu_display}Confirm  : Forge Neural Link\n"
-        menu_display="${menu_display}Cancel   : Abort Operation"
+        menu_display="${menu_display} ${F_GRAY}:: Browser Forge ::${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET}  ${func_status}\n"
+        menu_display="${menu_display} Category : ${F_WARN}${target_cat}${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} UI Name  : ${F_SUB}${ui_name}${F_RESET}\n"
+        menu_display="${menu_display} Package  : ${F_SUB}${pkg_id}${F_RESET}\n"
+        menu_display="${menu_display} Activity : ${F_SUB}${pkg_act:-[Auto]}${F_RESET}\n"
+        menu_display="${menu_display} Engine   : ${F_CYAN}${engine_var}${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} apklist  : Open APK Reference List\n"
+        menu_display="${menu_display} Confirm  : Forge Neural Link\n"
+        menu_display="${menu_display} Cancel   : Abort Operation"
 
         local selection=$(echo -e "$menu_display" | fzf \
             --ansi \
-            --height=45% \
+            --height=50% \
             --layout=reverse \
             --border=bottom \
             --prompt=" :: Browser Forge › " \
-            --header=" :: Select Field to Modify ::" \
             --pointer="››" \
             --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
             --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240
@@ -661,17 +595,21 @@ function _fac_stamp_suite() {
         if [ "$mod_count" -eq 0 ]; then mod_status="\033[1;31m[ EMPTY ]\033[0m"; fi
 
         local menu_display=""
-        menu_display="${menu_display}Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET}  ${func_status}\n"
-        menu_display="${menu_display}Suite    : ${F_SUB}${suite_name}${F_RESET}\n"
-        menu_display="${menu_display}Category : ${F_WARN}${target_cat}${F_RESET}\n"
-        menu_display="${menu_display}Modules  : ${mod_status} (Click to Manage)\n"
-        menu_display="${menu_display}\n"
-        menu_display="${menu_display}Confirm  : Forge Neural Link\n"
-        menu_display="${menu_display}Cancel   : Abort Operation"
+        # 套用 Inspector 模板
+        menu_display="${menu_display} ${F_GRAY}:: Suite Forge ::${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET}  ${func_status}\n"
+        menu_display="${menu_display} Category : ${F_WARN}${target_cat}${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} Suite    : ${F_SUB}${suite_name}${F_RESET}\n"
+        menu_display="${menu_display} Modules  : ${mod_status}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} Confirm  : Forge Neural Link\n"
+        menu_display="${menu_display} Cancel   : Abort Operation"
 
         local selection=$(echo -e "$menu_display" | fzf \
-            --ansi --height=40% --layout=reverse --border=bottom \
-            --prompt=" :: Suite Forge › " --header=" :: Configure Ecosystem ::" --pointer="››" \
+            --ansi --height=50% --layout=reverse --border=bottom \
+            --prompt=" :: Suite Forge › " --pointer="››" \
             --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
             --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
 
@@ -839,7 +777,7 @@ function _fac_select_category() {
     fi
 }
 
-# 測試發射器 - Test Fire Protocol (Bypass Interceptor)
+# 測試發射器 - Test Fire Protocol
 function _fac_load() {
     local target="$1"
     local temp_file="$MUX_ROOT/app.sh.temp"
@@ -850,6 +788,7 @@ function _fac_load() {
             return 1
         fi
 
+        # 1. 產生列表資料
         local list_data=$(awk '
             BEGIN { 
                 current_cat="Uncategorized"
@@ -870,17 +809,17 @@ function _fac_load() {
             }
         ' "$temp_file")
 
-        local total_cmds=$(echo "$list_data" | wc -l)
-
         local selection=$(echo "$list_data" | fzf --ansi \
-            --height=10 \
+            --height=60% \
             --layout=reverse \
             --border=bottom \
             --prompt=" :: Test Fire › " \
-            --header=" :: Select Neural Unit to Execute ::" \
+            --header=" :: Select Target to Execute (Dry Run) ::" \
             --pointer="››" \
-            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-            --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+            --preview "func=\$(echo {} | awk '{print \$1}'); sed -n \"/^function \$func() {/,/^}/p\" '$temp_file' | head -n 100" \
+            --preview-window="right:55%:wrap:border-left" \
+            --color=fg:white,bg:-1,hl:208,fg+:white,bg+:235,hl+:208 \
+            --color=info:240,prompt:208,pointer:196,marker:208,border:208,header:240 \
             --bind="resize:clear-screen"
         )
 
@@ -893,7 +832,7 @@ function _fac_load() {
     echo -e "${F_GRAY}    Target  : ${F_MAIN}$target${F_RESET}"
     echo -e "${F_GRAY}    Payload : app.sh.temp (Bypassing Safety Interlocks)${F_RESET}"
     echo -e ""
-    echo -ne "${F_WARN}    ›› Confirm Launch? (y/n): ${F_RESET}"
+    echo -ne "${F_WARN}    ›› Confirm Launch? (Y/n): ${F_RESET}"
     read confirm
 
     if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
@@ -905,12 +844,10 @@ function _fac_load() {
     
     (
         source "$temp_file"
-        
         if ! command -v "$target" &> /dev/null; then
             echo -e "${F_ERR} :: Error: Function '$target' not defined in sandbox.${F_RESET}"
             exit 1
         fi
-        
         "$target"
     )
     
@@ -999,26 +936,29 @@ function _fac_wizard_edit() {
 
     while true; do
         local menu_display=""
-        menu_display="${menu_display}Command  : ${F_MAIN}${func_name}${F_RESET}  ${func_status}\n"
-        menu_display="${menu_display}UI Name  : ${F_SUB}${ui_name}${F_RESET}\n"
-        menu_display="${menu_display}Package  : ${F_SUB}${pkg_id}${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}:: Neural Modifier ::${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} Command  : ${F_MAIN}${func_name}${F_RESET}  ${func_status}\n"
+        menu_display="${menu_display} Category : ${F_WARN}${target_cat}${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} UI Name  : ${F_SUB}${ui_name}${F_RESET}\n"
+        menu_display="${menu_display} Package  : ${F_SUB}${pkg_id}${F_RESET}\n"
         
         if [ "$app_type" == "BROWSER" ]; then
-            menu_display="${menu_display}Engine   : ${F_CYAN}${engine_var}${F_RESET}\n"
+            menu_display="${menu_display} Engine   : ${F_CYAN}${engine_var}${F_RESET}\n"
         else
-            menu_display="${menu_display}Activity : ${F_SUB}${pkg_act:-[Auto]}${F_RESET}\n"
+            menu_display="${menu_display} Activity : ${F_SUB}${pkg_act:-[Auto]}${F_RESET}\n"
         fi
         
-        menu_display="${menu_display}Category : ${F_WARN}${target_cat}${F_RESET}\n"
-        menu_display="${menu_display}\n"
-        menu_display="${menu_display}Manual   : Edit Source Code (Nano)\n"
-        menu_display="${menu_display}Delete   : Terminate Neural Link\n"
-        menu_display="${menu_display}Confirm  : Apply Changes\n"
-        menu_display="${menu_display}Cancel   : Discard Changes"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} Manual   : Edit Source Code (Nano)\n"
+        menu_display="${menu_display} Delete   : Terminate Neural Link\n"
+        menu_display="${menu_display} Confirm  : Apply Changes\n"
+        menu_display="${menu_display} Cancel   : Discard Changes"
 
         local selection=$(echo -e "$menu_display" | fzf \
-            --ansi --height=45% --layout=reverse --border=bottom \
-            --prompt=" :: Edit ${app_type} › " --header=" :: Modify Neural Parameters ::" --pointer="››" \
+            --ansi --height=50% --layout=reverse --border=bottom \
+            --prompt=" :: Edit ${app_type} › " --pointer="››" \
             --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
             --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
 
@@ -1041,7 +981,7 @@ function _fac_wizard_edit() {
                 ;;
             "UI") echo -ne "${F_SUB}    ›› New UI Name: ${F_RESET}"; read val; [ -n "$val" ] && ui_name="$val" ;;
             "Package") echo -ne "${F_SUB}    ›› New Package: ${F_RESET}"; read val; [ -n "$val" ] && pkg_id="$val" ;;
-            "Activity") echo -ne "${F_SUB}    ›› New Activity: ${F_RESET}"; read val; pkg_act="$val" ;; # Allow empty
+            "Activity") echo -ne "${F_SUB}    ›› New Activity: ${F_RESET}"; read val; pkg_act="$val" ;; 
             "Engine")
                 local eng=$(echo -e "GOOGLE\nBING\nDUCK\nYOUTUBE\nGITHUB" | fzf --height=20% --layout=reverse --border=bottom --prompt=" :: Select Engine › " --pointer="››" --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
                 [ -n "$eng" ] && engine_var="$eng"
@@ -1119,6 +1059,7 @@ function _fac_edit_dashboard_suite() {
 
         local selection=$(echo -e "$menu_display" | fzf \
             --ansi --height=40% --layout=reverse --border=bottom \
+            --info=hidden \
             --prompt=" :: Edit Suite › " --header=" :: Ecosystem Diagnostics ::" --pointer="››" \
             --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
             --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
@@ -1253,19 +1194,20 @@ function _fac_del() {
 
     while true; do
         local menu_display=""
-        menu_display="${menu_display}Target   : ${F_ERR}${target}${F_RESET}\n"
-        menu_display="${menu_display}Range    : Lines ${delete_start}-${delete_end} (${line_count} lines)\n"
-        menu_display="${menu_display}\n"
-        menu_display="${menu_display}[ CONFIRM NUKE ] : Permanently Excise Module\n"
-        menu_display="${menu_display}[ ABORT ]        : Cancel Operation"
+        menu_display="${menu_display} ${F_GRAY}:: Destruction Protocol ::${F_RESET}\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} Target   : ${F_ERR}${target}${F_RESET}\n"
+        menu_display="${menu_display} Range    : Lines ${delete_start}-${delete_end} (${line_count} lines)\n"
+        menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
+        menu_display="${menu_display} [ CONFIRM NUKE ] : Permanently Excise Module\n"
+        menu_display="${menu_display} [ ABORT ]        : Cancel Operation"
 
         local selection=$(echo -e "$menu_display" | fzf \
             --ansi \
             --height=50% \
             --layout=reverse \
             --border=bottom \
-            --prompt=" :: Destruction Protocol › " \
-            --header=" :: WARNING: Action is Irreversible in Sandbox ::" \
+            --prompt=" :: Confirm Kill › " \
             --pointer="››" \
             --preview "sed -n '${delete_start},${delete_end}p' '$temp_file' | nl -v $delete_start -w 3 -s '  '" \
             --preview-window="down:40%:wrap:border-top" \
@@ -1303,6 +1245,7 @@ function _fac_wizard_category() {
             --ansi \
             --height=35% \
             --layout=reverse \
+            --info=hidden \
             --border=bottom \
             --prompt=" :: Sector Ops › " \
             --header=" :: Manage Neural Partitions ::" \
@@ -1465,7 +1408,7 @@ function _fac_cat_delete() {
 
     echo -e "${F_ERR} :: WARNING :: This will remove the HEADER '$target' only.${F_RESET}"
     echo -e "${F_GRAY}    Apps under this sector will merge upwards.${F_RESET}"
-    echo -ne "${F_WARN}    ›› Confirm delete? (y/n): ${F_RESET}"
+    echo -ne "${F_WARN}    ›› Confirm delete? (Y/n): ${F_RESET}"
     read conf
     if [[ "$conf" == "y" || "$conf" == "Y" ]]; then
         sed -i "/^# === $target ===/d" "$temp_file"
@@ -1569,26 +1512,83 @@ function _fac_snapshot() {
 function _fac_undo() {
     local temp_file="$MUX_ROOT/app.sh.temp"
     local undo1="$MUX_ROOT/.app.sh.undo1"
+    local undo2="$MUX_ROOT/.app.sh.undo2"
+    local undo3="$MUX_ROOT/.app.sh.undo3"
 
     if [ ! -f "$undo1" ]; then
-        _bot_say "error" "No temporal snapshot found."
+        _bot_say "error" "No temporal snapshots found."
         return
     fi
 
-    echo -e "${F_WARN} :: Time Stone Activated...${F_RESET}"
-    echo -e "${F_GRAY}    Reverting to previous timeline state...${F_RESET}"
+    local list_data=""
+    local files=("$undo1" "$undo2" "$undo3")
+    local labels=("Undo 1 (Latest)" "Undo 2 (Previous)" "Undo 3 (Oldest)")
     
-    cp "$undo1" "$temp_file"
-    
-    _fac_load
-    _bot_say "success" "Timeline reverted."
+    for i in {0..2}; do
+        if [ -f "${files[$i]}" ]; then
+            local ts=""
+            if date --version >/dev/null 2>&1; then
+                ts=$(date -r "${files[$i]}" "+%H:%M:%S")
+            else
+                ts=$(date -r "${files[$i]}" "+%H:%M:%S" 2>/dev/null || stat -c %y "${files[$i]}" | cut -d' ' -f2 | cut -d'.' -f1)
+            fi
+            
+            local size=$(du -h "${files[$i]}" | cut -f1)
+            list_data="${list_data}[${labels[$i]}] ${ts} (${size})\n"
+        fi
+    done
+
+    local selection=$(echo -e "$list_data" | fzf \
+        --height=20% --layout=reverse --border=bottom \
+        --prompt=" :: Time Stone › " \
+        --header=" :: Select Timeline to Restore ::" \
+        --pointer="››" \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+    )
+
+    if [ -z "$selection" ]; then return; fi
+
+    local target_file=""
+    if [[ "$selection" == *"[Undo 1]"* ]]; then target_file="$undo1"; fi
+    if [[ "$selection" == *"[Undo 2]"* ]]; then target_file="$undo2"; fi
+    if [[ "$selection" == *"[Undo 3]"* ]]; then target_file="$undo3"; fi
+
+    if [ -f "$target_file" ]; then
+        echo -e ""
+        echo -e "\033[1;33m :: WARP WARNING ::\033[0m"
+        echo -e "\033[1;37m    Target Snapshot : \033[1;36m$(basename "$target_file")\033[0m"
+        echo -e "\033[1;31m    Current Work    : Will be OVERWRITTEN.\033[0m"
+        echo -e ""
+        
+        echo -ne "\033[1;33m :: Confirm Restore? [y/N]: \033[0m"
+        read fuse_check
+        
+        if [[ "$fuse_check" != "y" && "$fuse_check" != "Y" ]]; then
+            _bot_say "factory" "Time jump aborted. Current timeline retained."
+            return
+        fi
+
+        echo -e "\033[1;35m :: Reality shifting...\033[0m"
+        cp "$target_file" "$temp_file"
+        sleep 0.5
+        _fac_maintenance
+        _bot_say "success" "Timeline restored."
+        
+        if command -v _factory_show_status &> /dev/null; then
+            echo ""
+            _factory_show_status
+        fi
+    else
+        _bot_say "error" "Target snapshot anomaly. File lost."
+    fi
 }
 
 # 部署序列 (Deploy Sequence)
 function _factory_deploy_sequence() {
     echo ""
     echo -ne "${F_WARN} :: Initiating Deployment Sequence...${F_RESET}"
-    sleep 2.6
+    sleep 1.5
     
     clear
     _draw_logo "gray"
@@ -1610,7 +1610,7 @@ function _factory_deploy_sequence() {
     echo ""
     
     _system_unlock
-    echo -ne "${F_WARN} :: Modifications verified? [y/n]: ${F_RESET}"
+    echo -ne "${F_WARN} :: Modifications verified? [Y/n]: ${F_RESET}"
     read choice
     
     if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
@@ -1637,7 +1637,7 @@ function _factory_deploy_sequence() {
     fi
 
     _bot_say "deploy_start"
-    sleep 1.5
+    sleep 1.0
     
     local time_str="#Last Sync: $(date '+%Y-%m-%d %H:%M:%S') ::"
     local temp_file="$MUX_ROOT/app.sh.temp"
@@ -1657,26 +1657,14 @@ function _factory_deploy_sequence() {
     
     echo ""
     echo -e "${F_MAIN} :: DEPLOYMENT SUCCESSFUL ::${F_RESET}"
-    echo -e "${F_SUB}    System requires manual reload to re-align kernel.${F_RESET}"
-    echo ""
-    echo -e "${F_ERR} :: Waiting for manual restart...${F_RESET}"
-    echo ""
+    sleep 1.9
     
-    if [ -f "$temp_file" ]; then rm "$temp_file"; fi
-    export __MUX_MODE="core"
-    
-    while true; do
-        _system_unlock
-        echo -ne "${F_WARN} :: Type 'mux reload' to reboot: ${F_RESET}"
-        read reboot_cmd
-        
-        if [ "$reboot_cmd" == "mux reload" ]; then
-            mux reload
-            break
-        else
-            echo -e "${F_ERR} :: Command rejected. System is halted.${F_RESET}"
-        fi
-    done
+    if [ -f "$MUX_ROOT/gate.sh" ]; then
+        exec "$MUX_ROOT/gate.sh" "core"
+    else
+        echo "core" > "$MUX_ROOT/.mux_state"
+        exec bash
+    fi
 }
 
 # 神經鍛造中樞 (Neural Forge Nexus) - The Radar
@@ -1699,7 +1687,6 @@ function _factory_fzf_menu() {
                 match($0, /function ([a-zA-Z0-9_]+)/, arr);
                 func_name = arr[1];
                 if (substr(func_name, 1, 1) != "_") {
-                    # 格式: Command    [Category]
                     printf " %s%-14s %s[%s]%s\n", C_CMD, func_name, C_CAT, current_cat, C_RESET;
                 }
             }
@@ -1788,12 +1775,11 @@ function _fac_inspector() {
     local info_display=""
     
     info_display="${info_display} ${F_GRAY}:: Neural Unit Details ::${F_RESET}\n"
+    info_display="${info_display} Sector   : ${F_WARN}${category}${F_RESET}\n"
     info_display="${info_display} ${F_GRAY}--------------------------------${F_RESET}\n"
     info_display="${info_display} Command  : ${F_MAIN}${target}${F_RESET}\n"
-    info_display="${info_display} Sector   : ${F_WARN}${category}${F_RESET}\n"
     info_display="${info_display} Type     : ${F_CYAN}${m_type}${F_RESET}\n"
     info_display="${info_display} ${F_GRAY}--------------------------------${F_RESET}\n"
-    
     info_display="${info_display} UI Name  : ${F_SUB}${m_name}${F_RESET}\n"
     info_display="${info_display} Package  : ${F_SUB}${m_pkg}${F_RESET}\n"
     
@@ -1804,17 +1790,14 @@ function _fac_inspector() {
     elif [ "$m_type" == "SUITE" ]; then
         info_display="${info_display} Modules  : ${F_WARN}${m_extra} active${F_RESET}\n"
     fi
-    
-    info_display="${info_display}\n"
-    info_display="${info_display} [ ENTER ] Return to Radar"
 
     echo -e "$info_display" | fzf \
         --ansi \
         --height=40% \
         --layout=reverse \
         --border=bottom \
-        --prompt=" :: Inspector › " \
-        --header=" :: Press ENTER to Return ::" \
+        --info=hidden \
+        --prompt=" :: Neural Unit Details › " \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
         --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240
@@ -1864,8 +1847,7 @@ function _fac_get_meta() {
 # 初始化視覺效果 (Initialize Visuals)
 function _fac_init() {
     _system_lock
-    echo -e "\033[1;33m :: System Reload Initiated...\033[0m"
-    sleep 1.6
+    _safe_ui_calc
     clear
     _draw_logo "factory"
     _system_check "factory"
@@ -1910,4 +1892,34 @@ function _factory_interceptor() {
     echo -e "${F_ERR} :: WARNING: Target '$func_name' is locked in Modification Mode.${F_RESET}"
     
     _bot_say "error" "Function locked. Use 'fac' commands to modify."
+}
+
+# 部署模組 - Deployment Module
+function _fac_deploy() {
+    echo -e "\n\033[1;33m :: Initiating Deployment Sequence... \033[0m"
+    
+    _mux_integrity_scan
+    if [ $? -ne 0 ]; then
+        _bot_say "error" "Integrity check failed. Aborting."
+        return 1
+    fi
+    
+    mv "$MUX_ROOT/app.sh.temp" "$MUX_ROOT/app.sh"
+    _mux_uplink
+    echo -e "\033[1;32m :: System Reloading... \033[0m"
+    sleep 1
+    echo "core" > "$MUX_ROOT/.mux_state"
+    unset MUX_INITIALIZED
+    unset __MUX_TARGET_MODE
+    exec bash
+}
+
+# 離開工廠 - Exit Factory
+function _fac_exit() {
+    if [ -f "$MUX_ROOT/gate.sh" ]; then
+        exec "$MUX_ROOT/gate.sh" "core"
+    else
+        echo "core" > "$MUX_ROOT/.mux_state"
+        exec bash
+    fi
 }
