@@ -40,7 +40,7 @@ STATS_START_COL=$(( (COLS - 24) / 2 ))
 TITLE_START_COL=$(( (COLS - 25) / 2 ))
 
 tput cup $((CENTER_ROW - 2)) $TITLE_START_COL
-echo -e "${C_TXT}:: ACCESSING ${THEME_COLOR}${THEME_TEXT} ${ICON}${C_TXT} ::${C_RESET}"
+echo -e "${C_TXT}:: GATE ${THEME_COLOR}${THEME_TEXT} ${ICON}${C_TXT}::${C_RESET}"
 
 HEX_ADDR="0x0000"
 

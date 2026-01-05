@@ -20,7 +20,7 @@ case "$mode" in
             if [ "$cols" -lt 52 ]; then
                 label=":: Mux-OS v$MUX_VERSION Factory ::"
             else
-                label=":: Mux-OS v$MUX_VERSION Factory :: Neural Link Create ::"
+                label=":: Mux-OS v$MUX_VERSION Factory :: Neural Forge ::"
             fi
             ;;
 
@@ -40,7 +40,7 @@ case "$mode" in
             if [ "$cols" -lt 52 ]; then
                 label=":: Mux-OS v$MUX_VERSION Core ::"
             else
-                label=":: Mux-OS v$MUX_VERSION Core :: Target: Android/Termux ::"
+                label=":: Mux-OS v$MUX_VERSION Core :: Dual Core Arch ::"
             fi
             ;;
     esac
@@ -526,11 +526,11 @@ function _ui_fake_gate() {
     if [ "$target_system" == "factory" ]; then
         theme_color="\033[1;38;5;208m"
         theme_text="NEURAL FORGE"
-        icon="⚙️"
+        icon=""
     else
         theme_color="\033[1;36m"
         theme_text="SYSTEM CORE"
-        icon="💠"
+        icon=""
     fi
 
     local C_TXT="\033[1;30m"
@@ -550,7 +550,7 @@ function _ui_fake_gate() {
     local title_start_col=$(( (cols - 25) / 2 ))
 
     tput cup $((center_row - 2)) $title_start_col
-    echo -e "${C_TXT}:: ACCESSING ${theme_color}${theme_text} ${icon}${C_TXT} ::${C_RESET}"
+    echo -e "${C_TXT}:: GATE ${theme_color}${theme_text} ${icon}${C_TXT}::${C_RESET}"
 
     local hex_addr="0x0000"
 

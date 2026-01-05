@@ -478,7 +478,6 @@ function _fac_stamp_browser() {
 
     while true; do
         local menu_display=""
-        # 套用 Inspector 模板
         menu_display="${menu_display} ${F_GRAY}:: Browser Forge ::${F_RESET}\n"
         menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
         menu_display="${menu_display} Command  : ${F_MAIN}${func_name:-<Empty>}${F_RESET}  ${func_status}\n"
@@ -789,6 +788,7 @@ function _fac_load() {
             return 1
         fi
 
+        # 1. 產生列表資料
         local list_data=$(awk '
             BEGIN { 
                 current_cat="Uncategorized"
@@ -808,8 +808,6 @@ function _fac_load() {
                 }
             }
         ' "$temp_file")
-
-        local total_cmds=$(echo "$list_data" | wc -l)
 
         local selection=$(echo "$list_data" | fzf --ansi \
             --height=60% \
@@ -846,12 +844,10 @@ function _fac_load() {
     
     (
         source "$temp_file"
-        
         if ! command -v "$target" &> /dev/null; then
             echo -e "${F_ERR} :: Error: Function '$target' not defined in sandbox.${F_RESET}"
             exit 1
         fi
-        
         "$target"
     )
     
@@ -1661,7 +1657,7 @@ function _factory_deploy_sequence() {
     
     echo ""
     echo -e "${F_MAIN} :: DEPLOYMENT SUCCESSFUL ::${F_RESET}"
-    sleep 0.5
+    sleep 1.9
     
     if [ -f "$MUX_ROOT/gate.sh" ]; then
         exec "$MUX_ROOT/gate.sh" "core"
