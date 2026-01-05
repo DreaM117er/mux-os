@@ -326,16 +326,16 @@ function _core_pre_factory_auth() {
         return 1
     fi
 
-    echo ""
+    echo -e ""
     _system_lock
     echo -ne "${F_GRAY} :: Verifying Neural Signature... ${F_RESET}"
-    echo ""
+    echo -e ""
     sleep 0.8
     echo -e "\r${F_GRE} :: ACCESS GRANTED ::                     ${F_RESET}"
     sleep 0.5
     
     echo -ne "${F_GRAY} :: Scanning Combat Equipment... ${F_RESET}"
-    echo ""
+    echo -e ""
     sleep 1
     if ! command -v fzf &> /dev/null; then
         echo -e "\n${F_RED} :: EQUIPMENT MISSING :: ${F_RESET}"
@@ -406,6 +406,7 @@ function _core_eject_sequence() {
         sleep 0.99
     done
 
+    echo -e ""
     _bot_factory_personality "eject"
     sleep 1.9
     _ui_fake_gate "core"
