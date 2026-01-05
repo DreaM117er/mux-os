@@ -400,6 +400,8 @@ function _core_eject_sequence() {
     _safe_ui_calc
     clear
     _draw_logo "core"
+    _system_check
+    _show_hud
     _system_unlock
     _bot_say "hello"
 }
