@@ -67,6 +67,7 @@ for i in $(seq 1 "$BAR_LEN"); do
     echo -ne "${C_TXT}] ${THEME_COLOR}"
     printf "%3d%%" "$PCT"
     echo -ne "${C_RESET}"
+    echo -ne ""
     
     if [ $((i % 2)) -eq 0 ]; then
         HEX_ADDR=$(printf "0x%04X" $((RANDOM%65535)))
