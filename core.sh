@@ -298,8 +298,11 @@ function _core_pre_factory_auth() {
 
     echo ""
     echo -e "${F_RED} :: WARNING: FACTORY PROTOCOL :: ${F_RESET}"
-    echo -e "${F_GRAY}    1. Modifications are permanent.${F_RESET}"
-    echo -e "${F_GRAY}    2. Core commands are locked.${F_RESET}"
+    echo -e "${F_GRAY} 1. Modifications here are permanent.${F_RESET}"
+    echo -e "${F_GRAY} 2. Sandbox Environment Active (.temp).${F_RESET}"
+    echo -e "${F_GRAY} 3. Core 'mux' commands are ${F_RED}LOCKED${F_RESET}. Use 'fac'.${F_RESET}"
+    echo -e "${F_GRAY} 4. App launches are ${F_RED}LOCKED${F_RESET} (Except: wb, apklist).${F_RESET}"
+    echo -e "${F_GRAY} 5. You are responsible for system stability.${F_RESET}"
     echo ""
     
     echo -ne "${F_WARN} :: TYPE 'CONFIRM' TO ENTER: ${F_RESET}"
@@ -310,7 +313,6 @@ function _core_pre_factory_auth() {
         echo -e "\033[1;32m :: ACCESS GRANTED. Opening Gate...${F_RESET}"
         sleep 0.5
         
-        # 呼叫星門，目標 Factory
         if [ -f "$MUX_ROOT/gate.sh" ]; then
             exec "$MUX_ROOT/gate.sh" "factory"
         else
