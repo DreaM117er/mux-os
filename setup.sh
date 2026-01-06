@@ -188,10 +188,15 @@ function _install_protocol() {
     echo -e "${C_GREEN} :: System Ready. Re-engaging Terminal...${C_RESET}"
     sleep 1
     
-    if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
-        exit 0
+    if [ -f "$MUX_ROOT/gate.sh" ]; then
+        chmod +x "$MUX_ROOT/gate.sh"
+        exec "$MUX_ROOT/gate.sh" "core"
     else
-        exec bash
+        if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
+            exit 0
+        else
+            exec bash
+        fi
     fi
 }
 
