@@ -257,12 +257,21 @@ function mux() {
             local warp_type="start_local"
             if [ "$target_branch" == "main" ] || [ "$target_branch" == "master" ]; then warp_type="home"; elif [[ "$target_branch" != *"$(whoami)"* ]]; then warp_type="start_remote"; fi
             _bot_say "warp" "$warp_type" "$target_branch"
+            
             if [ -n "$(git status --porcelain)" ]; then git stash push -m "Auto-stash before warp"; fi
+            
             git checkout "$target_branch" 2>/dev/null
             if [ $? -eq 0 ]; then
                 echo -e "\033[1;33m :: Reloading System Core...\033[0m"
                 sleep 1.6
-                mux reload
+                
+                chmod +x "$MUX_ROOT/"*.sh
+                
+                if [ -f "$MUX_ROOT/gate.sh" ]; then
+                    exec "$MUX_ROOT/gate.sh" "core"
+                else
+                    exec bash
+                fi
             else
                 _bot_say "warp" "fail"
             fi

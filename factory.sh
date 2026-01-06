@@ -245,6 +245,7 @@ function _fac_query_command_name() {
         --height=30% \
         --layout=reverse \
         --border=bottom \
+        --info=hidden \
         --prompt=" :: Input Command › " \
         --header=" :: Type to Search. Enter unique name to Create. ::" \
         --print-query \
@@ -277,6 +278,7 @@ function _fac_wizard_create() {
         --height=20% \
         --layout=reverse \
         --border=bottom \
+        --info=hidden \
         --prompt=" :: Forge Type › " \
         --header=" :: Select Neural Template ::" \
         --pointer="››" \
@@ -328,6 +330,7 @@ function _fac_stamp_launcher() {
             --height=50% \
             --layout=reverse \
             --border=bottom \
+            --info=hidden \
             --prompt=" :: Launcher Forge › " \
             --pointer="››" \
             --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
@@ -497,6 +500,7 @@ function _fac_stamp_browser() {
             --height=50% \
             --layout=reverse \
             --border=bottom \
+            --info=hidden \
             --prompt=" :: Browser Forge › " \
             --pointer="››" \
             --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
@@ -523,6 +527,7 @@ function _fac_stamp_browser() {
             "Engine")
                 local eng_sel=$(echo -e "GOOGLE\nBING\nDUCK\nYOUTUBE\nGITHUB" | fzf \
                     --height=20% --layout=reverse --border=bottom \
+                    --info=hidden \
                     --prompt=" :: Select Engine › " --pointer="››" \
                     --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
                     --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
@@ -609,6 +614,7 @@ function _fac_stamp_suite() {
 
         local selection=$(echo -e "$menu_display" | fzf \
             --ansi --height=50% --layout=reverse --border=bottom \
+            --info=hidden \
             --prompt=" :: Suite Forge › " --pointer="››" \
             --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
             --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
@@ -641,6 +647,7 @@ function _fac_stamp_suite() {
 
                     local comp_sel=$(echo -e "$comp_menu" | fzf \
                         --height=30% --layout=reverse --border=bottom \
+                        --info=hidden \
                         --prompt=" :: Module Manager › " --header="$comp_header" --pointer="››" \
                         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
                         --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
@@ -728,6 +735,7 @@ function _fac_select_category() {
         --height=40% \
         --layout=reverse \
         --border=bottom \
+        --info=hidden \
         --prompt=" :: Target Sector › " \
         --header=" :: Select Deployment Zone (ESC = Others) ::" \
         --pointer="››" \
@@ -813,6 +821,7 @@ function _fac_load() {
             --height=60% \
             --layout=reverse \
             --border=bottom \
+            --info=hidden \
             --prompt=" :: Test Fire › " \
             --header=" :: Select Target to Execute (Dry Run) ::" \
             --pointer="››" \
@@ -865,6 +874,7 @@ function _fac_wizard_edit() {
         if command -v fzf &> /dev/null; then
              target=$(grep "^function" "$temp_file" | sed 's/function //' | sed 's/() {//' | fzf \
                 --height=10 --layout=reverse --border=bottom \
+                --info=hidden \
                 --prompt=" :: Select Target to Edit › " \
                 --header=" :: Neural Link Diagnostics ::" \
                 --pointer="››" \
@@ -884,7 +894,7 @@ function _fac_wizard_edit() {
         return
     fi
     
-    local relative_end=$(tail -n +$start_line "v$temp_file" | grep -n "^}" | head -n1 | cut -d: -f1)
+    local relative_end=$(tail -n +$start_line "$temp_file" | grep -n "^}" | head -n1 | cut -d: -f1)
     local end_line=$((start_line + relative_end - 1))
     local func_body=$(sed -n "${start_line},${end_line}p" "$temp_file")
     
@@ -958,6 +968,7 @@ function _fac_wizard_edit() {
 
         local selection=$(echo -e "$menu_display" | fzf \
             --ansi --height=50% --layout=reverse --border=bottom \
+            --info=hidden \
             --prompt=" :: Edit ${app_type} › " --pointer="››" \
             --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
             --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
@@ -983,7 +994,7 @@ function _fac_wizard_edit() {
             "Package") echo -ne "${F_SUB}    ›› New Package: ${F_RESET}"; read val; [ -n "$val" ] && pkg_id="$val" ;;
             "Activity") echo -ne "${F_SUB}    ›› New Activity: ${F_RESET}"; read val; pkg_act="$val" ;; 
             "Engine")
-                local eng=$(echo -e "GOOGLE\nBING\nDUCK\nYOUTUBE\nGITHUB" | fzf --height=20% --layout=reverse --border=bottom --prompt=" :: Select Engine › " --pointer="››" --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
+                local eng=$(echo -e "GOOGLE\nBING\nDUCK\nYOUTUBE\nGITHUB" | fzf --height=20% --layout=reverse --border=bottom --info=hidden --prompt=" :: Select Engine › " --pointer="››" --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
                 [ -n "$eng" ] && engine_var="$eng"
                 ;;
             "Category") _fac_select_category; if [ -n "$CATEGORY_NAME" ]; then target_cat="$CATEGORY_NAME"; fi ;;
@@ -1084,7 +1095,7 @@ function _fac_edit_dashboard_suite() {
                 done < "$map_file"
                 rm "$map_file"
 
-                local sub_sel=$(echo -e "$sub_menu" | fzf --height=40% --layout=reverse --border=bottom --prompt=" :: Module Manager › " --pointer="››" --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
+                local sub_sel=$(echo -e "$sub_menu" | fzf --height=40% --layout=reverse --info=hidden --border=bottom --prompt=" :: Module Manager › " --pointer="››" --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
                 
                 if [[ "$sub_sel" == *"[+]"* ]]; then
                     _fac_suite_injector "$target" "$start_line" "$end_line"
@@ -1158,6 +1169,7 @@ function _fac_del() {
         if command -v fzf &> /dev/null; then
             target=$(grep "^[[:space:]]*function" "$temp_file" | sed 's/^[[:space:]]*function[[:space:]]\+//' | sed 's/[[:space:]]*() {//' | fzf \
                 --height=20% --layout=reverse --border=bottom \
+                --info=hidden \
                 --prompt=" :: Select Target to Terminate › " \
                 --pointer="››" \
                 --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
@@ -1199,14 +1211,15 @@ function _fac_del() {
         menu_display="${menu_display} Target   : ${F_ERR}${target}${F_RESET}\n"
         menu_display="${menu_display} Range    : Lines ${delete_start}-${delete_end} (${line_count} lines)\n"
         menu_display="${menu_display} ${F_GRAY}--------------------------------${F_RESET}\n"
-        menu_display="${menu_display} [ CONFIRM NUKE ] : Permanently Excise Module\n"
-        menu_display="${menu_display} [ ABORT ]        : Cancel Operation"
+        menu_display="${menu_display} Confirm  : Permanently Excise Module\n"
+        menu_display="${menu_display} Abort    : Cancel Operation"
 
         local selection=$(echo -e "$menu_display" | fzf \
             --ansi \
             --height=50% \
             --layout=reverse \
             --border=bottom \
+            --info=hidden \
             --prompt=" :: Confirm Kill › " \
             --pointer="››" \
             --preview "sed -n '${delete_start},${delete_end}p' '$temp_file' | nl -v $delete_start -w 3 -s '  '" \
@@ -1217,13 +1230,22 @@ function _fac_del() {
 
         if [ -z "$selection" ]; then return; fi
         
-        if [[ "$selection" == *"[ CONFIRM NUKE ]"* ]]; then
-            sed -i "${delete_start},${delete_end}d" "$temp_file"
-            unset -f "$target" >/dev/null 2>&1
-            _fac_maintenance
-            _bot_say "success" "Module '$target' terminated."
-            return
-        elif [[ "$selection" == *"[ ABORT ]"* ]]; then
+        if [[ "$selection" == *"Confirm"* ]]; then
+            echo -e ""
+            echo -ne "${F_ERR} :: Are you sure you want to delete '$target'? [y/N]: ${F_RESET}"
+            read final_confirm
+            
+            if [[ "$final_confirm" == "y" || "$final_confirm" == "Y" ]]; then
+                sed -i "${delete_start},${delete_end}d" "$temp_file"
+                unset -f "$target" >/dev/null 2>&1
+                _fac_maintenance
+                _bot_say "success" "Module '$target' terminated."
+                return
+            else
+                _bot_say "factory" "Destruction aborted."
+                return
+            fi
+        elif [[ "$selection" == *"Abort"* ]]; then
             return
         fi
     done
@@ -1252,7 +1274,7 @@ function _fac_wizard_category() {
             --pointer="››" \
             --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
             --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
-        )
+        )info
 
         if [ -z "$selection" ]; then return; fi
         local key=$(echo "$selection" | awk '{print $1}')
@@ -1281,6 +1303,7 @@ function _fac_cat_add() {
     local cat_list=$(grep "^# ===" "$temp_file" | sed 's/# === //;s/ ===//')
     local target=$(echo -e "Checking End of File (Bottom)\n$cat_list" | fzf \
         --height=40% --layout=reverse --border=bottom \
+        --info=hidden \
         --prompt=" :: Insert Before › " \
         --header=" :: Select Position ::" \
         --pointer="››" \
@@ -1308,6 +1331,7 @@ function _fac_cat_reorder() {
     
     local src_cat=$(grep "^# ===" "$temp_file" | sed 's/# === //;s/ ===//' | fzf \
         --height=40% --layout=reverse --border=bottom \
+        --info=hidden \
         --prompt=" :: Select Sector to Move › " \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
@@ -1334,6 +1358,7 @@ function _fac_cat_reorder() {
     local cat_list_new=$(grep "^# ===" "$temp_file" | sed 's/# === //;s/ ===//')
     local target=$(echo -e "Checking End of File (Bottom)\n$cat_list_new" | fzf \
         --height=40% --layout=reverse --border=bottom \
+        --info=hidden \
         --prompt=" :: Insert Before › " \
         --header=" :: Select New Position ::" \
         --pointer="››" \
@@ -1377,6 +1402,7 @@ function _fac_cat_rename() {
     
     local old_name=$(grep "^# ===" "$temp_file" | sed 's/# === //;s/ ===//' | fzf \
         --height=40% --layout=reverse --border=bottom \
+        --info=hidden \
         --prompt=" :: Select Sector to Rename › " \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
@@ -1398,6 +1424,7 @@ function _fac_cat_delete() {
     
     local target=$(grep "^# ===" "$temp_file" | sed 's/# === //;s/ ===//' | fzf \
         --height=40% --layout=reverse --border=bottom \
+        --info=hidden \
         --prompt=" :: Select Sector to Remove › " \
         --header=" :: WARNING: Apps will merge to previous sector ::" \
         --pointer="››" \
@@ -1427,6 +1454,7 @@ function _fac_cat_move() {
         if command -v fzf &> /dev/null; then
             target_app=$(grep "^function" "$temp_file" | sed 's/function //' | sed 's/() {//' | fzf \
                 --height=10 --layout=reverse --border=bottom \
+                --info=hidden \
                 --prompt=" :: Select Unit to Relocate › " \
                 --pointer="››" \
                 --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
@@ -1540,6 +1568,7 @@ function _fac_undo() {
 
     local selection=$(echo -e "$list_data" | fzf \
         --height=20% --layout=reverse --border=bottom \
+        --info=hidden \
         --prompt=" :: Time Stone › " \
         --header=" :: Select Timeline to Restore ::" \
         --pointer="››" \
