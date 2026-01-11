@@ -39,7 +39,7 @@ function _mux_run_cmd() {
     local args="${*:2}"
     
     # 定義資料庫路徑
-    local db_files=("$MUX_ROOT/samsung.csv" "$MUX_ROOT/app.csv" "$MUX_ROOT/system.csv")
+    local db_files=("$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD")
     local found_record=""
 
     # 1. Awk 掃描 (修正：鎖定第 5 欄 [COM])
@@ -628,7 +628,7 @@ function command_not_found_handle() {
     local cmd="$1"
     local args="${*:2}"
 
-    local db_files=("$MUX_ROOT/samsung.csv" "$MUX_ROOT/app.csv" "$MUX_ROOT/system.csv")
+    local db_files=("$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD")
     local found=0
     
     for db in "${db_files[@]}"; do
