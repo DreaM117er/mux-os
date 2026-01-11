@@ -38,44 +38,64 @@ function _mux_run_cmd() {
     local target_cmd="$1"
     local args="${*:2}"
     
-    local db_files=("$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD" )
+    # 定義資料庫路徑
+    local db_files=("$MUX_ROOT/samsung.csv" "$MUX_ROOT/app.csv" "$MUX_ROOT/system.csv")
     local found_record=""
 
+    # 1. Awk 掃描 (修正：鎖定第 5 欄 [COM])
     for db in "${db_files[@]}"; do
         [ ! -f "$db" ] && continue
-        found_record=$(awk -F '|' -v key="$target_cmd" '$1 == key {print $0; exit}' "$db")
+        # $5 == key (因為 COM 在第 5 欄)
+        found_record=$(awk -F '|' -v key="$target_cmd" '$5 == key {print $0; exit}' "$db")
         [ -n "$found_record" ] && break
     done
 
     if [ -z "$found_record" ]; then
-        _bot_say "error" "Command '$target_cmd' not found in neural banks."
-        return 1
+        return 127 # 找不到指令時回傳標準錯誤碼
     fi
 
-    local name=$(echo "$found_record" | awk -F '|' '{print $2}')
-    local type=$(echo "$found_record" | awk -F '|' '{print $3}')
-    local pkg=$(echo "$found_record" | awk -F '|' '{print $4}')
-    local act=$(echo "$found_record" | awk -F '|' '{print $5}')
+    # 2. 參數解構
+    # CSV: CATNO|CATNAME|COMNO|TYPE|COM|COM2|COM3|HUDNAME|UINAME|PKG|ACTIVE|...
+    # 對應: $1   |$2     |$3   |$4  |$5 |$6  |$7  |$8     |$9    |$10|$11
+    
+    # 我們需要提取關鍵欄位 (注意 awk 的欄位索引)
+    local type=$(echo "$found_record" | awk -F '|' '{print $4}')
+    local name=$(echo "$found_record" | awk -F '|' '{print $9}')  # UINAME 在第 9 欄
+    local pkg=$(echo "$found_record" | awk -F '|' '{print $10}') # PKG 在第 10 欄
+    local act=$(echo "$found_record" | awk -F '|' '{print $11}') # ACTIVE 在第 11 欄
+    local engine=$(echo "$found_record" | awk -F '|' '{print $19}') # ENGINE 在第 19 欄 (依據 system.sh 移轉邏輯)
 
+    # 3. 任務分流
     case "$type" in
-        "APP")
-            if [ -n "$args" ]; then _bot_say "no_args"; return 1; fi
-            _launch_android_app "$name" "$pkg" "$act"
-            ;;
-            
-        "BROWSER")
-            if [ -z "$args" ]; then
-                _launch_android_app "$name" "$pkg" "$act"
+        "NB"|"APP"|"NA") # NB=Network/Browser, NA=Native App
+            if [ -n "$args" ] && [ "$type" == "NB" ]; then
+                # 瀏覽器邏輯 (有參數)
+                # 使用第 19 欄的 ENGINE 變數 (需確認 CSV 結構是否包含此欄，或寫死預設值)
+                [ -z "$engine" ] && engine="https://www.google.com/search?q="
+                
+                _resolve_smart_url "$engine" "$args"
+                
+                if [ "$__GO_MODE" == "neural" ]; then
+                    _bot_say "neural" "$name Search: $args"
+                else
+                    _bot_say "launch" "$name Target: $__GO_TARGET"
+                fi
+                am start -a android.intent.action.VIEW -d "$__GO_TARGET" -p "$pkg" >/dev/null 2>&1
             else
-                local search_url="$act$args" 
-                _bot_say "neural" "Search: $args"
-                am start -a android.intent.action.VIEW -d "$search_url" -p "$pkg" >/dev/null 2>&1
+                # 純啟動
+                _launch_android_app "$name" "$pkg" "$act"
             fi
             ;;
             
-        "SYSTEM")
+        "SYS")
             _bot_say "system" "Configuring: $name"
+            # 系統指令 pkg 欄位通常存 Intent
             am start -a "$pkg" >/dev/null 2>&1
+            ;;
+            
+        "SL") # System Launcher / Suite
+            # 這裡可以加入對 suite 的支援
+            _bot_say "system" "Module: $name"
             ;;
     esac
 }
@@ -608,7 +628,7 @@ function command_not_found_handle() {
     local cmd="$1"
     local args="${*:2}"
 
-    local db_files=("$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD")
+    local db_files=("$MUX_ROOT/samsung.csv" "$MUX_ROOT/app.csv" "$MUX_ROOT/system.csv")
     local found=0
     
     for db in "${db_files[@]}"; do
