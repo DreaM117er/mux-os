@@ -12,9 +12,9 @@ CATNO|CATNAME|COMNO|TYPE|COM|COM2|COM3|HUDNAME|UINAME|PKG|ACTIVE|INTENT|ACTION1|
 3|Google_Suite|4|NA|gdrive|||Google_Drive|Google_Drive|com.google.android.apps.docs|com.google.android.apps.docs.app.NewMainProxyActivity||||||||
 3|Google_Suite|5|NA|meet|||Google_Meet|Meet|com.google.android.apps.tachyon|com.google.android.apps.tachyon.MainActivity||||||||
 4|Maps_&_Nav|1|NA|map|||Google_Maps|Google_Maps|com.google.android.apps.maps|com.google.android.maps.MapsActivity||||||||
-4|Maps_&_Nav|2|ND|mapto|||Map_to_location_or_keywords||||android.intent.action.VIEW|"""geo:0|0?q=$query"""||no_args|"Need_location_data._(e.g.,_mapto_Taipei_101)"|neural|Locking_Coordinates:_$query|
-4|Maps_&_Nav|3|ND|mapway|||Plan_route_to_location_or_keywords||||android.intent.action.VIEW|"""https://maps.google.com/maps?daddr=$query"""||no_args|"Need_destination._(e.g.,_mapway_Taipei_Main_Station)"|neural|Calculating_Trajectory:_$query|
-4|Maps_&_Nav|4|ND|mapgo|||Navigate_to_location_or_keywords||||android.intent.action.VIEW|"""google.navigation:q=$query"""||no_args|"Need_target._(e.g.,_mapgo_Home)"|neural|Engaging_Guidance:_$query|
+4|Maps_&_Nav|2|ND|mapto|||Map_to_location_or_keywords||||android.intent.action.VIEW|"""geo:0|0?q=$query"""|no_args|"Need_location_data._(e.g._mapto_Taipei_101)"|neural|Locking_Coordinates:_$query|
+4|Maps_&_Nav|3|ND|mapway|||Plan_route_to_location_or_keywords||||android.intent.action.VIEW|"""https://maps.google.com/maps?daddr=$query"""||no_args|"Need_destination._(e.g._mapway_Taipei_Main_Station)"|neural|Calculating_Trajectory:_$query|
+4|Maps_&_Nav|4|ND|mapgo|||Navigate_to_location_or_keywords||||android.intent.action.VIEW|"""google.navigation:q=$query"""||no_args|"Need_target._(e.g._mapgo_Home)"|neural|Engaging_Guidance:_$query|
 5|Office|1|NA|ms365|||M365_Copilot|M365_Copilot|com.microsoft.office.officehubrow|com.microsoft.office.officesuite.OfficeSuiteActivity||||||||
 5|Office|2|NA|sheet|||Google_Sheets|Google_Sheets|com.google.android.apps.docs.editors.sheets|com.google.android.apps.docs.app.NewMainProxyActivity||||||||
 6|Engineering|1|NA|github|||GitHub|GitHub|com.github.android|com.github.android.main.MainActivity||||||||
