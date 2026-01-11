@@ -63,14 +63,13 @@ function _mux_run_cmd() {
     local name=$(echo "$found_record" | awk -F '|' '{print $9}')  # UINAME 在第 9 欄
     local pkg=$(echo "$found_record" | awk -F '|' '{print $10}') # PKG 在第 10 欄
     local act=$(echo "$found_record" | awk -F '|' '{print $11}') # ACTIVE 在第 11 欄
+    local intent=$(echo "$found_record" | awk -F '|' '{print $11}') # ACTIVE 在第 11 欄
     local engine=$(echo "$found_record" | awk -F '|' '{print $19}') # ENGINE 在第 19 欄 (依據 system.sh 移轉邏輯)
 
     # 3. 任務分流
     case "$type" in
-        "NB"|"APP"|"NA") # NB=Network/Browser, NA=Native App
+        "NB"|"NA")
             if [ -n "$args" ] && [ "$type" == "NB" ]; then
-                # 瀏覽器邏輯 (有參數)
-                # 使用第 19 欄的 ENGINE 變數 (需確認 CSV 結構是否包含此欄，或寫死預設值)
                 [ -z "$engine" ] && engine="https://www.google.com/search?q="
                 
                 _resolve_smart_url "$engine" "$args"
@@ -82,30 +81,20 @@ function _mux_run_cmd() {
                 fi
                 am start -a android.intent.action.VIEW -d "$__GO_TARGET" -p "$pkg" >/dev/null 2>&1
             else
-                # 純啟動
                 _launch_android_app "$name" "$pkg" "$act"
             fi
             ;;
             
         "SYS")
+            _require_no_args "${@:3}" || return 1
             _bot_say "system" "Configuring: $name"
-            # 系統指令 pkg 欄位通常存 Intent
-            am start -a "$pkg" >/dev/null 2>&1
+            am start -a "$intent" >/dev/null 2>&1
             ;;
             
-        "SL") # System Launcher / Suite
-            # 這裡可以加入對 suite 的支援
+        "SL")
             _bot_say "system" "Module: $name"
             ;;
     esac
-}
-
-function _sys_cmd() {
-    local name="$1"
-    local intent="$2"
-    _require_no_args "${@:3}" || return 1
-    _bot_say "system" "Configuring: $name"
-    am start -a "$intent" >/dev/null 2>&1
 }
 
 # 瀏覽器網址搜尋引擎 - https://engine.com/search?q=
