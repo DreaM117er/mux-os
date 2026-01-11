@@ -613,7 +613,7 @@ function command_not_found_handle() {
     
     for db in "${db_files[@]}"; do
         [ ! -f "$db" ] && continue
-        if awk -F '|' -v key="$cmd" '$1 == key {exit 0} END {exit 1}' "$db"; then
+        if awk -F '|' -v key="$cmd" '$5 == key {exit 0} END {exit 1}' "$db"; then
             found=1
             break
         fi
