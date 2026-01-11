@@ -46,7 +46,7 @@ function _mux_run_cmd() {
     for db in "${db_files[@]}"; do
         [ ! -f "$db" ] && continue
         # $5 == key (因為 COM 在第 5 欄)
-        found_record=$(awk -F '|' -v key="$target_cmd" '$5 == key {print $0; exit}' "$db")
+        found_record=$(awk -F '|' -v key="$cmd" '{ val=$5; gsub(/\r/,"",val); gsub(/ /,"",val); if(val == key) {print $0; exit} }' "$db")
         [ -n "$found_record" ] && break
     done
 
@@ -633,7 +633,7 @@ function command_not_found_handle() {
     
     for db in "${db_files[@]}"; do
         [ ! -f "$db" ] && continue
-        if awk -F '|' -v key="$cmd" '$5 == key {exit 0} END {exit 1}' "$db"; then
+        if awk -F '|' -v key="$cmd" '{ val=$5; gsub(/\r/,"",val); gsub(/ /,"",val); if(val == key) {print $0; exit} }' "$db"; then
             found=1
             break
         fi
