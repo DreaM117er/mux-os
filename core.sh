@@ -20,9 +20,9 @@ export CORE_MOD="$MUX_ROOT/core.sh"
 export BOT_MOD="$MUX_ROOT/bot.sh"
 export UI_MOD="$MUX_ROOT/ui.sh"
 export IDENTITY_MOD="$MUX_ROOT/identity.sh"
-export SYSTEM_MOD="$MUX_ROOT/system.sh"
-export VENDOR_MOD="$MUX_ROOT/vendor.sh"
-export APP_MOD="$MUX_ROOT/app.sh"
+export SYSTEM_MOD="$MUX_ROOT/system.csv"
+export VENDOR_MOD="$MUX_ROOT/vendor.csv"
+export APP_MOD="$MUX_ROOT/app.csv"
 
 # 模組註冊表
 MODULES=("$BOT_MOD" "$UI_MOD" "$IDENTITY_MOD" "$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD")
@@ -33,6 +33,135 @@ done
 if command -v _init_identity &> /dev/null; then _init_identity; fi
 
 [ ! -d "$HOME/storage" ] && { termux-setup-storage; sleep 1; }
+
+function _mux_core_function() {
+    local input_com="$1"
+    local input_com2="$2"
+    
+    # 參數位移：如果指令是 NC 類型 (如 git push)，$2 被消耗了，剩下的參數從 $3 開始
+    # 如果是 NA/NB 類型，$2 其實是參數，應該保留給後續
+    local args_from_2="${*:2}"
+    local args_from_3="${*:3}"
+
+    local target_line=""
+    local found="false"
+
+    # 若無輸入，直接返回
+    if [ -z "$input_com" ]; then
+        return
+    fi
+
+    # [SEARCH PHASE] -----------------------
+    # 掃描順序: App -> Vendor -> System
+    local files=("$CSV_APP" "$CSV_VEND" "$CSV_SYS")
+    
+    for db_file in "${files[@]}"; do
+        [ ! -f "$db_file" ] && continue
+        
+        # 使用 awk 鎖定目標行
+        # 邏輯：
+        # 1. 匹配 COM ($3)
+        # 2. 如果是 NC，必須同時匹配 COM2 ($4)
+        target_line=$(awk -F "|" -v q="$input_com" -v q2="$input_com2" '
+            $3 == q {
+                if ($1 == "NC") {
+                    if ($4 == q2) { print $0; exit }
+                } else {
+                    print $0; exit
+                }
+            }
+        ' "$db_file")
+
+        if [ -n "$target_line" ]; then
+            found="true"
+            break
+        fi
+    done
+
+    # [EXECUTION PHASE] --------------------
+    if [ "$found" == "true" ]; then
+        # 解析欄位: TYPE|CAT|COM|COM2|PKG|ACTIVE
+        local f_type=$(echo "$target_line" | awk -F "|" '{print $1}')
+        local f_pkg=$(echo "$target_line" | awk -F "|" '{print $5}')
+        
+        # 依照 TYPE 分流訊號 (Signal Dispatching)
+        case "$f_type" in
+            "NA") # Native App
+                # 呼叫舊版保留下來的 Android 啟動器
+                _launch_android_app "$f_pkg"
+                ;;
+                
+            "NB") # Browser/URL
+                # 呼叫舊版保留下來的系統指令封裝
+                _sys_cmd "url" "$f_pkg"
+                ;;
+                
+            "NC") # Ecosystem (Command Line)
+                # 這裡最關鍵：
+                # f_pkg 裡存的是 "git push"
+                # 我們需要把使用者輸入的後續參數 (args_from_3) 補上去
+                # 例如: mux git push -f -> eval "git push -f"
+                eval "$f_pkg $args_from_3"
+                ;;
+                
+            "ND") # Redirect / Play Store
+                # 根據計劃書，這通常是指向商店
+                # 格式轉換: com.termux -> market://details?id=com.termux
+                _sys_cmd "url" "market://details?id=$f_pkg"
+                ;;
+        esac
+        
+    else
+        # [FALLBACK PHASE] -----------------
+        # 找不到指令 -> 進入智慧搜尋
+        _resolve_smart_url "$SEARCH_GOOGLE" "$@"
+        
+        if [ -n "$__GO_TARGET" ]; then
+             _sys_cmd "url" "$__GO_TARGET"
+        fi
+    fi
+}
+
+function _sys_cmd() {
+    local name="$1"
+    local intent="$2"
+    _require_no_args "${@:3}" || return 1
+    _bot_say "system" "Configuring: $name"
+    am start -a "$intent" >/dev/null 2>&1
+}
+
+# 瀏覽器網址搜尋引擎 - https://engine.com/search?q=
+export SEARCH_GOOGLE="https://www.google.com/search?q="
+export SEARCH_BING="https://www.bing.com/search?q="
+export SEARCH_DUCK="https://duckduckgo.com/?q="
+export SEARCH_YOUTUBE="https://www.youtube.com/results?search_query="
+export SEARCH_GITHUB="https://github.com/search?q="
+
+export __GO_TARGET=""
+export __GO_MODE=""
+
+function _resolve_smart_url() {
+    local search_engine="$1"
+    local input="${*:2}"
+
+    __GO_TARGET=""
+    __GO_MODE="launch"
+
+    if [[ "$input" == http* ]]; then
+        __GO_TARGET="$input"
+    
+    elif echo "$input" | grep -P -q '[^\x00-\x7F]'; then
+        __GO_TARGET="${search_engine}${input}"
+        __GO_MODE="neural"
+
+    elif [[ "$input" == *.* ]] && [[ "$input" != *" "* ]]; then
+        __GO_TARGET="https://$input"
+    
+    else
+        __GO_TARGET="${search_engine}${input}"
+        __GO_MODE="neural"
+    fi
+}
 
 # 核心指令項
 function _launch_android_app() {

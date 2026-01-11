@@ -142,7 +142,7 @@ function _install_protocol() {
     echo "    ›› Calibrating Vendor Ecosystem..."
     BRAND=$(getprop ro.product.brand | tr '[:upper:]' '[:lower:]' | xargs)
     PLUGIN_DIR="$MUX_ROOT/plugins"
-    VENDOR_TARGET="$MUX_ROOT/vendor.sh"
+    VENDOR_TARGET="$MUX_ROOT/vendor.csv"
     
     if [ ! -d "$PLUGIN_DIR" ]; then mkdir -p "$PLUGIN_DIR"; fi
 
@@ -158,7 +158,7 @@ function _install_protocol() {
         cp "$TARGET_PLUGIN" "$VENDOR_TARGET"
         echo "    ›› Vendor Identity: $BRAND (Module Loaded)"
     else
-        echo "# vendor.sh - Generic" > "$VENDOR_TARGET"
+        echo "# vendor.csv - Generic" > "$VENDOR_TARGET"
         echo "    ›› Vendor Identity: Generic"
     fi
     chmod +x "$VENDOR_TARGET"
