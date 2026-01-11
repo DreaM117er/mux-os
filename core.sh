@@ -53,7 +53,7 @@ function _mux_core_function() {
 
     # [SEARCH PHASE] -----------------------
     # 掃描順序: App -> Vendor -> System
-    local files=("$CSV_APP" "$CSV_VEND" "$CSV_SYS")
+    local files=("$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD")
     
     for db_file in "${files[@]}"; do
         [ ! -f "$db_file" ] && continue
