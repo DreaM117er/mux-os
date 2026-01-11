@@ -608,7 +608,7 @@ function command_not_found_handle() {
     local cmd="$1"
     local args="${*:2}"
 
-    local db_files=("$MUX_ROOT/samsung.csv" "$MUX_ROOT/app.csv" "$MUX_ROOT/system.csv")
+    local db_files=("$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD")
     local found=0
     
     for db in "${db_files[@]}"; do
