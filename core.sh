@@ -25,7 +25,7 @@ export VENDOR_MOD="$MUX_ROOT/vendor.csv"
 export APP_MOD="$MUX_ROOT/app.csv"
 
 # 模組註冊表
-MODULES=("$BOT_MOD" "$UI_MOD" "$IDENTITY_MOD" "$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD")
+MODULES=("$BOT_MOD" "$UI_MOD" "$IDENTITY_MOD")
 for mod in "${MODULES[@]}"; do
     if [ -f "$mod" ]; then source "$mod"; fi
 done
