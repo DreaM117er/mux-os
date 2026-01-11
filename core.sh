@@ -34,6 +34,67 @@ if command -v _init_identity &> /dev/null; then _init_identity; fi
 
 [ ! -d "$HOME/storage" ] && { termux-setup-storage; sleep 1; }
 
+function _mux_run_cmd() {
+    local target_cmd="$1"
+    local args="${*:2}"
+    
+    # 定義資料庫路徑 (優先順序：Vendor > App > System)
+    local db_files=("$MUX_ROOT/system.csv" "$MUX_ROOT/samsung.csv" "$MUX_ROOT/app.csv" )
+    local found_record=""
+
+    # 1. Awk 解析 (只找匹配的那一行，不載入整個檔)
+    for db in "${db_files[@]}"; do
+        [ ! -f "$db" ] && continue
+        # 使用 awk 尋找第一欄 (Key) 匹配的行
+        found_record=$(awk -F '|' -v key="$target_cmd" '$1 == key {print $0; exit}' "$db")
+        [ -n "$found_record" ] && break
+    done
+
+    if [ -z "$found_record" ]; then
+        _bot_say "error" "Command '$target_cmd' not found in neural banks."
+        return 1
+    fi
+
+    # 2. 參數解構 (利用 Bash 的 IFS 特性或再一次 Awk)
+    # CSV 結構: Key|Name|Type|Pkg|Act|Cat
+    local name=$(echo "$found_record" | awk -F '|' '{print $2}')
+    local type=$(echo "$found_record" | awk -F '|' '{print $3}')
+    local pkg=$(echo "$found_record" | awk -F '|' '{print $4}')
+    local act=$(echo "$found_record" | awk -F '|' '{print $5}')
+
+    # 3. 執行邏輯 (根據 Type 進行分流)
+    case "$type" in
+        "APP")
+            if [ -n "$args" ]; then _bot_say "no_args"; return 1; fi
+            _launch_android_app "$name" "$pkg" "$act"
+            ;;
+            
+        "BROWSER")
+            if [ -z "$args" ]; then
+                _launch_android_app "$name" "$pkg" "$act"
+            else
+                # 這裡需要處理 Smart URL
+                # 假設 pkg 欄位存的是搜尋引擎 URL (如 system.csv 所示) 或者是 Package
+                # 根據你的 app.csv，BROWSER 類型的 Pkg 是 Package Name
+                # 我們需要一個變數來存搜尋引擎 URL，這部分可能需要定義在 CSV 的 Act 欄位或額外欄位
+                # *修正*：根據你的 system.csv，SEARCH_GOOGLE 被定義為變數。
+                # v7.0.0 可能需要直接在 CSV 寫死 URL 前綴，或者保留極少量的 env var。
+                
+                # 假設 act 欄位存放的是 Search URL 前綴 (例如 https://www.google.com/search?q=)
+                # 這樣就完全去參數化了
+                local search_url="$act$args" 
+                _bot_say "neural" "Search: $args"
+                am start -a android.intent.action.VIEW -d "$search_url" -p "$pkg" >/dev/null 2>&1
+            fi
+            ;;
+            
+        "SYSTEM")
+            _bot_say "system" "Configuring: $name"
+            am start -a "$pkg" >/dev/null 2>&1 # 這裡 pkg 存的是 Intent Action
+            ;;
+    esac
+}
+
 function _sys_cmd() {
     local name="$1"
     local intent="$2"
