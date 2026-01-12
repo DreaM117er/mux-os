@@ -42,7 +42,7 @@ function _mux_neural_data() {
     local ven_bank="$VENDOR_MOD"
     local app_bank="$APP_MOD"
 
-    local neural_banks=("$sys_bank" "$ven_bank" "$app_bank")
+    local neural_banks=("$sys_bank" "$app_bank" "$ven_bank")
 
     for bank in "${neural_banks[@]}"; do
         [ ! -f "$bank" ] && continue
