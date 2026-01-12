@@ -611,22 +611,22 @@ function _mux_integrity_scan() {
     return 0
 }
 
+# 神經連接執行器
 function command_not_found_handle() {
     local input_signal="$1"
     local input_args="${*:2}"
 
     if ! _mux_neural_data "$input_signal"; then
-        echo "bash: '$input_signal' command not found"
+        echo "bash: $input_signal: command not found"
         return 127
     fi
-    
+
     case "$_VAL_TYPE" in
         "NA")
             if [ -n "$input_args" ]; then 
                 _bot_say "error" "Negative. Native Protocol accepts no arguments."
                 return 1
             fi
-            
             _launch_android_app
             ;;
 
@@ -635,24 +635,28 @@ function command_not_found_handle() {
                 _launch_android_app
                 return 0
             fi
-
+            
             _resolve_smart_url "$_VAL_ENGINE" "$input_args"
             
-            if [ "$__GO_MODE" == "$_VAL_BOT1" ]; then
-                _bot_say "$_VAL_BOT1" "${_VAL_BOT1T//\$*/$input_args}" 
-            else
-                _bot_say "$_VAL_BOT2" "${_VAL_BOT2T//\$__GO_TARGET/$__GO_TARGET}"
-            fi
+            local bot_mood="${_VAL_BOT1:-neural}"
+            local bot_text="${_VAL_BOT1T:-Searching...}"
+            local bot_mood_alt="${_VAL_BOT2:-launch}"
+            local bot_text_alt="${_VAL_BOT2T:-Targeting...}"
 
+            if [ "$__GO_MODE" == "neural" ]; then
+                _bot_say "$bot_mood" "${bot_text//\$*/$input_args}" 
+            else
+                _bot_say "$bot_mood_alt" "${bot_text_alt//\$__GO_TARGET/$__GO_TARGET}"
+            fi
+            
             am start -a "$_VAL_INTENT" -d "$__GO_TARGET" -p "$_VAL_PKG" >/dev/null 2>&1
             ;;
 
-        "SYS")  
+        "SYS")
             if [ -z "$_VAL_INTENT" ]; then
                 _bot_say "error" "System Intent Missing."
                 return 1
             fi
-
             _bot_say "system" "Configuring: $_VAL_UINAME"
             am start -a "$_VAL_INTENT" >/dev/null 2>&1
             ;;
@@ -666,11 +670,10 @@ function command_not_found_handle() {
             return 1
             ;;
     esac
-
     return 0
 }
 
-# Bash Command Not Found Handler
+# 神經連接執行器 for zsh
 function command_not_found_handler() {
     command_not_found_handle "$@"
 }
