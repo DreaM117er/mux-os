@@ -34,67 +34,55 @@ if command -v _init_identity &> /dev/null; then _init_identity; fi
 
 [ ! -d "$HOME/storage" ] && { termux-setup-storage; sleep 1; }
 
-function _mux_run_cmd() {
-    local target_cmd="$1"
-    local args="${*:2}"
+# 神經資料解析器
+function _mux_neural_data() {
+    local target_node="$1"
+    local raw_data=""
     
-    # 定義資料庫路徑
-    local db_files=("$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD")
-    local found_record=""
+    local neural_banks=("$APP_MOD" "$VENDOR_MOD" "$SYSTEM_MOD")
 
-    # 1. Awk 掃描 (修正：鎖定第 5 欄 [COM])
-    for db in "${db_files[@]}"; do
-        [ ! -f "$db" ] && continue
-        # $5 == key (因為 COM 在第 5 欄)
-        found_record=$(awk -F '|' -v key="$cmd" '{ val=$5; gsub(/\r/,"",val); gsub(/ /,"",val); if(val == key) {print $0; exit} }' "$db")
-        [ -n "$found_record" ] && break
+    for bank in "${neural_banks[@]}"; do
+        [ ! -f "$bank" ] && continue
+
+        raw_data=$(awk -F '|' -v key="$target_node" '
+            !/^#/ { 
+                clean_key=$5; 
+                gsub(/\r| /,"",clean_key); 
+                
+                if (clean_key == key) { print $0; exit } 
+            }
+        ' "$bank")
+
+        [ -n "$raw_data" ] && break
     done
 
-    if [ -z "$found_record" ]; then
-        return 127 # 找不到指令時回傳標準錯誤碼
-    fi
+    if [ -z "$raw_data" ]; then return 1; fi
 
-    # 2. 參數解構
-    # CSV: CATNO|CATNAME|COMNO|TYPE|COM|COM2|COM3|HUDNAME|UINAME|PKG|ACTIVE|...
-    # 對應: $1   |$2     |$3   |$4  |$5 |$6  |$7  |$8     |$9    |$10|$11
-    
-    # 我們需要提取關鍵欄位 (注意 awk 的欄位索引)
-    local type=$(echo "$found_record" | awk -F '|' '{print $4}')
-    local name=$(echo "$found_record" | awk -F '|' '{print $9}')  # UINAME 在第 9 欄
-    local pkg=$(echo "$found_record" | awk -F '|' '{print $10}') # PKG 在第 10 欄
-    local act=$(echo "$found_record" | awk -F '|' '{print $11}') # ACTIVE 在第 11 欄
-    local intent=$(echo "$found_record" | awk -F '|' '{print $11}') # ACTIVE 在第 11 欄
-    local engine=$(echo "$found_record" | awk -F '|' '{print $19}') # ENGINE 在第 19 欄 (依據 system.sh 移轉邏輯)
+    IFS='|' read -r \
+        _VAL_CATNO \
+        _VAL_CATNAME \
+        _VAL_COMNO \
+        _VAL_TYPE \
+        _VAL_COM \
+        _VAL_COM2 \
+        _VAL_COM3 \
+        _VAL_HUDNAME \
+        _VAL_UINAME \
+        _VAL_PKG \
+        _VAL_ACTIVE \
+        _VAL_INTENT \
+        _VAL_ACTION1 \
+        _VAL_ACTION2 \
+        _VAL_BOT1 \
+        _VAL_BOT1T \
+        _VAL_BOT2 \
+        _VAL_BOT2T \
+        _VAL_ENGINE \
+        <<< "$raw_data"
 
-    # 3. 任務分流
-    case "$type" in
-        "NB"|"NA")
-            if [ -n "$args" ] && [ "$type" == "NB" ]; then
-                [ -z "$engine" ] && engine="https://www.google.com/search?q="
-                
-                _resolve_smart_url "$engine" "$args"
-                
-                if [ "$__GO_MODE" == "neural" ]; then
-                    _bot_say "neural" "$name Search: $args"
-                else
-                    _bot_say "launch" "$name Target: $__GO_TARGET"
-                fi
-                am start -a android.intent.action.VIEW -d "$__GO_TARGET" -p "$pkg" >/dev/null 2>&1
-            else
-                _launch_android_app "$name" "$pkg" "$act"
-            fi
-            ;;
-            
-        "SYS")
-            _require_no_args "${@:3}" || return 1
-            _bot_say "system" "Configuring: $name"
-            am start -a "$intent" >/dev/null 2>&1
-            ;;
-            
-        "SL")
-            _bot_say "system" "Module: $name"
-            ;;
-    esac
+    _VAL_ENGINE=${_VAL_ENGINE//$'\r'/}
+
+    return 0
 }
 
 # 瀏覽器網址搜尋引擎 - https://engine.com/search?q=
@@ -132,29 +120,40 @@ function _resolve_smart_url() {
 
 # 核心指令項
 function _launch_android_app() {
-    local app_name="$1"
-    local package_name="$2"
-    local activity_name="$3"
-
-    _bot_say "launch" "Target: [$app_name]"
-    local output
-
-    if [ -n "$activity_name" ]; then
-        output=$(am start --user 0 -n "$package_name/$activity_name" 2>&1)
+    local name="${1:-$_VAL_UINAME}"
+    local pkg="${2:-$_VAL_PKG}"
+    local act="${3:-$_VAL_ACTIVE}"
+    
+    # 2. 安全檢查
+    if [ -z "$pkg" ]; then
+        _bot_say "error" "Launch parameter missing (PKG)."
+        return 1
+    fi
+    
+    _bot_say "launch" "Engaging: $name"
+    
+    local output=""
+    
+    if [[ "$pkg" == android.* ]] && [ -z "$act" ]; then
+         output=$(am start -a "$pkg" 2>&1)
+    elif [ -n "$act" ]; then
+         output=$(am start -n "$pkg/$act" 2>&1)  
     else
-        output=$(am start --user 0 -p "$package_name" 2>&1)
+         output=$(am start -p "$pkg" 2>&1)
     fi
 
     if [[ "$output" == *"Error"* ]] || [[ "$output" == *"does not exist"* ]]; then
+        
         _bot_say "error" "Launch Failed: Target package not found."
-        echo -e "    Target: $package_name"
+        echo -e "    ›› Target: $pkg"
         echo ""
+        
         echo -ne "\033[1;32m :: Install from Google Play? (Y/n): \033[0m"
         read choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
             _bot_say "loading" "Redirecting to Store..."
-            am start -a android.intent.action.VIEW -d "market://details?id=$package_name" >/dev/null 2>&1
+            am start -a android.intent.action.VIEW -d "market://details?id=$pkg" >/dev/null 2>&1
         else
             echo -e "\033[1;30m    ›› Canceled.\033[0m"
             return 1
@@ -614,25 +613,61 @@ function _mux_integrity_scan() {
 }
 
 function command_not_found_handle() {
-    local cmd="$1"
-    local args="${*:2}"
+    local input_signal="$1"
+    local input_args="${*:2}"
 
-    local db_files=("$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD")
-    local found=0
-    
-    for db in "${db_files[@]}"; do
-        [ ! -f "$db" ] && continue
-        if awk -F '|' -v key="$cmd" '{ val=$5; gsub(/\r/,"",val); gsub(/ /,"",val); if(val == key) {print $0; exit} }' "$db"; then
-            found=1
-            break
-        fi
-    done
-
-    if [ "$found" -eq 1 ]; then
-        _mux_run_cmd "$cmd" $args
-        return 0
-    else
-        echo "bash: $cmd: command not found"
+    if ! _mux_neural_data "$input_signal"; then
+        echo "bash: '$input_signal' command not found"
         return 127
     fi
+    
+    case "$_VAL_TYPE" in
+        "NA")
+            if [ -n "$input_args" ]; then 
+                _bot_say "error" "Negative. Native Protocol accepts no arguments."
+                return 1
+            fi
+            
+            _launch_android_app
+            ;;
+
+        "NB")
+            if [ -z "$input_args" ]; then
+                _launch_android_app
+            else
+                local search_query="$input_args"
+                local engine="${_VAL_ENGINE:-https://www.google.com/search?q=}"
+                local target_url="${engine}${search_query}"
+                
+                _bot_say "neural" "Search: $search_query"
+                am start -a android.intent.action.VIEW -d "$target_url" -p "$_VAL_PKG" >/dev/null 2>&1
+            fi
+            ;;
+
+        "SYS")  
+            if [ -z "$_VAL_INTENT" ]; then
+                _bot_say "error" "System Intent Missing."
+                return 1
+            fi
+
+            _bot_say "system" "Configuring: $_VAL_UINAME"
+            am start -a "$_VAL_INTENT" >/dev/null 2>&1
+            ;;
+
+        "SL")
+            _bot_say "system" "Module Loaded: $_VAL_UINAME"
+            ;;
+
+        *)
+            _bot_say "error" "Unknown Signal Type: $_VAL_TYPE"
+            return 1
+            ;;
+    esac
+
+    return 0
+}
+
+# Bash Command Not Found Handler
+function command_not_found_handler() {
+    command_not_found_handle "$@"
 }
