@@ -673,7 +673,3 @@ function command_not_found_handle() {
     return 0
 }
 
-# 神經連接執行器 for zsh
-function command_not_found_handler() {
-    command_not_found_handle "$@"
-}
