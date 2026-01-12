@@ -38,8 +38,11 @@ if command -v _init_identity &> /dev/null; then _init_identity; fi
 function _mux_neural_data() {
     local target_node="$1"
     local raw_data=""
-    
-    local neural_banks=("$APP_MOD" "$VENDOR_MOD" "$SYSTEM_MOD")
+    local sys_bank="$SYSTEM_MOD"
+    local ven_bank="$VENDOR_MOD"
+    local app_bank="$APP_MOD"
+
+    local neural_banks=("$sys_bank" "$ven_bank" "$app_bank")
 
     for bank in "${neural_banks[@]}"; do
         [ ! -f "$bank" ] && continue
