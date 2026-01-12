@@ -10,7 +10,7 @@ fi
 
 # 基礎路徑與版本定義
 export MUX_REPO="https://github.com/DreaM117er/mux-os"
-export MUX_VERSION="6.0.0"
+export MUX_VERSION="7.0.0 Beta"
 export MUX_ROOT="$HOME/mux-os"
 export BASE_DIR="$MUX_ROOT"
 export __MUX_CORE_ACTIVE=true
@@ -124,7 +124,6 @@ function _launch_android_app() {
     local pkg="${2:-$_VAL_PKG}"
     local act="${3:-$_VAL_ACTIVE}"
     
-    # 2. 安全檢查
     if [ -z "$pkg" ]; then
         _bot_say "error" "Launch parameter missing (PKG)."
         return 1
@@ -634,14 +633,18 @@ function command_not_found_handle() {
         "NB")
             if [ -z "$input_args" ]; then
                 _launch_android_app
-            else
-                local search_query="$input_args"
-                local engine="${_VAL_ENGINE:-https://www.google.com/search?q=}"
-                local target_url="${engine}${search_query}"
-                
-                _bot_say "neural" "Search: $search_query"
-                am start -a android.intent.action.VIEW -d "$target_url" -p "$_VAL_PKG" >/dev/null 2>&1
+                return 0
             fi
+
+            _resolve_smart_url "$_VAL_ENGINE" "$input_args"
+            
+            if [ "$__GO_MODE" == "$_VAL_BOT1" ]; then
+                _bot_say "$_VAL_BOT1" "${_VAL_BOT1T//\$*/$input_args}" 
+            else
+                _bot_say "$_VAL_BOT2" "${_VAL_BOT2T//\$__GO_TARGET/$__GO_TARGET}"
+            fi
+
+            am start -a "$_VAL_INTENT" -d "$__GO_TARGET" -p "$_VAL_PKG" >/dev/null 2>&1
             ;;
 
         "SYS")  
