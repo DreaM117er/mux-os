@@ -153,15 +153,15 @@ function _install_protocol() {
         *)              BRAND="${BRAND:-unknown}" ;;
     esac
 
-    TARGET_PLUGIN="$PLUGIN_DIR/$BRAND.sh"
+    TARGET_PLUGIN="$PLUGIN_DIR/$BRAND.csv"
     if [ -f "$TARGET_PLUGIN" ]; then
         cp "$TARGET_PLUGIN" "$VENDOR_TARGET"
         echo "    ›› Vendor Identity: $BRAND (Module Loaded)"
     else
-        echo "# vendor.csv - Generic" > "$VENDOR_TARGET"
-        echo "    ›› Vendor Identity: Generic"
+        echo '"CATNO","COMNO","CATNAME","TYPE","COM","COM2","COM3","HUDNAME","UINAME","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE","FLAG","EX","EXTRA","ENGINE"' > "$VENDOR_TARGET"
+        echo "    ›› Vendor Identity: Generic (Standard Protocol)"
     fi
-    chmod +x "$VENDOR_TARGET"
+    chmod 644 "$VENDOR_TARGET"
 
     echo "    ›› Installing Bootloader..."
 
