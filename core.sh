@@ -38,13 +38,18 @@ if command -v _init_identity &> /dev/null; then _init_identity; fi
 function _mux_neural_data() {
     local target_node="$1"
     local raw_data=""
+    
+    local VENDOR_FILE="$MUX_ROOT/vendor.csv"
+    if [ ! -f "$VENDOR_FILE" ] && [ -f "$MUX_ROOT/samsung.csv" ]; then
+        VENDOR_FILE="$MUX_ROOT/samsung.csv"
+    fi
 
     local neural_banks=("$SYSTEM_MOD" "$VENDOR_FILE" "$APP_MOD")
 
     for bank in "${neural_banks[@]}"; do
         [ ! -f "$bank" ] && continue
         
-        raw_data=$(awk -v FPAT='([^,]+)|("[^"]+")' -v key="$target_node" '
+        raw_data=$(awk -v FPAT='([^,]*)|("[^"]+")' -v key="$target_node" '
             !/^#/ { 
                 raw_key = $5
                 gsub(/^"|"$/, "", raw_key)
@@ -59,7 +64,7 @@ function _mux_neural_data() {
 
     if [ -z "$raw_data" ]; then return 1; fi
 
-    eval $(echo "$raw_data" | awk -v FPAT='([^,]+)|("[^"]+")' '{
+    eval $(echo "$raw_data" | awk -v FPAT='([^,]*)|("[^"]+")' '{
         fields[1]="_VAL_CATNO"
         fields[2]="_VAL_COMNO"
         fields[3]="_VAL_CATNAME"
@@ -83,8 +88,11 @@ function _mux_neural_data() {
 
         for (i=1; i<=20; i++) {
             val = $i
+            # 1. 剝殼
             if (val ~ /^".*"$/) { val = substr(val, 2, length(val)-2) }
+            # 2. 反轉義
             gsub(/""/, "\"", val)
+            # 3. 安全轉譯
             gsub(/'\''/, "'\''\\'\'''\''", val)
             printf "%s='\''%s'\''; ", fields[i], val
         }
@@ -661,28 +669,19 @@ function command_not_found_handle() {
             ;;
 
         "NB" | "ND") 
-            
             if [[ "$_VAL_URI" == *"\$query"* ]]; then
                 if [ -z "$input_args" ]; then
                     _bot_say "error" "Argument required for: $_VAL_COM"
                     return 1
                 fi
                 _VAL_URI="${_VAL_URI//\$query/$input_args}"
-                
                 input_args="" 
             fi
-            
-            if [ "$_VAL_TYPE" == "NB" ] && [ -n "$input_args" ] && [ -n "$_VAL_ENGINE" ]; then
-                 _resolve_smart_url "$_VAL_ENGINE" "$input_args"
-                 _VAL_URI="$__GO_TARGET"
-            fi
-
             _launch_android_app
             ;;
 
         "SYS")
             local sys_action="${_VAL_IHEAD}${_VAL_IBODY}"
-            _bot_say "system" "Configuring: $_VAL_UINAME"
             _sys_cmd "$_VAL_UINAME" "$sys_action" $input_args
             ;;
 
