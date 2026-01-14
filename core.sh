@@ -36,7 +36,8 @@ if command -v _init_identity &> /dev/null; then _init_identity; fi
 
 # 神經資料解析器
 function _mux_neural_data() {
-    local target_node="$1"
+    local target_com="$1"
+    local target_sub="$2"
     local raw_data=""
     
     local VENDOR_FILE="$MUX_ROOT/vendor.csv"
@@ -49,13 +50,21 @@ function _mux_neural_data() {
     for bank in "${neural_banks[@]}"; do
         [ ! -f "$bank" ] && continue
         
-        raw_data=$(awk -v FPAT='([^,]*)|("[^"]+")' -v key="$target_node" '
+        raw_data=$(awk -v FPAT='([^,]*)|("[^"]+")' -v key="$target_com" -v subkey="$target_sub" '
             !/^#/ { 
-                raw_key = $5
-                gsub(/^"|"$/, "", raw_key)
-                gsub(/\r| /, "", raw_key)
+                row_com = $5; gsub(/^"|"$/, "", row_com); gsub(/\r| /, "", row_com)
+                row_com2 = $6; gsub(/^"|"$/, "", row_com2); gsub(/\r| /, "", row_com2)
 
-                if (raw_key == key) { print $0; exit } 
+                if (row_com == key && row_com2 == subkey && subkey != "") {
+                    print $0; exit
+                }
+                
+                if (row_com == key && row_com2 == "") {
+                    fallback = $0
+                }
+            }
+            END {
+                if (fallback != "") print fallback
             }
         ' "$bank")
         
@@ -88,11 +97,8 @@ function _mux_neural_data() {
 
         for (i=1; i<=20; i++) {
             val = $i
-            # 1. 剝殼
             if (val ~ /^".*"$/) { val = substr(val, 2, length(val)-2) }
-            # 2. 反轉義
             gsub(/""/, "\"", val)
-            # 3. 安全轉譯
             gsub(/'\''/, "'\''\\'\'''\''", val)
             printf "%s='\''%s'\''; ", fields[i], val
         }
@@ -650,39 +656,55 @@ function _mux_integrity_scan() {
 
 # 神經連接執行器
 function command_not_found_handle() {
-    local input_signal="$1"
-    local input_args="${*:2}" # 抓取後面所有的參數
-
-    if ! _mux_neural_data "$input_signal"; then
+    local input_signal="$1"      # COM
+    local input_sub="$2"         # COM2 (Candidate)
+    local input_args="${*:2}"    # All args starting from $2
+    
+    # 呼叫雙重鎖定掃描 (傳入 COM 和 COM2)
+    if ! _mux_neural_data "$input_signal" "$input_sub"; then
         echo "bash: $input_signal: command not found"
         return 127
     fi
 
     case "$_VAL_TYPE" in
         "NA")
-            # Native App: 通常不吃參數
-            if [ -n "$input_args" ]; then 
-                _bot_say "error" "Negative. Native Protocol accepts no arguments."
-                return 1
+            if [ -z "$_VAL_COM2" ]; then
+                _require_no_args "$input_args" || return 1
+                _launch_android_app
+            else
+                _require_no_args "${*:3}" || return 1
+                _launch_android_app
             fi
-            _launch_android_app
             ;;
 
         "NB" | "ND") 
             if [[ "$_VAL_URI" == *"\$query"* ]]; then
-                if [ -z "$input_args" ]; then
-                    _bot_say "error" "Argument required for: $_VAL_COM"
-                    return 1
+                if [ -n "$_VAL_COM2" ]; then
+                    local real_args="${*:3}"
+                    if [ -z "$real_args" ]; then
+                        _bot_say "error" "Argument required for: $_VAL_COM $_VAL_COM2"
+                        return 1
+                    fi
+                    _VAL_URI="${_VAL_URI//\$query/$real_args}"
+                else
+                    if [ -z "$input_args" ]; then
+                        _bot_say "error" "Argument required for: $_VAL_COM"
+                        return 1
+                    fi
+                    _VAL_URI="${_VAL_URI//\$query/$input_args}"
                 fi
-                _VAL_URI="${_VAL_URI//\$query/$input_args}"
-                input_args="" 
             fi
+            
             _launch_android_app
             ;;
 
         "SYS")
             local sys_action="${_VAL_IHEAD}${_VAL_IBODY}"
-            _sys_cmd "$_VAL_UINAME" "$sys_action" $input_args
+            if [ -n "$_VAL_COM2" ]; then
+                _sys_cmd "$_VAL_UINAME" "$sys_action" "${*:3}"
+            else
+                _sys_cmd "$_VAL_UINAME" "$sys_action" "${*:2}"
+            fi
             ;;
 
         *)
