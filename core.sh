@@ -186,6 +186,8 @@ function _launch_android_app() {
             echo -e "\033[1;30m    ›› Canceled.\033[0m"
             return 1
         fi
+        return 1
+    fi
 }
 
 # 啟動序列邏輯 (Boot Sequence)
