@@ -39,49 +39,58 @@ function _mux_neural_data() {
     local target_node="$1"
     local raw_data=""
 
-    local neural_banks=("$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD")
+    local neural_banks=("$SYSTEM_MOD" "$VENDOR_FILE" "$APP_MOD")
 
     for bank in "${neural_banks[@]}"; do
         [ ! -f "$bank" ] && continue
-
-        raw_data=$(awk -F '|' -v key="$target_node" '
+        
+        raw_data=$(awk -v FPAT='([^,]+)|("[^"]+")' -v key="$target_node" '
             !/^#/ { 
-                clean_key=$5; 
-                gsub(/\r| /,"",clean_key); 
-                
-                if (clean_key == key) { print $0; exit } 
+                raw_key = $5
+                gsub(/^"|"$/, "", raw_key)
+                gsub(/\r| /, "", raw_key)
+
+                if (raw_key == key) { print $0; exit } 
             }
         ' "$bank")
-
+        
         [ -n "$raw_data" ] && break
     done
 
     if [ -z "$raw_data" ]; then return 1; fi
 
-    IFS='|' read -r \
-        _VAL_CATNO \
-        _VAL_CATNAME \
-        _VAL_COMNO \
-        _VAL_TYPE \
-        _VAL_COM \
-        _VAL_COM2 \
-        _VAL_COM3 \
-        _VAL_HUDNAME \
-        _VAL_UINAME \
-        _VAL_PKG \
-        _VAL_ACTIVE \
-        _VAL_INTENT \
-        _VAL_ACTION1 \
-        _VAL_ACTION2 \
-        _VAL_BOT1 \
-        _VAL_BOT1T \
-        _VAL_BOT2 \
-        _VAL_BOT2T \
-        _VAL_ENGINE \
-        <<< "$raw_data"
+    eval $(echo "$raw_data" | awk -v FPAT='([^,]+)|("[^"]+")' '{
+        fields[1]="_VAL_CATNO"
+        fields[2]="_VAL_COMNO"
+        fields[3]="_VAL_CATNAME"
+        fields[4]="_VAL_TYPE"
+        fields[5]="_VAL_COM"
+        fields[6]="_VAL_COM2"
+        fields[7]="_VAL_COM3"
+        fields[8]="_VAL_HUDNAME"
+        fields[9]="_VAL_UINAME"
+        fields[10]="_VAL_PKG"
+        fields[11]="_VAL_TARGET"
+        fields[12]="_VAL_IHEAD"
+        fields[13]="_VAL_IBODY"
+        fields[14]="_VAL_URI"
+        fields[15]="_VAL_MIME"
+        fields[16]="_VAL_CATE"
+        fields[17]="_VAL_FLAG"
+        fields[18]="_VAL_EX"
+        fields[19]="_VAL_EXTRA"
+        fields[20]="_VAL_ENGINE"
 
+        for (i=1; i<=20; i++) {
+            val = $i
+            if (val ~ /^".*"$/) { val = substr(val, 2, length(val)-2) }
+            gsub(/""/, "\"", val)
+            gsub(/'\''/, "'\''\\'\'''\''", val)
+            printf "%s='\''%s'\''; ", fields[i], val
+        }
+    }')
+    
     _VAL_ENGINE=${_VAL_ENGINE//$'\r'/}
-
     return 0
 }
 
@@ -118,36 +127,56 @@ function _resolve_smart_url() {
     fi
 }
 
+# 系統指令執行器
+function _sys_cmd() {
+    local name="$1"
+    local intent="$2"
+
+    _require_no_args "${@:3}" || return 1
+    _bot_say "system" "Configuring: $name"
+    am start --user 0 -a "$intent" >/dev/null 2>&1
+}
+
 # 核心指令項
 function _launch_android_app() {
     local name="${1:-$_VAL_UINAME}"
     local pkg="${2:-$_VAL_PKG}"
-    local act="${3:-$_VAL_ACTIVE}"
     
-    if [ -z "$pkg" ]; then
-        _bot_say "error" "Launch parameter missing (PKG)."
-        return 1
+    local final_action=""
+    if [ -n "$_VAL_IHEAD" ] || [ -n "$_VAL_IBODY" ]; then
+        final_action="${_VAL_IHEAD}${_VAL_IBODY}"
     fi
-    
-    _bot_say "launch" "Engaging: $name"
-    
-    local output=""
-    
-    if [[ "$pkg" == android.* ]] && [ -z "$act" ]; then
-         output=$(am start -a "$pkg" 2>&1)
-    elif [ -n "$act" ]; then
-         output=$(am start -n "$pkg/$act" 2>&1)  
-    else
-         output=$(am start -p "$pkg" 2>&1)
+    if [ -z "$final_action" ] && [ "$_VAL_TYPE" == "NB" ]; then
+        final_action="android.intent.action.VIEW"
     fi
 
+    local cmd_args=""
+    if [ -n "$pkg" ]; then 
+        if [ -n "$_VAL_TARGET" ]; then
+            cmd_args="$cmd_args -n $pkg/$_VAL_TARGET"
+        else
+            cmd_args="$cmd_args -p $pkg"
+        fi
+    fi
+
+    if [ -n "$final_action" ]; then cmd_args="$cmd_args -a $final_action"; fi
+    if [ -n "$_VAL_URI" ];     then cmd_args="$cmd_args -d \"$_VAL_URI\""; fi
+    if [ -n "$_VAL_MIME" ];    then cmd_args="$cmd_args -t \"$_VAL_MIME\""; fi
+    if [ -n "$_VAL_CATE" ];    then cmd_args="$cmd_args -c \"$_VAL_CATE\""; fi
+    if [ -n "$_VAL_FLAG" ];    then cmd_args="$cmd_args -f $_VAL_FLAG"; fi
+    if [ -n "$_VAL_EX" ];      then cmd_args="$cmd_args $_VAL_EX"; fi
+    if [ -n "$_VAL_EXTRA" ];   then cmd_args="$cmd_args $_VAL_EXTRA"; fi
+
+    _bot_say "launch" "Target: [$name]"
+    
+    local output
+    output=$(eval "am start --user 0 $cmd_args" 2>&1)
+
     if [[ "$output" == *"Error"* ]] || [[ "$output" == *"does not exist"* ]]; then
-        
         _bot_say "error" "Launch Failed: Target package not found."
         echo -e "    ›› Target: $pkg"
         echo ""
-        
-        echo -ne "\033[1;32m :: Install from Google Play? (Y/n): \033[0m"
+        echo -ne "\033[1;32m :: Install from Google Play? [Y/n]: \033[0m"
         read choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
@@ -158,7 +187,6 @@ function _launch_android_app() {
             return 1
         fi
         return 1
-    fi
 }
 
 # 啟動序列邏輯 (Boot Sequence)
@@ -541,7 +569,7 @@ function _mux_force_reset() {
     echo -e "\033[1;31m :: WARNING: Obliterating all local modifications.\033[0m"
     echo ""
     _system_unlock
-    echo -ne "\033[1;32m :: Confirm system restore? (Y/n): \033[0m"
+    echo -ne "\033[1;32m :: Confirm system restore? [Y/n]: \033[0m"
     read choice
     if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
         _system_lock
@@ -577,7 +605,7 @@ function _mux_update_system() {
         echo -e "\033[1;33m :: New version available!\033[0m"
         echo ""
         _system_unlock
-        echo -ne "\033[1;32m :: Update Mux-OS now? (Y/n): \033[0m"
+        echo -ne "\033[1;32m :: Update Mux-OS now? [Y/n]: \033[0m"
         read choice
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
             _system_lock
@@ -614,7 +642,7 @@ function _mux_integrity_scan() {
 # 神經連接執行器
 function command_not_found_handle() {
     local input_signal="$1"
-    local input_args="${*:2}"
+    local input_args="${*:2}" # 抓取後面所有的參數
 
     if ! _mux_neural_data "$input_signal"; then
         echo "bash: $input_signal: command not found"
@@ -623,6 +651,7 @@ function command_not_found_handle() {
 
     case "$_VAL_TYPE" in
         "NA")
+            # Native App: 通常不吃參數
             if [ -n "$input_args" ]; then 
                 _bot_say "error" "Negative. Native Protocol accepts no arguments."
                 return 1
@@ -630,39 +659,30 @@ function command_not_found_handle() {
             _launch_android_app
             ;;
 
-        "NB")
-            if [ -z "$input_args" ]; then
-                _launch_android_app
-                return 0
+        "NB" | "ND") 
+            
+            if [[ "$_VAL_URI" == *"\$query"* ]]; then
+                if [ -z "$input_args" ]; then
+                    _bot_say "error" "Argument required for: $_VAL_COM"
+                    return 1
+                fi
+                _VAL_URI="${_VAL_URI//\$query/$input_args}"
+                
+                input_args="" 
             fi
             
-            _resolve_smart_url "$_VAL_ENGINE" "$input_args"
-            
-            local bot_mood="${_VAL_BOT1:-neural}"
-            local bot_text="${_VAL_BOT1T:-Searching...}"
-            local bot_mood_alt="${_VAL_BOT2:-launch}"
-            local bot_text_alt="${_VAL_BOT2T:-Targeting...}"
+            if [ "$_VAL_TYPE" == "NB" ] && [ -n "$input_args" ] && [ -n "$_VAL_ENGINE" ]; then
+                 _resolve_smart_url "$_VAL_ENGINE" "$input_args"
+                 _VAL_URI="$__GO_TARGET"
+            fi
 
-            if [ "$__GO_MODE" == "neural" ]; then
-                _bot_say "$bot_mood" "${bot_text//\$*/$input_args}" 
-            else
-                _bot_say "$bot_mood_alt" "${bot_text_alt//\$__GO_TARGET/$__GO_TARGET}"
-            fi
-            
-            am start -a "$_VAL_INTENT" -d "$__GO_TARGET" -p "$_VAL_PKG" >/dev/null 2>&1
+            _launch_android_app
             ;;
 
         "SYS")
-            if [ -z "$_VAL_INTENT" ]; then
-                _bot_say "error" "System Intent Missing."
-                return 1
-            fi
+            local sys_action="${_VAL_IHEAD}${_VAL_IBODY}"
             _bot_say "system" "Configuring: $_VAL_UINAME"
-            am start -a "$_VAL_INTENT" >/dev/null 2>&1
-            ;;
-
-        "SL")
-            _bot_say "system" "Module Loaded: $_VAL_UINAME"
+            _sys_cmd "$_VAL_UINAME" "$sys_action" $input_args
             ;;
 
         *)

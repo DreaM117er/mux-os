@@ -445,7 +445,7 @@ function _fac_stamp_launcher() {
                 _fac_maintenance
                 _bot_say "success" "Module '$func_name' deployed."
                 
-                echo -ne "${F_WARN}    ›› Hot Reload now? (Y/n): ${F_RESET}"
+                echo -ne "${F_WARN}    ›› Hot Reload now? [Y/n]: ${F_RESET}"
                 read r
                 [[ "$r" == "y" || "$r" == "Y" ]] && _fac_load
                 return
@@ -841,7 +841,7 @@ function _fac_load() {
     echo -e "${F_GRAY}    Target  : ${F_MAIN}$target${F_RESET}"
     echo -e "${F_GRAY}    Payload : app.sh.temp (Bypassing Safety Interlocks)${F_RESET}"
     echo -e ""
-    echo -ne "${F_WARN}    ›› Confirm Launch? (Y/n): ${F_RESET}"
+    echo -ne "${F_WARN}    ›› Confirm Launch? [Y/n]: ${F_RESET}"
     read confirm
 
     if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
@@ -1435,7 +1435,7 @@ function _fac_cat_delete() {
 
     echo -e "${F_ERR} :: WARNING :: This will remove the HEADER '$target' only.${F_RESET}"
     echo -e "${F_GRAY}    Apps under this sector will merge upwards.${F_RESET}"
-    echo -ne "${F_WARN}    ›› Confirm delete? (Y/n): ${F_RESET}"
+    echo -ne "${F_WARN}    ›› Confirm delete? [Y/n]: ${F_RESET}"
     read conf
     if [[ "$conf" == "y" || "$conf" == "Y" ]]; then
         sed -i "/^# === $target ===/d" "$temp_file"

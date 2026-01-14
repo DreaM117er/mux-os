@@ -1,21 +1,21 @@
-CATNO|CATNAME|COMNO|TYPE|COM|COM2|COM3|HUDNAME|UINAME|PKG|ACTIVE|INTENT|ACTION1|ACTION2|BOT1|BOT1T|BOT2|BOT2T|ENGINE
-1|Samsung_Utilities|1|NA|files|||My_Files|My_Files|com.sec.android.app.myfiles|com.sec.android.app.myfiles.ui.MainActivity||||||||
-1|Samsung_Utilities|2|NA|clock|||Samsung_Clock|Clock|com.sec.android.app.clockpackage|com.sec.android.app.clockpackage.ClockPackage||||||||
-1|Samsung_Utilities|3|NA|calen|||Samsung_Calendar|Calendar|com.samsung.android.calendar|com.samsung.android.app.calendar.activity.MainActivity||||||||
-1|Samsung_Utilities|4|NA|calc|||Calculator|Calculator|com.sec.android.app.popupcalculator|com.sec.android.app.popupcalculator.Calculator||||||||
-1|Samsung_Utilities|5|NA|smshop|||Galaxy_Store|Galaxy_Store|com.sec.android.app.samsungapps|com.sec.android.app.samsungapps.SamsungAppsMainActivity||||||||
-1|Samsung_Utilities|6|NA|wther|||Samsung_Weather|Weather|com.sec.android.daemonapp|com.sec.android.daemonapp.app.MainActivity||||||||
-1|Samsung_Utilities|7|NA|vrec|||Voice_Recorder|Voice_Recorder|com.sec.android.app.voicenote|com.sec.android.app.voicenote.main.MainActivity||||||||
-2|Samsung_Life|1|NA|hlth|||Samsung_Health|Samsung_Health|com.sec.android.app.shealth|com.samsung.android.app.shealth.home.HomeMainActivity||||||||
-2|Samsung_Life|2|NA|smpay|||Samsung_Wallet_(Pay)|Samsung_Wallet|com.samsung.android.spay|com.samsung.android.spay.ui.SpayMainActivity||||||||
-2|Samsung_Life|3|NA|mem|||Samsung_Members|Members|com.samsung.android.voc|com.samsung.android.voc.LauncherActivity||||||||
-3|Samsung_Media|1|NA|mda|||Samsung_Gallery|Gallery|com.sec.android.gallery3d|com.samsung.android.gallery.app.activity.GalleryActivity||||||||
-3|Samsung_Media|2|NA|vdo|||Samsung_Video_Player|Video_Player|com.samsung.android.video|com.samsung.android.video.player.activity.MoviePlayer||||||||
-3|Samsung_Media|3|NA|msc|||Samsung_Music|Samsung_Music|com.sec.android.app.music|com.sec.android.app.music.common.activity.MusicMainActivity||||||||
-3|Samsung_Media|4|NA|news|||Samsung_News|Samsung_News|com.samsung.android.app.spage|com.samsung.android.app.spage.main.LauncherActivity||||||||
-3|Samsung_Media|5|NA|gming|||Samsung Gaming Hub|Gaming Hub|com.samsung.android.game.gamehome|com.samsung.android.game.gamehome.app.MainActivity||||||||
-4|Samsung_Devices|1|NA|smts|||SmartThings|SmartThings|com.samsung.android.oneconnect|com.samsung.android.oneconnect.ui.SCMainActivity||||||||
-4|Samsung_Devices|2|NA|wear|||Galaxy_Wearable|Galaxy_Wearable|com.samsung.android.app.watchmanager|com.samsung.android.app.watchmanager.setupwizard.SetupWizardWelcomeActivity||||||||
-4|Samsung_Devices|3|NA|tutor|||Smart_Tutor_(Remote_Support)|Smart_Tutor|com.rsupport.rs.activity.rsupport.aas2|com.rsupport.rs.activity.edit.IntroActivity||||||||
-5|Samsung_Tools|1|NA|note|||Samsung_Notes|Samsung_Notes|com.samsung.android.app.notes|com.samsung.android.app.notes.memolist.MemoListActivity||||||||
-5|Samsung_Tools|1|NA|remind|||Samsung_Reminder|Reminder|com.samsung.android.app.reminder|com.samsung.android.app.reminder.ui.LaunchMainActivity||||||||
+"CATNO","COMNO","CATNAME","TYPE","COM","COM2","COM3","HUDNAME","UINAME","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE","FLAG","EX","EXTRA"
+1,1,"Samsung Utilities","NA","files",,,"My Files","My Files","com.sec.android.app.myfiles",".ui.MainActivity",,,,,,,,
+1,2,"Samsung Utilities","NA","clock",,,"Samsung Clock","Clock","com.sec.android.app.clockpackage",".ClockPackage",,,,,,,,
+1,3,"Samsung Utilities","NA","calen",,,"Samsung Calendar","Calendar","com.samsung.android.calendar",".activity.MainActivity",,,,,,,,
+1,4,"Samsung Utilities","NA","calc",,,"Calculator","Calculator","com.sec.android.app.popupcalculator",".Calculator",,,,,,,,
+1,5,"Samsung Utilities","NA","smshop",,,"Galaxy Store","Galaxy Store","com.sec.android.app.samsungapps",".SamsungAppsMainActivity",,,,,,,,
+1,6,"Samsung Utilities","NA","wther",,,"Samsung Weather","Weather","com.sec.android.daemonapp",".app.MainActivity",,,,,,,,
+1,7,"Samsung Utilities","NA","vrec",,,"Voice Recorder","Voice Recorder","com.sec.android.app.voicenote",".main.MainActivity",,,,,,,,
+2,1,"Samsung Life","NA","hlth",,,"Samsung Health","Samsung Health","com.sec.android.app.shealth",".home.HomeMainActivity",,,,,,,,
+2,2,"Samsung Life","NA","smpay",,,"Samsung Wallet (Pay)","Samsung Wallet","com.samsung.android.spay",".ui.SpayMainActivity",,,,,,,,
+2,3,"Samsung Life","NA","mem",,,"Samsung Members","Members","com.samsung.android.voc",".LauncherActivity",,,,,,,,
+3,1,"Samsung Media","NA","mda",,,"Samsung Gallery","Gallery","com.sec.android.gallery3d","com.samsung.android.gallery.app.activity.GalleryActivity",,,,,,,,
+3,2,"Samsung Media","NA","vdo",,,"Samsung Video Player","Video Player","com.samsung.android.video",".player.activity.MoviePlayer",,,,,,,,
+3,3,"Samsung Media","NA","msc",,,"Samsung Music","Samsung Music","com.sec.android.app.music",".common.activity.MusicMainActivity",,,,,,,,
+3,4,"Samsung Media","NA","news",,,"Samsung News","Samsung News","com.samsung.android.app.spage",".main.LauncherActivity",,,,,,,,
+3,5,"Samsung Media","NA","gming",,,"Samsung Gaming Hub","Gaming Hub","com.samsung.android.game.gamehome",".app.MainActivity",,,,,,,,
+4,1,"Samsung Devices","NA","smts",,,"SmartThings","SmartThings","com.samsung.android.oneconnect",".ui.SCMainActivity",,,,,,,,
+4,2,"Samsung Devices","NA","wear",,,"Galaxy Wearable","Galaxy Wearable","com.samsung.android.app.watchmanager",".setupwizard.SetupWizardWelcomeActivity",,,,,,,,
+4,3,"Samsung Devices","NA","tutor",,,"Smart Tutor (Remote Support)","Smart Tutor","com.rsupport.rs.activity.rsupport.aas2","com.rsupport.rs.activity.edit.IntroActivity",,,,,,,,
+5,1,"Samsung Tools","NA","note",,,"Samsung Notes","Samsung Notes","com.samsung.android.app.notes",".memolist.MemoListActivity",,,,,,,,
+5,1,"Samsung Tools","NA","remind",,,"Samsung Reminder","Reminder","com.samsung.android.app.reminder",".ui.LaunchMainActivity",,,,,,,,
