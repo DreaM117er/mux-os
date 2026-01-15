@@ -108,7 +108,7 @@ function _mux_neural_data() {
     return 0
 }
 
-# 瀏覽器網址搜尋引擎 - https://engine.com/search?q=
+# 瀏覽器網址搜尋引擎
 export SEARCH_GOOGLE="https://www.google.com/search?q="
 export SEARCH_BING="https://www.bing.com/search?q="
 export SEARCH_DUCK="https://duckduckgo.com/?q="
@@ -125,18 +125,23 @@ function _resolve_smart_url() {
     __GO_TARGET=""
     __GO_MODE="launch"
 
-    if [[ "$input" == http* ]]; then
-        __GO_TARGET="$input"
+    # [情境 A: 絕對路徑]
+    if [[ "$raw_input" == http* ]]; then
+        __GO_TARGET="$raw_input"
     
-    elif echo "$input" | grep -P -q '[^\x00-\x7F]'; then
-        __GO_TARGET="${search_engine}${input}"
+    # [情境 B: 中文/非 ASCII]
+    elif echo "$raw_input" | grep -P -q '[^\x00-\x7F]'; then
+        __GO_TARGET="${search_engine}${safe_query}"
         __GO_MODE="neural"
 
-    elif [[ "$input" == *.* ]] && [[ "$input" != *" "* ]]; then
-        __GO_TARGET="https://$input"
+    # [情境 C: 網域特徵識別] 
+    elif [[ "$raw_input" == www.* ]] || \
+         echo "$raw_input" | grep -qE "\.(com|net|org|edu|gov|io|tw|jp|cn|hk|uk|us|xyz|info|biz|me|top)$"; then
+        __GO_TARGET="https://$raw_input"
     
+    # [情境 D: 預設 fallback] 
     else
-        __GO_TARGET="${search_engine}${input}"
+        __GO_TARGET="${search_engine}${safe_query}"
         __GO_MODE="neural"
     fi
 }
@@ -662,7 +667,7 @@ function command_not_found_handle() {
     
     # 呼叫雙重鎖定掃描 (傳入 COM 和 COM2)
     if ! _mux_neural_data "$input_signal" "$input_sub"; then
-        echo "bash: $input_signal: command not found"
+        _bot_say "error" "[$input_signal] command not found."
         return 127
     fi
 
@@ -677,25 +682,77 @@ function command_not_found_handle() {
             fi
             ;;
 
-        "NB" | "ND") 
-            if [[ "$_VAL_URI" == *"\$query"* ]]; then
-                if [ -n "$_VAL_COM2" ]; then
-                    local real_args="${*:3}"
-                    if [ -z "$real_args" ]; then
-                        _bot_say "error" "Argument required for: $_VAL_COM $_VAL_COM2"
-                        return 1
-                    fi
-                    _VAL_URI="${_VAL_URI//\$query/$real_args}"
-                else
-                    if [ -z "$input_args" ]; then
-                        _bot_say "error" "Argument required for: $_VAL_COM"
-                        return 1
-                    fi
-                    _VAL_URI="${_VAL_URI//\$query/$input_args}"
+        "NB") 
+            local real_args=""
+            if [ -n "$_VAL_COM2" ]; then
+                real_args="${*:3}"
+            else
+                real_args="$input_args"
+            fi
+
+            if [ -z "$real_args" ]; then
+                if [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
+                    _VAL_URI=""
+                    _launch_android_app
+                    return 0
                 fi
+
+                _bot_say "error" "Strict Protocol: Search parameter required for $_VAL_COM."
+                return 1
+            fi
+
+            if [ -z "$_VAL_IHEAD" ] || [ -z "$_VAL_IBODY" ]; then
+                _bot_say "error" "System Integrity: Malformed Intent (Missing HEAD/BODY)."
+                return 1
+            fi
+            local final_action="${_VAL_IHEAD}${_VAL_IBODY}"
+
+            local final_uri=""
+            local safe_args="${real_args// /+}"
+
+            if [[ "$_VAL_URI" == *"\$__GO_TARGET"* ]]; then
+                if [ -n "$_VAL_ENGINE" ]; then
+                    _resolve_smart_url "$_VAL_ENGINE" "$real_args"
+                    final_uri="$__GO_TARGET"
+                    
+                    if [ "$__GO_MODE" == "neural" ]; then
+                         _bot_say "neural" "Searching: $real_args"
+                    else
+                         _bot_say "launch" "Targeting: $final_uri"
+                    fi
+                else
+                    _bot_say "error" "Configuration Error: Missing ENGINE data."
+                    return 1
+                fi
+
+            elif [[ "$_VAL_URI" == *"\$query"* ]]; then
+                final_uri="${_VAL_URI//\$query/$safe_args}"
+                _bot_say "neural" "Navigating: $real_args"
+            
+            else
+                final_uri="$_VAL_URI"
+                _bot_say "launch" "Executing: $_VAL_COM"
+            fi
+
+            local cmd="am start --user 0 -a \"$final_action\""
+
+            if [ -n "$_VAL_PKG" ]; then
+                cmd="$cmd -p $_VAL_PKG"
+            fi
+
+            if [ -n "$final_uri" ]; then
+                cmd="$cmd -d \"$final_uri\""
+            fi
+
+            if [ -n "$_VAL_EX" ]; then
+                cmd="$cmd $_VAL_EX"
             fi
             
-            _launch_android_app
+            if [ -n "$_VAL_EXTRA" ]; then
+                cmd="$cmd $_VAL_EXTRA"
+            fi
+
+            eval "$cmd" >/dev/null 2>&1
             ;;
 
         "SYS")
