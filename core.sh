@@ -705,52 +705,44 @@ function command_not_found_handle() {
             fi
             local final_action="${_VAL_IHEAD}${_VAL_IBODY}"
 
-            local final_uri=""
             local safe_args="${real_args// /+}"
+            local clean_args="${real_args//\"/\\\"}"
+            
+            local final_uri=""
 
             if [[ "$_VAL_URI" == *"\$__GO_TARGET"* ]]; then
-                if [ -n "$_VAL_ENGINE" ]; then
+                 if [ -n "$_VAL_ENGINE" ]; then
                     local real_engine=$(eval echo "$_VAL_ENGINE")
-                    
                     _resolve_smart_url "$real_engine" "$real_args"
                     final_uri="$__GO_TARGET"
                     
                     if [ "$__GO_MODE" == "neural" ]; then
-                         _bot_say "neural" "Searching: [$real_args]"
+                         _bot_say "neural" "Searching: $real_args"
                     else
-                         _bot_say "launch" "Targeting: [$final_uri]"
+                         _bot_say "launch" "Targeting: $final_uri"
                     fi
-                else
+                 else
                     _bot_say "error" "Configuration Error: Missing ENGINE data."
                     return 1
-                fi
-
+                 fi
             elif [[ "$_VAL_URI" == *"\$query"* ]]; then
                 final_uri="${_VAL_URI//\$query/$safe_args}"
-                _bot_say "neural" "Navigating: [$real_args]"
-            
+                _bot_say "neural" "Navigating: $real_args"
             else
                 final_uri="$_VAL_URI"
-                _bot_say "launch" "Executing: [$_VAL_COM]"
+                _bot_say "neural" "Executing: $real_args"
+            fi
+
+            if [[ "$_VAL_EXTRA" == *"\$query"* ]]; then
+                _VAL_EXTRA="${_VAL_EXTRA//\$query/\\\"$clean_args\\\"}"
             fi
 
             local cmd="am start --user 0 -a \"$final_action\""
-
-            if [ -n "$_VAL_PKG" ]; then
-                cmd="$cmd -p $_VAL_PKG"
-            fi
-
-            if [ -n "$final_uri" ]; then
-                cmd="$cmd -d \"$final_uri\""
-            fi
-
-            if [ -n "$_VAL_EX" ]; then
-                cmd="$cmd $_VAL_EX"
-            fi
+            if [ -n "$_VAL_PKG" ]; then cmd="$cmd -p $_VAL_PKG"; fi
+            if [ -n "$final_uri" ]; then cmd="$cmd -d \"$final_uri\""; fi
+            if [ -n "$_VAL_EX" ]; then cmd="$cmd $_VAL_EX"; fi
             
-            if [ -n "$_VAL_EXTRA" ]; then
-                cmd="$cmd $_VAL_EXTRA"
-            fi
+            if [ -n "$_VAL_EXTRA" ]; then cmd="$cmd $_VAL_EXTRA"; fi
 
             eval "$cmd" >/dev/null 2>&1
             ;;
