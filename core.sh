@@ -707,11 +707,20 @@ function command_not_found_handle() {
 
             # .WEB_SEARCH
             if [[ "$final_action" == *".WEB_SEARCH"* ]]; then
+                
                 local raw_input=$(echo "$real_args" | sed 'y/。．/../' | sed 's/　/ /g')
                 local safe_query="${raw_input//\"/\\\"}"
                 
                 _bot_say "neural" "Payload: Raw Search >> $safe_query"
-                eval "am start --user 0 -a $final_action -e query \"$safe_query\"" >/dev/null 2>&1
+                
+                local cmd="am start --user 0 -a $final_action -e query \"$safe_query\""
+                
+                if [ -n "$_VAL_PKG" ]; then
+                    cmd="$cmd -p $_VAL_PKG"
+                fi
+                
+                # FIRE THE COMMAND
+                eval "$cmd" >/dev/null 2>&1
                 return 0
             fi
             
