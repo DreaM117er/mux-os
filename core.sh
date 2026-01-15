@@ -688,29 +688,37 @@ function command_not_found_handle() {
                 real_args="$input_args"
             fi
 
+            # [捷徑邏輯]
             if [ -z "$real_args" ]; then
                 if [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
                     _VAL_URI=""
                     _launch_android_app
                     return 0
                 fi
-
                 _bot_say "error" "Strict Protocol: Search parameter required for $_VAL_COM."
                 return 1
             fi
 
+            # [完整性檢查]
             if [ -z "$_VAL_IHEAD" ] || [ -z "$_VAL_IBODY" ]; then
                 _bot_say "error" "System Integrity: Malformed Intent (Missing HEAD/BODY)."
                 return 1
             fi
             local final_action="${_VAL_IHEAD}${_VAL_IBODY}"
 
+            # --- [NEW] 參數注入處理中心 (Parameter Injection Hub) ---
+            
+            # 1. 準備兩種參數格式
+            # safe_args: 用於 URL (空白轉 +)
+            # clean_args: 用於 Extra (保留空白，但轉義引號以免崩潰)
             local safe_args="${real_args// /+}"
-            local clean_args="${real_args//\"/\\\"}"
+            local clean_args="${real_args//\"/\\\"}" # Escape double quotes
             
             local final_uri=""
 
+            # 2. URI 注入 (給 VIEW / Maps 用)
             if [[ "$_VAL_URI" == *"\$__GO_TARGET"* ]]; then
+                 # Smart URL Mode
                  if [ -n "$_VAL_ENGINE" ]; then
                     local real_engine=$(eval echo "$_VAL_ENGINE")
                     _resolve_smart_url "$real_engine" "$real_args"
@@ -726,22 +734,31 @@ function command_not_found_handle() {
                     return 1
                  fi
             elif [[ "$_VAL_URI" == *"\$query"* ]]; then
+                # Template Injection Mode
                 final_uri="${_VAL_URI//\$query/$safe_args}"
                 _bot_say "neural" "Navigating: $real_args"
             else
                 final_uri="$_VAL_URI"
+                # 如果 URI 沒用到參數，那這可能是一個 WEB_SEARCH，我們在這裡報備
                 _bot_say "neural" "Executing: $real_args"
             fi
 
+            # 3. [NEW] EXTRA 注入 (給 WEB_SEARCH 用)
+            # 這段邏輯會掃描 EXTRA 欄位，如果有 $query 就替換掉
             if [[ "$_VAL_EXTRA" == *"\$query"* ]]; then
+                # 這裡最關鍵：我們手動加上轉義過的引號 \"...\"
+                # CSV 裡只要寫: query $query
+                # 這裡會變成: query "使用者輸入的內容"
                 _VAL_EXTRA="${_VAL_EXTRA//\$query/\\\"$clean_args\\\"}"
             fi
 
+            # --- 指令組裝 ---
             local cmd="am start --user 0 -a \"$final_action\""
             if [ -n "$_VAL_PKG" ]; then cmd="$cmd -p $_VAL_PKG"; fi
             if [ -n "$final_uri" ]; then cmd="$cmd -d \"$final_uri\""; fi
             if [ -n "$_VAL_EX" ]; then cmd="$cmd $_VAL_EX"; fi
             
+            # EXTRA 直接拼接 (因為我們已經在上面處理好引號了)
             if [ -n "$_VAL_EXTRA" ]; then cmd="$cmd $_VAL_EXTRA"; fi
 
             eval "$cmd" >/dev/null 2>&1
