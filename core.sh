@@ -119,8 +119,8 @@ export __GO_TARGET=""
 export __GO_MODE=""
 
 function _resolve_smart_url() {
-    local search_engine="$1"
-    local raw_input="${*:2}"
+    raw_input=$(echo "$raw_input" | sed 'y/。．/../' | sed 's/　/ /g')
+
     local safe_query="${raw_input// /+}"
 
     __GO_TARGET=""
@@ -134,6 +134,7 @@ function _resolve_smart_url() {
         __GO_MODE="neural"
 
     elif [[ "$raw_input" == www.* ]] || \
+         [[ "$raw_input" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || \
          echo "$raw_input" | grep -qE "\.(com|net|org|edu|gov|io|tw|jp|cn|hk|uk|us|xyz|info|biz|me|top)$"; then
         __GO_TARGET="https://$raw_input"
     
@@ -715,9 +716,9 @@ function command_not_found_handle() {
                     final_uri="$__GO_TARGET"
                     
                     if [ "$__GO_MODE" == "neural" ]; then
-                         _bot_say "neural" "Searching: $real_args"
+                         _bot_say "neural" "Searching: [$real_args]"
                     else
-                         _bot_say "launch" "Targeting: $final_uri"
+                         _bot_say "launch" "Targeting: [$final_uri]"
                     fi
                 else
                     _bot_say "error" "Configuration Error: Missing ENGINE data."
@@ -726,11 +727,11 @@ function command_not_found_handle() {
 
             elif [[ "$_VAL_URI" == *"\$query"* ]]; then
                 final_uri="${_VAL_URI//\$query/$safe_args}"
-                _bot_say "neural" "Navigating: $real_args"
+                _bot_say "neural" "Navigating: [$real_args]"
             
             else
                 final_uri="$_VAL_URI"
-                _bot_say "launch" "Executing: $_VAL_COM"
+                _bot_say "launch" "Executing: [$_VAL_COM]"
             fi
 
             local cmd="am start --user 0 -a \"$final_action\""
