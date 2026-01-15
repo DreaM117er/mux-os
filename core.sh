@@ -120,26 +120,23 @@ export __GO_MODE=""
 
 function _resolve_smart_url() {
     local search_engine="$1"
-    local input="${*:2}"
+    local raw_input="${*:2}"
+    local safe_query="${raw_input// /+}"
 
     __GO_TARGET=""
     __GO_MODE="launch"
 
-    # [情境 A: 絕對路徑]
     if [[ "$raw_input" == http* ]]; then
         __GO_TARGET="$raw_input"
     
-    # [情境 B: 中文/非 ASCII]
     elif echo "$raw_input" | grep -P -q '[^\x00-\x7F]'; then
         __GO_TARGET="${search_engine}${safe_query}"
         __GO_MODE="neural"
 
-    # [情境 C: 網域特徵識別] 
     elif [[ "$raw_input" == www.* ]] || \
          echo "$raw_input" | grep -qE "\.(com|net|org|edu|gov|io|tw|jp|cn|hk|uk|us|xyz|info|biz|me|top)$"; then
         __GO_TARGET="https://$raw_input"
     
-    # [情境 D: 預設 fallback] 
     else
         __GO_TARGET="${search_engine}${safe_query}"
         __GO_MODE="neural"
