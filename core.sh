@@ -709,7 +709,9 @@ function command_not_found_handle() {
 
             if [[ "$_VAL_URI" == *"\$__GO_TARGET"* ]]; then
                 if [ -n "$_VAL_ENGINE" ]; then
-                    _resolve_smart_url "$_VAL_ENGINE" "$real_args"
+                    local real_engine=$(eval echo "$_VAL_ENGINE")
+                    
+                    _resolve_smart_url "$real_engine" "$real_args"
                     final_uri="$__GO_TARGET"
                     
                     if [ "$__GO_MODE" == "neural" ]; then
