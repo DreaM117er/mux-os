@@ -222,7 +222,7 @@ function _mux_dynamic_help_core() {
             if ($0 ~ /"/) {
                 split($0, parts, "\"");
                 cmd_name = parts[2];
-                printf "    \033[1;36m%-10s\033[0m : %s\n", cmd_name, desc;
+                printf "    \033[1;36m%-10s\033[0m%s\n", cmd_name, desc;
             }
         }
     }
@@ -246,7 +246,7 @@ echo -e "\033[1;35m :: Mux-OS Factory Protocols ::\033[0m"
             if ($0 ~ /"/) {
                 split($0, parts, "\"");
                 cmd_name = parts[2];
-                printf "    \033[1;38;5;208m%-10s\033[0m : %s\n", cmd_name, desc;
+                printf "    \033[1;38;5;208m%-10s\033[0m%s\n", cmd_name, desc;
             }
         }
     }
@@ -281,7 +281,6 @@ function _show_menu_dashboard() {
 
     local data_files=("$SYSTEM_MOD" "$VENDOR_MOD" "$target_app_file")
 
-    echo ""
     echo -e " ${C_TITLE}${title_text}${C_RST}"
 
     local collision_list=$(awk -v FPAT='([^,]*)|("[^"]+")' '
@@ -352,9 +351,7 @@ function _show_menu_dashboard() {
     # 3. 渲染
     awk -F'|' -v C_CAT="$C_CAT" -v C_COM="$C_COM" -v C_SUB="$C_SUB" -v C_DESC="$C_DESC" -v C_RST="$C_RST" '
         {
-            # file_idx = $1
             cat_no = $2
-            # com_no = $3
             cat_name = $4
             com = $5
             com2 = $6
@@ -369,11 +366,10 @@ function _show_menu_dashboard() {
             if (com2 == "") {
                 printf "    %s%-10s%s %s%s%s\n", C_COM, com, C_RST, C_DESC, desc, C_RST
             } else {
-                printf "    %s%s %s%-10s %s%s%s\n", C_COM, com, C_SUB, com2, C_RST " ", C_DESC, desc, C_RST
+                printf "    %s%s %s%-8s %s%s%s\n", C_COM, com, C_SUB, com2, C_RST " ", C_DESC, desc, C_RST
             }
         }
     '
-    echo ""
 }
 
 # 模糊指令選單介面 - Fuzzy Command Menu Interface
