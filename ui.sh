@@ -287,11 +287,16 @@ function _show_menu_dashboard() {
     local collision_list=$(awk -v FPAT='([^,]*)|("[^"]+")' '
         !/^#/ && NF >= 5 {
             cmd = $5; gsub(/^"|"$/, "", cmd)
-            sub = $6; gsub(/^"|"$/, "", sub)
             
+            sub_cmd = ""
+            
+            if (NF >= 6) {
+                sub_cmd = $6; gsub(/^"|"$/, "", sub_cmd)
+            }
+
             if (cmd != "") {
-                if (sub != "") {
-                    key = cmd " [" sub "]"
+                if (length(sub_cmd) > 0) {
+                    key = cmd " [" sub_cmd "]"
                 } else {
                     key = cmd
                 }
@@ -306,12 +311,12 @@ function _show_menu_dashboard() {
         }
     ' "${data_files[@]}")
 
-    # 發現衝突，紅色警報
+    # 如果發現衝突，顯示紅色警報
     if [ -n "$collision_list" ]; then
         echo ""
         echo -e " ${C_WARN}:: SYSTEM INTEGRITY WARNING :: Command Conflict Detected${C_RST}"
         echo -e " ${C_WARN}   Duplicate Entries: ${collision_list}${C_RST}"
-        echo -e " ${C_DESC}   (Please remove duplicates from app.csv or vendor.csv)${C_RST}"
+        echo -e " ${C_DESC}   (Please remove duplicates from app.csv)${C_RST}"
     fi
     
     echo ""
@@ -360,9 +365,9 @@ function _show_menu_dashboard() {
             }
 
             if (com2 == "") {
-                printf "    %s%-12s%s %s%s%s\n", C_COM, com, C_RST, C_DESC, desc, C_RST
+                printf "    %s%-16s%s %s%s%s\n", C_COM, com, C_RST, C_DESC, desc, C_RST
             } else {
-                printf "    %s%-6s %s[%s] %s%s%s\n", C_COM, com, C_SUB, com2, C_RST " ", C_DESC, desc, C_RST
+                printf "    %s%-8s %s%s %s%s%s\n", C_COM, com, C_SUB, com2, C_RST " ", C_DESC, desc, C_RST
             }
         }
     '
