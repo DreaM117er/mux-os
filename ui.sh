@@ -258,7 +258,7 @@ function _show_menu_dashboard() {
     local search_filter="$1"
     
     local target_app_file="$APP_MOD"
-    local title_text="[ Mux-OS Command Center ]"
+    local title_text=" :: Mux-OS Command Center ::"
     
     local C_TITLE="\033[1;35m"
     local C_CAT="\033[1;33m"
@@ -269,7 +269,7 @@ function _show_menu_dashboard() {
     local C_RST="\033[0m"
 
     if [ "$__MUX_MODE" == "factory" ]; then
-        title_text="[ Factory Sandbox Manifest ]"
+        title_text=" :: Factory Sandbox Manifest ::"
         C_TITLE="\033[1;35m"
         C_CAT="\033[1;31m"
         C_COM="\033[1;37m"
@@ -282,14 +282,15 @@ function _show_menu_dashboard() {
     local data_files=("$SYSTEM_MOD" "$VENDOR_MOD" "$target_app_file")
 
     echo ""
+    _draw_logo "core"
     echo -e " ${C_TITLE}${title_text}${C_RST}"
 
     local collision_list=$(awk -v FPAT='([^,]*)|("[^"]+")' '
-        !/^#/ && NF >= 5 {
+        !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
+            
             cmd = $5; gsub(/^"|"$/, "", cmd)
             
             sub_cmd = ""
-            
             if (NF >= 6) {
                 sub_cmd = $6; gsub(/^"|"$/, "", sub_cmd)
             }
@@ -300,7 +301,7 @@ function _show_menu_dashboard() {
                 } else {
                     key = cmd
                 }
-                
+
                 count[key]++
             }
         }
@@ -311,7 +312,7 @@ function _show_menu_dashboard() {
         }
     ' "${data_files[@]}")
 
-    # 如果發現衝突，顯示紅色警報
+    # 顯示衝突警報
     if [ -n "$collision_list" ]; then
         echo ""
         echo -e " ${C_WARN}:: SYSTEM INTEGRITY WARNING :: Command Conflict Detected${C_RST}"
@@ -352,12 +353,14 @@ function _show_menu_dashboard() {
     # 3. 渲染
     awk -F'|' -v C_CAT="$C_CAT" -v C_COM="$C_COM" -v C_SUB="$C_SUB" -v C_DESC="$C_DESC" -v C_RST="$C_RST" '
         {
+            # file_idx = $1
             cat_no = $2
+            # com_no = $3
             cat_name = $4
             com = $5
             com2 = $6
             desc = $7
-            
+
             if (cat_no != last_cat_no) {
                 if (NR > 1) print ""
                 print " " C_CAT ":: " cat_name " ::" C_RST
@@ -365,9 +368,9 @@ function _show_menu_dashboard() {
             }
 
             if (com2 == "") {
-                printf "    %s%-16s%s %s%s%s\n", C_COM, com, C_RST, C_DESC, desc, C_RST
+                printf "    %s%-14s%s %s%s%s\n", C_COM, com, C_RST, C_DESC, desc, C_RST
             } else {
-                printf "    %s%-8s %s%s %s%s%s\n", C_COM, com, C_SUB, com2, C_RST " ", C_DESC, desc, C_RST
+                printf "    %s%-7s %s%-7s %s%s%s\n", C_COM, com, C_SUB, com2, C_RST " ", C_DESC, desc, C_RST
             }
         }
     '
