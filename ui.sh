@@ -369,7 +369,7 @@ function _show_menu_dashboard() {
             if (com2 == "") {
                 printf "    %s%-10s%s %s%s%s\n", C_COM, com, C_RST, C_DESC, desc, C_RST
             } else {
-                printf "    %s%-8s %s%-8s %s%s%s\n", C_COM, com, C_SUB, com2, C_RST " ", C_DESC, desc, C_RST
+                printf "    %s%s %s%-10s %s%s%s\n", C_COM, com, C_SUB, com2, C_RST " ", C_DESC, desc, C_RST
             }
         }
     '
