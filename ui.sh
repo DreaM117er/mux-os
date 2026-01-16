@@ -255,6 +255,8 @@ echo -e "\033[1;35m :: Mux-OS Factory Protocols ::\033[0m"
 
 # 顯示指令選單儀表板 - Display Command Menu Dashboard
 function _show_menu_dashboard() {
+    local search_filter="$1"
+    
     local target_app_file="$APP_MOD"
     local title_text="[ Mux-OS Command Center ]"
     
@@ -263,15 +265,15 @@ function _show_menu_dashboard() {
     local C_COM="\033[1;36m"
     local C_SUB="\033[1;34m"
     local C_DESC="\033[1;30m"
+    local C_WARN="\033[1;31m"
     local C_RST="\033[0m"
 
     if [ "$__MUX_MODE" == "factory" ]; then
         title_text="[ Factory Sandbox Manifest ]"
-        
         C_TITLE="\033[1;35m"
         C_CAT="\033[1;31m"
         C_COM="\033[1;37m"
-
+        
         if [ -f "$MUX_ROOT/app.csv.temp" ]; then
             target_app_file="$MUX_ROOT/app.csv.temp"
         fi
@@ -280,35 +282,70 @@ function _show_menu_dashboard() {
     local data_files=("$SYSTEM_MOD" "$VENDOR_MOD" "$target_app_file")
 
     echo ""
+    _draw_logo "core"
     echo -e " ${C_TITLE}${title_text}${C_RST}"
-    echo ""
 
-    awk -v FPAT='([^,]*)|("[^"]+")' '
+    local collision_list=$(awk -v FPAT='([^,]*)|("[^"]+")' '
         !/^#/ && NF >= 5 {
-            cat_no = $1;  gsub(/^"|"$/, "", cat_no)
-            com_no = $2;  gsub(/^"|"$/, "", com_no)
-            cat_name = $3; gsub(/^"|"$/, "", cat_name)
-            com = $5;     gsub(/^"|"$/, "", com)
-            com2 = $6;    gsub(/^"|"$/, "", com2)
-            desc = $8;    gsub(/^"|"$/, "", desc) # HUDNAME
-
-            if (cat_no == "") cat_no = 99
-            if (com_no == "") com_no = 99
-            if (desc == "") desc = "System Command"
-
-            printf "%03d|%03d|%s|%s|%s|%s\n", cat_no, com_no, cat_name, com, com2, desc
+            cmd = $5; gsub(/^"|"$/, "", cmd)
+            
+            if (cmd != "") {
+                count[cmd]++
+            }
         }
-    ' "${data_files[@]}" | \
-    sort -t'|' -k1,1n -k2,2n | \
+        END {
+            for (c in count) {
+                if (count[c] > 1) printf "%s ", c
+            }
+        }
+    ' "${data_files[@]}")
+
+    if [ -n "$collision_list" ]; then
+        echo ""
+        echo -e " ${C_WARN}:: SYSTEM INTEGRITY WARNING :: Command Conflict Detected${C_RST}"
+        echo -e " ${C_WARN}   Duplicate Comms: [ ${collision_list}]${C_RST}"
+        echo -e " ${C_DESC}   (Please remove duplicates from app.csv or vendor.csv)${C_RST}"
+    fi
+    
+    echo ""
+    
+    # 1. 預處理迴圈
+    for ((i=0; i<${#data_files[@]}; i++)); do
+        file="${data_files[$i]}"
+        
+        if [ -f "$file" ]; then
+            awk -v FPAT='([^,]*)|("[^"]+")' -v FILE_IDX="$i" '
+                !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
+                    
+                    cat_no = $1;  gsub(/^"|"$/, "", cat_no)
+                    com_no = $2;  gsub(/^"|"$/, "", com_no)
+                    cat_name = $3; gsub(/^"|"$/, "", cat_name)
+                    com = $5;     gsub(/^"|"$/, "", com)
+                    com2 = $6;    gsub(/^"|"$/, "", com2)
+                    desc = $8;    gsub(/^"|"$/, "", desc)
+
+                    if (cat_no == "") cat_no = 99
+                    if (com_no == "") com_no = 99
+                    if (desc == "") desc = "System Command"
+
+                    printf "%d|%03d|%03d|%s|%s|%s|%s\n", FILE_IDX, cat_no, com_no, cat_name, com, com2, desc
+                }
+            ' "$file"
+        fi
+    done | \
+    
+    # 2. 排序
+    sort -t'|' -k1,1n -k2,2n -k3,3n | \
+    
+    # 3. 渲染
     awk -F'|' -v C_CAT="$C_CAT" -v C_COM="$C_COM" -v C_SUB="$C_SUB" -v C_DESC="$C_DESC" -v C_RST="$C_RST" '
         {
-            cat_no = $1
-            # com_no = $2
-            cat_name = $3
-            com = $4
-            com2 = $5
-            desc = $6
-
+            cat_no = $2
+            cat_name = $4
+            com = $5
+            com2 = $6
+            desc = $7
+            
             if (cat_no != last_cat_no) {
                 if (NR > 1) print ""
                 print " " C_CAT ":: " cat_name " ::" C_RST
