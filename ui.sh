@@ -264,7 +264,7 @@ function _show_menu_dashboard() {
     local C_CAT="\033[1;33m"
     local C_COM="\033[1;36m"
     local C_SUB="\033[1;34m"
-    local C_DESC="\033[1;30m"
+    local C_DESC="\033[0;37m"
     local C_WARN="\033[1;31m"
     local C_RST="\033[0m"
 
@@ -349,7 +349,7 @@ function _show_menu_dashboard() {
     sort -t'|' -k1,1n -k2,2n -k3,3n | \
     
     # 3. 渲染
-    awk -F'|' -v C_CAT="$C_CAT" -v C_COM="$C_COM" -v C_SUB="$C_SUB" -v C_DESC="$C_DESC" -v C_RST="$C_RST" '
+    awk -F'|' -v C_CAT="$C_CAT" -v C_COM="$C_COM" -v C_SUB="$C_COM" -v C_DESC="$C_DESC" -v C_RST="$C_RST" '
         {
             cat_no = $2
             cat_name = $4
@@ -364,9 +364,9 @@ function _show_menu_dashboard() {
             }
 
             if (com2 == "") {
-                printf "    %s%-10s%s %s%s%s\n", C_COM, com, C_RST, C_DESC, desc, C_RST
+                printf "    %s%-9s%s %s%s%s\n", C_COM, com, C_RST, C_DESC, desc, C_RST
             } else {
-                printf "    %s%s %s%-8s %s%s%s\n", C_COM, com, C_SUB, com2, C_RST " ", C_DESC, desc, C_RST
+                printf "    %s%s %s%-7s %s%s%s\n", C_COM, com, C_SUB, com2, C_RST " ", C_DESC, desc, C_RST
             }
         }
     '
