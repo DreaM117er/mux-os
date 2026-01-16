@@ -255,67 +255,59 @@ echo -e "\033[1;35m :: Mux-OS Factory Protocols ::\033[0m"
 
 # 顯示指令選單儀表板 - Display Command Menu Dashboard
 function _show_menu_dashboard() {
-    local title_color="\033[1;33m"
-    local cat_color="\033[1;32m"
-    local func_color="\033[1;36m"
-    local target_file="$APP_MOD" 
-
-    if [ "$__MUX_MODE" == "factory" ]; then
-        title_color="\033[1;35m"
-        cat_color="\033[1;31m"
-        func_color="\033[1;37m"
-        target_file="$MUX_ROOT/app.sh.temp"
-        
-        echo -e "\n${title_color} [ Factory Sandbox Manifest ]${C_RESET}"
-    else
-        echo -e "\n${title_color} [ Mux-OS Command Center ]${C_RESET}"
-    fi
+    local search_filter="$1"
     
-    if [ ! -f "$target_file" ]; then
-        echo -e " :: Error: Target manifest not found ($target_file)"
-        return
-    fi
+    local data_files=("$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD")
+    
+    local C_CAT="\033[1;33m"  # 黃色：分類標題
+    local C_COM="\033[1;36m"  # 青色：主指令
+    local C_SUB="\033[1;34m"  # 藍色：子指令
+    local C_DESC="\033[1;30m" # 灰色：描述文字
+    local C_RST="\033[0m"
 
-    awk -v C_CAT="$cat_color" -v C_FUNC="$func_color" -v C_RST="\033[0m" '
-    BEGIN {
+    echo ""
+    _draw_logo "core"
+    echo ""
 
-    }
+    awk -v FPAT='([^,]*)|("[^"]+")' '
+        !/^#/ && NF >= 5 {
+            cat_no = $1;  gsub(/^"|"$/, "", cat_no)
+            com_no = $2;  gsub(/^"|"$/, "", com_no)
+            cat_name = $3; gsub(/^"|"$/, "", cat_name)
+            com = $5;     gsub(/^"|"$/, "", com)
+            com2 = $6;    gsub(/^"|"$/, "", com2)
+            desc = $8;    gsub(/^"|"$/, "", desc) # HUDNAME
 
-    /^# ===|^# ---/ {
-        clean_header = $0;
-        gsub(/^# |^#===|^#---|===|---|^-+|-+$|^\s+|\s+$/, "", clean_header);
-        if (length(clean_header) > 0 && clean_header !~ /^[=-]+$/) {
-             print "\n" C_CAT " [" clean_header "]" C_RST
+            if (cat_no == "") cat_no = 99
+            if (com_no == "") com_no = 99
+            if (desc == "") desc = "System Command"
+
+            printf "%03d|%03d|%s|%s|%s|%s\n", cat_no, com_no, cat_name, com, com2, desc
         }
-    }
-    
-    /^function / {
-        match($0, /function ([a-zA-Z0-9_]+)/, arr);
-        func_name = arr[1];
-        
-        if (substr(func_name, 1, 1) != "_") {
-            desc = "";
-            if (prev_line ~ /^# :/) {
-                desc = prev_line;
-                gsub(/^# : /, "", desc);
-            } else if (prev_line ~ /^# [0-9]+\./) {
-                desc = prev_line;
-                gsub(/^# [0-9]+\. /, "", desc);
+    ' "${data_files[@]}" | \
+    sort -t'|' -k1,1n -k2,2n | \
+    awk -F'|' -v C_CAT="$C_CAT" -v C_COM="$C_COM" -v C_SUB="$C_SUB" -v C_DESC="$C_DESC" -v C_RST="$C_RST" '
+        {
+            cat_no = $1
+            cat_name = $3
+            com = $4
+            com2 = $5
+            desc = $6
+
+            if (cat_no != last_cat_no) {
+                if (NR > 1) print ""
+                print " " C_CAT ":: " cat_name " ::" C_RST
+                last_cat_no = cat_no
             }
 
-            if (length(desc) > 38) {
-                desc = substr(desc, 1, 35) "..";
-            }
-
-            if (desc != "") {
-                printf "  " C_FUNC "%-12s" C_RST " %s\n", func_name, desc;
+            if (com2 == "") {
+                printf "    %s%-12s%s %s%s%s\n", C_COM, com, C_RST, C_DESC, desc, C_RST
+            } else {
+                printf "    %s%-6s %s[%s] %s%s%s\n", C_COM, com, C_SUB, com2, C_RST " ", C_DESC, desc, C_RST
             }
         }
-    }
-    { prev_line = $0 }
-    ' "$CORE_MOD" "$SYSTEM_MOD" "$target_file" "$VENDOR_MOD"
-    
-    echo -e "\n"
+    '
+    echo ""
 }
 
 # 模糊指令選單介面 - Fuzzy Command Menu Interface
