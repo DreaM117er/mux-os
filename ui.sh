@@ -255,18 +255,32 @@ echo -e "\033[1;35m :: Mux-OS Factory Protocols ::\033[0m"
 
 # 顯示指令選單儀表板 - Display Command Menu Dashboard
 function _show_menu_dashboard() {
-    local search_filter="$1"
+    local target_app_file="$APP_MOD"
+    local title_text="[ Mux-OS Command Center ]"
     
-    local data_files=("$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD")
-    
-    local C_CAT="\033[1;33m"  # 黃色：分類標題
-    local C_COM="\033[1;36m"  # 青色：主指令
-    local C_SUB="\033[1;34m"  # 藍色：子指令
-    local C_DESC="\033[1;30m" # 灰色：描述文字
+    local C_TITLE="\033[1;36m"
+    local C_CAT="\033[1;33m"
+    local C_COM="\033[1;36m"
+    local C_SUB="\033[1;34m"
+    local C_DESC="\033[1;30m"
     local C_RST="\033[0m"
 
+    if [ "$__MUX_MODE" == "factory" ]; then
+        title_text="[ Factory Sandbox Manifest ]"
+        
+        C_TITLE="\033[1;35m"
+        C_CAT="\033[1;31m"
+        C_COM="\033[1;37m"
+
+        if [ -f "$MUX_ROOT/app.csv.temp" ]; then
+            target_app_file="$MUX_ROOT/app.csv.temp"
+        fi
+    fi
+
+    local data_files=("$SYSTEM_MOD" "$VENDOR_MOD" "$target_app_file")
+
     echo ""
-    _draw_logo "core"
+    echo -e " ${C_TITLE}${title_text}${C_RST}"
     echo ""
 
     awk -v FPAT='([^,]*)|("[^"]+")' '
@@ -289,6 +303,7 @@ function _show_menu_dashboard() {
     awk -F'|' -v C_CAT="$C_CAT" -v C_COM="$C_COM" -v C_SUB="$C_SUB" -v C_DESC="$C_DESC" -v C_RST="$C_RST" '
         {
             cat_no = $1
+            # com_no = $2
             cat_name = $3
             com = $4
             com2 = $5
