@@ -258,7 +258,7 @@ function _show_menu_dashboard() {
     local search_filter="$1"
     
     local target_app_file="$APP_MOD"
-    local title_text=" :: Mux-OS Command Center ::"
+    local title_text=":: Mux-OS Command Center ::"
     
     local C_TITLE="\033[1;35m"
     local C_CAT="\033[1;33m"
@@ -269,7 +269,7 @@ function _show_menu_dashboard() {
     local C_RST="\033[0m"
 
     if [ "$__MUX_MODE" == "factory" ]; then
-        title_text=" :: Factory Sandbox Manifest ::"
+        title_text=":: Factory Sandbox Manifest ::"
         C_TITLE="\033[1;35m"
         C_CAT="\033[1;31m"
         C_COM="\033[1;37m"
@@ -282,7 +282,6 @@ function _show_menu_dashboard() {
     local data_files=("$SYSTEM_MOD" "$VENDOR_MOD" "$target_app_file")
 
     echo ""
-    _draw_logo "core"
     echo -e " ${C_TITLE}${title_text}${C_RST}"
 
     local collision_list=$(awk -v FPAT='([^,]*)|("[^"]+")' '
@@ -368,9 +367,9 @@ function _show_menu_dashboard() {
             }
 
             if (com2 == "") {
-                printf "    %s%-14s%s %s%s%s\n", C_COM, com, C_RST, C_DESC, desc, C_RST
+                printf "    %s%-10s%s %s%s%s\n", C_COM, com, C_RST, C_DESC, desc, C_RST
             } else {
-                printf "    %s%-7s %s%-7s %s%s%s\n", C_COM, com, C_SUB, com2, C_RST " ", C_DESC, desc, C_RST
+                printf "    %s%-8s %s%-8s %s%s%s\n", C_COM, com, C_SUB, com2, C_RST " ", C_DESC, desc, C_RST
             }
         }
     '
