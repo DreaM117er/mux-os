@@ -69,4 +69,4 @@
 15,1,"Diving Suite","NA","padi","main",,"PADI","PADI","com.duns.padiapp",".presentation.SplashActivity",,,,,,,,,
 15,2,"Diving Suite","NA","padi","adv",,"PADI Adv","PADI Adv","com.padi",".MainActivity",,,,,,,,,
 15,3,"Diving Suite","NA","padi","train",,"PADI Training","PADI Training","com.padi.learning.dev","com.duns.paditraining.SplashActivity",,,,,,,,,
-0,1,"Others","NA","console",,,"Console test (Debug)","Ghost App","com.ghost.not.exist","null",,,,,,,,,
+999,1,"Others","NA","console",,,"Console test (Debug)","Ghost App","com.ghost.not.exist","null",,,,,,,,,

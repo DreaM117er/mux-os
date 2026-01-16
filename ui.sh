@@ -335,7 +335,7 @@ function _show_menu_dashboard() {
                     com2 = $6;    gsub(/^"|"$/, "", com2)
                     desc = $8;    gsub(/^"|"$/, "", desc)
 
-                    if (cat_no == "") cat_no = 99
+                    if (cat_no == "") cat_no = 999
                     if (com_no == "") com_no = 99
                     if (desc == "") desc = "System Command"
 
