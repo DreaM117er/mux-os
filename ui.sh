@@ -260,7 +260,7 @@ function _show_menu_dashboard() {
     local target_app_file="$APP_MOD"
     local title_text="[ Mux-OS Command Center ]"
     
-    local C_TITLE="\033[1;36m"
+    local C_TITLE="\033[1;35m"
     local C_CAT="\033[1;33m"
     local C_COM="\033[1;36m"
     local C_SUB="\033[1;34m"
@@ -282,28 +282,35 @@ function _show_menu_dashboard() {
     local data_files=("$SYSTEM_MOD" "$VENDOR_MOD" "$target_app_file")
 
     echo ""
-    _draw_logo "core"
     echo -e " ${C_TITLE}${title_text}${C_RST}"
 
     local collision_list=$(awk -v FPAT='([^,]*)|("[^"]+")' '
         !/^#/ && NF >= 5 {
             cmd = $5; gsub(/^"|"$/, "", cmd)
+            sub = $6; gsub(/^"|"$/, "", sub)
             
             if (cmd != "") {
-                count[cmd]++
+                if (sub != "") {
+                    key = cmd " [" sub "]"
+                } else {
+                    key = cmd
+                }
+                
+                count[key]++
             }
         }
         END {
-            for (c in count) {
-                if (count[c] > 1) printf "%s ", c
+            for (k in count) {
+                if (count[k] > 1) printf "[%s] ", k
             }
         }
     ' "${data_files[@]}")
 
+    # 發現衝突，紅色警報
     if [ -n "$collision_list" ]; then
         echo ""
         echo -e " ${C_WARN}:: SYSTEM INTEGRITY WARNING :: Command Conflict Detected${C_RST}"
-        echo -e " ${C_WARN}   Duplicate Comms: [ ${collision_list}]${C_RST}"
+        echo -e " ${C_WARN}   Duplicate Entries: ${collision_list}${C_RST}"
         echo -e " ${C_DESC}   (Please remove duplicates from app.csv or vendor.csv)${C_RST}"
     fi
     
