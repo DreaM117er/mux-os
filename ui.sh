@@ -405,17 +405,26 @@ function _mux_fuzzy_menu() {
         }
         
         !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
-            gsub(/^"|"$/, "", $5); cmd = $5
-            gsub(/^"|"$/, "", $6); sub = $6
-            gsub(/^"|"$/, "", $8); desc = $8
             
-            if (sub != "") {
-                display_cmd = cmd " [" sub "]"
-            } else {
-                display_cmd = cmd
+            cmd = ""; sub_cmd = ""; desc = ""
+
+            gsub(/^"|"$/, "", $5); cmd = $5
+
+            if (NF >= 6) {
+                gsub(/^"|"$/, "", $6); sub_cmd = $6
             }
 
-            printf " %s%-12s %s%s\n", C_CMD, display_cmd, C_DESC, desc;
+            if (NF >= 8) {
+                gsub(/^"|"$/, "", $8); desc = $8
+            }
+            
+            if (sub_cmd != "") {
+                display_name = cmd " [" sub_cmd "]"
+            } else {
+                display_name = cmd
+            }
+
+            printf " %s%-12s %s%s\n", C_CMD, display_name, C_DESC, desc;
         }
     ')
 
