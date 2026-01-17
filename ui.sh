@@ -711,7 +711,7 @@ function _factory_fzf_cmd_in_cat() {
     )
 
     if [ -n "$selected" ]; then
-        echo "$selected" | awk '{print $1, $2}' | sed 's/^[ \t]*//;s/[ \t]*$//'
+        echo "$selected" | sed 's/^.*] //' | awk '{print $1, $2}' | sed 's/^[ \t]*//;s/[ \t]*$//'
     fi
 }
 
@@ -730,10 +730,10 @@ function _factory_fzf_detail_view() {
 
     local report=$(awk -v FPAT='([^,]*)|("[^"]+")' -v t_com="$t_com" -v t_sub="$t_sub" '
         BEGIN {
-            C_LBL="\033[1;30m" # 標籤 (深灰)
-            C_VAL="\033[1;37m" # 數值 (白)
-            C_TAG="\033[1;33m" # 標記 (黃/橘)
-            C_EMP="\033[1;30m" # 空值 (深灰)
+            C_LBL="\033[1;30m"
+            C_VAL="\033[1;37m"
+            C_TAG="\033[1;33m"
+            C_EMP="\033[1;30m"
             C_RST="\033[0m"
             sep="----------"
         }
