@@ -630,28 +630,25 @@ function _factory_fzf_menu() {
 function _factory_fzf_cat_selector() {
    local target_file="$MUX_ROOT/app.csv.temp"
     
-    # 1. 掃描分類 (去除重複)
-    # 輸出格式: CATNO|CATNAME
     local cat_list=$(awk -v FPAT='([^,]*)|("[^"]+")' '
         BEGIN {
-            # 這裡只為了顯示漂亮，回傳時會剝離顏色
             C_ID="\033[1;33m" 
             C_NAME="\033[1;37m"
         }
         !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
             id=$1; gsub(/^"|"$/, "", id)
             name=$3; gsub(/^"|"$/, "", name)
-            
-            # 使用陣列去重，確保每個分類只出現一次
+
             if (!seen[id]++) {
                 printf "%03d|%s\n", id, name
             }
         }
     ' "$target_file" | sort -n)
 
-    # 2. FZF 選擇
     local selected=$(echo "$cat_list" | awk -F'|' '{printf " \033[1;33m%03d  \033[1;37m%s\n", $1, $2}' | fzf --ansi \
-        --height=30% --layout=reverse --border=bottom \
+        --height=30% \
+        --layout=reverse \
+        --border=bottom \
         --info=hidden \
         --prompt=" :: Select Category › " \
         --header=" :: Category Filter Mode :: " \
@@ -660,7 +657,6 @@ function _factory_fzf_cat_selector() {
         --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
     )
 
-    # 3. 回傳邏輯：只回傳純數字 ID (例如 "001") 給呼叫者
     if [ -n "$selected" ]; then
         echo "$selected" | awk '{print $1}'
     fi
@@ -673,50 +669,45 @@ function _factory_fzf_cmd_in_cat() {
     
     if [ -z "$target_cat_no" ]; then return 1; fi
 
-    # 1. 掃描指定分類下的指令
     local cmd_list=$(awk -v FPAT='([^,]*)|("[^"]+")' -v target="$target_cat_no" '
         BEGIN {
             C_CMD="\x1b[1;37m"
-            C_DESC="\x1b[1;30m"
+            C_SUB="\x1b[1;34m"
+            C_RST="\x1b[0m"
         }
         
-        # 篩選：$1 (CATNO) 必須等於 target
         !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
             cat=$1; gsub(/^"|"$/, "", cat)
             
-            # 強制轉數字比對 (避免 "01" != "1" 的問題)
             if ((cat+0) == (target+0)) {
                 gsub(/^"|"$/, "", $5); cmd = $5
                 gsub(/^"|"$/, "", $6); sub = $6
-                gsub(/^"|"$/, "", $8); desc = $8
 
                 if (sub != "") {
-                    display = cmd " [" sub "]"
+                    printf " %s%s %s%s%s\n", C_CMD, cmd, C_SUB, sub, C_RST
                 } else {
-                    display = cmd
+                    printf " %s%s%s\n", C_CMD, cmd, C_RST
                 }
-
-                printf " %s%-12s %s%s\n", C_CMD, display, C_DESC, desc
             }
         }
     ' "$target_file")
     
     local total=$(echo "$cmd_list" | grep -c "^ ")
 
-    # 2. FZF 選擇
     local selected=$(echo "$cmd_list" | fzf --ansi \
-        --height=40% --layout=reverse --border=bottom \
+        --height=40% \
+        --layout=reverse \
+        --border=bottom \
         --info=hidden \
         --prompt=" :: Select Command › " \
-        --header=" :: Filtering Category [$target_cat_no] : [$total] Items :: " \
+        --header=" :: Category [$target_cat_no] : [$total] Items :: " \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
         --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
     )
 
-    # 3. 回傳選擇結果 (字串)
     if [ -n "$selected" ]; then
-        echo "$selected"
+        echo "$selected" | awk '{print $1, $2}' | sed 's/^[ \t]*//;s/[ \t]*$//'
     fi
 }
 

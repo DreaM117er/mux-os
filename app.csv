@@ -36,7 +36,7 @@
 9,5,"Finance","NA","esun",,,"E.sun Bank (玉山銀行)","E.sun Bank","com.esunbank",".home.HomeStartActivity",,,,,,,,,
 9,6,"Finance","NA","mpost",,,"Mobile Post (行動郵局)","Mobile Post","tw.gov.post.mpost",".ui.MainActivity",,,,,,,,,
 9,7,"Finance","NA","zgala",,,"zingala (銀角零卡)","zingala","com.chailease.tw.app.android.ccfappcust",".activity.SplashActivity",,,,,,,,,
-10,8,"Finance","NA","paypal",,,"PayPal","PayPal","com.paypal.android.p2pmobile",".startup.activities.StartupActivity",,,,,,,,,
+9,8,"Finance","NA","paypal",,,"PayPal","PayPal","com.paypal.android.p2pmobile",".startup.activities.StartupActivity",,,,,,,,,
 10,1,"Entertainment (Taiwan)","NA","bhani",,,"動畫瘋 (Bahamut Anime)","Animation","tw.com.gamer.android.animad",".AnimadActivity",,,,,,,,,
 10,2,"Entertainment (Taiwan)","NA","8comic",,,"8Comic","8Comic","com.comicbus",".MainActivity",,,,,,,,,
 10,3,"Entertainment (Taiwan)","NA","mihon",,,"Mihon","Mihon","app.mihon","eu.kanade.tachiyomi.ui.main.MainActivity",,,,,,,,,
