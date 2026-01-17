@@ -628,7 +628,7 @@ function _factory_fzf_menu() {
 
 # 兵工廠指令選擇器 - Factory Category Scanner
 function _factory_fzf_cat_selector() {
-   local target_file="$MUX_ROOT/app.csv.temp"
+    local target_file="$MUX_ROOT/app.csv.temp"
     
     local cat_list=$(awk -v FPAT='([^,]*)|("[^"]+")' '
         BEGIN {
@@ -646,7 +646,7 @@ function _factory_fzf_cat_selector() {
     ' "$target_file" | sort -n)
 
     local selected=$(echo "$cat_list" | awk -F'|' '{printf " \033[1;33m%03d  \033[1;37m%s\n", $1, $2}' | fzf --ansi \
-        --height=30% \
+        --height=10 \
         --layout=reverse \
         --border=bottom \
         --info=hidden \
@@ -655,6 +655,7 @@ function _factory_fzf_cat_selector() {
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
         --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+        --bind="resize:clear-screen"
     )
 
     if [ -n "$selected" ]; then
@@ -681,10 +682,10 @@ function _factory_fzf_cmd_in_cat() {
             
             if ((cat+0) == (target+0)) {
                 gsub(/^"|"$/, "", $5); cmd = $5
-                gsub(/^"|"$/, "", $6); sub = $6
+                gsub(/^"|"$/, "", $6); sub_cmd = $6
 
-                if (sub != "") {
-                    printf " %s%s %s%s%s\n", C_CMD, cmd, C_SUB, sub, C_RST
+                if (sub_cmd != "") {
+                    printf " %s%s %s[%s]%s\n", C_CMD, cmd, C_SUB, sub_cmd, C_RST
                 } else {
                     printf " %s%s%s\n", C_CMD, cmd, C_RST
                 }
@@ -695,7 +696,7 @@ function _factory_fzf_cmd_in_cat() {
     local total=$(echo "$cmd_list" | grep -c "^ ")
 
     local selected=$(echo "$cmd_list" | fzf --ansi \
-        --height=40% \
+        --height=10 \
         --layout=reverse \
         --border=bottom \
         --info=hidden \
@@ -704,6 +705,7 @@ function _factory_fzf_cmd_in_cat() {
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
         --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+        --bind="resize:clear-screen"
     )
 
     if [ -n "$selected" ]; then
