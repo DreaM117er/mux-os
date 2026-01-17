@@ -129,7 +129,7 @@ function _factory_reset() {
 function fac() {
     local cmd="$1"
     if [ "$__MUX_MODE" == "core" ]; then
-        echo -e "\033[1;31m :: Factory commands disabled during Core session.\033[0m"
+        _bot_say "fail" "[mux] command not found."
         return 1
     fi
 
@@ -140,12 +140,12 @@ function fac() {
 
     case "$cmd" in
         # : Open Neural Forge Menu
-        "menu")
+        "menu"|"commenu"|"comm")
             _factory_fzf_menu
             ;;
 
         # : Open Category Menu
-        "menu-cat")
+        "catmenu"|"catm")
             local cat_id=$(_factory_fzf_cat_selector)
     
             if [ -n "$cat_id" ]; then

@@ -285,7 +285,7 @@ function _safe_ui_calc() {
 function mux() {
     local cmd="$1"
     if [ "$__MUX_MODE" == "factory" ]; then
-        echo -e "\033[1;31m :: Core commands disabled during Factory session.\033[0m"
+        _bot_say "error" "[fac] command not found."
         return 1
     fi
 
