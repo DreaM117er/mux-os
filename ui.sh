@@ -419,7 +419,7 @@ function _mux_fuzzy_menu() {
             }
             
             if (sub_cmd != "") {
-                display_name = cmd " '" sub_cmd "'"
+                display_name = cmd " " sub_cmd ""
             } else {
                 display_name = cmd
             }
