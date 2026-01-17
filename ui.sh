@@ -640,7 +640,7 @@ function _factory_fzf_cat_selector() {
             name=$3; gsub(/^"|"$/, "", name)
 
             if (!seen[id]++) {
-                printf "%3s|%s\n", id, name
+                printf "%3s %s\n", id, name
             }
         }
     ' "$target_file" | sort -n)
