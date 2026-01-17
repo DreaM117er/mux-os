@@ -665,10 +665,10 @@ function _factory_fzf_cat_selector() {
 
 # 兵工廠指令選擇器 - Factory inCommand Scanner
 function _factory_fzf_cmd_in_cat() {
-    local target_cat_no="$1"
+    local target_cat_no=$(echo "$1" | sed 's/\x1b\[[0-9;]*m//g')
     local target_file="$MUX_ROOT/app.csv.temp"
     
-    if [ -z "$target_cat_no" ]; then return 1; fi
+    if [ -z "$target_cat_no" ] || [ ! -f "$target_file" ]; then return 1; fi
 
     local cmd_list=$(awk -v FPAT='([^,]*)|("[^"]+")' -v target="$target_cat_no" '
         BEGIN {
