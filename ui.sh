@@ -747,9 +747,9 @@ function _factory_fzf_detail_view() {
             }
 
             if (match_found) {
-                cat=$1;  gsub(/^"|"$/, "", cat) # ID 不會空
+                cat=$1;  gsub(/^"|"$/, "", cat)
                 comno=$2; gsub(/^"|"$/, "", comno)
-                
+                catname=$3; gsub(/^"|"$/, "", catname)
                 type=$4; gsub(/^"|"$/, "", type); if(type=="") type="[Empty]"
                 
                 hud=$8;  gsub(/^"|"$/, "", hud); if(hud=="") hud="[Empty]"
@@ -768,6 +768,7 @@ function _factory_fzf_detail_view() {
                 command_str = c " " s_disp
 
                 if (type == "NA" || type == "[Empty]") {
+                    printf "%s[%s]%s%s\n", C_TAG, catname, C_TAG, C_RST
                     printf "%s[%s:%s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
                     printf " %sCommand:%s %s\n", C_LBL, C_VAL, command_str
                     printf " %sDetail :%s %s\n", C_LBL, C_VAL, hud
@@ -780,6 +781,7 @@ function _factory_fzf_detail_view() {
                 }
                 
                 else if (type == "NB") {
+                    printf "%s[%s]%s%s\n", C_TAG, catname, C_TAG, C_RST
                     printf "%s[%s:%s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
                     printf " %sCommand:%s %s\n", C_LBL, C_VAL, command_str
                     printf " %sDetail :%s %s\n", C_LBL, C_VAL, hud
