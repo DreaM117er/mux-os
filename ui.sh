@@ -769,7 +769,6 @@ function _factory_fzf_detail_view() {
 
                 if (type == "NA" || type == "[Empty]") {
                     printf "%s[%s][%3s:%3s]%s[%s: %s]%s\n", C_TAG, catname, cat, comno, C_TAG, "TYPE", type, C_RST
-                    printf "%s[%s:%s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
                     printf " %sCommand:%s %s\n", C_LBL, C_VAL, command_str
                     printf " %sDetail :%s %s\n", C_LBL, C_VAL, hud
                     printf "%s%s%s\n", C_LBL, sep, C_RST
