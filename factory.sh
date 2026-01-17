@@ -144,6 +144,11 @@ function fac() {
             _factory_fzf_menu
             ;;
 
+        # : Open Category Menu
+        "menu-cat")
+            _factory_fzf_cat_view
+            ;;
+
         # : Check & Fix Formatting
         "check")
             _fac_maintenance

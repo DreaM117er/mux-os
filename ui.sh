@@ -577,7 +577,7 @@ function _factory_show_info() {
     _bot_say "system" "Returning to forge..."
 }
 
-# 兵工廠通用選擇器
+# 兵工廠指令選擇器 - Factory Command Scanner
 function _factory_fzf_menu() {
     local prompt_msg="${1:-Select Target}"
     
@@ -626,7 +626,90 @@ function _factory_fzf_menu() {
     fi
 }
 
-# 偽・星門 (UI Mask / Fake Gate)
+# 兵工廠指令選擇器 - Factory Category Scanner
+function _factory_fzf_cat_view() {
+    local target_file="$MUX_ROOT/app.csv.temp"
+    if [ ! -f "$target_file" ]; then return 1; fi
+
+    local cat_list=$(awk -v FPAT='([^,]*)|("[^"]+")' '
+        BEGIN {
+            C_ID="\033[1;33m" # 黃色 ID
+            C_NAME="\033[1;37m" # 白色 名稱
+            C_RST="\033[0m"
+        }
+        !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
+            id=$1; gsub(/^"|"$/, "", id)
+            name=$3; gsub(/^"|"$/, "", name)
+            
+            # 使用陣列去重
+            if (!seen[id]++) {
+                printf "%03d|%s\n", id, name
+            }
+        }
+    ' "$target_file" | sort -n)
+
+    local selected_cat_raw=$(echo "$cat_list" | awk -F'|' '{printf " \033[1;33m%03d  \033[1;37m%s\n", $1, $2}' | fzf --ansi \
+        --height=30% \
+        --layout=reverse \
+        --border=bottom \
+        --info=hidden \
+        --prompt=" :: Select Category › " \
+        --header=" :: Category Filter Mode :: " \
+        --pointer="››" \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+    )
+
+    if [ -z "$selected_cat_raw" ]; then return; fi
+
+    local target_cat_no=$(echo "$selected_cat_raw" | awk '{print $1}')
+
+    local cmd_list=$(awk -v FPAT='([^,]*)|("[^"]+")' -v target="$target_cat_no" '
+        BEGIN {
+            C_CMD="\x1b[1;37m"
+            C_DESC="\x1b[1;30m"
+        }
+        
+        # 這裡多了一個判斷: ($1+0) == (target+0) 強制轉數字比對
+        !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
+            cat=$1; gsub(/^"|"$/, "", cat)
+            
+            if ((cat+0) == (target+0)) {
+                gsub(/^"|"$/, "", $5); cmd = $5
+                gsub(/^"|"$/, "", $6); sub = $6
+                gsub(/^"|"$/, "", $8); desc = $8
+
+                if (sub != "") {
+                    display = cmd " [" sub "]"
+                } else {
+                    display = cmd
+                }
+
+                printf " %s%-12s %s%s\n", C_CMD, display, C_DESC, desc
+            }
+        }
+    ' "$target_file")
+    
+    local total=$(echo "$cmd_list" | grep -c "^ ")
+
+    local selected_cmd=$(echo "$cmd_list" | fzf --ansi \
+        --height=30% \
+        --layout=reverse \
+        --border=bottom \
+        --info=hidden \
+        --prompt=" :: Select Command › " \
+        --header=" :: Filtering Category [$target_cat_no] : [$total] Items :: " \
+        --pointer="››" \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+    )
+
+    if [ -n "$selected_cmd" ]; then
+        echo "$selected_cmd"
+    fi
+}
+
+# 偽・星門 - UI Mask / Fake Gate
 function _ui_fake_gate() {
     local target_system="${1:-core}"
     local theme_color=""
