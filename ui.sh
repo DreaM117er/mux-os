@@ -627,31 +627,31 @@ function _factory_fzf_menu() {
 }
 
 # 兵工廠指令選擇器 - Factory Category Scanner
-function _factory_fzf_cat_view() {
-    local target_file="$MUX_ROOT/app.csv.temp"
-    if [ ! -f "$target_file" ]; then return 1; fi
-
+function _factory_fzf_cat_selector() {
+   local target_file="$MUX_ROOT/app.csv.temp"
+    
+    # 1. 掃描分類 (去除重複)
+    # 輸出格式: CATNO|CATNAME
     local cat_list=$(awk -v FPAT='([^,]*)|("[^"]+")' '
         BEGIN {
-            C_ID="\033[1;33m" # 黃色 ID
-            C_NAME="\033[1;37m" # 白色 名稱
-            C_RST="\033[0m"
+            # 這裡只為了顯示漂亮，回傳時會剝離顏色
+            C_ID="\033[1;33m" 
+            C_NAME="\033[1;37m"
         }
         !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
             id=$1; gsub(/^"|"$/, "", id)
             name=$3; gsub(/^"|"$/, "", name)
             
-            # 使用陣列去重
+            # 使用陣列去重，確保每個分類只出現一次
             if (!seen[id]++) {
                 printf "%03d|%s\n", id, name
             }
         }
     ' "$target_file" | sort -n)
 
-    local selected_cat_raw=$(echo "$cat_list" | awk -F'|' '{printf " \033[1;33m%03d  \033[1;37m%s\n", $1, $2}' | fzf --ansi \
-        --height=30% \
-        --layout=reverse \
-        --border=bottom \
+    # 2. FZF 選擇
+    local selected=$(echo "$cat_list" | awk -F'|' '{printf " \033[1;33m%03d  \033[1;37m%s\n", $1, $2}' | fzf --ansi \
+        --height=30% --layout=reverse --border=bottom \
         --info=hidden \
         --prompt=" :: Select Category › " \
         --header=" :: Category Filter Mode :: " \
@@ -660,20 +660,31 @@ function _factory_fzf_cat_view() {
         --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
     )
 
-    if [ -z "$selected_cat_raw" ]; then return; fi
+    # 3. 回傳邏輯：只回傳純數字 ID (例如 "001") 給呼叫者
+    if [ -n "$selected" ]; then
+        echo "$selected" | awk '{print $1}'
+    fi
+}
 
-    local target_cat_no=$(echo "$selected_cat_raw" | awk '{print $1}')
+# 兵工廠指令選擇器 - Factory inCommand Scanner
+function _factory_fzf_cmd_in_cat() {
+    local target_cat_no="$1"
+    local target_file="$MUX_ROOT/app.csv.temp"
+    
+    if [ -z "$target_cat_no" ]; then return 1; fi
 
+    # 1. 掃描指定分類下的指令
     local cmd_list=$(awk -v FPAT='([^,]*)|("[^"]+")' -v target="$target_cat_no" '
         BEGIN {
             C_CMD="\x1b[1;37m"
             C_DESC="\x1b[1;30m"
         }
         
-        # 這裡多了一個判斷: ($1+0) == (target+0) 強制轉數字比對
+        # 篩選：$1 (CATNO) 必須等於 target
         !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
             cat=$1; gsub(/^"|"$/, "", cat)
             
+            # 強制轉數字比對 (避免 "01" != "1" 的問題)
             if ((cat+0) == (target+0)) {
                 gsub(/^"|"$/, "", $5); cmd = $5
                 gsub(/^"|"$/, "", $6); sub = $6
@@ -692,10 +703,9 @@ function _factory_fzf_cat_view() {
     
     local total=$(echo "$cmd_list" | grep -c "^ ")
 
-    local selected_cmd=$(echo "$cmd_list" | fzf --ansi \
-        --height=30% \
-        --layout=reverse \
-        --border=bottom \
+    # 2. FZF 選擇
+    local selected=$(echo "$cmd_list" | fzf --ansi \
+        --height=40% --layout=reverse --border=bottom \
         --info=hidden \
         --prompt=" :: Select Command › " \
         --header=" :: Filtering Category [$target_cat_no] : [$total] Items :: " \
@@ -704,8 +714,9 @@ function _factory_fzf_cat_view() {
         --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
     )
 
-    if [ -n "$selected_cmd" ]; then
-        echo "$selected_cmd"
+    # 3. 回傳選擇結果 (字串)
+    if [ -n "$selected" ]; then
+        echo "$selected"
     fi
 }
 

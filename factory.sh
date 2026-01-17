@@ -146,7 +146,15 @@ function fac() {
 
         # : Open Category Menu
         "menu-cat")
-            _factory_fzf_cat_view
+            local cat_id=$(_factory_fzf_cat_selector)
+    
+            if [ -n "$cat_id" ]; then
+            local target_cmd=$(_factory_fzf_cmd_in_cat "$cat_id")
+        
+                if [ -n "$target_cmd" ]; then
+                    echo "Selected: $target_cmd"
+                fi
+            fi
             ;;
 
         # : Check & Fix Formatting
