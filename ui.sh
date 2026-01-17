@@ -577,6 +577,54 @@ function _factory_show_info() {
     _bot_say "system" "Returning to forge..."
 }
 
+# 兵工廠通用選擇器
+function _factory_fzf_menu() {
+    local prompt_msg="${1:-Select Target}"
+    
+    local target_file="$MUX_ROOT/app.csv.temp"
+
+    local list=$(awk -v FPAT='([^,]*)|("[^"]+")' '
+        BEGIN {
+            C_CMD="\x1b[1;37m"
+            C_DESC="\x1b[1;30m"
+            C_RESET="\x1b[0m"
+        }
+        
+        !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
+            
+            gsub(/^"|"$/, "", $5); cmd = $5
+            gsub(/^"|"$/, "", $6); sub_cmd = $6
+            gsub(/^"|"$/, "", $8); desc = $8
+
+            if (sub_cmd != "") {
+                display = cmd " [" sub_cmd "]"
+            } else {
+                display = cmd
+            }
+
+            printf " %s%-12s %s%s\n", C_CMD, display, C_DESC, desc
+        }
+    ' "$target_file")
+
+    local total=$(echo "$list" | grep -c "^ ")
+
+    local selected=$(echo "$list" | fzf --ansi \
+        --height=40% \
+        --layout=reverse \
+        --border=bottom \
+        --prompt=" :: $prompt_msg › " \
+        --header=" :: Draft Pool: [$total] :: " \
+        --info=hidden \
+        --pointer="››" \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:yellow,prompt:cyan,pointer:red,marker:green,border:blue,header:240 \
+    )
+
+    if [ -n "$selected" ]; then
+        echo "$selected" | awk '{print $1, $2}' | sed 's/^[ \t]*//;s/[ \t]*$//'
+    fi
+}
+
 # 偽・星門 (UI Mask / Fake Gate)
 function _ui_fake_gate() {
     local target_system="${1:-core}"

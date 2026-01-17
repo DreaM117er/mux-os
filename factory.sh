@@ -18,15 +18,17 @@ F_GRE="\n\033[1;32m"
 # 兵工廠系統啟動 (Factory System Boot)
 function _factory_system_boot() {
     export __MUX_MODE="factory"
-    
-    if [ -f "$MUX_ROOT/app.sh" ]; then
-        cp "$MUX_ROOT/app.sh" "$MUX_ROOT/app.sh.temp"
-        source "$MUX_ROOT/app.sh.temp"
+
+    # 前置作業
+    if [ -f "$MUX_ROOT/app.csv" ]; then
+        cp "$MUX_ROOT/app.csv" "$MUX_ROOT/app.csv.temp"
+    else
+        echo '"CATNO","COMNO","CATNAME","TYPE","COM","COM2","COM3","HUDNAME","UINAME","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE","FLAG","EX","EXTRA","ENGINE"' > "$MUX_ROOT/app.csv.temp"
     fi
     
-    _factory_mask_apps > /dev/null 2>&1
     _factory_auto_backup > /dev/null 2>&1
 
+    # 初始化介面
     if command -v _fac_init &> /dev/null; then
         _fac_init
     else
@@ -1694,63 +1696,6 @@ function _factory_deploy_sequence() {
         echo "core" > "$MUX_ROOT/.mux_state"
         exec bash
     fi
-}
-
-# 神經鍛造中樞 (Neural Forge Nexus) - The Radar
-function _factory_fzf_menu() {
-    local temp_file="$MUX_ROOT/app.sh.temp"
-
-    while true; do
-        local list_data=$(awk '
-            BEGIN { 
-                current_cat="Uncategorized"
-                C_CMD="\x1b[1;37m"    # White
-                C_CAT="\x1b[1;30m"    # Gray (Factory Style)
-                C_RESET="\x1b[0m"
-            }
-            /^# ===/ {
-                current_cat=$0;
-                gsub(/^# === | ===$/, "", current_cat);
-            }
-            /^function / {
-                match($0, /function ([a-zA-Z0-9_]+)/, arr);
-                func_name = arr[1];
-                if (substr(func_name, 1, 1) != "_") {
-                    printf " %s%-14s %s[%s]%s\n", C_CMD, func_name, C_CAT, current_cat, C_RESET;
-                }
-            }
-        ' "$temp_file")
-
-        if [ -z "$list_data" ]; then
-            _bot_say "error" "No neural links found in sandbox."
-            return
-        fi
-        
-        local total_cmds=$(echo "$list_data" | wc -l)
-
-        local selection=$(echo "$list_data" | fzf --ansi \
-            --height=10 \
-            --layout=reverse \
-            --border=bottom \
-            --prompt=" :: Neural Search › " \
-            --header=" :: Forge Index: [$total_cmds] | ALT-C: Create :: " \
-            --info=hidden \
-            --pointer="››" \
-            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-            --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
-            --bind="alt-c:execute(_fac_wizard_create)+reload(echo \"$list_data\")" \
-            --bind="resize:clear-screen"
-        )
-
-        if [ -z "$selection" ]; then
-            break
-        fi
-
-        local target_func=$(echo "$selection" | awk '{print $1}')
-        local target_cat_raw=$(echo "$selection" | awk -F'[][]' '{print $2}')
-        
-        _fac_inspector "$target_func" "$target_cat_raw"
-    done
 }
 
 # 機體維護工具 (Mechanism Maintenance)
