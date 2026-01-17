@@ -651,7 +651,7 @@ function _factory_fzf_cat_selector() {
         --border=bottom \
         --info=hidden \
         --prompt=" :: Select Category › " \
-        --header=" :: Category Filter Mode :: " \
+        --header-lines=1 \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
         --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
@@ -701,7 +701,7 @@ function _factory_fzf_cmd_in_cat() {
         --border=bottom \
         --info=hidden \
         --prompt=" :: Select Command › " \
-        --header=" :: Category [$target_cat_no] : [$total] Items :: " \
+        --header-lines=1 \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
         --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
