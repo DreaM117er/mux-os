@@ -141,7 +141,11 @@ function fac() {
     case "$cmd" in
         # : Open Neural Forge Menu
         "menu"|"commenu"|"comm")
-            _factory_fzf_menu
+            local target=$(_factory_fzf_menu "Select App to Inspect")
+            
+            if [ -n "$target" ]; then
+                _factory_fzf_detail_view "$target"
+            fi
             ;;
 
         # : Open Category Menu
@@ -149,10 +153,10 @@ function fac() {
             local cat_id=$(_factory_fzf_cat_selector)
     
             if [ -n "$cat_id" ]; then
-            local target_cmd=$(_factory_fzf_cmd_in_cat "$cat_id")
+                local target_cmd=$(_factory_fzf_cmd_in_cat "$cat_id")
         
                 if [ -n "$target_cmd" ]; then
-                    echo "Selected: $target_cmd"
+                    _factory_fzf_detail_view "$target_cmd"
                 fi
             fi
             ;;

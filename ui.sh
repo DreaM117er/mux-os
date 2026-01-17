@@ -713,6 +713,109 @@ function _factory_fzf_cmd_in_cat() {
     fi
 }
 
+# 詳細資料檢視器 - Detail Inspector
+function _factory_fzf_detail_view() {
+    local target_key="$1"
+    local target_file="$MUX_ROOT/app.csv.temp"
+
+    if [ -z "$target_key" ]; then return; fi
+
+    local t_com=$(echo "$target_key" | awk '{print $1}')
+    local t_sub=""
+    if [[ "$target_key" == *\[*\] ]]; then
+        t_sub=$(echo "$target_key" | awk -F'[][]' '{print $2}')
+    fi
+
+    local report=$(awk -v FPAT='([^,]*)|("[^"]+")' -v t_com="$t_com" -v t_sub="$t_sub" '
+        BEGIN {
+            # 顏色定義
+            C_LBL="\033[1;30m" # 標籤 (深灰)
+            C_VAL="\033[1;37m" # 數值 (白)
+            C_TAG="\033[1;33m" # 標記 (黃/橘)
+            C_EMP="\033[1;30m" # 空值 (深灰)
+            C_RST="\033[0m"
+            sep="-----"
+        }
+
+        !/^#/ && NF >= 5 {
+            gsub(/^"|"$/, "", $5); c=$5
+            gsub(/^"|"$/, "", $6); s=$6
+            
+            match_found = 0
+            if (c == t_com) {
+                if (t_sub == "" && s == "") match_found = 1
+                if (t_sub != "" && s == t_sub) match_found = 1
+            }
+
+            if (match_found) {
+                cat=$1;  gsub(/^"|"$/, "", cat) # ID 不會空
+                comno=$2; gsub(/^"|"$/, "", comno)
+                
+                type=$4; gsub(/^"|"$/, "", type); if(type=="") type="[Empty]"
+                
+                hud=$8;  gsub(/^"|"$/, "", hud); if(hud=="") hud="[Empty]"
+                ui=$9;   gsub(/^"|"$/, "", ui);  if(ui=="")  ui="[Empty]"
+                pkg=$10; gsub(/^"|"$/, "", pkg); if(pkg=="") pkg="[Empty]"
+                act=$11; gsub(/^"|"$/, "", act); if(act=="") act="[Empty]"
+                
+                ihead=$12; gsub(/^"|"$/, "", ihead); if(ihead=="") ihead="[Empty]"
+                ibody=$13; gsub(/^"|"$/, "", ibody); if(ibody=="") ibody="[Empty]"
+                uri=$14;   gsub(/^"|"$/, "", uri);   if(uri=="")   uri="[Empty]"
+                extra=$19; gsub(/^"|"$/, "", extra); if(extra=="") extra="[Empty]"
+                engine=$20; gsub(/^"|"$/, "", engine); if(engine=="") engine="[Empty]"
+
+                if (s == "") s_disp = "[Empty]"; else s_disp = s
+                
+                command_str = c " " s_disp
+
+                if (type == "NA" || type == "[Empty]") {
+                    printf "%s[%s:%s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
+                    printf " %sCommand:%s %s\n", C_LBL, C_VAL, command_str
+                    printf " %sDetail :%s %s\n", C_LBL, C_VAL, hud
+                    printf "%s%s%s\n", C_LBL, sep, C_RST
+                    printf " %sUI     :%s %s\n", C_LBL, C_VAL, ui
+                    printf " %sPackage:%s %s\n", C_LBL, C_VAL, pkg
+                    printf " %sActivity:%s %s\n", C_LBL, C_VAL, act
+                    printf "%s%s%s\n", C_LBL, sep, C_RST
+                    printf " %sEnter to return, Esc to exit.%s\n", C_LBL, C_RST
+                }
+                
+                else if (type == "NB") {
+                    printf "%s[%s:%s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
+                    printf " %sCommand:%s %s\n", C_LBL, C_VAL, command_str
+                    printf " %sDetail :%s %s\n", C_LBL, C_VAL, hud
+                    printf " %sEngine :%s %s\n", C_LBL, C_VAL, engine
+                    printf "%s%s%s\n", C_LBL, sep, C_RST
+                    printf " %sUI     :%s %s\n", C_LBL, C_VAL, ui
+                    printf " %sPackage:%s %s\n", C_LBL, C_VAL, pkg
+                    printf " %sActivity:%s %s\n", C_LBL, C_VAL, act
+                    printf "%s%s%s\n", C_LBL, sep, C_RST
+                    printf " %sIntent :%s %s %s\n", C_LBL, C_VAL, ihead, ibody
+                    printf " %sURI    :%s %s\n", C_LBL, C_VAL, uri
+                    printf " %sEXTRA  :%s %s\n", C_LBL, C_VAL, extra
+                    printf "%s%s%s\n", C_LBL, sep, C_RST
+                    printf " %sEnter to return, Esc to exit.%s\n", C_LBL, C_RST
+                }
+                exit
+            }
+        }
+    ' "$target_file")
+
+    if [ -z "$report" ]; then return; fi
+
+    # 3. FZF 顯示層 (Viewer)
+    echo -e "$report" | fzf --ansi \
+        --height=50% \
+        --layout=reverse \
+        --border=bottom \
+        --header-lines=1 \
+        --info=hidden \
+        --prompt=" :: Details › " \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+        --bind="resize:clear-screen"
+}
+
 # 偽・星門 - UI Mask / Fake Gate
 function _ui_fake_gate() {
     local target_system="${1:-core}"
