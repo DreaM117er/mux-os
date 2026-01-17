@@ -1627,7 +1627,7 @@ function _factory_deploy_sequence() {
     echo -e "${F_MAIN} :: MANIFEST CHANGES (Sandbox vs Production) ::${F_RESET}"
     echo ""
     
-    if command -v diff &> /dev/null; then
+    if command -v diff &> /dev/null; then # 資料比對需要修正
         diff -U 0 "$MUX_ROOT/app.csv" "$MUX_ROOT/app.csv.temp" | \
         grep -v "^---" | grep -v "^+++" | grep -v "^@" | head -n 20 | \
         awk '

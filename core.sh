@@ -694,7 +694,7 @@ function command_not_found_handle() {
                     _launch_android_app
                     return 0
                 fi
-                _bot_say "error" "Strict Protocol: Search parameter required for $_VAL_COM."
+                _bot_say "error" "Strict Protocol [$_VAL_COM]: Parameter required."
                 return 1
             fi
 
@@ -711,7 +711,7 @@ function command_not_found_handle() {
                 local raw_input=$(echo "$real_args" | sed 'y/。．/../' | sed 's/　/ /g')
                 local safe_query="${raw_input//\"/\\\"}"
                 
-                _bot_say "neural" "Payload: Raw Search >> $safe_query"
+                _bot_say "neural" "Payload: Raw Search ›› $safe_query"
                 
                 local cmd="am start --user 0 -a $final_action -e query \"$safe_query\""
                 
