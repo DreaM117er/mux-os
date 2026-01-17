@@ -640,7 +640,7 @@ function _factory_fzf_cat_selector() {
             name=$3; gsub(/^"|"$/, "", name)
 
             if (!seen[id]++) {
-                printf "%03d|%s\n", id, name
+                printf "%3s|%s\n", id, name
             }
         }
     ' "$target_file" | sort -n)
@@ -651,7 +651,7 @@ function _factory_fzf_cat_selector() {
         --border=bottom \
         --info=hidden \
         --prompt=" :: Select Category › " \
-        --header-lines=1 \
+        --header=" :: Category Filter Mode :: " \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
         --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
@@ -701,7 +701,7 @@ function _factory_fzf_cmd_in_cat() {
         --border=bottom \
         --info=hidden \
         --prompt=" :: Select Command › " \
-        --header-lines=1 \
+        --header=" :: Category [$target_cat_no] : [$total] Items :: " \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
         --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
@@ -768,19 +768,19 @@ function _factory_fzf_detail_view() {
                 command_str = c " " s_disp
 
                 if (type == "NA" || type == "[Empty]") {
-                    printf "%s[%s][%03d:%02d]%s[%s: %s]%s\n", C_TAG, catname, cat, comno, C_TAG, "TYPE", type, C_RST
+                    printf "%s[%s]%s\n", C_TAG, catname, C_RST
+                    printf "%s[%s:%s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
                     printf " %sCommand:%s %s\n", C_LBL, C_VAL, command_str
                     printf " %sDetail :%s %s\n", C_LBL, C_VAL, hud
                     printf "%s%s%s\n", C_LBL, sep, C_RST
                     printf " %sUI     :%s %s\n", C_LBL, C_VAL, ui
                     printf " %sPackage:%s %s\n", C_LBL, C_VAL, pkg
                     printf " %sTarget :%s %s\n", C_LBL, C_VAL, act
-                    printf "%s%s%s\n", C_LBL, sep, C_RST
-                    printf " %sEnter to return, Esc to exit.%s\n", C_LBL, C_RST
                 }
                 
                 else if (type == "NB") {
-                    printf "%s[%s][%03d:%02d]%s[%s: %s]%s\n", C_TAG, catname, cat, comno, C_TAG, "TYPE", type, C_RST
+                    printf "%s[%s]%s\n", C_TAG, catname, C_RST
+                    printf "%s[%s:%s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
                     printf " %sCommand:%s %s\n", C_LBL, C_VAL, command_str
                     printf " %sDetail :%s %s\n", C_LBL, C_VAL, hud
                     printf " %sEngine :%s %s\n", C_LBL, C_VAL, engine
@@ -788,12 +788,9 @@ function _factory_fzf_detail_view() {
                     printf " %sUI     :%s %s\n", C_LBL, C_VAL, ui
                     printf " %sPackage:%s %s\n", C_LBL, C_VAL, pkg
                     printf " %sTarget :%s %s\n", C_LBL, C_VAL, act
-                    printf "%s%s%s\n", C_LBL, sep, C_RST
                     printf " %sIntent :%s %s%s\n", C_LBL, C_VAL, ihead, ibody
                     printf " %sURI    :%s %s\n", C_LBL, C_VAL, uri
                     printf " %sEXTRA  :%s %s\n", C_LBL, C_VAL, extra
-                    printf "%s%s%s\n", C_LBL, sep, C_RST
-                    printf " %sEnter to return, Esc to exit.%s\n", C_LBL, C_RST
                 }
                 exit
             }
@@ -807,7 +804,7 @@ function _factory_fzf_detail_view() {
         --height=50% \
         --layout=reverse \
         --border=bottom \
-        --header-lines=1 \
+        --header=" :: Enter to return, Esc to exit ::" \
         --info=hidden \
         --prompt=" :: Details › " \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
