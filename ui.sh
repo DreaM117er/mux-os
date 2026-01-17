@@ -451,7 +451,6 @@ function _mux_fuzzy_menu() {
         local final_cmd="$cmd_to_run"
         [ -n "$params" ] && final_cmd="$cmd_to_run $params"
         history -s "$final_cmd"
-        _bot_say "neural" "Executing: $final_cmd"
         eval "$final_cmd"
     fi
 }
