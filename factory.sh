@@ -141,24 +141,24 @@ function fac() {
     case "$cmd" in
         # : Open Neural Forge Menu
         "menu"|"commenu"|"comm")
-            local target=$(_factory_fzf_menu "Select App to Inspect")
-            
-            if [ -n "$target" ]; then
+            while true; do
+                local target=$(_factory_fzf_menu "Select App to Inspect")
+                if [ -z "$target" ]; then break; fi
                 _factory_fzf_detail_view "$target"
-            fi
+            done
             ;;
 
         # : Open Category Menu
         "catmenu"|"catm")
-            local cat_id=$(_factory_fzf_cat_selector)
-    
-            if [ -n "$cat_id" ]; then
-                local target_cmd=$(_factory_fzf_cmd_in_cat "$cat_id")
-        
-                if [ -n "$target_cmd" ]; then
+            while true; do
+                local cat_id=$(_factory_fzf_cat_selector)
+                if [ -z "$cat_id" ]; then break; fi
+                while true; do
+                    local target_cmd=$(_factory_fzf_cmd_in_cat "$cat_id")
+                    if [ -z "$target_cmd" ]; then break; fi
                     _factory_fzf_detail_view "$target_cmd"
-                fi
-            fi
+                done
+            done
             ;;
 
         # : Check & Fix Formatting
