@@ -645,7 +645,7 @@ function _factory_fzf_cat_selector() {
         }
     ' "$target_file" | sort -n)
 
-    local selected=$(echo "$cat_list" | awk -F'|' '{printf " \033[1;33m[%3s]  \033[1;37m%s\n", $1, $2}' | fzf --ansi \
+    local selected=$(echo "$cat_list" | awk -F'|' '{printf " \033[1;33m[%03d]  \033[1;37m%s\n", $1, $2}' | fzf --ansi \
         --height=10 \
         --layout=reverse \
         --border=bottom \
@@ -687,9 +687,9 @@ function _factory_fzf_cmd_in_cat() {
                 gsub(/^"|"$/, "", $6); sub_cmd = $6
 
                 if (sub_cmd != "") {
-                    printf " %s[%2s] %s%s %s%s%s\n", C_NO, catno, C_CMD, cmd, C_SUB, sub_cmd, C_RST
+                    printf " %s[%2s] %s%s %s%s%s\n", C_NO, comno, C_CMD, cmd, C_SUB, sub_cmd, C_RST
                 } else {
-                    printf " %s[%2s] %s%s%s\n", C_NO, catno, C_CMD, cmd, C_RST
+                    printf " %s[%2s] %s%s%s\n", C_NO, comno, C_CMD, cmd, C_RST
                 }
             }
         }
@@ -771,7 +771,7 @@ function _factory_fzf_detail_view() {
 
                 if (type == "NA" || type == "[Empty]") {
                     printf "%s[%s]%s\n", C_TAG, catname, C_RST
-                    printf "%s[%s:%s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
+                    printf "%s[%03d:%2s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
                     printf " %sCommand:%s %s\n", C_LBL, C_VAL, command_str
                     printf " %sDetail :%s %s\n", C_LBL, C_VAL, hud
                     printf "%s%s%s\n", C_LBL, sep, C_RST
@@ -782,7 +782,7 @@ function _factory_fzf_detail_view() {
                 
                 else if (type == "NB") {
                     printf "%s[%s]%s\n", C_TAG, catname, C_RST
-                    printf "%s[%s:%s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
+                    printf "%s[%03d:%2s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
                     printf " %sCommand:%s %s\n", C_LBL, C_VAL, command_str
                     printf " %sDetail :%s %s\n", C_LBL, C_VAL, hud
                     printf " %sEngine :%s %s\n", C_LBL, C_VAL, engine
