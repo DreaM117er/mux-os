@@ -597,7 +597,7 @@ function _factory_fzf_menu() {
             gsub(/^"|"$/, "", $8); desc = $8
 
             if (sub_cmd != "") {
-                display = cmd " [" sub_cmd "]"
+                display = cmd " " sub_cmd ""
             } else {
                 display = cmd
             }
