@@ -645,7 +645,7 @@ function _factory_fzf_cat_selector() {
         }
     ' "$target_file" | sort -n)
 
-    local selected=$(echo "$cat_list" | awk -F'|' '{printf " \033[1;33m%3s  \033[1;37m%s\n", $1, $2}' | fzf --ansi \
+    local selected=$(echo "$cat_list" | awk -F'|' '{printf " \033[1;33m[%3s]  \033[1;37m%s\n", $1, $2}' | fzf --ansi \
         --height=10 \
         --layout=reverse \
         --border=bottom \
@@ -672,6 +672,7 @@ function _factory_fzf_cmd_in_cat() {
 
     local cmd_list=$(awk -v FPAT='([^,]*)|("[^"]+")' -v target="$target_cat_no" '
         BEGIN {
+            C_NO="\033[1;33m"
             C_CMD="\x1b[1;37m"
             C_SUB="\x1b[1;34m"
             C_RST="\x1b[0m"
@@ -679,15 +680,16 @@ function _factory_fzf_cmd_in_cat() {
         
         !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
             cat=$1; gsub(/^"|"$/, "", cat)
+            comno=$2; gsub(/^"|"$/, "", comno)
             
             if ((cat+0) == (target+0)) {
                 gsub(/^"|"$/, "", $5); cmd = $5
                 gsub(/^"|"$/, "", $6); sub_cmd = $6
 
                 if (sub_cmd != "") {
-                    printf " %s%s %s%s%s\n", C_CMD, cmd, C_SUB, sub_cmd, C_RST
+                    printf " %s[%2s] %s%s %s%s%s\n", C_NO, catno, C_CMD, cmd, C_SUB, sub_cmd, C_RST
                 } else {
-                    printf " %s%s%s\n", C_CMD, cmd, C_RST
+                    printf " %s[%2s] %s%s%s\n", C_NO, catno, C_CMD, cmd, C_RST
                 }
             }
         }
@@ -733,7 +735,7 @@ function _factory_fzf_detail_view() {
             C_TAG="\033[1;33m" # 標記 (黃/橘)
             C_EMP="\033[1;30m" # 空值 (深灰)
             C_RST="\033[0m"
-            sep="-----"
+            sep="----------"
         }
 
         !/^#/ && NF >= 5 {
@@ -799,9 +801,8 @@ function _factory_fzf_detail_view() {
 
     if [ -z "$report" ]; then return; fi
 
-    # 3. FZF 顯示層 (Viewer)
     echo -e "$report" | fzf --ansi \
-        --height=14 \
+        --height=16 \
         --layout=reverse \
         --border=bottom \
         --header=" :: Enter to return, Esc to exit ::" \
