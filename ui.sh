@@ -374,7 +374,7 @@ function _show_menu_dashboard() {
 
 # 模糊指令選單介面 - Fuzzy Command Menu Interface
 function _mux_fuzzy_menu() {
-    if ! command -v fzf &> /dev/null; then
+   if ! command -v fzf &> /dev/null; then
         echo -e "\n\033[1;31m :: Neural Search Module (fzf) is missing.\033[0m"
         echo -ne "\033[1;32m :: Install interactive interface? [Y/n]: \033[0m"
         read choice
@@ -393,32 +393,31 @@ function _mux_fuzzy_menu() {
         fi
     fi
 
-    local cmd_list=$(awk '
+    local cmd_list=$(
+        {
+            echo "0,1,Core,MUX,mux,,,Core Command Entry"
+            cat "$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD" 2>/dev/null
+        } | awk -v FPAT='([^,]*)|("[^"]+")' '
         BEGIN {
             C_CMD="\x1b[1;37m"
             C_DESC="\x1b[1;30m"
             C_RESET="\x1b[0m"
         }
-
-        /^function / {
-            match($0, /function ([a-zA-Z0-9_]+)/, arr);
-            func_name = arr[1];
+        
+        !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
+            gsub(/^"|"$/, "", $5); cmd = $5
+            gsub(/^"|"$/, "", $6); sub = $6
+            gsub(/^"|"$/, "", $8); desc = $8
             
-            if (substr(func_name, 1, 1) != "_") {
-                desc = "";
-                if (prev_line ~ /^# :/) {
-                    desc = prev_line;
-                    gsub(/^# : /, "", desc);
-                    gsub(/[[:space:]]+$/, "", desc);
-                }
-                
-                if (desc != "") {
-                    printf " %s%-12s %s%s\n", C_CMD, func_name, C_DESC, desc;
-                }
+            if (sub != "") {
+                display_cmd = cmd " [" sub "]"
+            } else {
+                display_cmd = cmd
             }
+
+            printf " %s%-12s %s%s\n", C_CMD, display_cmd, C_DESC, desc;
         }
-        { prev_line = $0 }
-    ' "$CORE_MOD" "$SYSTEM_MOD" "$APP_MOD" "$VENDOR_MOD")
+    ')
 
     local total_cmds=$(echo "$cmd_list" | grep -c "^ ")
 
