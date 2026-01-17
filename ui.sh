@@ -640,12 +640,12 @@ function _factory_fzf_cat_selector() {
             name=$3; gsub(/^"|"$/, "", name)
 
             if (!seen[id]++) {
-                printf "%3s %s\n", id, name
+                printf "%3d|%s\n", id, name
             }
         }
     ' "$target_file" | sort -n)
 
-    local selected=$(echo "$cat_list" | awk -F'|' '{printf " \033[1;33m%03d  \033[1;37m%s\n", $1, $2}' | fzf --ansi \
+    local selected=$(echo "$cat_list" | awk -F'|' '{printf " \033[1;33m%3s  \033[1;37m%s\n", $1, $2}' | fzf --ansi \
         --height=10 \
         --layout=reverse \
         --border=bottom \
@@ -685,7 +685,7 @@ function _factory_fzf_cmd_in_cat() {
                 gsub(/^"|"$/, "", $6); sub_cmd = $6
 
                 if (sub_cmd != "") {
-                    printf " %s%s %s %s%s\n", C_CMD, cmd, C_SUB, sub_cmd, C_RST
+                    printf " %s%s %s%s%s\n", C_CMD, cmd, C_SUB, sub_cmd, C_RST
                 } else {
                     printf " %s%s%s\n", C_CMD, cmd, C_RST
                 }
