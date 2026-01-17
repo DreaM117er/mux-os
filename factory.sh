@@ -1628,7 +1628,7 @@ function _factory_deploy_sequence() {
     echo ""
     
     if command -v diff &> /dev/null; then
-        diff -U 0 "$MUX_ROOT/app.sh" "$MUX_ROOT/app.sh.temp" | \
+        diff -U 0 "$MUX_ROOT/app.csv" "$MUX_ROOT/app.csv.temp" | \
         grep -v "^---" | grep -v "^+++" | grep -v "^@" | head -n 20 | \
         awk '
             /^\+/ {print "\033[1;32m" $0 "\033[0m"; next}
@@ -1655,7 +1655,7 @@ function _factory_deploy_sequence() {
     
     echo ""
     echo -e "${F_ERR} :: CRITICAL WARNING ::${F_RESET}"
-    echo -e "${F_SUB}    Sandbox (.temp) will OVERWRITE Production (app.sh).${F_RESET}"
+    echo -e "${F_SUB}    Sandbox (.temp) will OVERWRITE Production (app.csv).${F_RESET}"
     echo -e "${F_SUB}    This action is irreversible via undo.${F_RESET}"
     echo ""
     echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO DEPLOY: ${F_RESET}"
@@ -1671,8 +1671,8 @@ function _factory_deploy_sequence() {
     sleep 1.0
     
     local time_str="#Last Sync: $(date '+%Y-%m-%d %H:%M:%S') ::"
-    local temp_file="$MUX_ROOT/app.sh.temp"
-    local prod_file="$MUX_ROOT/app.sh"
+    local temp_file="$MUX_ROOT/app.csv.temp"
+    local prod_file="$MUX_ROOT/app.csv"
 
     if [ -f "$temp_file" ]; then
          if grep -q "Last Sync" "$temp_file"; then

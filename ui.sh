@@ -439,7 +439,7 @@ function _mux_fuzzy_menu() {
         --info=hidden \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:yellow,prompt:cyan,pointer:red,marker:green,border:blue,header:240 \
+        --color=info:240,prompt:208,pointer:red,marker:green,border:blue,header:240 \
         --bind="resize:clear-screen"
     )
 
@@ -609,7 +609,7 @@ function _factory_fzf_menu() {
     local total=$(echo "$list" | grep -c "^ ")
 
     local selected=$(echo "$list" | fzf --ansi \
-        --height=35% \
+        --height=10 \
         --layout=reverse \
         --border=bottom \
         --prompt=" :: $prompt_msg › " \
@@ -617,7 +617,8 @@ function _factory_fzf_menu() {
         --info=hidden \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240
+        --color=info:yellow,prompt:cyan,pointer:red,marker:green,border:blue,header:240 \
+        --bind="resize:clear-screen"
     )
 
     if [ -n "$selected" ]; then
