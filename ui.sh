@@ -685,7 +685,7 @@ function _factory_fzf_cmd_in_cat() {
                 gsub(/^"|"$/, "", $6); sub_cmd = $6
 
                 if (sub_cmd != "") {
-                    printf " %s%s %s[%s]%s\n", C_CMD, cmd, C_SUB, sub_cmd, C_RST
+                    printf " %s%s %s %s%s\n", C_CMD, cmd, C_SUB, sub_cmd, C_RST
                 } else {
                     printf " %s%s%s\n", C_CMD, cmd, C_RST
                 }
