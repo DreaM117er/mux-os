@@ -665,30 +665,29 @@ function _factory_fzf_cat_selector() {
 
 # 兵工廠指令選擇器 - Factory inCommand Scanner
 function _factory_fzf_cmd_in_cat() {
-    local target_cat_no=$(echo "$1" | sed 's/\x1b\[[0-9;]*m//g')
+    local target_cat_no="$1"
     local target_file="$MUX_ROOT/app.csv.temp"
     
     if [ -z "$target_cat_no" ]; then return 1; fi
 
     local cmd_list=$(awk -v FPAT='([^,]*)|("[^"]+")' -v target="$target_cat_no" '
         BEGIN {
-            C_NO="\033[1;33m"
             C_CMD="\x1b[1;37m"
+            C_SUB="\x1b[1;34m"
             C_RST="\x1b[0m"
         }
         
         !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
             cat=$1; gsub(/^"|"$/, "", cat)
-            comno=$2; gsub(/^"|"$/, "", comno)
             
             if ((cat+0) == (target+0)) {
                 gsub(/^"|"$/, "", $5); cmd = $5
                 gsub(/^"|"$/, "", $6); sub_cmd = $6
 
                 if (sub_cmd != "") {
-                    printf " %s[%2s] %s%s %s%s%s\n", C_NO, comno, C_CMD, cmd, C_CMD, sub_cmd, C_RST
+                    printf " %s%s %s[%s]%s\n", C_CMD, cmd, C_SUB, sub_cmd, C_RST
                 } else {
-                    printf " %s[%2s] %s%s%s\n", C_NO, comno, C_CMD, cmd, C_RST
+                    printf " %s%s%s\n", C_CMD, cmd, C_RST
                 }
             }
         }
@@ -702,7 +701,7 @@ function _factory_fzf_cmd_in_cat() {
         --border=bottom \
         --info=hidden \
         --prompt=" :: Select Command › " \
-        --header=" :: Category [$target_cat_no:$total] Items :: " \
+        --header=" :: Category [$target_cat_no] : [$total] Items :: " \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
         --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
@@ -710,7 +709,7 @@ function _factory_fzf_cmd_in_cat() {
     )
 
     if [ -n "$selected" ]; then
-        echo "$selected" | sed 's/^.*] //' | awk '{print $1, $2}' | sed 's/^[ \t]*//;s/[ \t]*$//'
+        echo "$selected" | awk '{print $1, $2}' | sed 's/^[ \t]*//;s/[ \t]*$//'
     fi
 }
 
