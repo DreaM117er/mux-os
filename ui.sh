@@ -728,7 +728,6 @@ function _factory_fzf_detail_view() {
 
     local report=$(awk -v FPAT='([^,]*)|("[^"]+")' -v t_com="$t_com" -v t_sub="$t_sub" '
         BEGIN {
-            # 顏色定義
             C_LBL="\033[1;30m" # 標籤 (深灰)
             C_VAL="\033[1;37m" # 數值 (白)
             C_TAG="\033[1;33m" # 標記 (黃/橘)
@@ -775,7 +774,7 @@ function _factory_fzf_detail_view() {
                     printf "%s%s%s\n", C_LBL, sep, C_RST
                     printf " %sUI     :%s %s\n", C_LBL, C_VAL, ui
                     printf " %sPackage:%s %s\n", C_LBL, C_VAL, pkg
-                    printf " %sActivity:%s %s\n", C_LBL, C_VAL, act
+                    printf " %sTarget :%s %s\n", C_LBL, C_VAL, act
                     printf "%s%s%s\n", C_LBL, sep, C_RST
                     printf " %sEnter to return, Esc to exit.%s\n", C_LBL, C_RST
                 }
@@ -788,9 +787,9 @@ function _factory_fzf_detail_view() {
                     printf "%s%s%s\n", C_LBL, sep, C_RST
                     printf " %sUI     :%s %s\n", C_LBL, C_VAL, ui
                     printf " %sPackage:%s %s\n", C_LBL, C_VAL, pkg
-                    printf " %sActivity:%s %s\n", C_LBL, C_VAL, act
+                    printf " %sTarget :%s %s\n", C_LBL, C_VAL, act
                     printf "%s%s%s\n", C_LBL, sep, C_RST
-                    printf " %sIntent :%s %s %s\n", C_LBL, C_VAL, ihead, ibody
+                    printf " %sIntent :%s %s%s\n", C_LBL, C_VAL, ihead, ibody
                     printf " %sURI    :%s %s\n", C_LBL, C_VAL, uri
                     printf " %sEXTRA  :%s %s\n", C_LBL, C_VAL, extra
                     printf "%s%s%s\n", C_LBL, sep, C_RST
