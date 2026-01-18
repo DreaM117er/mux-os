@@ -58,17 +58,16 @@ clear
 
 if [ "$TARGET_SYSTEM" == "core" ]; then
     unset __MUX_MODE 2>/dev/null
-
     unset MUX_INITIALIZED
-    
+    unset UI_LOADED 
+    unset __MUX_UI_LOADED
     unset -f fac 2>/dev/null
-    
     unset -f $(compgen -A function | grep "^_fac") 2>/dev/null
     unset -f $(compgen -A function | grep "^_factory") 2>/dev/null
     
     if [ -f "$MUX_ROOT/core.sh" ]; then
         source "$MUX_ROOT/core.sh"
-        
+        export PS1="\[\033[1;36m\]MUX-OS\[\033[0m\] \w > "
         if command -v _mux_init &> /dev/null; then
             _mux_init
         fi
@@ -81,6 +80,7 @@ elif [ "$TARGET_SYSTEM" == "factory" ]; then
     
     if [ -f "$MUX_ROOT/factory.sh" ]; then
         source "$MUX_ROOT/factory.sh"
+        export PS1="\[\033[1;38;5;208m\]FACTORY\[\033[0m\] \w > "
         if command -v _factory_system_boot &> /dev/null; then
             _factory_system_boot
         fi
