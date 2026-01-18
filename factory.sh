@@ -37,6 +37,9 @@ function _factory_system_boot() {
     else
         echo '"CATNO","COMNO","CATNAME","TYPE","COM","COM2","COM3","HUDNAME","UINAME","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE","FLAG","EX","EXTRA","ENGINE"' > "$MUX_ROOT/app.csv.temp"
     fi
+
+    export PS1="\[\033[1;38;5;208m\]Fac\[\033[0m\] \w > "
+    export PROMPT_COMMAND="tput sgr0; echo -ne '\033[0m'"
     
     # 製作.bak檔案
     rm -f "$bak_dir"/app.csv.*.bak 2>/dev/null

@@ -804,3 +804,12 @@ function command_not_found_handle() {
     return 0
 }
 
+export PS1="\[\033[1;36m\]Mux\[\033[0m\] \w > "
+export PROMPT_COMMAND="tput sgr0; echo -ne '\033[0m'"
+
+# 啟動系統初始化
+if [ -z "$MUX_INITIALIZED" ]; then
+    if command -v _mux_init &> /dev/null; then
+        _mux_init
+    fi
+fi

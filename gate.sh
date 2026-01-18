@@ -66,11 +66,15 @@ if [ "$TARGET_SYSTEM" == "core" ]; then
     unset -f fac 2>/dev/null
     unset -f $(compgen -A function | grep "^_fac") 2>/dev/null
     unset -f $(compgen -A function | grep "^_factory") 2>/dev/null
+
+    if [ -f "$MUX_ROOT/app.csv.temp" ]; then
+        rm -f "$MUX_ROOT/app.csv.temp"
+    fi
     
     if [ -f "$MUX_ROOT/core.sh" ]; then
         source "$MUX_ROOT/core.sh"
-        echo -ne "\033[0m"
         export PS1="\[\033[1;36m\]Mux\[\033[0m\] \w > "
+        export PROMPT_COMMAND="tput sgr0; echo -ne '\033[0m'"
         if command -v _mux_init &> /dev/null; then
             _mux_init
         fi
@@ -83,8 +87,8 @@ elif [ "$TARGET_SYSTEM" == "factory" ]; then
     
     if [ -f "$MUX_ROOT/factory.sh" ]; then
         source "$MUX_ROOT/factory.sh"
-        echo -ne "\033[0m"
         export PS1="\[\033[1;38;5;208m\]Fac\[\033[0m\] \w > "
+        export PROMPT_COMMAND="tput sgr0; echo -ne '\033[0m'"
         if command -v _factory_system_boot &> /dev/null; then
             _factory_system_boot
         fi
