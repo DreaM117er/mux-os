@@ -466,9 +466,9 @@ function _factory_mask_apps() {
 
             if [ "$is_masked" == "LOCKED" ]; then
                 if [ -n "$input_sub" ]; then
-                    _bot_say "warn" "Factory Lock: [$input_com $input_sub] is restricted."
+                    _bot_say "error" "Factory Lock: [$input_com $input_sub] is restricted."
                 else
-                    _bot_say "warn" "Factory Lock: [$input_com] is restricted."
+                    _bot_say "error" "Factory Lock: [$input_com] is restricted."
                 fi
                 return 1
             fi
