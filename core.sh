@@ -580,9 +580,9 @@ function _mux_reload_kernel() {
     unset MUX_INITIALIZED
     
     if [ -f "$MUX_ROOT/gate.sh" ]; then
-        exec "$MUX_ROOT/gate.sh" "core"
+        source "$MUX_ROOT/gate.sh" "core"
     else
-        exec bash
+        source "$MUX_ROOT/core.sh"
     fi
 }
 

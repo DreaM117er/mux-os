@@ -176,9 +176,9 @@ function fac() {
             echo -e "\033[1;33m :: Cycling Factory Power... \033[0m"
             sleep 0.5
             if [ -f "$MUX_ROOT/gate.sh" ]; then
-                exec "$MUX_ROOT/gate.sh" "factory"
+                source "$MUX_ROOT/gate.sh" "factory"
             else
-                exec bash
+                source "$MUX_ROOT/factory.sh"
             fi
             ;;
             
@@ -367,10 +367,10 @@ function _factory_deploy_sequence() {
     sleep 1.9
     
     if [ -f "$MUX_ROOT/gate.sh" ]; then
-        exec "$MUX_ROOT/gate.sh" "core"
+        source "$MUX_ROOT/gate.sh" "core"
     else
         echo "core" > "$MUX_ROOT/.mux_state"
-        exec bash
+        source "$MUX_ROOT/core.sh"
     fi
 }
 
@@ -471,34 +471,4 @@ function _factory_mask_apps() {
     done
 
     return 0
-}
-
-# 部署模組 - Deployment Module
-function _fac_deploy() {
-    echo -e "\n\033[1;33m :: Initiating Deployment Sequence... \033[0m"
-    
-    _mux_integrity_scan
-    if [ $? -ne 0 ]; then
-        _bot_say "error" "Integrity check failed. Aborting."
-        return 1
-    fi
-    
-    mv "$MUX_ROOT/app.sh.temp" "$MUX_ROOT/app.sh"
-    _mux_uplink
-    echo -e "\033[1;32m :: System Reloading... \033[0m"
-    sleep 1
-    echo "core" > "$MUX_ROOT/.mux_state"
-    unset MUX_INITIALIZED
-    unset __MUX_TARGET_MODE
-    exec bash
-}
-
-# 離開工廠 - Exit Factory
-function _fac_exit() {
-    if [ -f "$MUX_ROOT/gate.sh" ]; then
-        exec "$MUX_ROOT/gate.sh" "core"
-    else
-        echo "core" > "$MUX_ROOT/.mux_state"
-        exec bash
-    fi
 }
