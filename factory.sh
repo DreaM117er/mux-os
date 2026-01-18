@@ -273,10 +273,7 @@ function _fac_rebak_wizard() {
         return 1
     fi
 
-    local list=$(find "$bak_dir" -maxdepth 1 -name "app.csv.*" -type f -printf "%T@ %f\n" | sort -rn | awk '{
-        timestamp = substr($2, 9, 14)
-        printf "%-15s | %s\n", timestamp, $2
-    }')
+    local list=$(find "$bak_dir" -maxdepth 1 -name "app.csv.*" -type f -printf "%T@ %f\n" | sort -rn | awk '{print $2}')
     
     if [ -z "$list" ]; then
         _bot_say "warn" "Backup Repository is Empty."
@@ -287,6 +284,7 @@ function _fac_rebak_wizard() {
         --height=12 \
         --layout=reverse \
         --border=bottom \
+        --info=hidden \
         --prompt=" :: Target file › " \
         --header=" :: Select Restore Point :: " \
         --pointer="››" \
@@ -297,9 +295,11 @@ function _fac_rebak_wizard() {
 
     if [ -z "$selected_line" ]; then return; fi
 
-    local target_file=$(echo "$selected_line" | awk -F' | ' '{print $2}')
+    local target_file="$selected_line"
 
     if [ -n "$target_file" ]; then
+        echo ""
+        
         echo -e "${F_WARN} :: WARNING: This will overwrite your current workspace!${F_RESET}"
         echo -e "${F_GRAY}    Source: $target_file${F_RESET}"
         echo -ne "${F_WARN}    ›› Confirm Restore? [Y/n]: ${F_RESET}"
