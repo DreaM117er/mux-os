@@ -303,13 +303,15 @@ function _fac_rebak_wizard() {
         echo ""
         echo -e "${F_ERR} :: WARNING: This will overwrite your current workspace!${F_RESET}"
         echo -e "${F_GRAY}    Source: $target_file${F_RESET}"
-        echo -ne "${F_WARN} :: Confirm Restore? [Y/n]: ${F_RESET}"
+        echo -ne "${F_WARN} :: Confirm? [Y/n]: ${F_RESET}"
         read -r confirm
         echo ""
-        
+
         if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
             cp "$bak_dir/$target_file" "$MUX_ROOT/app.csv.temp"
-            echo -e " :: Workspace Restored from: $target_file{F_RESET}"
+            echo -e "${F_WARN} :: Workspace Restored from: $target_file${F_RESET}"
+            sleep 0.3
+            echo -e "${F_GRAY}    ›› Verified. ✅.${F_RESET}"
             sleep 1.6
             _fac_init
         else

@@ -759,6 +759,7 @@ function _factory_fzf_detail_view() {
                 
                 ihead=$12; gsub(/^"|"$/, "", ihead); if(ihead=="") ihead="[Empty]"
                 ibody=$13; gsub(/^"|"$/, "", ibody); if(ibody=="") ibody="[Empty]"
+                cate=$16; gsub(/^"|"$/, "", cate); if(cate=="") cate="[Empty]"
                 uri=$14;   gsub(/^"|"$/, "", uri);   if(uri=="")   uri="[Empty]"
                 extra=$19; gsub(/^"|"$/, "", extra); if(extra=="") extra="[Empty]"
                 engine=$20; gsub(/^"|"$/, "", engine); if(engine=="") engine="[Empty]"
@@ -776,6 +777,7 @@ function _factory_fzf_detail_view() {
                     printf " %sUI     :%s %s\n", C_LBL, C_VAL, ui
                     printf " %sPackage:%s %s\n", C_LBL, C_VAL, pkg
                     printf " %sTarget :%s %s\n", C_LBL, C_VAL, act
+                    printf " %sCate   :%s %s\n", C_LBL, C_VAL, cate
                 }
                 
                 else if (type == "NB") {
@@ -788,6 +790,7 @@ function _factory_fzf_detail_view() {
                     printf " %sUI     :%s %s\n", C_LBL, C_VAL, ui
                     printf " %sPackage:%s %s\n", C_LBL, C_VAL, pkg
                     printf " %sTarget :%s %s\n", C_LBL, C_VAL, act
+                    printf " %sCate   :%s %s\n", C_LBL, C_VAL, cate
                     printf " %sIntent :%s %s%s\n", C_LBL, C_VAL, ihead, ibody
                     printf " %sURI    :%s %s\n", C_LBL, C_VAL, uri
                     printf " %sEXTRA  :%s %s\n", C_LBL, C_VAL, extra
@@ -800,7 +803,7 @@ function _factory_fzf_detail_view() {
     if [ -z "$report" ]; then return; fi
 
     echo -e "$report" | fzf --ansi \
-        --height=16 \
+        --height=17 \
         --layout=reverse \
         --border=bottom \
         --header=" :: Enter to return, Esc to exit ::" \
