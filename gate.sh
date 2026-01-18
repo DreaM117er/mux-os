@@ -79,8 +79,9 @@ clear
 
 if [ "$TARGET_SYSTEM" == "core" ]; then
     unset __MUX_MODE 2>/dev/null
-    
     unset MUX_INITIALIZED
+    
+    unset -f fac 2>/dev/null
     
     unset -f $(compgen -A function | grep "^_fac") 2>/dev/null
     unset -f $(compgen -A function | grep "^_factory") 2>/dev/null
