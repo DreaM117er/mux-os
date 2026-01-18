@@ -238,7 +238,7 @@ function _fac_list() {
                 print " " raw_com
             }
         }
-    }' "$target_file" | sort
+    }' "$target_file" | sort | pr -t -3 -w "$width"
     
     echo -e "${F_GRAY} :: End of List :: ${F_RESET}"
 }
