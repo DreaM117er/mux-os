@@ -94,10 +94,7 @@ elif [ "$TARGET_SYSTEM" == "factory" ]; then
     if [ -z "$__MUX_CORE_ACTIVE" ]; then
         if [ -f "$MUX_ROOT/core.sh" ]; then
             source "$MUX_ROOT/core.sh"
-
-            if command -v _mux_init &> /dev/null; then
-                _mux_init
-            fi
+            _mux_init
         fi
     fi
     
