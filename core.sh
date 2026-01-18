@@ -177,6 +177,7 @@ function _launch_android_app() {
         fi
     fi
 
+    # RELOAD
     if [ -n "$final_action" ]; then cmd_args="$cmd_args -a $final_action"; fi
     if [ -n "$_VAL_URI" ];     then cmd_args="$cmd_args -d \"$_VAL_URI\""; fi
     if [ -n "$_VAL_MIME" ];    then cmd_args="$cmd_args -t \"$_VAL_MIME\""; fi
@@ -187,6 +188,7 @@ function _launch_android_app() {
 
     _bot_say "launch" "Target: [$name]"
     
+    # FIRE THE COMMAND
     local output
     output=$(eval "am start --user 0 $cmd_args" 2>&1)
 
@@ -663,8 +665,11 @@ function command_not_found_handle() {
     local input_signal="$1"      # COM
     local input_sub="$2"         # COM2 (Candidate)
     local input_args="${*:2}"    # All args starting from $2
+
+    if [ "$__MUX_MODE" == "factory" ]; then
+        _factory_mask_apps "$input_signal" "$input_sub" || return 127
+    fi
     
-    # 呼叫雙重鎖定掃描 (傳入 COM 和 COM2)
     if ! _mux_neural_data "$input_signal" "$input_sub"; then
         _bot_say "error" "[$input_signal] command not found."
         return 127
@@ -719,10 +724,14 @@ function command_not_found_handle() {
                 
                 _bot_say "neural" "Payload: Raw Search ›› $safe_query"
                 
-                local cmd="am start --user 0 -a $final_action -e query \"$safe_query\""
+                local cmd="am start --user 0 -a $final_action$cate_arg -e query \"$safe_query\""
                 
                 if [ -n "$_VAL_PKG" ]; then
                     cmd="$cmd -p $_VAL_PKG"
+                fi
+
+                if [ -n "$_VAL_FLAG" ]; then
+                    cmd="$cmd -f $_VAL_FLAG"
                 fi
                 
                 # FIRE THE COMMAND
@@ -761,6 +770,7 @@ function command_not_found_handle() {
 
             local cmd="am start --user 0 -a \"$final_action\""
             
+            # RELOAD
             if [ -n "$_VAL_PKG" ]; then cmd="$cmd -p $_VAL_PKG"; fi
             if [ -n "$final_uri" ]; then cmd="$cmd -d \"$final_uri\""; fi
             if [ -n "$_VAL_CATE" ]; then cmd="$cmd -c android.intent.category.$_VAL_CATE"; fi
