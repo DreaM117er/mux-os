@@ -5,7 +5,9 @@ if [ -z "$MUX_BAK" ]; then export MUX_BAK="$MUX_ROOT/bak"; fi
 
 if [ -z "$__MUX_CORE_ACTIVE" ]; then
     if [ -f "$MUX_ROOT/core.sh" ]; then
+        export __MUX_NO_AUTOBOOT="true"
         source "$MUX_ROOT/core.sh"
+        unset __MUX_NO_AUTOBOOT
     else
         echo -e "\033[1;31m :: FATAL :: Core Uplink Failed. Variables missing.\033[0m"
         return 1 2>/dev/null
