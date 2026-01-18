@@ -67,7 +67,7 @@ if [ "$TARGET_SYSTEM" == "core" ]; then
     
     if [ -f "$MUX_ROOT/core.sh" ]; then
         source "$MUX_ROOT/core.sh"
-        export PS1="\[\033[1;36m\]Mux\[\033[0m\] \w > "
+        export PS1="\[\033[1;36m\]Mux\[\033[0m\] \w › "
         if command -v _mux_init &> /dev/null; then
             _mux_init
         fi
@@ -80,7 +80,7 @@ elif [ "$TARGET_SYSTEM" == "factory" ]; then
     
     if [ -f "$MUX_ROOT/factory.sh" ]; then
         source "$MUX_ROOT/factory.sh"
-        export PS1="\[\033[1;38;5;208m\]Fac\[\033[0m\] \w > "
+        export PS1="\[\033[1;38;5;208m\]Fac\[\033[0m\] \w › "
         if command -v _factory_system_boot &> /dev/null; then
             _factory_system_boot
         fi
