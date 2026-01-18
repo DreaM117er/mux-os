@@ -221,7 +221,6 @@ function _mux_boot_sequence() {
     fi
 
     if [ "$TARGET_MODE" == "factory" ]; then
-        # [Case 1] 狀態為 Factory -> 載入兵工廠
         if [ -f "$MUX_ROOT/factory.sh" ]; then
             export __MUX_MODE="factory"
             source "$MUX_ROOT/factory.sh"

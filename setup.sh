@@ -192,7 +192,14 @@ function _install_protocol() {
         chmod +x "$MUX_ROOT/gate.sh"
     fi
 
-    exit 0
+    if [ "$__MUX_CORE_ACTIVE" == "true" ]; then
+        exit 0
+    else
+        echo ""
+        echo -e "${C_GREEN} :: Mux-OS setup ready. Please restart Termux to engage.${C_RESET}"
+        echo -e "${C_GRAY}    (Type 'exit' or swipe away this session)${C_RESET}"
+        exit 0
+    fi
 }
 
 # 卸載協議
