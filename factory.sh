@@ -88,7 +88,7 @@ function _factory_reset() {
 function fac() {
     local cmd="$1"
     if [ "$__MUX_MODE" == "core" ]; then
-        _bot_say "fail" "[mux] command not found."
+        _bot_say "fail" "Factory commands disabled during Core session."
         return 1
     fi
 

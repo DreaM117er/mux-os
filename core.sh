@@ -187,7 +187,7 @@ function _launch_android_app() {
     if [ -n "$_VAL_EX" ];      then cmd_args="$cmd_args $_VAL_EX"; fi
     if [ -n "$_VAL_EXTRA" ];   then cmd_args="$cmd_args $_VAL_EXTRA"; fi
 
-    _bot_say "launch" "Target: [$name]"
+    _bot_say "launch" "Target: '$name'"
     
     # FIRE THE COMMAND
     local output
@@ -289,7 +289,7 @@ function _safe_ui_calc() {
 function mux() {
     local cmd="$1"
     if [ "$__MUX_MODE" == "factory" ]; then
-        _bot_say "error" "[fac] command not found."
+        _bot_say "error" "Core commands disabled during Factory session."
         return 1
     fi
 
@@ -676,7 +676,7 @@ function command_not_found_handle() {
     fi
     
     if ! _mux_neural_data "$input_signal" "$input_sub"; then
-        _bot_say "error" "[$input_signal] command not found."
+        _bot_say "error" "'$input_signal' command not found."
         return 127
     fi
 
