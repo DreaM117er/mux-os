@@ -224,7 +224,9 @@ function _mux_boot_sequence() {
         if [ -f "$BASE_DIR/factory.sh" ]; then
             export __MUX_MODE="factory"
             source "$BASE_DIR/factory.sh"
-            _factory_system_boot 
+            if command -v _factory_system_boot &> /dev/null; then
+                _factory_system_boot 
+            fi 
         else
             echo "core" > "$MUX_ROOT/.mux_state"
             _mux_init
@@ -809,7 +811,9 @@ export PROMPT_COMMAND="tput sgr0; echo -ne '\033[0m'"
 
 # 啟動系統初始化
 if [ -z "$MUX_INITIALIZED" ]; then
-    if command -v _mux_init &> /dev/null; then
+    if command -v _mux_boot_sequence &> /dev/null; then
+        _mux_boot_sequence
+    else
         _mux_init
     fi
 fi
