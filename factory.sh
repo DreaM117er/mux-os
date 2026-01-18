@@ -168,9 +168,7 @@ function fac() {
 
         # : List all links
         "list"|"ls")
-            echo -e "${F_MAIN} :: Current Sandbox Links:${F_RESET}"
-            grep "^function" "$MUX_ROOT/app.sh.temp" | sed 's/function //' | sed 's/() {//' | column
-            echo ""
+            _fac_list
             ;;
 
         # : Show Factory Status
@@ -253,6 +251,28 @@ function fac() {
             echo -e "${F_SUB} :: Unknown Directive: $cmd${F_RESET}"
             ;;
     esac
+}
+
+# 兵工廠快速列表 - List all commands
+function _fac_list() {
+    local target_file="$MUX_ROOT/app.csv.temp"
+    
+    echo -e "${F_WARN} :: Mux-OS Command Registry :: ${F_RESET}"
+    
+    awk -F, 'NR>1 {
+        gsub(/^"|"$/, "", $5); com=$5
+        gsub(/^"|"$/, "", $6); sub=$6
+        
+        if (com != "") {
+            if (sub != "") {
+                print " " com " " sub
+            } else {
+                print " " com
+            }
+        }
+    }' "$target_file" | sort
+    
+    echo -e "${F_GRAY} :: End of List :: ${F_RESET}"
 }
 
 # 通用模組：智慧指令輸入器 (Smart Command Input)

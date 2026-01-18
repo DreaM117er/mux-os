@@ -163,6 +163,7 @@ function _launch_android_app() {
     if [ -n "$_VAL_IHEAD" ] || [ -n "$_VAL_IBODY" ]; then
         final_action="${_VAL_IHEAD}${_VAL_IBODY}"
     fi
+
     if [ -z "$final_action" ] && [ "$_VAL_TYPE" == "NB" ]; then
         final_action="android.intent.action.VIEW"
     fi
@@ -179,7 +180,7 @@ function _launch_android_app() {
     if [ -n "$final_action" ]; then cmd_args="$cmd_args -a $final_action"; fi
     if [ -n "$_VAL_URI" ];     then cmd_args="$cmd_args -d \"$_VAL_URI\""; fi
     if [ -n "$_VAL_MIME" ];    then cmd_args="$cmd_args -t \"$_VAL_MIME\""; fi
-    if [ -n "$_VAL_CATE" ];    then cmd_args="$cmd_args -c \"$_VAL_CATE\""; fi
+    if [ -n "$_VAL_CATE" ];    then cmd_args="$cmd_args -c \"android.intent.category.$_VAL_CATE\""; fi
     if [ -n "$_VAL_FLAG" ];    then cmd_args="$cmd_args -f $_VAL_FLAG"; fi
     if [ -n "$_VAL_EX" ];      then cmd_args="$cmd_args $_VAL_EX"; fi
     if [ -n "$_VAL_EXTRA" ];   then cmd_args="$cmd_args $_VAL_EXTRA"; fi
@@ -669,6 +670,11 @@ function command_not_found_handle() {
         return 127
     fi
 
+    local cate_arg=""
+    if [ -n "$_VAL_CATE" ]; then
+        cate_arg=" -c android.intent.category.$_VAL_CATE"
+    fi
+
     case "$_VAL_TYPE" in
         "NA")
             if [ -z "$_VAL_COM2" ]; then
@@ -757,6 +763,8 @@ function command_not_found_handle() {
             
             if [ -n "$_VAL_PKG" ]; then cmd="$cmd -p $_VAL_PKG"; fi
             if [ -n "$final_uri" ]; then cmd="$cmd -d \"$final_uri\""; fi
+            if [ -n "$_VAL_CATE" ]; then cmd="$cmd -c android.intent.category.$_VAL_CATE"; fi
+            if [ -n "$_VAL_FLAG" ]; then cmd="$cmd -f $_VAL_FLAG"; fi
             if [ -n "$_VAL_EX" ]; then cmd="$cmd $_VAL_EX"; fi
             if [ -n "$_VAL_EXTRA" ]; then cmd="$cmd $_VAL_EXTRA"; fi
 
