@@ -224,15 +224,18 @@ function _fac_list() {
     
     echo -e "${F_WARN} :: Mux-OS Command Registry :: ${F_RESET}"
     
-    awk -F, 'NR>1 {
-        gsub(/^"|"$/, "", $5); com=$5
-        gsub(/^"|"$/, "", $6); sub=$6
+    awk -v FPAT='([^,]*)|("[^"]+")' 'NR>1 {
+        raw_com = $5
+        gsub(/^"|"$/, "", raw_com)
         
-        if (com != "") {
-            if (sub != "") {
-                print " " com " " sub
+        raw_sub = $6
+        gsub(/^"|"$/, "", raw_sub)
+        
+        if (raw_com != "") {
+            if (raw_sub != "") {
+                print " " raw_com " " raw_sub
             } else {
-                print " " com
+                print " " raw_com
             }
         }
     }' "$target_file" | sort
