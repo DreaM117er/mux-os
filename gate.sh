@@ -82,7 +82,11 @@ if [ "$TARGET_SYSTEM" == "core" ]; then
 
 elif [ "$TARGET_SYSTEM" == "factory" ]; then
     if [ -z "$__MUX_CORE_ACTIVE" ]; then
-        if [ -f "$MUX_ROOT/core.sh" ]; then source "$MUX_ROOT/core.sh"; fi
+        if [ -f "$MUX_ROOT/core.sh" ]; then 
+            export __MUX_NO_AUTOBOOT="true"
+            source "$MUX_ROOT/core.sh"
+            unset __MUX_NO_AUTOBOOT
+        fi
     fi
     
     if [ -f "$MUX_ROOT/factory.sh" ]; then
