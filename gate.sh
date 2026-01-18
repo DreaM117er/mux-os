@@ -73,8 +73,8 @@ for i in $(seq 1 "$BAR_LEN"); do
     sleep 0.015
 done
 
-tput cnorm
 stty sane
+tput cnorm
 clear
 
 if [ "$TARGET_SYSTEM" == "core" ]; then
@@ -84,6 +84,10 @@ if [ "$TARGET_SYSTEM" == "core" ]; then
     
     if [ -f "$MUX_ROOT/core.sh" ]; then
         source "$MUX_ROOT/core.sh"
+        
+        if command -v _mux_init &> /dev/null; then
+             _mux_init
+        fi
     fi
 
 elif [ "$TARGET_SYSTEM" == "factory" ]; then
