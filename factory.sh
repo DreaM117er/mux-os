@@ -433,9 +433,10 @@ function _fac_init() {
 
 # 函式攔截器 (Function Interceptor)
 function _factory_mask_apps() {
-    local target_cmd="$1"
+    local input_com="$1"
+    local input_sub="$2"
     
-    if [[ "$target_cmd" == "wb" || "$target_cmd" == "apklist" ]]; then
+    if [[ "$input_com" == "wb" || "$input_com" == "apklist" ]]; then
         return 0
     fi
 
@@ -453,6 +454,10 @@ function _factory_mask_apps() {
                     gsub(/^"|"$/, "", $6); s=$6
                     
                     if (c == q_com && s == q_sub) {
+                        print "LOCKED"
+                        exit
+                    }
+                    if (c == q_com && s == "" && q_sub == "") {
                         print "LOCKED"
                         exit
                     }
