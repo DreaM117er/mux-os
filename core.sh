@@ -221,18 +221,20 @@ function _mux_boot_sequence() {
     fi
 
     if [ "$TARGET_MODE" == "factory" ]; then
-        if [ -f "$BASE_DIR/factory.sh" ]; then
+        # [Case 1] 狀態為 Factory -> 載入兵工廠
+        if [ -f "$MUX_ROOT/factory.sh" ]; then
             export __MUX_MODE="factory"
-            source "$BASE_DIR/factory.sh"
+            source "$MUX_ROOT/factory.sh"
+            
             if command -v _factory_system_boot &> /dev/null; then
                 _factory_system_boot 
-            fi 
+            fi
         else
             echo "core" > "$MUX_ROOT/.mux_state"
             _mux_init
         fi
     else
-        if [ -f "$MUX_ROOT/.mux_state" ]; then rm "$MUX_ROOT/.mux_state"; fi
+        if [ -f "$MUX_ROOT/.mux_state" ]; then echo "core" > "$MUX_ROOT/.mux_state"; fi
         _mux_init
     fi
 }
