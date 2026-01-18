@@ -29,6 +29,8 @@ function _factory_system_boot() {
     local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
     if [ ! -d "$bak_dir" ]; then mkdir -p "$bak_dir"; fi
 
+    local ts=$(date +%Y%m%d%H%M%S)
+
     # 前置作業
     if [ -f "$MUX_ROOT/app.csv" ]; then
         cp "$MUX_ROOT/app.csv" "$MUX_ROOT/app.csv.temp"
@@ -37,9 +39,8 @@ function _factory_system_boot() {
     fi
     
     # 製作.bak檔案
-    local ts=$(date +%Y%m%d%H%M%S)
-    local session_bak="$MUX_BAK/app.csv.bak.$ts"
-    cp "$MUX_ROOT/app.csv" "$session_bak"
+    rm -f "$bak_dir"/app.csv.*.bak 2>/dev/null
+    cp "$MUX_ROOT/app.csv" "$bak_dir/app.csv.$ts.bak"
 
     # 初始化介面
     if command -v _fac_init &> /dev/null; then
@@ -54,6 +55,9 @@ function _factory_system_boot() {
 
 # 兵工廠重置 (Factory Reset - Phoenix Protocol)
 function _factory_reset() {
+    local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
+    local target_bak=$(ls -t "$bak_dir"/app.csv.*.bak 2>/dev/null | head -n 1)
+
     echo ""
     echo -e "${F_ERR} :: CRITICAL WARNING :: FACTORY RESET DETECTED ::${F_RESET}"
     echo -e "${F_GRAY}    This will wipe ALL changes (Sandbox & Production) and pull from Origin.${F_RESET}"
@@ -61,20 +65,27 @@ function _factory_reset() {
     read confirm
 
     if [ "$confirm" == "CONFIRM" ]; then
-        _bot_say "loading" "Obliterating timeline..."
+        _bot_say "loading" "Reversing time flow..."
         
-        git fetch --all >/dev/null 2>&1
-        local branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
-        git reset --hard "origin/$branch" >/dev/null 2>&1
-        chmod +x "$MUX_ROOT/"*.sh
-        
-        cp "$MUX_ROOT/app.sh" "$MUX_ROOT/app.sh.temp"
-        source "$MUX_ROOT/app.sh.temp"
-        
-        _factory_mask_apps
-        
-        _fac_init
-        _bot_say "success" "Factory reset complete. Timeline synchronized."
+        if [ -n "$target_bak" ] && [ -f "$target_bak" ]; then
+            cp "$target_bak" "$MUX_ROOT/app.csv.temp"
+            
+            if command -v _factory_auto_backup &> /dev/null; then
+                _factory_auto_backup
+            fi
+            
+            _fac_init
+            _bot_say "success" "Timeline restored to Session Start."
+        else
+            _bot_say "error" "Session Backup missing. Fallback to Production."
+            if [ -f "$MUX_ROOT/app.csv" ]; then
+                cp "$MUX_ROOT/app.csv" "$MUX_ROOT/app.csv.temp"
+                _fac_init
+                _bot_say "success" "Restored from Production (app.csv)."
+            else
+                _bot_say "error" "Critical Failure: No source available."
+            fi
+        fi
     else
         echo -e "${F_GRAY}    ›› Reset aborted.${F_RESET}"
     fi
@@ -240,19 +251,14 @@ function _fac_list() {
 
 # 自動備份 - Auto Backup
 function _factory_auto_backup() {
+    local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
     local ts=$(date +%Y%m%d%H%M%S)
-    local atb_file="$MUX_BAK/app.csv.atb.$ts"
     
-    cp "$MUX_ROOT/app.csv.temp" "$atb_file"
+    cp "$MUX_ROOT/app.csv.temp" "$bak_dir/app.csv.$ts.atb"
     
     local count=$(ls -1 "$MUX_BAK"/app.csv.atb.* 2>/dev/null | wc -l)
     
-    if [ "$count" -gt 9 ]; then
-        local oldest=$(ls -1t "$MUX_BAK"/app.csv.atb.* 2>/dev/null | tail -n 1)
-        if [ -n "$oldest" ]; then
-            rm "$oldest"
-        fi
-    fi
+    ls -t "$bak_dir"/app.csv.*.atb 2>/dev/null | tail -n +11 | xargs -r rm
 }
 
 # 災難復原精靈 - Recovery Wizard
@@ -352,10 +358,9 @@ function _factory_deploy_sequence() {
 
     if [ -f "$temp_file" ]; then
         mv "$temp_file" "$prod_file"
-        cp "$prod_file" "$temp_file"
-         
-        if [ -n "$__MUX_SESSION_BAK" ] && [ -f "$__MUX_SESSION_BAK" ]; then
-            rm "$__MUX_SESSION_BAK"
+        
+        if [ -f "$temp_file" ]; then
+            rm -f "$temp_file"
         fi
     else
          _bot_say "error" "Sandbox integrity failed."
@@ -363,7 +368,7 @@ function _factory_deploy_sequence() {
     fi
     
     echo ""
-    echo -e "${F_MAIN} :: DEPLOYMENT SUCCESSFUL ::${F_RESET}"
+    echo -e "${F_GRE} :: DEPLOYMENT SUCCESSFUL ::${F_RESET}"
     sleep 1.9
     
     if [ -f "$MUX_ROOT/gate.sh" ]; then
