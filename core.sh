@@ -409,12 +409,14 @@ function mux() {
                 echo -e "\033[1;33m :: Reloading System Core...\033[0m"
                 sleep 1.6
                 
-                chmod +x "$MUX_ROOT/"*.sh
+                if [ -d "$MUX_ROOT" ]; then chmod +x "$MUX_ROOT/"*.sh 2>/dev/null; fi
                 
                 if [ -f "$MUX_ROOT/gate.sh" ]; then
-                    exec "$MUX_ROOT/gate.sh" "core"
+                    source "$MUX_ROOT/gate.sh" "core"
+                elif [ -f "$MUX_ROOT/core.sh" ]; then
+                    source "$MUX_ROOT/core.sh"
                 else
-                    exec bash
+                    echo ":: Warp incomplete. System files missing."
                 fi
             else
                 _bot_say "warp" "fail"
@@ -528,10 +530,10 @@ function _core_pre_factory_auth() {
     sleep 0.5
     
     if [ -f "$MUX_ROOT/gate.sh" ]; then
-        exec "$MUX_ROOT/gate.sh" "factory"
+        source "$MUX_ROOT/gate.sh" "factory"
     else
-        echo "factory" > "$MUX_ROOT/.mux_state"
-        exec bash
+        _bot_say "error" "Gate Mechanism Not Found."
+        return 1
     fi
 }
 

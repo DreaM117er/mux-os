@@ -79,21 +79,29 @@ clear
 
 if [ "$TARGET_SYSTEM" == "core" ]; then
     unset __MUX_MODE 2>/dev/null
-    
     unset -f $(compgen -A function | grep "^_fac") 2>/dev/null
     unset -f $(compgen -A function | grep "^_factory") 2>/dev/null
     
-    source "$MUX_ROOT/core.sh"
+    if [ -f "$MUX_ROOT/core.sh" ]; then
+        source "$MUX_ROOT/core.sh"
+    fi
 
 elif [ "$TARGET_SYSTEM" == "factory" ]; then
     if [ -z "$__MUX_CORE_ACTIVE" ]; then
-        source "$MUX_ROOT/core.sh"
+        if [ -f "$MUX_ROOT/core.sh" ]; then
+            source "$MUX_ROOT/core.sh"
+        fi
     fi
     
-    source "$MUX_ROOT/factory.sh"
-    
-    if command -v _factory_system_boot &> /dev/null; then
-        _factory_system_boot
+    if [ -f "$MUX_ROOT/factory.sh" ]; then
+        source "$MUX_ROOT/factory.sh"
+        
+        if command -v _factory_system_boot &> /dev/null; then
+            _factory_system_boot
+        fi
+    else
+        echo "Error: Factory module not found at $MUX_ROOT/factory.sh"
+        sleep 2
     fi
 fi
 

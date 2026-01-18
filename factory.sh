@@ -1,8 +1,15 @@
 #!/bin/bash
 
+if [ -z "$MUX_ROOT" ]; then export MUX_ROOT="$HOME/mux-os"; fi
+if [ -z "$MUX_BAK" ]; then export MUX_BAK="$MUX_ROOT/bak"; fi
+
 if [ -z "$__MUX_CORE_ACTIVE" ]; then
-    echo -e "\033[1;31m :: ACCESS DENIED :: Core Uplink Required.\033[0m"
-    return 1 2>/dev/null || exit 1
+    if [ -f "$MUX_ROOT/core.sh" ]; then
+        source "$MUX_ROOT/core.sh"
+    else
+        echo -e "\033[1;31m :: FATAL :: Core Uplink Failed. Variables missing.\033[0m"
+        return 1 2>/dev/null
+    fi
 fi
 
 # factory.sh - Mux-OS 兵工廠
