@@ -13,6 +13,7 @@ export MUX_REPO="https://github.com/DreaM117er/mux-os"
 export MUX_VERSION="7.0.0 Beta"
 export MUX_ROOT="$HOME/mux-os"
 export BASE_DIR="$MUX_ROOT"
+export MUX_BAK="$MUX_ROOT/bak"
 export __MUX_CORE_ACTIVE=true
 
 # 載入核心模組
@@ -667,7 +668,9 @@ function command_not_found_handle() {
     local input_args="${*:2}"    # All args starting from $2
 
     if [ "$__MUX_MODE" == "factory" ]; then
-        _factory_mask_apps "$input_signal" "$input_sub" || return 127
+        if command -v _factory_mask_apps &> /dev/null; then
+            _factory_mask_apps "$input_signal" "$input_sub" || return 127
+        fi
     fi
     
     if ! _mux_neural_data "$input_signal" "$input_sub"; then

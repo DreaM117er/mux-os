@@ -19,6 +19,9 @@ F_GRE="\n\033[1;32m"
 function _factory_system_boot() {
     export __MUX_MODE="factory"
 
+    local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
+    if [ ! -d "$bak_dir" ]; then mkdir -p "$bak_dir"; fi
+
     # 前置作業
     if [ -f "$MUX_ROOT/app.csv" ]; then
         cp "$MUX_ROOT/app.csv" "$MUX_ROOT/app.csv.temp"
@@ -400,7 +403,7 @@ function _fac_maintenance() {
                         echo -e "${F_GRAY}    ›› Optimization skipped.${F_RESET}"
                     fi
                 else
-                    echo -e "    ›› Index Sequence Verified. \033[1;32mOK\033[0m."
+                    echo -e "    ›› Index Sequence Verified. ✅"
                 fi
             fi
         fi
