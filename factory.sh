@@ -266,37 +266,52 @@ function _factory_auto_backup() {
 
 # 災難復原精靈 - Recovery Wizard
 function _fac_rebak_wizard() {
-    local bak_dir="$MUX_BAK"
+    local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
     
     if [ ! -d "$bak_dir" ]; then
         _bot_say "error" "No Backup Repository Found."
         return 1
     fi
 
-    local list=$(find "$bak_dir" -maxdepth 1 -name "app.csv.*" -type f -printf "%T@ %f\n" | sort -rn | awk '{print $2}')
+    local list=$(find "$bak_dir" -maxdepth 1 -name "app.csv.*" -type f -printf "%T@ %f\n" | sort -rn | awk '{
+        timestamp = substr($2, 9, 14)
+        printf "%-15s | %s\n", timestamp, $2
+    }')
     
     if [ -z "$list" ]; then
         _bot_say "warn" "Backup Repository is Empty."
         return 1
     fi
 
-    local selected=$(echo "$list" | fzf --ansi \
-        --height=40% --layout=reverse --border=bottom \
-        --prompt=" :: Restore Checkpoint › " \
-        --header=" :: Select a backup to restore to Workspace (.temp) :: " \
+    local selected_line=$(echo "$list" | fzf --ansi \
+        --height=12 \
+        --layout=reverse \
+        --border=bottom \
+        --prompt=" :: Target file › " \
+        --header=" :: Select Restore Point :: " \
         --pointer="››" \
-        --color=fg:white,bg:-1,hl:208 \
-        --preview="head -n 5 $bak_dir/{}" --preview-window=up:30%)
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+        --bind="resize:clear-screen"
+        )
 
-    if [ -n "$selected" ]; then
+    if [ -z "$selected_line" ]; then return; fi
+
+    local target_file=$(echo "$selected_line" | awk -F' | ' '{print $2}')
+
+    if [ -n "$target_file" ]; then
         echo -e "${F_WARN} :: WARNING: This will overwrite your current workspace!${F_RESET}"
-        echo -ne "    ›› Restore [${selected}]? (y/N): "
+        echo -e "${F_GRAY}    Source: $target_file${F_RESET}"
+        echo -ne "${F_WARN}    ›› Confirm Restore? [Y/n]: ${F_RESET}"
         read -r confirm
+        
         if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
-            cp "$bak_dir/$selected" "$MUX_ROOT/app.csv.temp"
-            _bot_say "neural" "Workspace Restored from: $selected"
+            cp "$bak_dir/$target_file" "$MUX_ROOT/app.csv.temp"
+            
+            _bot_say "neural" "Workspace Restored from: $target_file"
+            _fac_init
         else
-            _bot_say "neural" "Restore Canceled."
+            echo -e "${F_GRAY}    ›› Restore Canceled.${F_RESET}"
         fi
     fi
 }
