@@ -221,6 +221,7 @@ function fac() {
 # 兵工廠快速列表 - List all commands
 function _fac_list() {
     local target_file="$MUX_ROOT/app.csv.temp"
+    local width=$(tput cols)
     
     echo -e "${F_WARN} :: Mux-OS Command Registry :: ${F_RESET}"
     
@@ -233,9 +234,9 @@ function _fac_list() {
         
         if (raw_com != "") {
             if (raw_sub != "") {
-                print " " raw_com " " raw_sub
+                print raw_com " " raw_sub
             } else {
-                print " " raw_com
+                print raw_com
             }
         }
     }' "$target_file" | sort | pr -t -3 -w "$width"
