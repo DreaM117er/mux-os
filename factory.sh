@@ -64,8 +64,10 @@ function _factory_reset() {
     echo ""
     echo -e "${F_ERR} :: CRITICAL WARNING :: FACTORY RESET DETECTED ::${F_RESET}"
     echo -e "${F_GRAY}    This will wipe ALL changes (Sandbox & Production) and pull from Origin.${F_RESET}"
+    echo ""
     echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO NUKE: ${F_RESET}"
     read confirm
+    echo ""
 
     if [ "$confirm" == "CONFIRM" ]; then
         _bot_say "loading" "Reversing time flow..."
@@ -276,7 +278,7 @@ function _fac_rebak_wizard() {
     local list=$(find "$bak_dir" -maxdepth 1 -name "app.csv.*" -type f -printf "%T@ %f\n" | sort -rn | awk '{print $2}')
     
     if [ -z "$list" ]; then
-        _bot_say "warn" "Backup Repository is Empty."
+        _bot_say "error" "Backup Repository is Empty."
         return 1
     fi
 
@@ -299,16 +301,16 @@ function _fac_rebak_wizard() {
 
     if [ -n "$target_file" ]; then
         echo ""
-        
-        echo -e "${F_WARN} :: WARNING: This will overwrite your current workspace!${F_RESET}"
+        echo -e "${F_ERR} :: WARNING: This will overwrite your current workspace!${F_RESET}"
         echo -e "${F_GRAY}    Source: $target_file${F_RESET}"
-        echo -ne "${F_WARN}    ›› Confirm Restore? [Y/n]: ${F_RESET}"
+        echo -ne "${F_WARN} :: Confirm Restore? [Y/n]: ${F_RESET}"
         read -r confirm
+        echo ""
         
         if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
             cp "$bak_dir/$target_file" "$MUX_ROOT/app.csv.temp"
-            
-            _bot_say "neural" "Workspace Restored from: $target_file"
+            echo -e " :: Workspace Restored from: $target_file{F_RESET}"
+            sleep 1.6
             _fac_init
         else
             echo -e "${F_GRAY}    ›› Restore Canceled.${F_RESET}"
