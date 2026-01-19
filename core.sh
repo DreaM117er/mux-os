@@ -329,6 +329,7 @@ function mux() {
             fi
             echo -e ""
             echo -e "\033[1;33m :: Initialize Neural Link Protocol? \033[0m"
+            echo -e ""
             echo -ne "\033[1;32m :: Authorize construction? [Y/n]: \033[0m"
             read choice
             if [[ "$choice" == "y" || "$choice" == "Y" || "$choice" == "" ]]; then
@@ -730,7 +731,7 @@ function command_not_found_handle() {
                 local raw_input=$(echo "$real_args" | sed 'y/。．/../' | sed 's/　/ /g')
                 local safe_query="${raw_input//\"/\\\"}"
                 
-                _bot_say "neural" "Payload: Raw Search ›› $safe_query"
+                _bot_say "neural" "Payload: Raw Search ›› '$safe_query'"
                 
                 local cmd="am start --user 0 -a $final_action$cate_arg -e query \"$safe_query\""
                 
@@ -758,9 +759,9 @@ function command_not_found_handle() {
                     final_uri="$__GO_TARGET"
                     
                     if [ "$__GO_MODE" == "neural" ]; then
-                         _bot_say "neural" "Searching: $real_args"
+                         _bot_say "neural" "Searching: '$real_args'"
                     else
-                         _bot_say "launch" "Targeting: $final_uri"
+                         _bot_say "launch" "Targeting: '$final_uri'"
                     fi
                 else
                     _bot_say "error" "Configuration Error: Missing ENGINE data."
@@ -769,11 +770,11 @@ function command_not_found_handle() {
 
             elif [[ "$_VAL_URI" == *"\$query"* ]]; then
                 final_uri="${_VAL_URI//\$query/$safe_args}"
-                _bot_say "neural" "Navigating: $real_args"
+                _bot_say "neural" "Navigating: '$real_args'"
             
             else
                 final_uri="$_VAL_URI"
-                _bot_say "launch" "Executing: $real_args"
+                _bot_say "launch" "Executing: '$real_args'"
             fi
 
             local cmd="am start --user 0 -a \"$final_action\""
@@ -800,14 +801,14 @@ function command_not_found_handle() {
             ;;
 
         *)
-            _bot_say "error" "Unknown Signal Type: $_VAL_TYPE"
+            _bot_say "error" "Unknown Signal Type: '$_VAL_TYPE'"
             return 1
             ;;
     esac
     return 0
 }
 
-export PS1="\[\033[1;36m\]Mux\[\033[0m\] \w > "
+export PS1="\[\033[1;36m\]Mux\[\033[0m\] \w › "
 export PROMPT_COMMAND="tput sgr0; echo -ne '\033[0m'"
 
 # 啟動系統初始化

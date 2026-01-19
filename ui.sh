@@ -467,7 +467,6 @@ function _mux_uplink_sequence() {
     sleep 0.8
     echo -e "\033[1;36m :: Constructing interface matrix (fzf)...\033[0m"
     sleep 0.5
-    echo -e ""
 
     pkg install fzf -y > /dev/null 2>&1
 

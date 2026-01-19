@@ -40,7 +40,7 @@ function _factory_system_boot() {
         echo '"CATNO","COMNO","CATNAME","TYPE","COM","COM2","COM3","HUDNAME","UINAME","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE","FLAG","EX","EXTRA","ENGINE"' > "$MUX_ROOT/app.csv.temp"
     fi
 
-    export PS1="\[\033[1;38;5;208m\]Fac\[\033[0m\] \w > "
+    export PS1="\[\033[1;38;5;208m\]Fac\[\033[0m\] \w › "
     export PROMPT_COMMAND="tput sgr0; echo -ne '\033[0m'"
     
     # 製作.bak檔案
@@ -499,9 +499,9 @@ function _factory_mask_apps() {
 
             if [ "$is_masked" == "LOCKED" ]; then
                 if [ -n "$input_sub" ]; then
-                    _bot_say "error" "Factory Lock: [$input_com $input_sub] is restricted."
+                    _bot_say "error" "Factory Lock: '$input_com $input_sub' is restricted."
                 else
-                    _bot_say "error" "Factory Lock: [$input_com] is restricted."
+                    _bot_say "error" "Factory Lock: '$input_com' is restricted."
                 fi
                 return 1
             fi
