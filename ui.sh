@@ -833,7 +833,8 @@ function _ui_fake_gate() {
 
     local C_TXT="\033[1;30m"
     local C_RESET="\033[0m"
-
+    
+    stty -echo
     tput civis
     clear
 

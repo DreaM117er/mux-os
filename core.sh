@@ -684,6 +684,23 @@ function command_not_found_handle() {
         return 127
     fi
 
+    if [ "$integrity_flag" == "F" ]; then
+        echo ""
+        _bot_say "error" "NEURAL LINK SEVERED :: Integrity Failure (Code: F)"
+        echo -e "\033[1;30m    ›› Diagnosis: Critical parameter missing or malformed.\033[0m"
+        echo -e "\033[1;30m    ›› Protocol : Execution blocked by Safety Override.\033[0m"
+        echo -e "\033[1;30m    ›› Action   : Use 'factory' to repair this node.\033[0m"
+        echo ""
+        return 127
+
+    elif [ "$integrity_flag" == "W" ]; then
+        echo ""
+        _bot_say "warn" "NEURAL LINK UNSTABLE :: Parameter Anomaly (Code: W)"
+        echo -e "\033[1;30m    ›› Diagnosis: Non-critical structure mismatch detected.\033[0m"
+        echo -e "\033[1;30m    ›› Protocol : Bypassing safety lock... Executing with caution.\033[0m"
+        sleep 0.8
+    fi
+
     local cate_arg=""
     if [ -n "$_VAL_CATE" ]; then
         cate_arg=" -c android.intent.category.$_VAL_CATE"

@@ -409,45 +409,156 @@ function _factory_deploy_sequence() {
 
 # 機體維護工具 (Mechanism Maintenance)
 function _fac_maintenance() {
-    local targets=("$MUX_ROOT/app.csv.temp" "$MUX_ROOT/system.csv" "$MUX_ROOT/vendor.csv")
+    local main_target="$MUX_ROOT/app.csv.temp"
+    local other_targets=("$MUX_ROOT/system.csv" "$MUX_ROOT/vendor.csv")
     
     echo -e "${F_MAIN} :: Initiating Mechanism Maintenance (Data Integrity)...${F_RESET}"
     
-    for file in "${targets[@]}"; do
+    # 大破修復 - for app.csv.temp 
+    if [ -f "$main_target" ]; then
+        echo -e "${F_GRAY}    ›› Deep Scanning: $(basename "$main_target")...${F_RESET}"
+
+        if [ -n "$(tail -c 1 "$main_target")" ]; then echo "" >> "$main_target"; fi
+
+        local temp_out="${main_target}.chk"
+        
+        awk -v FPAT='([^,]*)|("[^"]+")' -v OFS=',' '
+        BEGIN {
+            C_RED="\033[1;31m"; C_YEL="\033[1;33m"; C_RES="\033[0m"
+        }
+        
+        # 學習階段 (建立分類映射表)
+        NR > 1 {
+            lines[NR] = $0
+            c_no = $1; gsub(/^"|"$/, "", c_no)
+            c_name = $3; gsub(/^"|"$/, "", c_name)
+            if (c_no != "" && c_name != "" && c_name != "Others") {
+                cat_map[c_no] = c_name
+            }
+        }
+
+        # 執行階段 (檢查與修正)
+        END {
+            getline header < FILENAME
+            print header
+            
+            for (i = 2; i <= NR; i++) {
+                $0 = lines[i]
+                status = "OK"
+                msg = ""
+                flag_lock = "" # 指令標記
+                
+                # 欄位解析
+                cat_no = $1;  gsub(/^"|"$/, "", cat_no)
+                type   = $4;  gsub(/^"|"$/, "", type)
+                com    = $5;  gsub(/^"|"$/, "", com)
+                com2   = $6;  gsub(/^"|"$/, "", com2)
+                pkg    = $10; gsub(/^"|"$/, "", pkg)
+                target = $11; gsub(/^"|"$/, "", target)
+                ihead  = $12; gsub(/^"|"$/, "", ihead)
+                ibody  = $13; gsub(/^"|"$/, "", ibody)
+                
+                # 進階參數解析
+                flg    = $17; gsub(/^"|"$/, "", flg)
+                ex     = $18; gsub(/^"|"$/, "", ex)
+                extra  = $19; gsub(/^"|"$/, "", extra)
+                
+                # 指令結構檢查
+                if (com == "" && com2 != "") {
+                    status = "ERR"; flag_lock = "F"; msg = "Invalid Command Structure (COM2 only)";
+                }
+
+                # AM 核心參數檢查
+                if (type == "NA") {
+                    # NA: Explicit Intent (PKG + CLASS)
+                    if (pkg == "" || target == "") {
+                        status = "ERR"; flag_lock = "F"; msg = "Type NA missing PKG/TARGET";
+                    }
+                } else if (type == "NB" || type == "SYS") {
+                    if (ihead == "" || ibody == "") {
+                        status = "ERR"; flag_lock = "F"; msg = "Type " type " missing ACTION (IHEAD+IBODY)";
+                    }
+                }
+
+                # EX-EXTRA 參數耦合檢查
+                if ( (ex == "" && extra != "") || (ex != "" && extra == "") ) {
+                    status = "ERR"; flag_lock = "F"; msg = "Broken Parameter Coupling (EX/EXTRA mismatch)";
+                }
+
+                # Flags 格式檢查
+                if (flg != "") {
+                    if (flg !~ /^[0-9]+$/ && flg !~ /^0x[0-9a-fA-F]+$/) {
+                        status = "ERR"; flag_lock = "F"; msg = "Invalid Flag Format (Must be Int or Hex)";
+                    }
+                }
+
+                # 矩陣排序檢查
+                cat_fix = 0
+                if (cat_no == "") {
+                    status = "ERR"; flag_lock = "F"; msg = "Missing Category Index";
+                    cat_fix = 1;
+                } else if (cat_map[cat_no] == "") {
+                    msg = "Unknown Category ID: " cat_no " -> Auto-classified to Others";
+                    if (status == "OK") { 
+                        print C_YEL "    ›› [INFO] Line " i ": " msg C_RES > "/dev/stderr"
+                    }
+                    cat_fix = 1;
+                } else {
+                    # 自動校正分類名稱
+                    $3 = "\"" cat_map[cat_no] "\""
+                }
+
+                # 執行分類修復
+                if (cat_fix == 1) {
+                    $1 = 999
+                    $3 = "\"Others\""
+                }
+
+                # COM3寫入
+                if (status == "ERR") {
+                    $7 = "\"F\""
+                    print C_RED "    ›› [ERR] Line " i ": " msg " -> Locked (F)" C_RES > "/dev/stderr"
+                } else if (status == "WARN") {
+                    $7 = "\"W\""
+                    print C_YEL "    ›› [WARN] Line " i ": " msg " -> Warning (W)" C_RES > "/dev/stderr"
+                } else {
+                    $7 = "" # 清空標記
+                }
+                
+                print $0
+            }
+        }
+        ' "$main_target" > "$temp_out"
+
+        # 排序整理 (Sort)
+        local header=$(head -n 1 "$temp_out")
+        local body=$(tail -n +2 "$temp_out" | sort -t',' -k1,1n -k2,2n)
+        
+        echo "$header" > "$main_target"
+        echo "$body" >> "$main_target"
+        rm -f "$temp_out"
+        
+        echo -e "${F_WARN}    ›› Integrity Check & Sort Complete. ✅${F_RESET}"
+    fi
+
+    # 基礎維護 - for system/vendor
+    for file in "${other_targets[@]}"; do
         if [ -f "$file" ]; then
-            echo -e "${F_GRAY}    ›› Scanning: $(basename "$file")...${F_RESET}"
-            
-            if [ -n "$(tail -c 1 "$file")" ]; then
-                echo "" >> "$file"
-                echo -e "${F_WARN}    ›› Missing EOF newline. Fixed. ✅${F_RESET}"
-            fi
-            
+            if [ -n "$(tail -c 1 "$file")" ]; then echo "" >> "$file"; fi
             local row_count=$(wc -l < "$file")
-            
             if [ "$row_count" -gt 1 ]; then
                 local header=$(head -n 1 "$file")
                 local body_raw=$(tail -n +2 "$file")
-                
                 local body_sorted=$(echo "$body_raw" | sort -t',' -k1,1n -k2,2n)
                 
                 if [ "$body_raw" != "$body_sorted" ]; then
-                    echo -e "${F_WARN}    ›› Detected disorder in Index Sequence (CATNO/COMNO).${F_RESET}"
-                    echo -ne "${F_WARN}    ›› Re-index structure? [Y/n]: ${F_RESET}"
-                    read choice
-                    
-                    if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
-                        echo "$header" > "$file"
-                        echo "$body_sorted" >> "$file"
-                        echo -e "${F_WARN}    ›› Sequence Normalized. ✅${F_RESET}"
-                    else
-                        echo -e "${F_GRAY}    ›› Optimization skipped.${F_RESET}"
-                    fi
-                else
-                    echo -e "    ›› Index Sequence Verified. ✅"
+                     echo "$header" > "$file"
+                     echo "$body_sorted" >> "$file"
                 fi
             fi
         fi
     done
+
     sleep 0.5
     echo -e ""
     _bot_say "factory" "Mechanism maintenance complete, Commander."

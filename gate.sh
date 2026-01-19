@@ -22,6 +22,7 @@ else
 fi
 
 stty sane
+stty -echo
 tput civis
 clear
 
