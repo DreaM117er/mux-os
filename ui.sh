@@ -132,9 +132,9 @@ function _show_hud() {
     local line3_v=""
 
     if [ "$mode" == "factory" ]; then
-        line1_k="MODE   "; line1_v="FACTORY [ROOT]"
-        line2_k="TARGET "; line2_v="app.sh"
-        line3_k="STATUS "; line3_v="UNLOCKED"
+        line1_k="HOST   "; line1_v="Commander"
+        line2_k="TARGET "; line2_v="app.csv.temp"
+        line3_k="STATUS "; line3_v="Unlocked"
     else
         local android_ver=$(getprop ro.build.version.release)
         local brand_raw=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]' | cut -c1)$(getprop ro.product.brand | tr '[:upper:]' '[:lower:]' | cut -c2-)
@@ -493,19 +493,22 @@ function _factory_show_status() {
     local F_CYAN="\033[1;36m"
     local F_RESET="\033[0m"
 
-    local temp_file="$MUX_ROOT/app.sh.temp"
+    local temp_file="$MUX_ROOT/app.csv.temp"
+    local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
 
     echo -e "${F_MAIN} :: Neural Forge Status Report ::${F_RESET}"
     echo -e "${F_GRAY}    --------------------------------${F_RESET}"
 
     if [ -f "$temp_file" ]; then
         local line_count=$(wc -l < "$temp_file")
-        local func_count=$(grep "^function" "$temp_file" | wc -l)
+        local node_count=$(( line_count - 1 ))
+        [ "$node_count" -lt 0 ] && node_count=0
+        
         local size=$(du -h "$temp_file" | cut -f1)
         
-        echo -e "${F_GRAY}    Target  : ${F_WARN}app.sh.temp${F_RESET}"
-        echo -e "${F_GRAY}    Size    : $size ($line_count lines)"
-        echo -e "${F_GRAY}    Modules : ${F_SUB}$func_count active links${F_RESET}"
+        echo -e "${F_GRAY}    Target  : ${F_WARN}app.csv.temp${F_RESET}"
+        echo -e "${F_GRAY}    Size    : $size"
+        echo -e "${F_GRAY}    Nodes   : ${F_SUB}$node_count active commands${F_RESET}"
     else
         echo -e "${F_ERR}    Target  : CRITICAL ERROR (Sandbox Missing)${F_RESET}"
     fi
@@ -513,35 +516,44 @@ function _factory_show_status() {
     echo -e ""
     echo -e "${F_SUB}    [Temporal Snapshots (Time Stone)]${F_RESET}"
     
-    local snapshots=(".app.sh.undo1" ".app.sh.undo2" ".app.sh.undo3")
-    local labels=("Recent (Undo 1)" "Backup (Undo 2)" "Oldest (Undo 3)")
     local found_any=0
     
-    for i in {0..2}; do
-        local f="${snapshots[$i]}"
-        local path="$MUX_ROOT/$f"
-        local label="${labels[$i]}"
+    local session_bak=$(ls "$bak_dir"/app.csv.*.bak 2>/dev/null | head -n 1)
+    if [ -n "$session_bak" ]; then
+        local fname=$(basename "$session_bak")
+        local raw_ts=$(echo "$fname" | awk -F'.' '{print $3}')
+        local fmt_ts="${raw_ts:0:4}-${raw_ts:4:2}-${raw_ts:6:2} ${raw_ts:8:2}:${raw_ts:10:2}:${raw_ts:12:2}"
+        local f_size=$(du -h "$session_bak" | cut -f1)
+
+        echo -e "    ${F_CYAN}[Session Origin]${F_RESET}"
+        echo -e "    ›› Time : $fmt_ts"
+        echo -e "    ›› File : $fname ($f_size)"
+        found_any=1
+    fi
+)
+    local atb_files=$(ls -t "$bak_dir"/app.csv.*.atb 2>/dev/null | head -n 3)
+    
+    if [ -n "$atb_files" ]; then
+        [ "$found_any" -eq 1 ] && echo -e "${F_GRAY}    --------------------------------${F_RESET}"
         
-        if [ -f "$path" ]; then
-            local ts=$(date -r "$path" "+%Y-%m-%d %H:%M:%S" 2>/dev/null)
-            if [ -z "$ts" ]; then
-                ts=$(stat -c %y "$path" 2>/dev/null | cut -d. -f1)
-            fi
-            
-            local f_size=$(du -h "$path" 2>/dev/null | cut -f1)
-            
-            echo -e "    ${F_CYAN}[$label]${F_RESET}"
-            echo -e "    ›› Time : $ts"
+        SAVEIFS=$IFS
+        IFS=$'\n'
+        for f_path in $atb_files; do
+            local fname=$(basename "$f_path")
+            local raw_ts=$(echo "$fname" | awk -F'.' '{print $3}')
+            local fmt_ts="${raw_ts:0:4}-${raw_ts:4:2}-${raw_ts:6:2} ${raw_ts:8:2}:${raw_ts:10:2}:${raw_ts:12:2}"
+            local f_size=$(du -h "$f_path" | cut -f1)
+
+            echo -e "    ${F_MAIN}[Auto Save]${F_RESET}"
+            echo -e "    ›› Time : $fmt_ts"
             echo -e "    ›› Size : $f_size"
             found_any=1
-        else
-            echo -e "    ${F_GRAY}[$label]${F_RESET}"
-            echo -e "    ›› -- Empty Slot --"
-        fi
-    done
+        done
+        IFS=$SAVEIFS
+    fi
 
     if [ "$found_any" -eq 0 ]; then
-        echo -e "${F_GRAY} :: No temporal snapshots available. Make a change to trigger backup.${F_RESET}"
+        echo -e "${F_GRAY} :: No temporal snapshots found in $bak_dir.${F_RESET}"
     fi
 
     echo -e "${F_GRAY}    --------------------------------${F_RESET}"
@@ -558,6 +570,7 @@ function _factory_show_info() {
     local F_WARN="\033[1;33m"
     local F_GRAY="\033[1;30m"
     local F_RESET="\033[0m"
+    local C_GREEN="\033[1;32m"
 
     clear
     _draw_logo "factory"
@@ -565,15 +578,23 @@ function _factory_show_info() {
     echo -e " ${F_MAIN}:: INDUSTRIAL MANIFEST ::${F_RESET}"
     echo ""
     echo -e "  ${F_GRAY}PROTOCOL   :${F_RESET} ${F_SUB}Factory Mode${F_RESET}"
-    echo -e "  ${F_GRAY}ACCESS     :${F_RESET} ${F_MAIN}ROOT / COMMANDER${F_RESET}"
+    echo -e "  ${F_GRAY}ACCESS     :${F_RESET} ${F_MAIN}COMMANDER${F_RESET}"
     echo -e "  ${F_GRAY}PURPOSE    :${F_RESET} ${F_SUB}Neural Link Construction & Modification${F_RESET}"
-    echo -e "  ${F_GRAY}TARGET     :${F_RESET} ${F_WARN}app.sh${F_RESET}"
+    echo -e "  ${F_GRAY}TARGET     :${F_RESET} ${F_WARN}app.csv.temp${F_RESET}"
     echo ""
     echo -e " ${F_MAIN}:: WARNING ::${F_RESET}"
     echo -e "  ${F_GRAY}\"With great power comes great possibility of breaking things.\"${F_RESET}"
     echo ""
     
-    _bot_say "system" "Returning to forge..."
+    echo -ne " ${C_GREEN}:: Ready to returning to forge? [Y/n]: ${F_RESET}"
+    read choice
+    
+    if [[ "$choice" == "y" || "$choice" == "Y" || -z "$choice" ]]; then
+        fac reload
+    else
+        echo ""
+        _bot_say "system" "Stay in info mode."
+    fi
 }
 
 # 兵工廠指令選擇器 - Factory Command Scanner
@@ -833,7 +854,7 @@ function _ui_fake_gate() {
 
     local C_TXT="\033[1;30m"
     local C_RESET="\033[0m"
-    
+
     stty -echo
     tput civis
     clear

@@ -281,20 +281,40 @@ function _fac_rebak_wizard() {
         return 1
     fi
 
-    local list=$(find "$bak_dir" -maxdepth 1 -name "app.csv.*" -type f -printf "%T@ %f\n" | sort -rn | awk '{print $2}')
+    local menu_list=$(
+        cd "$bak_dir" && ls -t app.csv.* 2>/dev/null | while read -r fname; do
+            local raw_ts=$(echo "$fname" | awk -F'.' '{print $3}')
+            local ext=$(echo "$fname" | awk -F'.' '{print $4}')
+            
+            if [[ ${#raw_ts} -eq 14 ]]; then
+                local fmt_ts="${raw_ts:0:4}-${raw_ts:4:2}-${raw_ts:6:2} ${raw_ts:8:2}:${raw_ts:10:2}:${raw_ts:12:2}"
+            else
+                local fmt_ts="Unknown-Timestamp"
+            fi
+
+            local tag=""
+            if [ "$ext" == "bak" ]; then
+                tag="\033[1;36m[Session]\033[0m"
+            else
+                tag="\033[1;38;5;208m[AutoSave]\033[0m"
+            fi
+
+            printf "%-20s %-20b %s\n" "$fmt_ts" "$tag" "$fname"
+        done
+    )
     
-    if [ -z "$list" ]; then
+    if [ -z "$menu_list" ]; then
         _bot_say "error" "Backup Repository is Empty."
         return 1
     fi
 
-    local selected_line=$(echo "$list" | fzf --ansi \
+    local selected_line=$(echo "$menu_list" | fzf --ansi \
         --height=12 \
         --layout=reverse \
         --border=bottom \
         --info=hidden \
-        --prompt=" :: Target file › " \
-        --header=" :: Select Restore Point :: " \
+        --prompt=" :: Restore Point › " \
+        --header=" :: Select Timeline to Restore :: " \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
         --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
@@ -303,9 +323,9 @@ function _fac_rebak_wizard() {
 
     if [ -z "$selected_line" ]; then return; fi
 
-    local target_file="$selected_line"
+    local target_file=$(echo "$selected_line" | awk '{print $NF}')
 
-    if [ -n "$target_file" ]; then
+    if [ -n "$target_file" ] && [ -f "$bak_dir/$target_file" ]; then
         echo ""
         echo -e "${F_ERR} :: WARNING: This will overwrite your current workspace!${F_RESET}"
         echo -e "${F_GRAY}    Source: $target_file${F_RESET}"
@@ -323,6 +343,8 @@ function _fac_rebak_wizard() {
         else
             echo -e "${F_GRAY}    ›› Restore Canceled.${F_RESET}"
         fi
+    else
+         _bot_say "error" "Target file not found (Extraction Error)."
     fi
 }
 
