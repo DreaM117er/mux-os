@@ -120,28 +120,24 @@ export __GO_TARGET=""
 export __GO_MODE=""
 
 function _resolve_smart_url() {
-    raw_input=$(echo "$raw_input" | sed 'y/。．/../' | sed 's/　/ /g')
+    local engine_url="$1"
+    local user_query="$2"
 
+    # 1. 基礎清洗：將全形標點轉半形，將全形空格轉半形
+    local raw_input=$(echo "$user_query" | sed 'y/。．/../' | sed 's/　/ /g')
+
+    # 2. URL 編碼：將空格轉換為 + (符合大多數搜尋引擎格式)
     local safe_query="${raw_input// /+}"
 
-    __GO_TARGET=""
-    __GO_MODE="launch"
-
-    if [[ "$raw_input" == http* ]]; then
-        __GO_TARGET="$raw_input"
-    
-    elif echo "$raw_input" | grep -P -q '[^\x00-\x7F]'; then
-        __GO_TARGET="${search_engine}${safe_query}"
-        __GO_MODE="neural"
-
-    elif [[ "$raw_input" == www.* ]] || \
-         [[ "$raw_input" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || \
-         echo "$raw_input" | grep -qE "\.(com|net|org|edu|gov|io|tw|jp|cn|hk|uk|us|xyz|info|biz|me|top)$"; then
-        __GO_TARGET="https://$raw_input"
-    
+    # 3. 組合目標
+    # 如果有提供引擎 URL，直接拼接；否則僅輸出清洗後的 Query
+    if [ -n "$engine_url" ]; then
+        __GO_TARGET="${engine_url}${safe_query}"
+        __GO_MODE="neural" # 標記為搜尋模式
     else
-        __GO_TARGET="${search_engine}${safe_query}"
-        __GO_MODE="neural"
+        # Fallback: 如果沒有引擎，假設使用者輸入的是直接網址，但仍做基礎編碼防護
+        __GO_TARGET="$safe_query"
+        __GO_MODE="direct"
     fi
 }
 
@@ -669,39 +665,41 @@ function _mux_integrity_scan() {
 
 # 神經連接執行器
 function command_not_found_handle() {
-    local input_signal="$1"      # COM
-    local input_sub="$2"         # COM2 (Candidate)
-    local input_args="${*:2}"    # All args starting from $2
+    local input_signal="$1" # COM
+    local input_sub="$2" # COM2 (Candidate)
+    local input_args="${*:2}" # All args starting from $2
 
     if [ "$__MUX_MODE" == "factory" ]; then
         if command -v _factory_mask_apps &> /dev/null; then
             _factory_mask_apps "$input_signal" "$input_sub" || return 127
         fi
     fi
-    
+   
     if ! _mux_neural_data "$input_signal" "$input_sub"; then
         _bot_say "error" "'$input_signal' command not found."
         return 127
     fi
 
+    integrity_flag=$(echo "$_VAL_COM3" | tr -d ' "')
+
     if [ "$integrity_flag" == "F" ]; then
         echo ""
         _bot_say "error" "NEURAL LINK SEVERED :: Integrity Failure (Code: F)"
-        echo -e "\033[1;30m    ›› Diagnosis: Critical parameter missing or malformed.\033[0m"
-        echo -e "\033[1;30m    ›› Protocol : Execution blocked by Safety Override.\033[0m"
-        echo -e "\033[1;30m    ›› Action   : Use 'factory' to repair this node.\033[0m"
+        echo -e "\033[1;30m ›› Diagnosis: Critical parameter missing or malformed.\033[0m"
+        echo -e "\033[1;30m ›› Protocol : Execution blocked by Safety Override.\033[0m"
+        echo -e "\033[1;30m ›› Action : Use 'factory' to repair this node.\033[0m"
         echo ""
         return 127
-
     elif [ "$integrity_flag" == "W" ]; then
         echo ""
         _bot_say "warn" "NEURAL LINK UNSTABLE :: Parameter Anomaly (Code: W)"
-        echo -e "\033[1;30m    ›› Diagnosis: Non-critical structure mismatch detected.\033[0m"
-        echo -e "\033[1;30m    ›› Protocol : Bypassing safety lock... Executing with caution.\033[0m"
+        echo -e "\033[1;30m ›› Diagnosis: Non-critical structure mismatch detected.\033[0m"
+        echo -e "\033[1;30m ›› Protocol : Bypassing safety lock... Executing with caution.\033[0m"
         sleep 0.8
     fi
 
     local cate_arg=""
+
     if [ -n "$_VAL_CATE" ]; then
         cate_arg=" -c android.intent.category.$_VAL_CATE"
     fi
@@ -717,14 +715,13 @@ function command_not_found_handle() {
             fi
             ;;
 
-        "NB") 
+        "NB")
             local real_args=""
             if [ -n "$_VAL_COM2" ]; then
                 real_args="${*:3}"
             else
                 real_args="$input_args"
             fi
-
             if [ -z "$real_args" ]; then
                 if [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
                     _VAL_URI=""
@@ -734,61 +731,62 @@ function command_not_found_handle() {
                 _bot_say "error" "Strict Protocol [$_VAL_COM]: Parameter required."
                 return 1
             fi
-
             if [ -z "$_VAL_IHEAD" ] || [ -z "$_VAL_IBODY" ]; then
                 _bot_say "error" "System Integrity: Malformed Intent (Missing HEAD/BODY)."
                 return 1
             fi
             local final_action="${_VAL_IHEAD}${_VAL_IBODY}"
 
-
-            # .WEB_SEARCH
+            # 2. Web Search Intent (.WEB_SEARCH)
             if [[ "$final_action" == *".WEB_SEARCH"* ]]; then
-                
+               
                 local raw_input=$(echo "$real_args" | sed 'y/。．/../' | sed 's/　/ /g')
                 local safe_query="${raw_input//\"/\\\"}"
-                
+               
                 _bot_say "neural" "Payload: Raw Search ›› '$safe_query'"
-                
+               
                 local cmd="am start --user 0 -a $final_action$cate_arg -e query \"$safe_query\""
-                
+               
                 if [ -n "$_VAL_PKG" ]; then
                     cmd="$cmd -p $_VAL_PKG"
                 fi
-
                 if [ -n "$_VAL_FLAG" ]; then
                     cmd="$cmd -f $_VAL_FLAG"
                 fi
-                
+               
                 # FIRE THE COMMAND
-                eval "$cmd" >/dev/null 2>&1
+                local output=$(eval "$cmd" 2>&1)
+                if [[ "$output" == *"Error"* ]]; then
+                    _bot_say "error" "Launch Failed: $output"
+                    return 1
+                fi
                 return 0
             fi
-            
-            # .VIEW
+           
+            # 3. View Intent (.VIEW)
             local final_uri=""
-            local safe_args="${real_args// /+}"
-
+           
             if [[ "$_VAL_URI" == *"\$__GO_TARGET"* ]]; then
+               
+                # ENGINE
                 if [ -n "$_VAL_ENGINE" ]; then
-                    local real_engine=$(eval echo "$_VAL_ENGINE")
-                    _resolve_smart_url "$real_engine" "$real_args"
+                    _resolve_smart_url "$_VAL_ENGINE" "$real_args"
                     final_uri="$__GO_TARGET"
-                    
+                   
                     if [ "$__GO_MODE" == "neural" ]; then
-                         _bot_say "neural" "Searching: '$real_args'"
+                         _bot_say "neural" "Searching via Engine: '$real_args'"
                     else
                          _bot_say "launch" "Targeting: '$final_uri'"
                     fi
                 else
-                    _bot_say "error" "Configuration Error: Missing ENGINE data."
+                    _bot_say "error" "Configuration Error: Missing ENGINE data in CSV."
                     return 1
                 fi
-
             elif [[ "$_VAL_URI" == *"\$query"* ]]; then
+                local safe_args="${real_args// /+}"
                 final_uri="${_VAL_URI//\$query/$safe_args}"
                 _bot_say "neural" "Navigating: '$real_args'"
-            
+           
             else
                 final_uri="$_VAL_URI"
                 _bot_say "launch" "Executing: '$real_args'"
@@ -796,16 +794,31 @@ function command_not_found_handle() {
 
             local cmd="am start --user 0 -a \"$final_action\""
             
-            # RELOAD
-            if [ -n "$_VAL_PKG" ]; then cmd="$cmd -p $_VAL_PKG"; fi
-            if [ -n "$final_uri" ]; then cmd="$cmd -d \"$final_uri\""; fi
+            # 1. -n 優先，fallback -p
+            if [ -n "$_VAL_PKG" ]; then
+                if [ -n "$_VAL_TARGET" ]; then
+                    cmd="$cmd -n \"$_VAL_PKG/$_VAL_TARGET\""
+                else
+                    cmd="$cmd -p \"$_VAL_PKG\""
+                fi
+            fi
+            
+            # 2. -c / -t 從格子注入
             if [ -n "$_VAL_CATE" ]; then cmd="$cmd -c android.intent.category.$_VAL_CATE"; fi
+            if [ -n "$_VAL_MIME" ]; then cmd="$cmd -t \"$_VAL_MIME\""; fi
+
+            # 3. 其他旗標
+            if [ -n "$final_uri" ]; then cmd="$cmd -d \"$final_uri\""; fi
             if [ -n "$_VAL_FLAG" ]; then cmd="$cmd -f $_VAL_FLAG"; fi
             if [ -n "$_VAL_EX" ]; then cmd="$cmd $_VAL_EX"; fi
             if [ -n "$_VAL_EXTRA" ]; then cmd="$cmd $_VAL_EXTRA"; fi
-
+            
             # FIRE THE COMMAND
-            eval "$cmd" >/dev/null 2>&1
+            local output=$(eval "$cmd" 2>&1)
+            if [[ "$output" == *"Error"* ]]; then
+                _bot_say "error" "Launch Failed: $output"
+                return 1
+            fi
             ;;
 
         "SYS")
