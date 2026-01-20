@@ -120,24 +120,28 @@ export __GO_TARGET=""
 export __GO_MODE=""
 
 function _resolve_smart_url() {
-    local engine_url="$1"
-    local user_query="$2"
+    raw_input=$(echo "$raw_input" | sed 'y/。．/../' | sed 's/　/ /g')
 
-    # 1. 基礎清洗：將全形標點轉半形，將全形空格轉半形
-    local raw_input=$(echo "$user_query" | sed 'y/。．/../' | sed 's/　/ /g')
-
-    # 2. URL 編碼：將空格轉換為 + (符合大多數搜尋引擎格式)
     local safe_query="${raw_input// /+}"
 
-    # 3. 組合目標
-    # 如果有提供引擎 URL，直接拼接；否則僅輸出清洗後的 Query
-    if [ -n "$engine_url" ]; then
-        __GO_TARGET="${engine_url}${safe_query}"
-        __GO_MODE="neural" # 標記為搜尋模式
+    __GO_TARGET=""
+    __GO_MODE="launch"
+
+    if [[ "$raw_input" == http* ]]; then
+        __GO_TARGET="$raw_input"
+    
+    elif echo "$raw_input" | grep -P -q '[^\x00-\x7F]'; then
+        __GO_TARGET="${search_engine}${safe_query}"
+        __GO_MODE="neural"
+
+    elif [[ "$raw_input" == www.* ]] || \
+         [[ "$raw_input" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || \
+         echo "$raw_input" | grep -qE "\.(com|net|org|edu|gov|io|tw|jp|cn|hk|uk|us|xyz|info|biz|me|top)$"; then
+        __GO_TARGET="https://$raw_input"
+    
     else
-        # Fallback: 如果沒有引擎，假設使用者輸入的是直接網址，但仍做基礎編碼防護
-        __GO_TARGET="$safe_query"
-        __GO_MODE="direct"
+        __GO_TARGET="${search_engine}${safe_query}"
+        __GO_MODE="neural"
     fi
 }
 
