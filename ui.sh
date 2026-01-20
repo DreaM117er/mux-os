@@ -530,7 +530,7 @@ function _factory_show_status() {
         echo -e "    ›› File : $fname ($f_size)"
         found_any=1
     fi
-)
+
     local atb_files=$(ls -t "$bak_dir"/app.csv.*.atb 2>/dev/null | head -n 3)
     
     if [ -n "$atb_files" ]; then
