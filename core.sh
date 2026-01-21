@@ -809,10 +809,44 @@ function command_not_found_handle() {
             if [ -n "$_VAL_EXTRA" ]; then cmd="$cmd $_VAL_EXTRA"; fi
             
             # FIRE THE COMMAND
+            # 第一次發射 ( -p 模式 )
+            _bot_say "launch" "Targeting (p mode): '$final_uri'"
             local output=$(eval "$cmd" 2>&1)
-            if [[ "$output" == *"Error"* ]]; then
-                _bot_say "error" "Launch Failed: $output"
-                return 1
+
+            # -p 失敗且有 TARGET，切換 -n 模式重新執行
+            if [[ "$output" == *"Error"* || "$output" == *"Activity not found"* || "$output" == *"unable to resolve Intent"* ]]; then
+                _bot_say "warn" "p mode failed, fallback to n mode..."
+
+                if [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
+                    # 重新拼裝 -n 模式
+                    local cmd_n="am start --user 0 -a \"$final_action\" -n \"$_VAL_PKG/$_VAL_TARGET\""
+
+                    # 重新導入 URI
+                    if [ -n "$final_uri" ]; then cmd_n="$cmd_n -d \"$final_uri\""; fi
+
+                    # 重新加入 -c
+                    if [ -n "$_VAL_CATE" ]; then
+                        IFS=',' read -ra cate_array <<< "$_VAL_CATE"
+                        for cate in "${cate_array[@]}"; do
+                            cmd_n="$cmd_n -c android.intent.category.${cate}"
+                        done
+                    fi
+
+                    # 重新加入其他旗標
+                    if [ -n "$_VAL_MIME" ]; then cmd_n="$cmd_n -t \"$_VAL_MIME\""; fi
+                    if [ -n "$_VAL_FLAG" ]; then cmd_n="$cmd_n -f $_VAL_FLAG"; fi
+                    if [ -n "$_VAL_EX" ]; then cmd_n="$cmd_n $_VAL_EX"; fi
+                    if [ -n "$_VAL_EXTRA" ]; then cmd_n="$cmd_n $_VAL_EXTRA"; fi
+
+                    _bot_say "launch" "Retrying (n mode): '$final_uri'"
+                    
+                    # FIRE THE COMMAND
+                    # 第二次發射 ( -n 模式 )
+                    eval "$cmd_n" >/dev/null 2>&1
+                else
+                    _bot_say "error" "Fallback failed: No TARGET defined for n mode."
+                    return 1
+                fi
             fi
             ;;
 
