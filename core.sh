@@ -810,12 +810,11 @@ function command_not_found_handle() {
             
             # FIRE THE COMMAND
             # 第一次發射 ( -p 模式 )
-            _bot_say "launch" "Targeting (p mode): '$final_uri'"
             local output=$(eval "$cmd" 2>&1)
 
             # -p 失敗且有 TARGET，切換 -n 模式重新執行
             if [[ "$output" == *"Error"* || "$output" == *"Activity not found"* || "$output" == *"unable to resolve Intent"* ]]; then
-                _bot_say "warn" "p mode failed, fallback to n mode..."
+                _bot_say "error" "p mode failed, fallback to n mode..."
 
                 if [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
                     # 重新拼裝 -n 模式
@@ -838,7 +837,7 @@ function command_not_found_handle() {
                     if [ -n "$_VAL_EX" ]; then cmd_n="$cmd_n $_VAL_EX"; fi
                     if [ -n "$_VAL_EXTRA" ]; then cmd_n="$cmd_n $_VAL_EXTRA"; fi
 
-                    _bot_say "launch" "Retrying (n mode): '$final_uri'"
+                    _bot_say "launch" "Retrying (n mode): '$real_args'"
                     
                     # FIRE THE COMMAND
                     # 第二次發射 ( -n 模式 )
