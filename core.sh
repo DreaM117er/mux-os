@@ -165,10 +165,7 @@ function _launch_android_app() {
         final_action="${_VAL_IHEAD}${_VAL_IBODY}"
     fi
 
-    if [ -z "$final_action" ] && [ "$_VAL_TYPE" == "NB" ]; then
-        final_action="android.intent.action.VIEW"
-    fi
-
+    # -n/-p 優先判定
     local cmd_args=""
     if [ -n "$pkg" ]; then 
         if [ -n "$_VAL_TARGET" ]; then
@@ -178,11 +175,11 @@ function _launch_android_app() {
         fi
     fi
 
+    # 純啓動不用-a/-d 參數判定
+
     # RELOAD
-    if [ -n "$final_action" ]; then cmd_args="$cmd_args -a $final_action"; fi
-    if [ -n "$_VAL_URI" ];     then cmd_args="$cmd_args -d \"$_VAL_URI\""; fi
-    if [ -n "$_VAL_MIME" ];    then cmd_args="$cmd_args -t \"$_VAL_MIME\""; fi
     if [ -n "$_VAL_CATE" ];    then cmd_args="$cmd_args -c \"android.intent.category.$_VAL_CATE\""; fi
+    if [ -n "$_VAL_MIME" ];    then cmd_args="$cmd_args -t \"$_VAL_MIME\""; fi
     if [ -n "$_VAL_FLAG" ];    then cmd_args="$cmd_args -f $_VAL_FLAG"; fi
     if [ -n "$_VAL_EX" ];      then cmd_args="$cmd_args $_VAL_EX"; fi
     if [ -n "$_VAL_EXTRA" ];   then cmd_args="$cmd_args $_VAL_EXTRA"; fi
@@ -798,14 +795,8 @@ function command_not_found_handle() {
 
             local cmd="am start --user 0 -a \"$final_action\""
             
-            # 1. -n 優先，fallback -p
-            if [ -n "$_VAL_PKG" ]; then
-                if [ -n "$_VAL_TARGET" ]; then
-                    cmd="$cmd -n \"$_VAL_PKG/$_VAL_TARGET\""
-                else
-                    cmd="$cmd -p \"$_VAL_PKG\""
-                fi
-            fi
+            # 1. -n/-p 角色呼喚，NB只能用-p
+            if [ -n "$_VAL_PKG" ]; then cmd="$cmd -p \"$_VAL_PKG\""; fi
             
             # 2. -c / -t 從格子注入
             if [ -n "$_VAL_CATE" ]; then cmd="$cmd -c android.intent.category.$_VAL_CATE"; fi
