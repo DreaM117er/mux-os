@@ -120,28 +120,38 @@ export __GO_TARGET=""
 export __GO_MODE=""
 
 function _resolve_smart_url() {
-    raw_input=$(echo "$raw_input" | sed 'y/。．/../' | sed 's/　/ /g')
+    local engine_url="$1"
+    local user_query="$2"
 
+    # 1. 基礎清洗：全形轉半形
+    local raw_input=$(echo "$user_query" | sed 'y/。．/../' | sed 's/　/ /g')
+
+    # 2. 安全編碼：空格轉 +
     local safe_query="${raw_input// /+}"
 
+    # 3. 初始化目標
     __GO_TARGET=""
     __GO_MODE="launch"
 
+    # 4. 智慧判斷邏輯 (Smart Detection)
+    # Case A: 明確的通訊協定 -> 直接前往
     if [[ "$raw_input" == http* ]]; then
         __GO_TARGET="$raw_input"
-    
-    elif echo "$raw_input" | grep -P -q '[^\x00-\x7F]'; then
-        __GO_TARGET="${search_engine}${safe_query}"
-        __GO_MODE="neural"
 
-    elif [[ "$raw_input" == www.* ]] || \
-         [[ "$raw_input" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || \
-         echo "$raw_input" | grep -qE "\.(com|net|org|edu|gov|io|tw|jp|cn|hk|uk|us|xyz|info|biz|me|top)$"; then
+    # Case B: 裸網域 -> 自動補上 https://
+    elif [[ "$raw_input" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || \
+         echo "$raw_input" | grep -qE "^[a-zA-Z0-9.-]+\.(com|net|org|edu|gov|io|tw|jp|cn|hk|uk|us|xyz|info|biz|me|top)$"; then
         __GO_TARGET="https://$raw_input"
-    
+
+    # Case C: 關鍵字搜尋 -> 使用引擎
     else
-        __GO_TARGET="${search_engine}${safe_query}"
-        __GO_MODE="neural"
+        if [ -n "$engine_url" ]; then
+            __GO_TARGET="${engine_url}${safe_query}"
+            __GO_MODE="neural"
+        else
+            __GO_TARGET="$safe_query"
+            __GO_MODE="direct"
+        fi
     fi
 }
 
@@ -723,6 +733,8 @@ function command_not_found_handle() {
             else
                 real_args="$input_args"
             fi
+            
+            # 安全檢查
             if [ -z "$real_args" ]; then
                 if [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
                     _VAL_URI=""
@@ -732,6 +744,7 @@ function command_not_found_handle() {
                 _bot_say "error" "Strict Protocol [$_VAL_COM]: Parameter required."
                 return 1
             fi
+            
             if [ -z "$_VAL_IHEAD" ] || [ -z "$_VAL_IBODY" ]; then
                 _bot_say "error" "System Integrity: Malformed Intent (Missing HEAD/BODY)."
                 return 1
@@ -771,7 +784,10 @@ function command_not_found_handle() {
                
                 # ENGINE
                 if [ -n "$_VAL_ENGINE" ]; then
-                    _resolve_smart_url "$_VAL_ENGINE" "$real_args"
+                    # $SEARCH_BING 轉成 URL
+                    local expanded_engine=$(eval echo "$_VAL_ENGINE")
+                    
+                    _resolve_smart_url "$expanded_engine" "$real_args"
                     final_uri="$__GO_TARGET"
                    
                     if [ "$__GO_MODE" == "neural" ]; then
