@@ -119,7 +119,7 @@ export SEARCH_GITHUB="https://github.com/search?q="
 export __GO_TARGET=""
 export __GO_MODE=""
 
-function _resolve_smart_url() {
+function _resolve_smart_url() {拿掉 >/dev/null，改為捕捉變數
     local engine_url="$1"
     local user_query="$2"
 
@@ -153,16 +153,6 @@ function _resolve_smart_url() {
             __GO_MODE="direct"
         fi
     fi
-}
-
-# 系統指令執行器
-function _sys_cmd() {
-    local name="$1"
-    local intent="$2"
-
-    _require_no_args "${@:3}" || return 1
-    _bot_say "system" "Configuring: $name"
-    am start --user 0 -a "$intent" >/dev/null 2>&1
 }
 
 # 核心指令項
@@ -200,8 +190,18 @@ function _launch_android_app() {
     local output
     output=$(eval "am start --user 0 $cmd_args" 2>&1)
 
-    if [[ "$output" == *"Error"* ]] || [[ "$output" == *"does not exist"* ]]; then
-        _bot_say "error" "Launch Failed: Target package not found."
+    # 驗證發射結果
+    _mux_launch_validator "$output" "$pkg"
+}
+
+# 發射結果驗證器 (Launch Result Validator)
+function _mux_launch_validator() {
+    local output="$1"
+    local pkg="$2"
+
+    # 偵測關鍵字：Error, does not exist, unable to resolve
+    if [[ "$output" == *"Error"* ]] || [[ "$output" == *"does not exist"* ]] || [[ "$output" == *"unable to resolve"* ]]; then
+        _bot_say "error" "Launch Failed: Target package not found or intent unresolved."
         echo -e "    ›› Target: $pkg"
         echo ""
         echo -ne "\033[1;32m :: Install from Google Play? [Y/n]: \033[0m"
@@ -216,6 +216,7 @@ function _launch_android_app() {
         fi
         return 1
     fi
+    return 0
 }
 
 # 啟動序列邏輯 (Boot Sequence)
@@ -674,8 +675,28 @@ function _mux_integrity_scan() {
     return 0
 }
 
-# 神經連接執行器
-function command_not_found_handle() {
+# 安全過濾層 (Security Layer)
+function _mux_security_gate() {
+    local cmd="$1"
+    
+    # 定義違禁關鍵字 (Root指令/危險操作)
+    if [[ "$cmd" =~ ^(su|tsu|sudo|mount|umount)$ ]]; then
+        _bot_say "warn" "Administrator access denied. (Non-Root Protocol Active)"
+        return 1
+    fi
+
+    # 針對 pm (Package Manager) 的寫入操作進行攔截
+    if [[ "$cmd" == "pm" ]]; then
+        if [[ "$@" =~ (disable|hide|enable|unhide) ]]; then
+            _bot_say "warn" "Package modification is locked by Manufacturer."
+            return 1
+        fi
+    fi
+
+    return 0
+}
+
+function _mux_neural_fire_control() {
     local input_signal="$1" # COM
     local input_sub="$2" # COM2 (Candidate)
     local input_args="${*:2}" # All args starting from $2
@@ -784,7 +805,7 @@ function command_not_found_handle() {
                
                 # ENGINE
                 if [ -n "$_VAL_ENGINE" ]; then
-                    # $SEARCH_BING 轉成 URL
+                    # ENGINE 套入 $query 轉成 URL
                     local expanded_engine=$(eval echo "$_VAL_ENGINE")
                     
                     _resolve_smart_url "$expanded_engine" "$real_args"
@@ -811,10 +832,10 @@ function command_not_found_handle() {
 
             local cmd="am start --user 0 -a \"$final_action\""
             
-            # 1. -n/-p 角色呼喚，NB只能用-p
+            # 1. -n/-p 角色互換，優先用-p
             if [ -n "$_VAL_PKG" ]; then cmd="$cmd -p \"$_VAL_PKG\""; fi
             
-            # 2. -c / -t 從格子注入
+            # 2. -c/-t 從格子注入
             if [ -n "$_VAL_CATE" ]; then cmd="$cmd -c android.intent.category.$_VAL_CATE"; fi
             if [ -n "$_VAL_MIME" ]; then cmd="$cmd -t \"$_VAL_MIME\""; fi
 
@@ -825,7 +846,7 @@ function command_not_found_handle() {
             if [ -n "$_VAL_EXTRA" ]; then cmd="$cmd $_VAL_EXTRA"; fi
             
             # FIRE THE COMMAND
-            # 第一次發射 ( -p 模式 )
+            # 第一次發射 ( -p 模式)
             local output=$(eval "$cmd" 2>&1)
 
             # -p 失敗且有 TARGET，切換 -n 模式重新執行
@@ -833,22 +854,17 @@ function command_not_found_handle() {
                 _bot_say "error" "p mode failed, fallback to n mode..."
 
                 if [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
-                    # 重新拼裝 -n 模式
+                    # 重新拼裝
                     local cmd_n="am start --user 0 -a \"$final_action\" -n \"$_VAL_PKG/$_VAL_TARGET\""
 
                     # 重新導入 URI
                     if [ -n "$final_uri" ]; then cmd_n="$cmd_n -d \"$final_uri\""; fi
 
-                    # 重新加入 -c
-                    if [ -n "$_VAL_CATE" ]; then
-                        IFS=',' read -ra cate_array <<< "$_VAL_CATE"
-                        for cate in "${cate_array[@]}"; do
-                            cmd_n="$cmd_n -c android.intent.category.${cate}"
-                        done
-                    fi
+                    # 重新加入 -c/-t
+                    if [ -n "$_VAL_CATE" ]; then cmd_n="$cmd_n -c android.intent.category.$_VAL_CATE"; fi
+                    if [ -n "$_VAL_MIME" ]; then cmd_n="$cmd_n -t \"$_VAL_MIME\""; fi
 
                     # 重新加入其他旗標
-                    if [ -n "$_VAL_MIME" ]; then cmd_n="$cmd_n -t \"$_VAL_MIME\""; fi
                     if [ -n "$_VAL_FLAG" ]; then cmd_n="$cmd_n -f $_VAL_FLAG"; fi
                     if [ -n "$_VAL_EX" ]; then cmd_n="$cmd_n $_VAL_EX"; fi
                     if [ -n "$_VAL_EXTRA" ]; then cmd_n="$cmd_n $_VAL_EXTRA"; fi
@@ -857,7 +873,11 @@ function command_not_found_handle() {
                     
                     # FIRE THE COMMAND
                     # 第二次發射 ( -n 模式 )
-                    eval "$cmd_n" >/dev/null 2>&1
+                    local output_n
+                    output_n=$(eval "$cmd_n" 2>&1)
+                    
+                    # 驗證發射結果
+                    _mux_launch_validator "$output_n" "$_VAL_PKG"
                 else
                     _bot_say "error" "Fallback failed: No TARGET defined for n mode."
                     return 1
@@ -866,12 +886,45 @@ function command_not_found_handle() {
             ;;
 
         "SYS")
+            local cmd="am start --user 0"
+            
+            # 1. 先看 Action (-a) & Data (-d)
             local sys_action="${_VAL_IHEAD}${_VAL_IBODY}"
-            if [ -n "$_VAL_COM2" ]; then
-                _sys_cmd "$_VAL_UINAME" "$sys_action" "${*:3}"
-            else
-                _sys_cmd "$_VAL_UINAME" "$sys_action" "${*:2}"
+            if [ -n "$sys_action" ]; then  cmd="$cmd -a \"$sys_action\""; fi
+            if [ -n "$_VAL_URI" ]; then cmd="$cmd -d \"$_VAL_URI\""; fi
+
+            # 2. 再看 Category (-c)
+            if [ -n "$_VAL_CATE" ]; then cmd="$cmd -c android.intent.category.$_VAL_CATE"; fi
+
+            # 3. 再看 Mime Type (-t)
+            if [ -n "$_VAL_MIME" ]; then cmd="$cmd -t \"$_VAL_MIME\""; fi
+
+            # 4. 先後看 Component (-n)，再看 Package (-p)
+            if [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
+                cmd="$cmd -n \"$_VAL_PKG/$_VAL_TARGET\""
+            elif [ -n "$_VAL_PKG" ]; then
+                cmd="$cmd -p \"$_VAL_PKG\""
             fi
+
+            # 5. 再看 ex & extra (擴充參數)
+            if [ -n "$_VAL_EX" ]; then cmd="$cmd $_VAL_EX"; fi
+            if [ -n "$_VAL_EXTRA" ]; then cmd="$cmd $_VAL_EXTRA"; fi
+
+            # 6. 最後看 Flags (-f)
+            if [ -n "$_VAL_FLAG" ]; then cmd="$cmd -f $_VAL_FLAG"; fi
+
+            # 執行回報
+            _bot_say "system" "System Call: ${sys_action:-Custom}"
+            if [ -n "$_VAL_UINAME" ]; then
+                 echo -e "\033[1;30m    ›› Node: $_VAL_UINAME\033[0m"
+            fi
+
+            # FIRE THE COMMAND (SYS Mode)
+            local output_sys
+            output_sys=$(eval "$cmd" 2>&1)
+
+            # 驗證結果
+            _mux_launch_validator "$output_sys" "${_VAL_PKG:-$_VAL_UINAME}"
             ;;
 
         *)
@@ -880,6 +933,24 @@ function command_not_found_handle() {
             ;;
     esac
     return 0
+}
+
+# 神經連接執行器
+function command_not_found_handle() {
+    local cmd="$1"
+    shift
+    local args="$@"
+
+    # 第一關：安全檢查 (Security Gate)
+    ! _mux_security_gate "$cmd" "$args" && return 0
+
+    # 第二關：Mux-OS 核心執行 (Neural Fire Control)
+    _mux_neural_fire_control "$cmd" "$args" && return 0
+
+    # 第三關：真正的未知指令 (The Void)
+    _bot_say "error" "Command signature '$cmd' not found in Neural Network."
+    
+    return 127
 }
 
 export PS1="\[\033[1;36m\]Mux\[\033[0m\] \w › "
