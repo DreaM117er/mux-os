@@ -214,6 +214,72 @@ function fac() {
             _mux_dynamic_help_factory
             ;;
 
+        "ui")
+            # 定義測試項目
+            local test_menu="1. Template Selector (Add New)\n2. Detail View (Mock NEW Mode)\n3. Edit Field (FZF Universal)\n4. Input Monitor (CLI Standard)"
+            
+            # 呼叫 FZF 選單
+            local selected=$(echo -e "$test_menu" | fzf \
+                --height=15 --layout=reverse --border=bottom \
+                --header=" :: UI Component Lab :: " \
+                --prompt=" Run Test › " \
+                --pointer="››" \
+                --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
+
+            # 根據選擇執行測試
+            case "$selected" in
+                *"1."*)
+                    # 測試：類型選擇器
+                    local res=$(_factory_fzf_template_selector)
+                    echo -e "\n\033[1;33m[Result]\033[0m Raw Selection: $res"
+                    ;;
+                
+                *"2."*)
+                    # 測試：詳細資料檢視 (模擬 NEW 模式)
+                    # 注入假資料到 temp 檔以便 awk 讀取
+                    local mock_beacon="_UI_TEST_"
+                    # 建立一個暫時的 NA 節點
+                    local mock_row="\"999\",\"99\",\"[NEW]\",\"NA\",\"$mock_beacon\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\""
+                    echo "$mock_row" >> "$MUX_ROOT/app.csv.temp"
+                    
+                    # 啟動 UI
+                    _factory_fzf_detail_view "$mock_beacon" "NEW"
+                    local status=$?
+                    
+                    # 清理假資料
+                    sed -i '/_UI_TEST_/d' "$MUX_ROOT/app.csv.temp"
+                    
+                    if [ $status -eq 0 ]; then
+                        echo -e "\n\033[1;32m[Result]\033[0m Confirmed (Exit Code 0)"
+                    else
+                        echo -e "\n\033[1;31m[Result]\033[0m Canceled (Exit Code $status)"
+                    fi
+                    ;;
+                
+                *"3."*)
+                    # 測試：通用修改面板 (FZF)
+                    # 模擬修改 NA 的 Package 欄位 (測試紅色警告)
+                    local res=$(_factory_fzf_edit_field "Package" "[Empty]" "NA")
+                    echo -e "\n\033[1;33m[Result]\033[0m User Input: $res"
+                    ;;
+                
+                *"4."*)
+                    # 測試：戰術輸入監視器 (CLI)
+                    # 模擬修改 NB 的 Intent 欄位 (測試紅色警告與說明文字)
+                    # 這裡為了測試方便，暫時不寫入，只顯示回傳值
+                    local res=$(_factory_input_monitor "IHEAD" "android.intent.action" "NB")
+                    echo -e "\n\033[1;33m[Result]\033[0m User Input: $res"
+                    ;;
+            esac
+            
+            # 測試結束後暫停，方便查看結果
+            if [ -n "$selected" ]; then
+                echo -e "\n\033[1;30mPress Enter to return...\033[0m"
+                read
+            fi
+            ;;
+
         *)
             echo -e "${F_SUB} :: Unknown Directive: $cmd${F_RESET}"
             ;;

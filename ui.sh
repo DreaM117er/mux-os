@@ -736,6 +736,7 @@ function _factory_fzf_cmd_in_cat() {
 # 詳細資料檢視器 - Detail Inspector
 function _factory_fzf_detail_view() {
     local target_key="$1"
+    local view_mode="${2:-VIEW}"  # 預設為 VIEW 模式，傳入 "NEW" 則開啟構造模式
     local target_file="$MUX_ROOT/app.csv.temp"
 
     if [ -z "$target_key" ]; then return; fi
@@ -746,14 +747,22 @@ function _factory_fzf_detail_view() {
         t_sub=$(echo "$target_key" | awk -F'[][]' '{print $2}')
     fi
 
-    local report=$(awk -v FPAT='([^,]*)|("[^"]+")' -v t_com="$t_com" -v t_sub="$t_sub" '
+    local report=$(awk -v FPAT='([^,]*)|("[^"]+")' \
+                       -v t_com="$t_com" \
+                       -v t_sub="$t_sub" \
+                       -v mode="$view_mode" '
         BEGIN {
+            # 基礎色票
             C_LBL="\033[1;30m"
             C_VAL="\033[1;37m"
             C_TAG="\033[1;33m"
-            C_EMP="\033[1;30m"
             C_RST="\033[0m"
             sep="----------"
+            
+            # 特殊狀態色 (只在 NEW 模式生效)
+            C_EMP_R="\033[1;31m[Empty]\033[0m"  # 必填 (紅)
+            C_EMP_Y="\033[1;33m[Empty]\033[0m"  # 選填 (黃)
+            C_UNK="\033[1;30m[Unknown]\033[0m" # 未知 (灰)
         }
 
         !/^#/ && NF >= 5 {
@@ -779,42 +788,76 @@ function _factory_fzf_detail_view() {
                 
                 ihead=$12; gsub(/^"|"$/, "", ihead); if(ihead=="") ihead="[Empty]"
                 ibody=$13; gsub(/^"|"$/, "", ibody); if(ibody=="") ibody="[Empty]"
-                cate=$16; gsub(/^"|"$/, "", cate); if(cate=="") cate="[Empty]"
                 uri=$14;   gsub(/^"|"$/, "", uri);   if(uri=="")   uri="[Empty]"
+                mime=$15; gsub(/^"|"$/, "", mime); if(mime=="") mime="[Empty]"
+                cate=$16; gsub(/^"|"$/, "", cate); if(cate=="") cate="[Empty]"
+                flag=$17; gsub(/^"|"$/, "", flag); if(flag=="") flag="[Empty]"
+                ex=$18; gsub(/^"|"$/, "", ex); if(ex=="") ex="[Empty]"
                 extra=$19; gsub(/^"|"$/, "", extra); if(extra=="") extra="[Empty]"
                 engine=$20; gsub(/^"|"$/, "", engine); if(engine=="") engine="[Empty]"
 
                 if (s == "") s_disp = "[Empty]"; else s_disp = s
                 
-                command_str = c " " s_disp
+                if (mode == "NEW") {
+                    catname = "\033[1;32mNEW NODE\033[0m"
+                    cat = "NEW"
+                    comno = "XX"
+                    
+                    if (type == "NA") {
+                        if (c == "[Empty]") c = C_EMP_R
+                        if (pkg == "[Empty]") pkg = C_EMP_R
+                        if (act == "[Empty]") act = C_EMP_R
+                        
+                        if (hud == "[Empty]") hud = C_UNK
+                        if (ui == "[Empty]") ui = C_UNK
+                    }
+                    else if (type == "NB") {
+                        if (ihead == "[Empty]") ihead = C_EMP_R
+                        if (pkg == "[Empty]") pkg = C_EMP_Y
+                        if (act == "[Empty]") act = C_EMP_Y
+                        
+                        if (hud == "[Empty]") hud = C_UNK
+                        if (ui == "[Empty]") ui = C_UNK
+                    }
+                }
 
-                if (type == "NA" || type == "[Empty]") {
+                command_str = c " " s_disp
+                final_uri = uri
+                if (engine != "[Empty]") final_uri = engine
+
+                if (type == "NA" || type == "NA") { # Hack for visual grouping
                     printf "%s[%s]%s\n", C_TAG, catname, C_RST
-                    printf "%s[%03d:%2s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
+                    printf "%s[%3s:%2s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
                     printf " %sCommand:%s %s\n", C_LBL, C_VAL, command_str
                     printf " %sDetail :%s %s\n", C_LBL, C_VAL, hud
-                    printf "%s%s%s\n", C_LBL, sep, C_RST
                     printf " %sUI     :%s %s\n", C_LBL, C_VAL, ui
+                    printf "%s%s%s\n", C_LBL, sep, C_RST
                     printf " %sPackage:%s %s\n", C_LBL, C_VAL, pkg
                     printf " %sTarget :%s %s\n", C_LBL, C_VAL, act
-                    printf " %sCate   :%s %s\n", C_LBL, C_VAL, cate
+                    printf " %sFlag   :%s %s\n", C_LBL, C_VAL, flag
                 }
-                
                 else if (type == "NB") {
                     printf "%s[%s]%s\n", C_TAG, catname, C_RST
-                    printf "%s[%03d:%2s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
+                    printf "%s[%3s:%2s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
                     printf " %sCommand:%s %s\n", C_LBL, C_VAL, command_str
                     printf " %sDetail :%s %s\n", C_LBL, C_VAL, hud
-                    printf " %sEngine :%s %s\n", C_LBL, C_VAL, engine
-                    printf "%s%s%s\n", C_LBL, sep, C_RST
                     printf " %sUI     :%s %s\n", C_LBL, C_VAL, ui
+                    printf "%s%s%s\n", C_LBL, sep, C_RST
+                    printf " %sIntent :%s %s%s\n", C_LBL, C_VAL, ihead, ibody
+                    printf " %sURI    :%s %s\n", C_LBL, C_VAL, final_uri
+                    printf " %sCate   :%s %s\n", C_LBL, C_VAL, cate
+                    printf " %sMime   :%s %s\n", C_LBL, C_VAL, mime
+                    printf " %sEXTRA  :%s %s %s\n", C_LBL, C_VAL, ex, extra
                     printf " %sPackage:%s %s\n", C_LBL, C_VAL, pkg
                     printf " %sTarget :%s %s\n", C_LBL, C_VAL, act
-                    printf " %sCate   :%s %s\n", C_LBL, C_VAL, cate
-                    printf " %sIntent :%s %s%s\n", C_LBL, C_VAL, ihead, ibody
-                    printf " %sURI    :%s %s\n", C_LBL, C_VAL, uri
-                    printf " %sEXTRA  :%s %s\n", C_LBL, C_VAL, extra
                 }
+                
+                #  NEW 模式顯示
+                if (mode == "NEW") {
+                    printf "%s%s%s\n", C_LBL, sep, C_RST
+                    printf "  \033[1;32m[ Confirm ]\033[0m\n"
+                }
+                
                 exit
             }
         }
@@ -822,8 +865,12 @@ function _factory_fzf_detail_view() {
 
     if [ -z "$report" ]; then return; fi
 
+    # 動態計算 fzf 選單大小
+    local line_count=$(echo "$report" | wc -l)
+    local dynamic_height=$(( line_count + 4 ))
+
     echo -e "$report" | fzf --ansi \
-        --height=17 \
+        --height="$dynamic_height" \
         --layout=reverse \
         --border=bottom \
         --header=" :: Enter to return, Esc to exit ::" \
@@ -833,6 +880,277 @@ function _factory_fzf_detail_view() {
         --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
         --bind="resize:clear-screen" \
         > /dev/null
+}
+
+# 3. 創建神經連結選單 - Create Neural Link Selector
+function _factory_fzf_template_selector() {
+    # 預留的權限接口 (目前用 # 註解標記，未來可傳入 "true" 開啟)
+    # local allow_sys="${1:-false}" 
+
+    # 1. 定義基礎選項 (Type | Description)
+    # 使用 | 來分隔顯示文字與後端邏輯(如果有的話)，這裡主要用於 awk 排版
+    local list="Type NA|Native App\nType NB|(Default Browser)"
+
+    # 2. 進階選項接口 (SYS / SSL) - 先用 # 標記起來
+    # if [ "$allow_sys" == "true" ]; then
+    #     list="$list\nType SYS|(System Command)\nType SSL|(Secure Shell Link)"
+    # fi
+
+    # 3. 底部選項
+    # 分隔線與取消按鈕
+    list="$list\n------|SEPARATOR\nCancel|Abort Operation"
+
+    # 4. 渲染引擎 (Awk Rendering)
+    local C_TYPE="\033[1;33m"
+    local C_DESC="\033[1;37m"
+    local C_SEP="\033[1;30m" 
+    local C_CAN="\033[1;31m"  
+    local C_RST="\033[0m"
+
+    local menu_output=$(echo -e "$list" | awk -F'|' \
+        -v C_TYPE="$C_TYPE" -v C_DESC="$C_DESC" \
+        -v C_SEP="$C_SEP" -v C_CAN="$C_CAN" -v C_RST="$C_RST" '{
+        
+        key = $1
+        desc = $2
+
+        if (key == "------") {
+            printf " %s----------%s\n", C_SEP, C_RST
+        }
+        else if (key == "Cancel") {
+            printf " %s%-30s%s\n", C_CAN, key, C_RST
+        }
+        else {
+            if (desc != "") {
+                 printf " %s%-7s %s%s%s\n", C_TYPE, key, C_DESC, desc, C_RST
+            } else {
+                 printf " %s%-7s%s\n", C_TYPE, key, C_RST
+            }
+        }
+    }')
+
+    local line_count=$(echo "$menu_output" | wc -l)
+    local dynamic_height=$(( line_count + 4 ))
+
+    local selected=$(echo -e "$menu_output" | fzf --ansi \
+        --height="$dynamic_height" \
+        --layout=reverse \
+        --border=bottom \
+        --prompt=" :: Select Type › " \
+        --header=" :: Create Neural Link :: " \
+        --pointer="››" \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+        --bind="resize:clear-screen"
+    )
+}
+
+# 4. 通用修改界面 - Universal Edit Interface
+# 用法: _factory_fzf_edit_field "欄位名" "當前值" "指令類型(NA/NB)"
+function _factory_fzf_edit_field() {
+    local field_name="$1"
+    local current_val="$2"
+    local node_type="$3"
+
+    # === 1. 視覺定義 (Visual Assets) ===
+    local C_TAG="\033[1;33m"      # 標題黃
+    local C_LBL="\033[1;30m"      # 標籤灰
+    local C_VAL="\033[1;37m"      # 數值白
+    local C_RST="\033[0m"         # 重置
+    local C_EMP_R="\033[1;31m[Empty]\033[0m"  # 紅色必填
+    local C_EMP_Y="\033[1;33m[Empty]\033[0m"  # 黃色選填
+    local C_UNK="\033[1;30m[Empty]\033[0m"    # 灰色未知
+    
+    # 分隔線 (嚴格遵守 ui.sh 標準長度)
+    local sep="----------"
+
+    # === 2. 顏色邏輯判定 (Color Logic) ===
+    # 根據 node_type 與 field_name 決定 current_val 的顯示顏色
+    local display_val="$current_val"
+
+    # 如果值為空，先轉為標準標記
+    if [ -z "$display_val" ] || [ "$display_val" == "[Empty]" ]; then
+        if [ "$node_type" == "NA" ]; then
+            # NA 模式: Command, Package, Target 為紅
+            case "$field_name" in
+                "Command"|"Package"|"Target") display_val="$C_EMP_R" ;;
+                *) display_val="$C_UNK" ;;
+            esac
+        elif [ "$node_type" == "NB" ]; then
+            # NB 模式: Intent 為紅, Pkg/Target 為黃
+            case "$field_name" in
+                "Intent"|"I-Head"|"I-Body") display_val="$C_EMP_R" ;;
+                "Package"|"Target") display_val="$C_EMP_Y" ;;
+                *) display_val="$C_UNK" ;;
+            esac
+        else
+            display_val="$C_UNK"
+        fi
+    else
+        # 有值的情況，顯示白色
+        display_val="${C_VAL}${display_val}${C_RST}"
+    fi
+
+    # === 3. 介面構建 (Interface Construction) ===
+    # FZF Header 結構: 
+    # [欄位名]
+    # ----------
+    # - Current: 值
+    # ----------
+    
+    local header_str="${C_TAG}[ ${field_name} ]${C_RST}\n${C_LBL}${sep}${C_RST}\n ${C_LBL}- Current:${C_RST} ${display_val}\n${C_LBL}${sep}${C_RST}"
+
+    # === 4. 執行 FZF (Execution) ===
+    # --print-query: 第一行輸出使用者輸入的文字 (New Value)
+    # --disabled: 禁止過濾，確保 Confirm 按鈕不消失
+    # List 中只放 Confirm，分隔線放在 Header 底部以保持結構穩固
+    
+    local result=$(echo -e "Confirm" | fzf --ansi \
+        --disabled \
+        --print-query \
+        --layout=reverse \
+        --height=10 \
+        --border=bottom \
+        --header-lines=0 \
+        --header="$(echo -e $header_str)" \
+        --prompt=" :: Modify  › " \
+        --pointer="››" \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+        --bind="resize:clear-screen"
+    )
+
+    # === 5. 結果處理 (Output Handling) ===
+    # FZF 輸出格式:
+    # Line 1: Query String (使用者輸入的新值)
+    # Line 2: Selected Item (應該是 "Confirm")
+    
+    local new_input=$(echo "$result" | head -n 1)
+    local selection=$(echo "$result" | tail -n 1)
+
+    # 如果使用者按 ESC，result 會是空的 (或只有 query 但 exit code 非 0)
+    # 但 fzf --print-query 即使按 ESC 有時也會輸出，需配合 exit code 判斷
+    # 這裡由調用者 (Controller) 檢查 $?
+    
+    # 回傳輸入值
+    echo "$new_input"
+}
+
+# 5. 戰術輸入監視器 - Tactical Input Monitor (Standard CLI)
+# 用法: _factory_input_monitor "欄位名稱" "當前數值" "節點類型(NA/NB)"
+function _factory_input_monitor() {
+    local field_name="$1"
+    local current_val="$2"
+    local node_type="$3"
+
+    # === 1. 視覺資產 (Visual Assets) ===
+    local C_TIT="\033[1;38;5;208m"    # 標題橘
+    local C_TXT="\033[1;37m"          # 內文白
+    local C_GRY="\033[1;30m"          # 註解灰
+    local C_RED="\033[1;31m"          # 警告紅
+    local C_YEL="\033[1;33m"          # 提示黃
+    local C_RST="\033[0m"             # 重置
+    local SEP="----------"            # 標準分隔線 (10 chars)
+
+    # === 2. 戰術指導字典 (Tactical Notice Dictionary) ===
+    # 針對 18 個可編輯欄位提供詳細說明
+    local notice_msg=""
+
+    case "$field_name" in
+        # 基礎識別區
+        "CATNO")   notice_msg="Category Group ID.\n - 1:Network, 2:System, 3:Media, 4:Social, 5:Game, 6:Coding\n - 99:Others (Auto-sorted)" ;;
+        "COMNO")   notice_msg="Sorting Order Index.\n - Lower numbers appear first in the menu.\n - Range: 00-99" ;;
+        "CATNAME") notice_msg="Visual Category Label.\n - Used for Menu Grouping (e.g., 'Network', 'CyberDeck').\n - Auto-mapped by CATNO usually." ;;
+        
+        # 指令觸發區
+        "COM")     notice_msg="Primary Command Alias.\n - The main trigger keyword in terminal.\n - Keep it short (e.g., 'yt', 'fb')." ;;
+        "COM2")    notice_msg="Secondary Alias (Optional).\n - Alternative trigger keyword.\n - Useful for abbreviations." ;;
+        
+        # 顯示互動區
+        "HUDNAME") notice_msg="HUD / Voice Response Text.\n - What the Bot says when executing.\n - e.g., 'Launching Neural Link...'" ;;
+        "UINAME")  notice_msg="FZF Menu Display Name.\n - The descriptive name shown in the selector.\n - e.g., 'YouTube Studio'" ;;
+        
+        # 核心執行區 (NA)
+        "PKG")     notice_msg="Android Package Name (Application ID).\n - Required for NA mode.\n - e.g., 'com.termux', 'com.google.android.youtube'" ;;
+        "TARGET")  notice_msg="Activity Class Name / Component.\n - Required for NA mode (Launch Target).\n - e.g., 'com.termux.app.TermuxActivity'" ;;
+        
+        # 核心執行區 (NB/SYS)
+        "IHEAD")   notice_msg="Intent Namespace (Action Head).\n - Default: 'android.intent.action'\n - Can be customized for Broadcasts." ;;
+        "IBODY")   notice_msg="Intent Action Body.\n - The specific action to fire.\n - e.g., 'VIEW', 'MAIN', 'SEND', 'DIAL'" ;;
+        "URI")     notice_msg="Data URI / Scheme.\n - The target URL or Protocol.\n - e.g., 'https://google.com', 'tel:12345', 'file:///sdcard'" ;;
+        "MIME")    notice_msg="MIME Type Specification.\n - Defines data type for Intent.\n - e.g., 'text/plain', 'image/png'" ;;
+        "CATE")    notice_msg="Intent Category.\n - Default: 'android.intent.category.DEFAULT'\n - Browser: 'android.intent.category.BROWSABLE'" ;;
+        "FLAG")    notice_msg="Launch Flags (Integer or Hex).\n - Control task behavior.\n - e.g., '0x10000000' (NEW_TASK), '0x04000000' (CLEAR_TOP)" ;;
+        
+        # 擴充參數區
+        "EX")      notice_msg="Extra Key / Shell Argument.\n - For AM: '--es', '--ei', '--ez'\n - For Shell: Standard flags (e.g., '-f')" ;;
+        "EXTRA")   notice_msg="Extra Value / Payload.\n - The data paired with the Key.\n - e.g., 'search_query', 'true', '100'" ;;
+        "ENGINE")  notice_msg="Search Engine Pattern.\n - Used for Smart Query expansion.\n - e.g., 'https://www.google.com/search?q=%s'" ;;
+        
+        *) notice_msg="No specific manual available for this sector." ;;
+    esac
+
+    # === 3. 當前值著色邏輯 (Color Logic) ===
+    local display_val="$current_val"
+    local raw_display_val="$current_val" # 用於 read 的預設值 (如果需要)
+
+    if [ -z "$display_val" ] || [ "$display_val" == "[Empty]" ]; then
+        local C_EMP_R="\033[1;31m[Empty]\033[0m"
+        local C_EMP_Y="\033[1;33m[Empty]\033[0m"
+        local C_UNK="\033[1;30m[Empty]\033[0m"
+
+        if [ "$node_type" == "NA" ]; then
+            case "$field_name" in
+                "COM"|"PKG"|"TARGET") display_val="$C_EMP_R" ;;
+                *) display_val="$C_UNK" ;;
+            esac
+        elif [ "$node_type" == "NB" ]; then
+            case "$field_name" in
+                "IHEAD"|"IBODY") display_val="$C_EMP_R" ;;
+                "PKG"|"TARGET") display_val="$C_EMP_Y" ;;
+                *) display_val="$C_UNK" ;;
+            esac
+        else
+            display_val="$C_UNK"
+        fi
+        raw_display_val="" # 如果是 Empty，輸入時預設為空
+    else
+        display_val="${C_TXT}${display_val}${C_RST}"
+    fi
+
+    # === 4. 介面渲染 (Rendering) ===
+    clear
+    _draw_logo "factory" # 保持 Logo 存在，維持系統感
+    
+    echo -e "${C_TIT} :: Notice :: ${C_RST}"
+    echo -e "${C_TXT}${notice_msg}${C_RST}"
+    echo -e "${C_GRY}${SEP}${C_RST}"
+    echo -e " Current: ${display_val}"
+    echo -e ""
+    
+    # === 5. 執行輸入 (Input Execution) ===
+    # 使用 read -e 允許方向鍵編輯
+    # -p 提示文字
+    
+    local new_input=""
+    read -e -p " - Input: " new_input
+
+    # === 6. 結果回傳 (Return) ===
+    # 如果使用者直接按 Enter (空字串)，則回傳原始值(保持不變) 還是 回傳空值(刪除)?
+    # 這裡依照一般 CLI 習慣：
+    # 如果要刪除內容，通常需要輸入特定指令(如 "NULL")，或者我們約定好：
+    # 既然是 "Input"，如果留空代表 "不想改"，所以回傳當前值。
+    # **但是** 你的需求是 "可編輯的位置"，有時需要把原本有的字刪掉。
+    # 為了最直覺的操作，這裡直接回傳使用者輸入的東西。
+    # 邏輯層 (Controller) 必須判斷：如果輸入為空，是否要覆蓋舊值？
+    # 建議：Controller 若收到空字串，視為 "保持原樣"。若要清空，需輸入空格或特定字元。
+    # 或者，我們在這裡判斷：如果輸入為空，echo "$current_val" (保持不變)。
+    
+    if [ -z "$new_input" ]; then
+        echo "$current_val"
+    else
+        echo "$new_input"
+    fi
 }
 
 # 偽・星門 - UI Mask / Fake Gate
