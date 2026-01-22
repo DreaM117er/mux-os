@@ -678,17 +678,32 @@ function _mux_integrity_scan() {
 # 安全過濾層 (Security Layer)
 function _mux_security_gate() {
     local cmd="$1"
+    local all_args="$@"
     
-    # 定義違禁關鍵字 (Root指令/危險操作)
+    # 1. 絕對違禁指令 (Root/Filesystem)
     if [[ "$cmd" =~ ^(su|tsu|sudo|mount|umount)$ ]]; then
         _bot_say "warn" "Administrator access denied. (Non-Root Protocol Active)"
         return 1
     fi
 
-    # 針對 pm (Package Manager) 的寫入操作進行攔截
+    # 2. PM (Package Manager) 寫入攔截
     if [[ "$cmd" == "pm" ]]; then
-        if [[ "$@" =~ (disable|hide|enable|unhide) ]]; then
+        if [[ "$all_args" =~ (disable|hide|enable|unhide) ]]; then
             _bot_say "warn" "Package modification is locked by Manufacturer."
+            return 1
+        fi
+    fi
+
+    # 3. AM (Activity Manager) 軍火管制 (Sanitizer)
+    if [[ "$cmd" == "am" ]]; then
+        # 定義黑名單：
+        local forbidden_sigs="force-stop|kill|kill-all|hang|crash|profile|dumpheap|monitor|instrument|bug-report|track-memory"
+        
+        if [[ "$all_args" =~ ($forbidden_sigs) ]]; then
+            _bot_say "warn" "AM Command Restricted: Unstable or Dev-only directive detected."
+            # 顯示被攔截的具體關鍵字
+            local blocked=$(echo "$all_args" | grep -oE "$forbidden_sigs" | head -n 1)
+            echo -e "\033[1;30m    ›› Blocked payload: '$blocked'\033[0m"
             return 1
         fi
     fi
@@ -914,17 +929,14 @@ function _mux_neural_fire_control() {
             if [ -n "$_VAL_FLAG" ]; then cmd="$cmd -f $_VAL_FLAG"; fi
 
             # 執行回報
-            _bot_say "system" "System Call: ${sys_action:-Custom}"
-            if [ -n "$_VAL_UINAME" ]; then
-                 echo -e "\033[1;30m    ›› Node: $_VAL_UINAME\033[0m"
-            fi
+            _bot_say "system" "System Call: $_VAL_UINAME"
 
             # FIRE THE COMMAND (SYS Mode)
             local output_sys
             output_sys=$(eval "$cmd" 2>&1)
 
             # 驗證結果
-            _mux_launch_validator "$output_sys" "${_VAL_PKG:-$_VAL_UINAME}"
+            _mux_launch_validator "$output_sys" "Node: ${_VAL_PKG:-$_VAL_UINAME}"
             ;;
 
         *)
