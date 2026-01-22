@@ -695,14 +695,14 @@ function _mux_security_gate() {
     
     # 1. 絕對違禁指令 (Root/Filesystem)
     if [[ "$cmd" =~ ^(su|tsu|sudo|mount|umount)$ ]]; then
-        _bot_say "warn" "Administrator access denied. (Non-Root Protocol Active)"
+        _bot_say "error" "Administrator access denied. (Non-Root Protocol Active)"
         return 1
     fi
 
     # 2. PM (Package Manager) 寫入攔截
     if [[ "$cmd" == "pm" ]]; then
         if [[ "$all_args" =~ (disable|hide|enable|unhide) ]]; then
-            _bot_say "warn" "Package modification is locked by Manufacturer."
+            _bot_say "error" "Package modification is locked by Manufacturer."
             return 1
         fi
     fi
@@ -713,7 +713,7 @@ function _mux_security_gate() {
         local forbidden_sigs="force-stop|kill|kill-all|hang|crash|profile|dumpheap|monitor|instrument|bug-report|track-memory"
         
         if [[ "$all_args" =~ ($forbidden_sigs) ]]; then
-            _bot_say "warn" "AM Command Restricted: Unstable or Dev-only directive detected."
+            _bot_say "error" "AM Command Restricted: Unstable or Dev-only directive detected."
             # 顯示被攔截的具體關鍵字
             local blocked=$(echo "$all_args" | grep -oE "$forbidden_sigs" | head -n 1)
             echo -e "\033[1;30m    ›› Blocked payload: '$blocked'\033[0m"
