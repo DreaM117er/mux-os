@@ -675,6 +675,19 @@ function _mux_integrity_scan() {
     return 0
 }
 
+# 直接鎖定系統 ROOT 指令
+function su()     { _mux_security_gate "su" "$@"; return 1; }
+function tsu()    { _mux_security_gate "tsu" "$@"; return 1; }
+function sudo()   { _mux_security_gate "sudo" "$@"; return 1; }
+function mount()  { _mux_security_gate "mount" "$@"; return 1; }
+function umount() { _mux_security_gate "umount" "$@"; return 1; }
+
+# PM 指令過濾器
+function pm() {
+    ! _mux_security_gate "pm" "$@" && return 1
+    command pm "$@"
+}
+
 # 安全過濾層 (Security Layer)
 function _mux_security_gate() {
     local cmd="$1"
