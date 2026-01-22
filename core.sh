@@ -119,7 +119,7 @@ export SEARCH_GITHUB="https://github.com/search?q="
 export __GO_TARGET=""
 export __GO_MODE=""
 
-function _resolve_smart_url()
+function _resolve_smart_url() {
     local engine_url="$1"
     local user_query="$2"
 
