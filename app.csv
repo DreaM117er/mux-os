@@ -29,7 +29,7 @@
 8,5,"Productivity","NA","msger",,,"Messenger","Messenger","com.facebook.orca",".auth.StartScreenActivity",,,,,,,,,
 8,6,"Productivity","NA","dc",,,"Discord","Discord","com.discord",".main.MainDefault",,,,,,,,,
 8,7,"Productivity","NA","reddit",,,"Reddit","Reddit","com.reddit.frontpage","launcher.default",,,,,,,,,
-9,1,"Finance","NA","cashew",,,"Cashew (Budget Tracker)","Cashew","com.budget.tracker app",".MainActivity",,,,,,,,,
+9,1,"Finance","NA","cashew",,,"Cashew (Budget Tracker)","Cashew","com.budget.tracker_app",".MainActivity",,,,,,,,,
 9,2,"Finance","NA","ctbc",,,"CTBC Bank (中國信託)","CTBC Bank","com.chinatrust.mobilebank",".MainActivity",,,,,,,,,
 9,3,"Finance","NA","taishin",,,"Taishin Bank (台新銀行)","Taishin Bank","tw.com.taishinbank.mobile",".MainActivity",,,,,,,,,
 9,4,"Finance","NA","sinopac",,,"SinoPac (永豐銀行)","SinoPac","com.sionpac.app.SinoPac",".WelcomeActivity",,,,,,,,,
