@@ -105,7 +105,7 @@ function _mux_neural_data() {
         }
     }')
     
-    _VAL_ENGINE=${_VAL_ENGINE//$'\r'/}
+    _VAL_ENGINE=${_VAL_ENGINE//$'\rT'/}
     return 0
 }
 
@@ -113,7 +113,7 @@ function _mux_neural_data() {
 export SEARCH_GOOGLE="https://www.google.com/search?q="
 export SEARCH_BING="https://www.bing.com/search?q="
 export SEARCH_DUCK="https://duckduckgo.com/?q="
-export SEARCH_YOUTUBE="https://www.youtube.com/results?search_query="
+export SEARCH_YT="https://www.youtube.com/results?search_query="
 export SEARCH_GITHUB="https://github.com/search?q="
 
 export __GO_TARGET=""
@@ -859,8 +859,7 @@ function _mux_neural_fire_control() {
             
             # FIRST FIRE THE COMMAND
             local output=$(eval "$cmd" 2>&1)
-            sleep 1
-
+            
             # 檢查結果：如果成功，直接返回
             if [[ "$output" != *"Error"* && "$output" != *"Activity not found"* && "$output" != *"unable to resolve Intent"* ]]; then
                 return 0
@@ -882,7 +881,6 @@ function _mux_neural_fire_control() {
 
                 # SECOND FIRE THE COMMAND
                 local output_i=$(eval "$cmd_i" 2>&1)
-                sleep 1
 
                 if [[ "$output_i" != *"Error"* && "$output_i" != *"Activity not found"* && "$output_i" != *"unable to resolve Intent"* ]]; then
                     _bot_say "launch" "Recovered via 'i' mode: '$real_args'"
