@@ -844,7 +844,7 @@ function _mux_neural_fire_control() {
                 _bot_say "launch" "Executing: '$real_args'"
             fi
 
-            # P-Mode (Package Locked)
+            # 'p' mode (Package Locked)
             local cmd="am start --user 0 -a \"$final_action\""
             
             if [ -n "$_VAL_PKG" ]; then cmd="$cmd -p \"$_VAL_PKG\""; fi
@@ -865,9 +865,9 @@ function _mux_neural_fire_control() {
                 return 0
             fi
 
-            # I-Mode (Pure Intent / Unlock)
+            # 'i' mode (Pure Intent / Unlock)
             if [ -n "$final_uri" ]; then
-                _bot_say "warn" "P-Mode rejected. Disengaging locks for I-Mode..."
+                _bot_say "error" "'p' mode rejected. Disengaging locks for 'i' mode..."
 
                 # 重新拼裝：移除 -p, -n
                 local cmd_i="am start --user 0 -a \"$final_action\" -d \"$final_uri\""
@@ -883,16 +883,16 @@ function _mux_neural_fire_control() {
                 local output_i=$(eval "$cmd_i" 2>&1)
 
                 if [[ "$output_i" != *"Error"* && "$output_i" != *"Activity not found"* && "$output_i" != *"unable to resolve Intent"* ]]; then
-                    _bot_say "launch" "Recovered via I-Mode: '$real_args'"
+                    _bot_say "launch" "Recovered via 'i' mode: '$real_args'"
                     return 0
                 else
-                    _bot_say "warn" "I-Mode failed. Engaging hard lock (N-Mode)..."
+                    _bot_say "error" "'i' mode failed. Engaging hard lock ('n' mode)..."
                 fi
             else
-                _bot_say "warn" "P-Mode failed (No URI). Engaging hard lock (N-Mode)..."
+                _bot_say "error" "'p' mode failed. Engaging hard lock ('n' mode)..."
             fi
 
-            # N-Mode (Component Locked)
+            # 'n' mode (Component Locked)
             if [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
                 # 重新拼裝
                 local cmd_n="am start --user 0 -a \"$final_action\" -n \"$_VAL_PKG/$_VAL_TARGET\""
@@ -904,7 +904,7 @@ function _mux_neural_fire_control() {
                 if [ -n "$_VAL_EX" ]; then cmd_n="$cmd_n $_VAL_EX"; fi
                 if [ -n "$_VAL_EXTRA" ]; then cmd_n="$cmd_n $_VAL_EXTRA"; fi
 
-                _bot_say "launch" "Retrying (N-Mode): '$real_args'"
+                _bot_say "launch" "Retrying ('n' mode): '$real_args'"
                 
                 # THIRD FIRE THE COMMAND
                 local output_n=$(eval "$cmd_n" 2>&1)
@@ -913,7 +913,7 @@ function _mux_neural_fire_control() {
                 _mux_launch_validator "$output_n" "$_VAL_PKG"
                 return 0
             else
-                _bot_say "error" "All Protocols Failed: No TARGET for N-Mode fallback."
+                _bot_say "error" "All Protocols Failed: No TARGET for 'n' mode fallback."
                 return 1
             fi
             ;;
