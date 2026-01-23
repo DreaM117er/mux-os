@@ -113,7 +113,7 @@ function _mux_neural_data() {
 export SEARCH_GOOGLE="https://www.google.com/search?q="
 export SEARCH_BING="https://www.bing.com/search?q="
 export SEARCH_DUCK="https://duckduckgo.com/?q="
-export SEARCH_YOUTUBE="https://m.youtube.com/results?search_query="
+export SEARCH_YOUTUBE="vnd.youtube://search?query="
 export SEARCH_GITHUB="https://github.com/search?q="
 
 export __GO_TARGET=""
