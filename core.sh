@@ -783,7 +783,7 @@ function _mux_neural_fire_control() {
                 real_args="$input_args"
             fi
             
-            # 安全檢查
+            # 安全檢查：參數
             if [ -z "$real_args" ]; then
                 if [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
                     _VAL_URI=""
@@ -794,30 +794,21 @@ function _mux_neural_fire_control() {
                 return 1
             fi
             
+            # 安全檢查：Intent 結構
             if [ -z "$_VAL_IHEAD" ] || [ -z "$_VAL_IBODY" ]; then
                 _bot_say "error" "System Integrity: Malformed Intent (Missing HEAD/BODY)."
                 return 1
             fi
             local final_action="${_VAL_IHEAD}${_VAL_IBODY}"
 
-            # 2. Web Search Intent (.WEB_SEARCH)
+            # .WEB_SEARCH
             if [[ "$final_action" == *".WEB_SEARCH"* ]]; then
-               
                 local raw_input=$(echo "$real_args" | sed 'y/。．/../' | sed 's/　/ /g')
                 local safe_query="${raw_input//\"/\\\"}"
-               
                 _bot_say "neural" "Payload: Raw Search ›› '$safe_query'"
-               
                 local cmd="am start --user 0 -a $final_action$cate_arg -e query \"$safe_query\""
-               
-                if [ -n "$_VAL_PKG" ]; then
-                    cmd="$cmd -p $_VAL_PKG"
-                fi
-                if [ -n "$_VAL_FLAG" ]; then
-                    cmd="$cmd -f $_VAL_FLAG"
-                fi
-               
-                # FIRE THE COMMAND
+                if [ -n "$_VAL_PKG" ]; then cmd="$cmd -p $_VAL_PKG"; fi
+                if [ -n "$_VAL_FLAG" ]; then cmd="$cmd -f $_VAL_FLAG"; fi
                 local output=$(eval "$cmd" 2>&1)
                 if [[ "$output" == *"Error"* ]]; then
                     _bot_say "error" "Launch Failed: $output"
@@ -826,19 +817,15 @@ function _mux_neural_fire_control() {
                 return 0
             fi
            
-            # 3. View Intent (.VIEW)
+            # .VIEW
             local final_uri=""
            
+            # 解析 URI 邏輯
             if [[ "$_VAL_URI" == *"\$__GO_TARGET"* ]]; then
-               
-                # ENGINE
                 if [ -n "$_VAL_ENGINE" ]; then
-                    # ENGINE 套入 $query 轉成 URL
                     local expanded_engine=$(eval echo "$_VAL_ENGINE")
-                    
                     _resolve_smart_url "$expanded_engine" "$real_args"
                     final_uri="$__GO_TARGET"
-                   
                     if [ "$__GO_MODE" == "neural" ]; then
                          _bot_say "neural" "Searching via Engine: '$real_args'"
                     else
@@ -852,91 +839,82 @@ function _mux_neural_fire_control() {
                 local safe_args="${real_args// /+}"
                 final_uri="${_VAL_URI//\$query/$safe_args}"
                 _bot_say "neural" "Navigating: '$real_args'"
-           
             else
                 final_uri="$_VAL_URI"
                 _bot_say "launch" "Executing: '$real_args'"
             fi
 
+            # P-Mode (Package Locked)
             local cmd="am start --user 0 -a \"$final_action\""
             
-            # 1. -n/-p 角色互換，優先用-p
             if [ -n "$_VAL_PKG" ]; then cmd="$cmd -p \"$_VAL_PKG\""; fi
             
-            # 2. -c/-t 從格子注入
+            # 參數注入
             if [ -n "$_VAL_CATE" ]; then cmd="$cmd -c android.intent.category.$_VAL_CATE"; fi
             if [ -n "$_VAL_MIME" ]; then cmd="$cmd -t \"$_VAL_MIME\""; fi
-
-            # 3. 其他旗標
             if [ -n "$final_uri" ]; then cmd="$cmd -d \"$final_uri\""; fi
             if [ -n "$_VAL_FLAG" ]; then cmd="$cmd -f $_VAL_FLAG"; fi
             if [ -n "$_VAL_EX" ]; then cmd="$cmd $_VAL_EX"; fi
             if [ -n "$_VAL_EXTRA" ]; then cmd="$cmd $_VAL_EXTRA"; fi
             
-            # FIRE THE COMMAND
-            # 第一次發射 ( p 模式)
+            # FIRST FIRE THE COMMAND
             local output=$(eval "$cmd" 2>&1)
 
-            # -p 失敗且有 TARGET，切換模式重新執行
-            if [[ "$output" == *"Error"* || "$output" == *"Activity not found"* || "$output" == *"unable to resolve Intent"* ]]; then
-                _bot_say "error" "p mode failed, fallback to n mode..."
+            # 檢查結果：如果成功，直接返回
+            if [[ "$output" != *"Error"* && "$output" != *"Activity not found"* && "$output" != *"unable to resolve Intent"* ]]; then
+                return 0
+            fi
 
-                # 純意圖模式 ( i 模式)
-                if [ -n "$final_uri" ]; then
-                    _bot_say "error" "'p' mode rejected. Trying pure intent ('i' mode)..."
-                    
-                    # 重新拼裝：只移除 -p，保留其他所有參數
-                    local cmd_i="am start --user 0 -a \"$final_action\" -d \"$final_uri\""
-                    
-                    # 補回旗標 (Flags)
-                    if [ -n "$_VAL_CATE" ]; then cmd_i="$cmd_i -c android.intent.category.$_VAL_CATE"; fi
-                    if [ -n "$_VAL_MIME" ]; then cmd_i="$cmd_i -t \"$_VAL_MIME\""; fi
-                    if [ -n "$_VAL_FLAG" ]; then cmd_i="$cmd_i -f $_VAL_FLAG"; fi
-                    if [ -n "$_VAL_EX" ]; then cmd_i="$cmd_i $_VAL_EX"; fi
-                    if [ -n "$_VAL_EXTRA" ]; then cmd_i="$cmd_i $_VAL_EXTRA"; fi
+            # I-Mode (Pure Intent / Unlock)
+            if [ -n "$final_uri" ]; then
+                _bot_say "warn" "P-Mode rejected. Disengaging locks for I-Mode..."
 
-                    # FIRE THE COMMAND
-                    # 第二次發射 ( i 模式 )
-                    local output_i=$(eval "$cmd_i" 2>&1)
-                    
-                    if [[ "$output_i" != *"Error"* && "$output_i" != *"Activity not found"* && "$output_i" != *"unable to resolve Intent"* ]]; then
-                        _bot_say "launch" "Recovered via 'i' mode: '$real_args'"
-                        return 0
-                    else
-                        _bot_say "error" "'i' mode failed. Engaging hard lock ('n' mode)..."
-                    fi
+                # 重新拼裝：移除 -p, -n
+                local cmd_i="am start --user 0 -a \"$final_action\" -d \"$final_uri\""
+                
+                # 補回參數
+                if [ -n "$_VAL_CATE" ]; then cmd_i="$cmd_i -c android.intent.category.$_VAL_CATE"; fi
+                if [ -n "$_VAL_MIME" ]; then cmd_i="$cmd_i -t \"$_VAL_MIME\""; fi
+                if [ -n "$_VAL_FLAG" ]; then cmd_i="$cmd_i -f $_VAL_FLAG"; fi
+                if [ -n "$_VAL_EX" ]; then cmd_i="$cmd_i $_VAL_EX"; fi
+                if [ -n "$_VAL_EXTRA" ]; then cmd_i="$cmd_i $_VAL_EXTRA"; fi
+
+                # SECOND FIRE THE COMMAND
+                local output_i=$(eval "$cmd_i" 2>&1)
+
+                if [[ "$output_i" != *"Error"* && "$output_i" != *"Activity not found"* && "$output_i" != *"unable to resolve Intent"* ]]; then
+                    _bot_say "launch" "Recovered via I-Mode: '$real_args'"
+                    return 0
                 else
-                    _bot_say "error" "'p' mode failed, fallback to 'n' mode..."
+                    _bot_say "warn" "I-Mode failed. Engaging hard lock (N-Mode)..."
                 fi
+            else
+                _bot_say "warn" "P-Mode failed (No URI). Engaging hard lock (N-Mode)..."
+            fi
 
-                # 精準包裝模式 ( n 模式)
-                if [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
-                    # 重新拼裝
-                    local cmd_n="am start --user 0 -a \"$final_action\" -n \"$_VAL_PKG/$_VAL_TARGET\""
+            # N-Mode (Component Locked)
+            if [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
+                # 重新拼裝
+                local cmd_n="am start --user 0 -a \"$final_action\" -n \"$_VAL_PKG/$_VAL_TARGET\""
 
-                    # 重新導入 URI
-                    if [ -n "$final_uri" ]; then cmd_n="$cmd_n -d \"$final_uri\""; fi
+                if [ -n "$final_uri" ]; then cmd_n="$cmd_n -d \"$final_uri\""; fi
+                if [ -n "$_VAL_CATE" ]; then cmd_n="$cmd_n -c android.intent.category.$_VAL_CATE"; fi
+                if [ -n "$_VAL_MIME" ]; then cmd_n="$cmd_n -t \"$_VAL_MIME\""; fi
+                if [ -n "$_VAL_FLAG" ]; then cmd_n="$cmd_n -f $_VAL_FLAG"; fi
+                if [ -n "$_VAL_EX" ]; then cmd_n="$cmd_n $_VAL_EX"; fi
+                if [ -n "$_VAL_EXTRA" ]; then cmd_n="$cmd_n $_VAL_EXTRA"; fi
 
-                    # 補回旗標 (Flags)
-                    if [ -n "$_VAL_CATE" ]; then cmd_n="$cmd_n -c android.intent.category.$_VAL_CATE"; fi
-                    if [ -n "$_VAL_MIME" ]; then cmd_n="$cmd_n -t \"$_VAL_MIME\""; fi
-                    if [ -n "$_VAL_FLAG" ]; then cmd_n="$cmd_n -f $_VAL_FLAG"; fi
-                    if [ -n "$_VAL_EX" ]; then cmd_n="$cmd_n $_VAL_EX"; fi
-                    if [ -n "$_VAL_EXTRA" ]; then cmd_n="$cmd_n $_VAL_EXTRA"; fi
-
-                    _bot_say "launch" "Retrying ('n' mode): '$real_args'"
-                    
-                    # FIRE THE COMMAND
-                    # 第三次發射 ( n 模式 )
-                    local output_n
-                    output_n=$(eval "$cmd_n" 2>&1)
-                    
-                    # 驗證發射結果
-                    _mux_launch_validator "$output_n" "$_VAL_PKG"
-                else
-                    _bot_say "error" "Fallback failed: No TARGET defined for 'n' mode."
-                    return 1
-                fi
+                _bot_say "launch" "Retrying (N-Mode): '$real_args'"
+                
+                # THIRD FIRE THE COMMAND
+                local output_n=$(eval "$cmd_n" 2>&1)
+                
+                # 最終驗證
+                _mux_launch_validator "$output_n" "$_VAL_PKG"
+                return 0
+            else
+                _bot_say "error" "All Protocols Failed: No TARGET for N-Mode fallback."
+                return 1
             fi
             ;;
 
