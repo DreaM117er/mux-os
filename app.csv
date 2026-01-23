@@ -1,7 +1,7 @@
 "CATNO","COMNO","CATNAME","TYPE","COM","COM2","COM3","HUDNAME","UINAME","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE","FLAG","EX","EXTRA","ENGINE"
 1,1,"Network & Cloud","NB","edge",,,"Edge","Edge","com.microsoft.emmx","com.microsoft.ruby.Main","android.intent.action",".VIEW","$__GO_TARGET",,,,,,"$SEARCH_BING"
 1,2,"Network & Cloud","NB","chrome",,,"Chrome","Chrome","com.android.chrome","com.google.android.apps.chrome.Main","android.intent.action",".VIEW","$__GO_TARGET",,,,,,"$SEARCH_GOOGLE"
-1,3,"Network & Cloud","NB","yt",,,"YouTube APP","YouTube","com.google.android.youtube",".HomeActivity","android.intent.action",".VIEW","$__GO_TARGET",,,,,,"$SEARCH_YT"
+1,3,"Network & Cloud","NB","yt",,,"YouTube APP","YouTube","com.google.android.youtube",".app.honeycomb.Shell$HomeActivity","android.intent.action",".VIEW","$__GO_TARGET",,,,,,"$SEARCH_YT"
 1,4,"Network & Cloud","NA","mega",,,"Mega Sync","Mega","mega.privacy.android.app",".main.ManagerActivity",,,,,,,,,
 1,5,"Network & Cloud","NA","1drive",,,"OneDrive","OneDrive","com.microsoft.skydrive",".MainActivity",,,,,,,,,
 2,1,"AI & Intelligence","NA","gemini",,,"Google Gemini AI","Gemini","com.google.android.apps.bard",".shellapp.BardEntryPointActivity",,,,,,,,,
