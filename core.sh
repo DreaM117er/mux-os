@@ -859,6 +859,7 @@ function _mux_neural_fire_control() {
             
             # FIRST FIRE THE COMMAND
             local output=$(eval "$cmd" 2>&1)
+            sleep 1
 
             # 檢查結果：如果成功，直接返回
             if [[ "$output" != *"Error"* && "$output" != *"Activity not found"* && "$output" != *"unable to resolve Intent"* ]]; then
@@ -867,7 +868,7 @@ function _mux_neural_fire_control() {
 
             # 'i' mode (Pure Intent / Unlock)
             if [ -n "$final_uri" ]; then
-                _bot_say "error" "'p' mode rejected. Disengaging locks for 'i' mode..."
+                _bot_say "error" "'p' mode rejected. Try for 'i' mode."
 
                 # 重新拼裝：移除 -p, -n
                 local cmd_i="am start --user 0 -a \"$final_action\" -d \"$final_uri\""
@@ -881,15 +882,16 @@ function _mux_neural_fire_control() {
 
                 # SECOND FIRE THE COMMAND
                 local output_i=$(eval "$cmd_i" 2>&1)
+                sleep 1
 
                 if [[ "$output_i" != *"Error"* && "$output_i" != *"Activity not found"* && "$output_i" != *"unable to resolve Intent"* ]]; then
                     _bot_say "launch" "Recovered via 'i' mode: '$real_args'"
                     return 0
                 else
-                    _bot_say "error" "'i' mode failed. Engaging hard lock ('n' mode)..."
+                    _bot_say "error" "'i' mode failed. Engaging 'n' mode."
                 fi
             else
-                _bot_say "error" "'p' mode failed. Engaging hard lock ('n' mode)..."
+                _bot_say "error" "'p' mode failed. Engaging 'n' mode."
             fi
 
             # 'n' mode (Component Locked)
