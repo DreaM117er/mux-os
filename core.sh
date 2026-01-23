@@ -113,7 +113,7 @@ function _mux_neural_data() {
 export SEARCH_GOOGLE="https://www.google.com/search?q="
 export SEARCH_BING="https://www.bing.com/search?q="
 export SEARCH_DUCK="https://duckduckgo.com/?q="
-export SEARCH_YOUTUBE="https://m.youtube.com/results?search_query="
+export SEARCH_YOUTUBE="https://www.youtube.com/results?search_query="
 export SEARCH_GITHUB="https://github.com/search?q="
 
 export __GO_TARGET=""
@@ -874,13 +874,42 @@ function _mux_neural_fire_control() {
             if [ -n "$_VAL_EXTRA" ]; then cmd="$cmd $_VAL_EXTRA"; fi
             
             # FIRE THE COMMAND
-            # 第一次發射 ( -p 模式)
+            # 第一次發射 ( p 模式)
             local output=$(eval "$cmd" 2>&1)
 
-            # -p 失敗且有 TARGET，切換 -n 模式重新執行
+            # -p 失敗且有 TARGET，切換模式重新執行
             if [[ "$output" == *"Error"* || "$output" == *"Activity not found"* || "$output" == *"unable to resolve Intent"* ]]; then
                 _bot_say "error" "p mode failed, fallback to n mode..."
 
+                # 純意圖模式 ( i 模式)
+                if [ -n "$final_uri" ]; then
+                    _bot_say "error" "'p' mode rejected. Trying pure intent ('i' mode)..."
+                    
+                    # 重新拼裝：只移除 -p，保留其他所有參數
+                    local cmd_i="am start --user 0 -a \"$final_action\" -d \"$final_uri\""
+                    
+                    # 補回旗標 (Flags)
+                    if [ -n "$_VAL_CATE" ]; then cmd_i="$cmd_i -c android.intent.category.$_VAL_CATE"; fi
+                    if [ -n "$_VAL_MIME" ]; then cmd_i="$cmd_i -t \"$_VAL_MIME\""; fi
+                    if [ -n "$_VAL_FLAG" ]; then cmd_i="$cmd_i -f $_VAL_FLAG"; fi
+                    if [ -n "$_VAL_EX" ]; then cmd_i="$cmd_i $_VAL_EX"; fi
+                    if [ -n "$_VAL_EXTRA" ]; then cmd_i="$cmd_i $_VAL_EXTRA"; fi
+
+                    # FIRE THE COMMAND
+                    # 第二次發射 ( i 模式 )
+                    local output_i=$(eval "$cmd_i" 2>&1)
+                    
+                    if [[ "$output_i" != *"Error"* && "$output_i" != *"Activity not found"* && "$output_i" != *"unable to resolve Intent"* ]]; then
+                        _bot_say "launch" "Recovered via 'i' mode: '$real_args'"
+                        return 0
+                    else
+                        _bot_say "error" "'i' mode failed. Engaging hard lock ('n' mode)..."
+                    fi
+                else
+                    _bot_say "error" "'p' mode failed, fallback to 'n' mode..."
+                fi
+
+                # 精準包裝模式 ( n 模式)
                 if [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
                     # 重新拼裝
                     local cmd_n="am start --user 0 -a \"$final_action\" -n \"$_VAL_PKG/$_VAL_TARGET\""
@@ -888,26 +917,24 @@ function _mux_neural_fire_control() {
                     # 重新導入 URI
                     if [ -n "$final_uri" ]; then cmd_n="$cmd_n -d \"$final_uri\""; fi
 
-                    # 重新加入 -c/-t
+                    # 補回旗標 (Flags)
                     if [ -n "$_VAL_CATE" ]; then cmd_n="$cmd_n -c android.intent.category.$_VAL_CATE"; fi
                     if [ -n "$_VAL_MIME" ]; then cmd_n="$cmd_n -t \"$_VAL_MIME\""; fi
-
-                    # 重新加入其他旗標
                     if [ -n "$_VAL_FLAG" ]; then cmd_n="$cmd_n -f $_VAL_FLAG"; fi
                     if [ -n "$_VAL_EX" ]; then cmd_n="$cmd_n $_VAL_EX"; fi
                     if [ -n "$_VAL_EXTRA" ]; then cmd_n="$cmd_n $_VAL_EXTRA"; fi
 
-                    _bot_say "launch" "Retrying (n mode): '$real_args'"
+                    _bot_say "launch" "Retrying ('n' mode): '$real_args'"
                     
                     # FIRE THE COMMAND
-                    # 第二次發射 ( -n 模式 )
+                    # 第三次發射 ( n 模式 )
                     local output_n
                     output_n=$(eval "$cmd_n" 2>&1)
                     
                     # 驗證發射結果
                     _mux_launch_validator "$output_n" "$_VAL_PKG"
                 else
-                    _bot_say "error" "Fallback failed: No TARGET defined for n mode."
+                    _bot_say "error" "Fallback failed: No TARGET defined for 'n' mode."
                     return 1
                 fi
             fi
