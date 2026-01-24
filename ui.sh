@@ -700,13 +700,11 @@ function _factory_fzf_cmd_in_cat() {
         !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
             csv_cat=$3; gsub(/^"|"$/, "", csv_cat)
             
+            # 使用字串比對，而非數字比對
             if (csv_cat == target) {
                 gsub(/^"|"$/, "", $5); cmd = $5
                 gsub(/^"|"$/, "", $6); sub_cmd = $6
-                gsub(/^"|"$/, "", $8); desc =
-
-                if (desc == "") desc="[No Description]"
-
+                
                 if (sub_cmd != "") {
                     printf " %s%s %s[%s]%s\n", C_CMD, cmd, C_SUB, sub_cmd, C_RST
                 } else {
@@ -716,10 +714,9 @@ function _factory_fzf_cmd_in_cat() {
         }
     ' "$target_file")
     
+    # 計算數量 (用於 header 顯示)
     local total=$(echo "$cmd_list" | grep -c "^ ")
 
-    # 如果列表為空，FZF 會直接結束，這裡可以加個防呆或直接顯示空列表
-    
     local selected=$(echo "$cmd_list" | fzf --ansi \
         --height=10 \
         --layout=reverse \
@@ -734,7 +731,7 @@ function _factory_fzf_cmd_in_cat() {
     )
 
     if [ -n "$selected" ]; then
-        # 這裡回傳完整的 "cmd" 或 "cmd sub"，factory 那邊會用 awk '{print $1}' 再洗一次，很安全
+        # 回傳乾淨的指令供 Factory 使用
         echo "$selected" | awk '{print $1, $2}' | sed 's/^[ \t]*//;s/[ \t]*$//'
     fi
 }
