@@ -903,8 +903,9 @@ function _factory_fzf_catedit_submenu() {
         --header=" :: Enter to return, Esc to exit :: " \
         --prompt=" Action › " \
         --pointer="››" \
+        --info=hidden \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:hidden,prompt:208,pointer:red,marker:208,border:208,header:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
         --bind="resize:clear-screen"
     )
     
