@@ -899,16 +899,23 @@ function _factory_fzf_detail_view() {
 
 # 類別編輯子選單 - Category Edit Submenu
 function _factory_fzf_catedit_submenu() {
-    local cat_name="${1:-Unknown}"
+    local cat_id="$1"
+    local cat_name="${2:-Unknown}"
     
+    local C_TAG="\033[1;33m"
+    local C_RST="\033[0m"
+    
+    local fmt_id=$(printf "%03d" "$cat_id" 2>/dev/null || echo "$cat_id")
+    local display_label="${C_TAG}[${fmt_id}]${C_RST} ${cat_name}"
+
     # 選項定義
-    local opt_title="Edit [${cat_name}]"
-    local opt_cmds="Edit Command in [${cat_name}]"
+    local opt_title="Edit Name ${display_label}"
+    local opt_cmds="Edit Command in ${display_label}"
     
     # 組合選單內容
     local menu_content="${opt_title}\n${opt_cmds}"
     
-    # 動態計算 fzf 選單大小
+    # 動態計算高度
     local line_count=$(echo -e "$menu_content" | wc -l)
     local dynamic_height=$(( line_count + 4 ))
     

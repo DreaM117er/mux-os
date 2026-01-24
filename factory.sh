@@ -221,35 +221,42 @@ function fac() {
             local view_state="EDIT"
 
             while true; do
+                # Level 1: 選擇分類
                 local raw_cat=$(_factory_fzf_cat_selector)
                 if [ -z "$raw_cat" ]; then break; fi
                 
-                local clean_cat=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//' | sed 's/^[0-9]*//' | sed 's/^[ \t]*//')
+                # [Fix] 資料拆解 (Split ID and Name)
+                # 假設 raw_cat 格式類似: "  1  Network & Cloud" (帶顏色)
                 
-                # 安全網：如果洗完變空的 (發生意外)，則退回只洗顏色
-                if [ -z "$clean_cat" ]; then 
-                    clean_cat=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g')
-                fi
+                # 1. 提取 ID (第一欄數字)
+                local cat_id=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
+                
+                # 2. 提取 Name (去掉 ID 後剩下的部分)
+                # 邏輯：去色 -> 去頭部空白 -> 去掉第一個數字 -> 再去頭部空白
+                local cat_name=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//' | sed 's/^[0-9]*//' | sed 's/^[ \t]*//')
 
                 while true; do
-                    # Level 2: 進入 Submenu (現在 clean_cat 應該正確了)
-                    local action=$(_factory_fzf_catedit_submenu "$clean_cat")
+                    # Level 2: 進入 Submenu (傳入 ID 和 Name)
+                    local action=$(_factory_fzf_catedit_submenu "$cat_id" "$cat_name")
                     if [ -z "$action" ]; then break; fi
 
                     # Level 3: 分歧處理
-                    # 這裡使用 grep 模糊比對，避免括號轉義問題
-                    if echo "$action" | grep -q "^Edit \[" ; then
+                    # 因為 UI 加了顏色，這裡判斷時建議抓關鍵字比較穩
+                    
+                    if echo "$action" | grep -q "Edit Name" ; then
                         # Branch A: 修改標題
-                        _bot_say "warn" "Edit CATNAME pending..."
-                        # 這裡之後接: _factory_input_monitor "CATNAME" "$clean_cat" "SYS"
+                        # 這裡目前是空的，之後會加入:
+                        # local new_name=$(_factory_input_monitor "CATNAME" "$cat_name" "SYS")
+                        _bot_say "warn" "Edit CATNAME [$cat_name] pending..."
                         
                     elif echo "$action" | grep -q "Edit Command in" ; then
                         # Branch B: 修改分類下的指令
                         while true; do
-                            local raw_cmd=$(_factory_fzf_cmd_in_cat "$clean_cat")
+                            # 搜尋時依然使用 Name (因為 CSV 結構通常用 Name 歸類指令)
+                            local raw_cmd=$(_factory_fzf_cmd_in_cat "$cat_name")
                             if [ -z "$raw_cmd" ]; then break; fi
                             
-                            # [Fix] Cmd 資料清洗 (保持不變，這通常很穩定)
+                            # Cmd 資料清洗
                             local clean_cmd=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
 
                             if [ "$view_state" == "EDIT" ]; then
