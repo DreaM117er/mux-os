@@ -153,8 +153,8 @@ function fac() {
                 while true; do
                     local raw_cmd=$(_factory_fzf_cmd_in_cat "$clean_cat")
                     if [ -z "$raw_cmd" ]; then break; fi
-                    
-                    local clean_cmd=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
+
+                    local clean_cmd=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
 
                     if [ "$view_state" == "VIEW" ]; then
                         _factory_fzf_detail_view "$clean_cmd" "VIEW" > /dev/null
