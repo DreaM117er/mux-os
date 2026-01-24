@@ -118,22 +118,34 @@ function fac() {
     case "$cmd" in
         # : Open Neural Forge Menu
         "menu"|"commenu"|"comm")
+            local view_state="VIEW"
+
             while true; do
                 local target=$(_factory_fzf_menu "Select App to Inspect")
                 if [ -z "$target" ]; then break; fi
-                _factory_fzf_detail_view "$target"
+                
+                if [ "$view_state" == "VIEW" ]; then
+                    _factory_fzf_detail_view "$target" "VIEW" > /dev/null
+                elif [ "$view_state" == "EDIT" ]; then
+                    local selection=$(_factory_fzf_detail_view "$target" "VIEW")
+                fi
             done
             ;;
 
         # : Open Category Menu
         "catmenu"|"catm")
+            local view_state="VIEW"
+
             while true; do
                 local cat_id=$(_factory_fzf_cat_selector)
                 if [ -z "$cat_id" ]; then break; fi
                 while true; do
                     local target_cmd=$(_factory_fzf_cmd_in_cat "$cat_id")
                     if [ -z "$target_cmd" ]; then break; fi
-                    _factory_fzf_detail_view "$target_cmd"
+                    
+                    if [ "$view_state" == "VIEW" ]; then
+                        _factory_fzf_detail_view "$target_cmd" "VIEW" > /dev/null
+                    fi
                 done
             done
             ;;
@@ -164,7 +176,67 @@ function fac() {
 
         # : Edit Neural (Edit Command)
         "edit"|"comedit"|"comm")
-            _bot_say "error" "New Feature Waiting"
+            local view_state="EDIT"
+
+            while true; do
+                # Level 1: 全局指令選擇
+                local target=$(_factory_fzf_menu "Select App to Edit")
+                if [ -z "$target" ]; then break; fi
+                
+                # Level 2: 進入 Detail View (EDIT 模式)
+                if [ "$view_state" == "EDIT" ]; then
+                    # 這裡使用變數接收回傳值，為接下來的 Router 做準備
+                    local selection=$(_factory_fzf_detail_view "$target" "EDIT")
+                    
+                    # [TODO] 這裡未來會插入: _fac_edit_router "$selection"
+                fi
+            done
+            ;;
+
+        # : Edit Category
+        "catedit"|"cate")
+            local view_state="EDIT"
+
+            while true; do
+                # Level 1: 選擇分類 (Category Selector)
+                local cat_id=$(_factory_fzf_cat_selector)
+                if [ -z "$cat_id" ]; then break; fi
+                
+                while true; do
+                    # Level 2: 選擇動作 (Submenu)
+                    # 使用先前建立的 _factory_fzf_catedit_submenu
+                    local action=$(_factory_fzf_catedit_submenu "$cat_id")
+                    
+                    # 如果使用者按 Esc，跳出 Level 2，回到 Level 1 (選分類)
+                    if [ -z "$action" ]; then break; fi
+
+                    # Level 3: 分歧判斷
+                    if [[ "$action" == *"Edit [$cat_id]"* ]]; then
+                        # Branch A: 修改標題 (Rename Category)
+                        # [TODO] 這裡未來插入修改標題的邏輯
+                        # _factory_input_monitor "CATNAME" ...
+                        
+                        # 修改完後，通常 break 回到 Level 1 更新列表，或 stay
+                        # 這裡暫時 break 模擬「修改後跳出」
+                        break
+                        
+                    elif [[ "$action" == *"Edit Command"* ]]; then
+                        # Branch B: 修改該分類下的指令
+                        while true; do
+                            # Level 3-B: 該分類下的指令選擇
+                            local target_cmd=$(_factory_fzf_cmd_in_cat "$cat_id")
+                            if [ -z "$target_cmd" ]; then break; fi # Back to Level 2
+                            
+                            if [ "$view_state" == "EDIT" ]; then
+                                # 進入 Detail View
+                                local selection=$(_factory_fzf_detail_view "$target_cmd" "EDIT")
+                                
+                                # [TODO] 這裡未來會插入: _fac_edit_router "$selection"
+                            fi
+                        done
+                    fi
+                done
+            done
             ;;
 
         # : Load Neural (Test Command)

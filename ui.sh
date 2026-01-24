@@ -736,7 +736,7 @@ function _factory_fzf_cmd_in_cat() {
 # 詳細資料檢視器 - Detail Inspector
 function _factory_fzf_detail_view() {
     local target_key="$1"
-    local view_mode="${2:-VIEW}"  # 預設為 VIEW 模式，傳入 "NEW" 則開啟構造模式
+    local view_mode="${2:-VIEW}"
     local target_file="$MUX_ROOT/app.csv.temp"
 
     if [ -z "$target_key" ]; then return; fi
