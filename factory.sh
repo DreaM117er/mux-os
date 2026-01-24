@@ -159,53 +159,12 @@ function fac() {
 
         # : Neural Forge (Create Command)
         "add"|"new") 
-            # 1. 呼叫類別選擇器 (假設 _factory_fzf_cat_selector 已存在且回傳 "CATNAME")
-            # 若無，這裡需實作一個簡單的 awk+fzf 抓取 CATNAME
-            local target_cat=$(awk -F, 'NR>1 {gsub(/^"|"$/, "", $3); print $3}' "$MUX_ROOT/app.csv.temp" | sort -u | fzf --height=40% --reverse --border=top --header="Select Category")
-            
-            if [ -z "$target_cat" ]; then return; fi
-
-            # 2. 呼叫新的子選單
-            local action=$(_factory_fzf_catedit_submenu "$target_cat")
-            
-            if [[ "$action" == *"Edit [$target_cat]"* ]]; then
-                # Branch A: 修改標題 (Universal Edit)
-                local new_name=$(_factory_input_monitor "CATNAME" "$target_cat" "SYS")
-                
-                # 寫入邏輯：大量取代
-                # 這比較危險，要確保所有該分類的都改名
-                if [ -n "$new_name" ] && [ "$new_name" != "$target_cat" ]; then
-                    sed -i "s/\"$target_cat\"/\"$new_name\"/g" "$MUX_ROOT/app.csv.temp"
-                    _bot_say "success" "Category renamed: $target_cat -> $new_name"
-                fi
-                
-            elif [[ "$action" == *"Edit Command"* ]]; then
-                # Branch B: 修改該分類下的指令
-                # 這裡需要一個過濾器，只顯示該分類的指令
-                local sel_com=$(awk -F, -v cat="$target_cat" '
-                    NR>1 {
-                        gsub(/^"|"$/, "", $3); # CATNAME
-                        gsub(/^"|"$/, "", $5); # COM
-                        if ($3 == cat) print $5
-                    }' "$MUX_ROOT/app.csv.temp" | fzf --height=40% --reverse --border=top --header="Select Command in $target_cat")
-                
-                # 進入編輯迴圈
-                if [ -n "$sel_com" ]; then
-                    # 這裡我們跳轉到 edit 的核心邏輯 (使用遞迴或共用變數)
-                    # 為求簡單，我們直接呼叫 fac edit 的內部邏輯函數 (需封裝)
-                    # 或者，簡單地：
-                    _fac_edit_loop "$sel_com"
-                fi
-            fi
+            _bot_say "error" "New Feature Waiting"
             ;;
 
         # : Edit Neural (Edit Command)
         "edit"|"comedit"|"comm")
-            local sel_com=$(awk -F, 'NR>1 {gsub(/^"|"$/, "", $5); if($5!="") print $5}' "$MUX_ROOT/app.csv.temp" | fzf --height=40% --reverse --border=top --header="Select Command to Edit")
-            
-            if [ -n "$sel_com" ]; then
-                _fac_edit_loop "$sel_com"
-            fi
+            _bot_say "error" "New Feature Waiting"
             ;;
 
         # : Load Neural (Test Command)
@@ -215,44 +174,7 @@ function fac() {
 
         # : Break Neural (Delete Command)
         "del") 
-            # 1. 選擇目標 (Target Acquisition)
-            # 使用 awk 預覽資料，格式: "LineNo [CAT] COM (PKG)"
-            # NR>1 跳過標題列
-            local sel_line=$(awk -v FPAT='([^,]*)|("[^"]+")' '
-                NR>1 {
-                    gsub(/"/, "", $3); # CATNAME
-                    gsub(/"/, "", $5); # COM
-                    gsub(/"/, "", $10); # PKG
-                    if ($5=="") $5="[Empty]"
-                    printf "%3d  %-15s %-10s %s\n", NR, "[" $3 "]", $5, $10
-                }
-            ' "$MUX_ROOT/app.csv.temp" | fzf --height=20 --reverse --header=" :: Select Node to DELETE :: " --prompt=" TERMINATE › " --pointer="XX")
-
-            if [ -z "$sel_line" ]; then return; fi
-            
-            # 提取行號 (第一欄)
-            local row_idx=$(echo "$sel_line" | awk '{print $1}')
-            local target_name=$(echo "$sel_line" | awk '{print $3 " " $4}')
-
-            # 2. 最終確認 (Final Confirmation)
-            # 這裡用一個簡單的 read 確認，防止手滑
-            _bot_say "warn" "WARNING: Deleting node $target_name at line $row_idx."
-            echo -e "\033[1;31m    Are you sure? (Type 'yes' to confirm)\033[0m"
-            read -p "    › " confirm
-
-            if [ "$confirm" == "yes" ]; then
-                # 3. 執行刪除 (Execution)
-                # 使用 sed 刪除指定行
-                sed -i "${row_idx}d" "$MUX_ROOT/app.csv.temp"
-                
-                _bot_say "success" "Node terminated."
-                
-                # 4. 系統修復 (Maintenance)
-                # 重新排序 ID，填補空缺
-                _fac_maintenance
-            else
-                _bot_say "factory" "Deletion canceled."
-            fi
+            _bot_say "error" "New Feature Waiting"
             ;;
 
         # : Time Stone Undo (Rebak)
@@ -290,72 +212,6 @@ function fac() {
 
         "help")
             _mux_dynamic_help_factory
-            ;;
-
-        "ui")
-            # 定義測試項目
-            local test_menu="1. Template Selector (Add New)\n2. Detail View (Mock NEW Mode)\n3. Edit Field (FZF Universal)\n4. Input Monitor (CLI Standard)"
-            
-            # 呼叫 FZF 選單
-            local selected=$(echo -e "$test_menu" | fzf \
-                --height=15 --layout=reverse --border=bottom \
-                --header=" :: UI Component Lab :: " \
-                --prompt=" Run Test › " \
-                --pointer="››" \
-                --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-                --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240)
-
-            # 根據選擇執行測試
-            case "$selected" in
-                *"1."*)
-                    # 測試：類型選擇器
-                    local res=$(_factory_fzf_template_selector)
-                    echo -e "\n\033[1;33m[Result]\033[0m Raw Selection: $res"
-                    ;;
-                
-                *"2."*)
-                    # 測試：詳細資料檢視 (模擬 NEW 模式)
-                    # 注入假資料到 temp 檔以便 awk 讀取
-                    local mock_beacon="_UI_TEST_"
-                    # 建立一個暫時的 NA 節點
-                    local mock_row="\"999\",\"99\",\"[NEW]\",\"NA\",\"$mock_beacon\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\""
-                    echo "$mock_row" >> "$MUX_ROOT/app.csv.temp"
-                    
-                    # 啟動 UI
-                    _factory_fzf_detail_view "$mock_beacon" "NEW"
-                    local status=$?
-                    
-                    # 清理假資料
-                    sed -i '/_UI_TEST_/d' "$MUX_ROOT/app.csv.temp"
-                    
-                    if [ $status -eq 0 ]; then
-                        echo -e "\n\033[1;32m[Result]\033[0m Confirmed (Exit Code 0)"
-                    else
-                        echo -e "\n\033[1;31m[Result]\033[0m Canceled (Exit Code $status)"
-                    fi
-                    ;;
-                
-                *"3."*)
-                    # 測試：通用修改面板 (FZF)
-                    # 模擬修改 NA 的 Package 欄位 (測試紅色警告)
-                    local res=$(_factory_fzf_edit_field "Package" "[Empty]" "NA")
-                    echo -e "\n\033[1;33m[Result]\033[0m User Input: $res"
-                    ;;
-                
-                *"4."*)
-                    # 測試：戰術輸入監視器 (CLI)
-                    # 模擬修改 NB 的 Intent 欄位 (測試紅色警告與說明文字)
-                    # 這裡為了測試方便，暫時不寫入，只顯示回傳值
-                    local res=$(_factory_input_monitor "IHEAD" "android.intent.action" "NB")
-                    echo -e "\n\033[1;33m[Result]\033[0m User Input: $res"
-                    ;;
-            esac
-            
-            # 測試結束後暫停，方便查看結果
-            if [ -n "$selected" ]; then
-                echo -e "\n\033[1;30mPress Enter to return...\033[0m"
-                read
-            fi
             ;;
 
         *)
