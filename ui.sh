@@ -878,7 +878,7 @@ function _factory_fzf_detail_view() {
         --prompt=" :: Details › " \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
         --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
-        --bind="resize:clear-screen" \
+        --bind="resize:clear-screen"
 }
 
 # 類別編輯子選單 - Category Edit Submenu
