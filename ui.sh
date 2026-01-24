@@ -759,7 +759,7 @@ function _factory_fzf_detail_view() {
             C_RST="\033[0m"
             sep="----------"
             
-            # 特殊狀態色 (只在 NEW 模式生效)
+            # 特殊狀態色 (NEW/EDIT 模式生效)
             C_EMP_R="\033[1;31m[Empty]\033[0m"  # 必填 (紅)
             C_EMP_Y="\033[1;33m[Empty]\033[0m"  # 選填 (黃)
             C_UNK="\033[1;30m[Unknown]\033[0m" # 未知 (灰)
@@ -798,11 +798,15 @@ function _factory_fzf_detail_view() {
 
                 if (s == "") s_disp = "[Empty]"; else s_disp = s
                 
+                # 身份偽裝 (Identity Masking) - 只在純新增時隱藏真實 ID
                 if (mode == "NEW") {
                     catname = "\033[1;32mNEW NODE\033[0m"
                     cat = "NEW"
                     comno = "XX"
-                    
+                }
+
+                # 視覺警示 (Visual Alert) - NEW 或 EDIT
+                if (mode == "NEW" || mode == "EDIT") {
                     if (type == "NA") {
                         if (c == "[Empty]") c = C_EMP_R
                         if (pkg == "[Empty]") pkg = C_EMP_R
@@ -825,7 +829,7 @@ function _factory_fzf_detail_view() {
                 final_uri = uri
                 if (engine != "[Empty]") final_uri = engine
 
-                if (type == "NA" || type == "NA") { # Hack for visual grouping
+                if (type == "NA" || type == "NA") { 
                     printf "%s[%s]%s\n", C_TAG, catname, C_RST
                     printf "%s[%03d:%2s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
                     printf " %sCommand:%s %s\n", C_LBL, C_VAL, command_str
@@ -852,7 +856,7 @@ function _factory_fzf_detail_view() {
                     printf " %sTarget :%s %s\n", C_LBL, C_VAL, act
                 }
                 
-                #  NEW 模式顯示
+                #  模式 Footer
                 if (mode == "NEW") {
                     printf "%s%s%s\n", C_LBL, sep, C_RST
                     printf "  \033[1;32m[ Confirm ]\033[0m\n"
@@ -865,19 +869,31 @@ function _factory_fzf_detail_view() {
 
     if [ -z "$report" ]; then return; fi
 
-    # 動態計算 fzf 選單大小
     local line_count=$(echo "$report" | wc -l)
     local dynamic_height=$(( line_count + 4 ))
+
+    # 根據模式決定標題顏色與文字
+    local header_text=" :: Detail Control :: "
+    local border_color="208" # 預設橘色系
+    
+    if [ "$view_mode" == "EDIT" ]; then
+        header_text=" :: MODIFY PARAMETER :: "
+        border_color="208" # 保持橘色
+    elif [ "$view_mode" == "NEW" ]; then
+        header_text=" :: CONFIRM CREATION :: "
+        border_color="46"  # 綠色
+    fi
 
     echo -e "$report" | fzf --ansi \
         --height="$dynamic_height" \
         --layout=reverse \
         --border=bottom \
-        --header=" :: Enter to return, Esc to exit ::" \
+        --header=" :: Enter to Select, Esc to Return ::" \
+        --border-label="$header_text" \
         --info=hidden \
         --prompt=" :: Details › " \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:$border_color,header:240 \
         --bind="resize:clear-screen"
 }
 
