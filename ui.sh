@@ -902,9 +902,11 @@ function _factory_fzf_catedit_submenu() {
     local cat_id="$1"
     local cat_name="${2:-Unknown}"
     
+    # 定義色票
     local C_TAG="\033[1;33m"
     local C_RST="\033[0m"
     
+    # 格式化顯示
     local fmt_id=$(printf "%03d" "$cat_id" 2>/dev/null || echo "$cat_id")
     local display_label="${C_TAG}[${fmt_id}]${C_RST} ${cat_name}"
 
