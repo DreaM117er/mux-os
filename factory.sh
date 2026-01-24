@@ -159,170 +159,53 @@ function fac() {
 
         # : Neural Forge (Create Command)
         "add"|"new") 
-            echo -e "${F_SUB} :: Command Need Build${F_RESET}"
+            # 1. 呼叫類別選擇器 (假設 _factory_fzf_cat_selector 已存在且回傳 "CATNAME")
+            # 若無，這裡需實作一個簡單的 awk+fzf 抓取 CATNAME
+            local target_cat=$(awk -F, 'NR>1 {gsub(/^"|"$/, "", $3); print $3}' "$MUX_ROOT/app.csv.temp" | sort -u | fzf --height=40% --reverse --border=top --header="Select Category")
+            
+            if [ -z "$target_cat" ]; then return; fi
+
+            # 2. 呼叫新的子選單
+            local action=$(_factory_fzf_catedit_submenu "$target_cat")
+            
+            if [[ "$action" == *"Edit [$target_cat]"* ]]; then
+                # Branch A: 修改標題 (Universal Edit)
+                local new_name=$(_factory_input_monitor "CATNAME" "$target_cat" "SYS")
+                
+                # 寫入邏輯：大量取代
+                # 這比較危險，要確保所有該分類的都改名
+                if [ -n "$new_name" ] && [ "$new_name" != "$target_cat" ]; then
+                    sed -i "s/\"$target_cat\"/\"$new_name\"/g" "$MUX_ROOT/app.csv.temp"
+                    _bot_say "success" "Category renamed: $target_cat -> $new_name"
+                fi
+                
+            elif [[ "$action" == *"Edit Command"* ]]; then
+                # Branch B: 修改該分類下的指令
+                # 這裡需要一個過濾器，只顯示該分類的指令
+                local sel_com=$(awk -F, -v cat="$target_cat" '
+                    NR>1 {
+                        gsub(/^"|"$/, "", $3); # CATNAME
+                        gsub(/^"|"$/, "", $5); # COM
+                        if ($3 == cat) print $5
+                    }' "$MUX_ROOT/app.csv.temp" | fzf --height=40% --reverse --border=top --header="Select Command in $target_cat")
+                
+                # 進入編輯迴圈
+                if [ -n "$sel_com" ]; then
+                    # 這裡我們跳轉到 edit 的核心邏輯 (使用遞迴或共用變數)
+                    # 為求簡單，我們直接呼叫 fac edit 的內部邏輯函數 (需封裝)
+                    # 或者，簡單地：
+                    _fac_edit_loop "$sel_com"
+                fi
+            fi
             ;;
 
         # : Edit Neural (Edit Command)
-        "edit")
-            # 1. 前置作業：選擇要修改的指令 (使用既有的 Detail View 選擇邏輯)
-            # 這裡假設你會先呼叫一個選擇器拿到 target_line 或 row_index
-            # 為了測試，我們先假設已經選好了一行，這裡我寫一個簡單的 fzf 選擇器範例
-            # 實際整合時，請替換成你的標準選擇流程
+        "edit"|"comedit"|"comm")
+            local sel_com=$(awk -F, 'NR>1 {gsub(/^"|"$/, "", $5); if($5!="") print $5}' "$MUX_ROOT/app.csv.temp" | fzf --height=40% --reverse --border=top --header="Select Command to Edit")
             
-            _factory_auto_backup
-            
-            # [模擬選擇流程] 讀取 CSV 產生選單
-            local sel_line=$(awk -v FPAT='([^,]*)|("[^"]+")' 'NR>1 {gsub(/"/, "", $3); gsub(/"/, "", $5); print NR " " $3 " (" $5 ")"}' "$MUX_ROOT/app.csv.temp" | fzf --height=15 --reverse --header="Select Node to Edit")
-            
-            if [ -z "$sel_line" ]; then return; fi
-            local row_idx=$(echo "$sel_line" | awk '{print $1}')
-            
-            # 2. 讀取該行目前的狀態 (Type, Values...)
-            # 使用 awk 提取整行資料
-            local current_row=$(sed "${row_idx}q;d" "$MUX_ROOT/app.csv.temp")
-            
-            # 解析 Type (第 4 欄)
-            local type=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $4); print $4}')
-            
-            # 3. 呼叫 UI：顯示房間地圖
-            local room_selection=$(_factory_fzf_edit_menu "$type")
-            if [ -z "$room_selection" ]; then return; fi
-            
-            # 提取房間 ID (R1, R2...)
-            local room_id=$(echo "$room_selection" | awk '{print $1}')
-
-            # 4. 狀態機路由 (State Machine Routing)
-            case "$room_id" in
-                # === 共用房間 ===
-                "R1") # Identity (CATNO:1, COMNO:2, TYPE:4, CATNAME:3)
-                    # [Suite] 子選單
-                    local sub_sel=$(echo -e "Edit Label (CATNAME)\nChange Category (Move)" | fzf --height=10 --reverse --header=" :: Identity Settings :: ")
-                    if [[ "$sub_sel" == *"Edit Label"* ]]; then
-                        local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $3); print $3}')
-                        local new_val=$(_factory_input_monitor "CATNAME" "$curr_val" "$type")
-                        _fac_update_cell "$row_idx" 3 "$new_val"
-                    elif [[ "$sub_sel" == *"Change Category"* ]]; then
-                        _bot_say "factory" "Category Mover module pending..."
-                    fi
-                    ;;
-
-                "R2") # Command (COM:5, COM2:6)
-                    # [Suite] 子選單
-                    local sub_sel=$(echo -e "Primary (COM)\nSecondary (COM2)" | fzf --height=10 --reverse --header=" :: Command Aliases :: ")
-                    if [[ "$sub_sel" == *"Primary"* ]]; then
-                        local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $5); print $5}')
-                        local new_val=$(_factory_input_monitor "COM" "$curr_val" "$type")
-                        _fac_update_cell "$row_idx" 5 "$new_val"
-                    elif [[ "$sub_sel" == *"Secondary"* ]]; then
-                        local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $6); print $6}')
-                        local new_val=$(_factory_input_monitor "COM2" "$curr_val" "$type")
-                        _fac_update_cell "$row_idx" 6 "$new_val"
-                    fi
-                    ;;
-
-                "R3") # HUD (HUDNAME:8) -> [Single]
-                    local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $8); print $8}')
-                    local new_val=$(_factory_input_monitor "HUDNAME" "$curr_val" "$type")
-                    _fac_update_cell "$row_idx" 8 "$new_val"
-                    ;;
-
-                "R4") # UI (UINAME:9) -> [Single]
-                    local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $9); print $9}')
-                    local new_val=$(_factory_input_monitor "UINAME" "$curr_val" "$type")
-                    _fac_update_cell "$row_idx" 9 "$new_val"
-                    ;;
-
-                # === NA 專屬 ===
-                "R5") # NA: PKG(10) / NB: Intent(12,13)
-                    if [ "$type" == "NA" ]; then
-                        local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $10); print $10}')
-                        local new_val=$(_factory_input_monitor "PKG" "$curr_val" "NA")
-                        _fac_update_cell "$row_idx" 10 "$new_val"
-                    else # NB
-                        local sub_sel=$(echo -e "Action Head (Namespace)\nAction Body (Event)" | fzf --height=10 --reverse --header=" :: Intent Settings :: ")
-                        if [[ "$sub_sel" == *"Head"* ]]; then
-                            local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $12); print $12}')
-                            local new_val=$(_factory_input_monitor "IHEAD" "$curr_val" "NB")
-                            _fac_update_cell "$row_idx" 12 "$new_val"
-                        elif [[ "$sub_sel" == *"Body"* ]]; then
-                            local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $13); print $13}')
-                            local new_val=$(_factory_input_monitor "IBODY" "$curr_val" "NB")
-                            _fac_update_cell "$row_idx" 13 "$new_val"
-                        fi
-                    fi
-                    ;;
-                
-                "R6") # NA: Target(11) / NB: URI(14) & Engine(20)
-                    if [ "$type" == "NA" ]; then
-                        local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $11); print $11}')
-                        local new_val=$(_factory_input_monitor "TARGET" "$curr_val" "NA")
-                        _fac_update_cell "$row_idx" 11 "$new_val"
-                    else # NB Smart URI
-                        # 讀取目前顯示值 (優先顯示 Engine)
-                        local curr_uri=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $14); print $14}')
-                        local curr_eng=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $20); print $20}')
-                        local display_val="$curr_uri"
-                        if [ -n "$curr_eng" ]; then display_val="$curr_eng"; fi
-                        
-                        local new_val=$(_factory_input_monitor "URI/ENGINE" "$display_val" "NB")
-                        
-                        # 智慧判斷邏輯
-                        if [[ "$new_val" == *"%s"* ]]; then
-                            _fac_update_cell "$row_idx" 20 "$new_val"      # Engine
-                            _fac_update_cell "$row_idx" 14 "\$__GO_TARGET" # URI
-                        else
-                            _fac_update_cell "$row_idx" 14 "$new_val"      # URI
-                            _fac_update_cell "$row_idx" 20 ""              # Clear Engine
-                        fi
-                    fi
-                    ;;
-
-                "R7") # NA: Flags(17) / NB: Category(16)
-                    if [ "$type" == "NA" ]; then
-                        local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $17); print $17}')
-                        local new_val=$(_factory_input_monitor "FLAG" "$curr_val" "NA")
-                        _fac_update_cell "$row_idx" 17 "$new_val"
-                    else # NB
-                        local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $16); print $16}')
-                        local new_val=$(_factory_input_monitor "CATE" "$curr_val" "NB")
-                        _fac_update_cell "$row_idx" 16 "$new_val"
-                    fi
-                    ;;
-                
-                # === NB 剩餘房間 (R8-R11) ===
-                "R8") # NB: Mime(15)
-                    local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $15); print $15}')
-                    local new_val=$(_factory_input_monitor "MIME" "$curr_val" "NB")
-                    _fac_update_cell "$row_idx" 15 "$new_val"
-                    ;;
-
-                "R9") # NB: Extra(19) [Suite for EX/EXTRA]
-                    local sub_sel=$(echo -e "Extra Key (EX)\nExtra Value (EXTRA)" | fzf --height=10 --reverse --header=" :: Extra Data :: ")
-                    if [[ "$sub_sel" == *"Key"* ]]; then
-                        local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $18); print $18}')
-                        local new_val=$(_factory_input_monitor "EX" "$curr_val" "NB")
-                        _fac_update_cell "$row_idx" 18 "$new_val"
-                    elif [[ "$sub_sel" == *"Value"* ]]; then
-                        local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $19); print $19}')
-                        local new_val=$(_factory_input_monitor "EXTRA" "$curr_val" "NB")
-                        _fac_update_cell "$row_idx" 19 "$new_val"
-                    fi
-                    ;;
-
-                "R10") # NB: Package(10)
-                    local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $10); print $10}')
-                    local new_val=$(_factory_input_monitor "PKG" "$curr_val" "NB")
-                    _fac_update_cell "$row_idx" 10 "$new_val"
-                    ;;
-
-                "R11") # NB: Target(11)
-                    local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $11); print $11}')
-                    local new_val=$(_factory_input_monitor "TARGET" "$curr_val" "NB")
-                    _fac_update_cell "$row_idx" 11 "$new_val"
-                    ;;
-            esac
-            
-            _bot_say "success" "Matrix updated. Please verify."
+            if [ -n "$sel_com" ]; then
+                _fac_edit_loop "$sel_com"
+            fi
             ;;
 
         # : Load Neural (Test Command)
@@ -859,7 +742,79 @@ function _fac_update_cell() {
     ' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
 }
 
+# 核心編輯迴圈 (The Edit Loop)
+# 自動判斷 NA/NB 並處理跳轉
+function _fac_edit_loop() {
+    local target_com="$1"
+    
+    # 取得行號
+    local row_idx=$(awk -F, -v c="$target_com" 'NR>1 {gsub(/^"|"$/, "", $5); if($5==c) print NR}' "$MUX_ROOT/app.csv.temp" | head -n 1)
+    if [ -z "$row_idx" ]; then return; fi
 
+    while true; do
+        # 1. 取得當前類型 (Type)
+        local type=$(sed "${row_idx}q;d" "$MUX_ROOT/app.csv.temp" | awk -F, '{gsub(/^"|"$/, "", $4); print $4}')
+        
+        # 2. 顯示 Detail View (現在是選擇器)
+        local selection=$(_factory_fzf_detail_view "$target_com" "VIEW")
+        
+        # 3. 處理離開 (ESC 回傳空字串)
+        if [ -z "$selection" ]; then break; fi
+        
+        # 4. 解析選擇 (Extract Label)
+        # selection 格式如 " [黃色]Command    : [白色]yt"
+        # 我們去掉顏色代碼，抓取冒號前的字
+        local label=$(echo "$selection" | sed 's/\x1b\[[0-9;]*m//g' | awk -F':' '{print $1}' | xargs) # xargs 去除前後空白
+
+        # 5. 路由表 (Router) - 將 Label 映射到欄位 ID
+        case "$label" in
+            "Identity")  # CATNAME(3), TYPE(4)
+                 # 這裡可以做一個小選單：Rename Category or Change Type
+                 local new_val=$(_factory_input_monitor "CATNAME" "" "$type")
+                 # 只改這一行的 Category? 還是全部? 這裡假設只改單行(移動)
+                 # 但若要移動，應改 CATNO，這裡先簡單處理 label
+                 _fac_update_cell "$row_idx" 3 "$new_val"
+                 ;;
+            "Command")   _fac_update_cell "$row_idx" 5 "$(_factory_input_monitor "COM" "" "$type")" ;;
+            "Command 2") _fac_update_cell "$row_idx" 6 "$(_factory_input_monitor "COM2" "" "$type")" ;;
+            "HUD Name")  _fac_update_cell "$row_idx" 8 "$(_factory_input_monitor "HUDNAME" "" "$type")" ;;
+            "UI Name")   _fac_update_cell "$row_idx" 9 "$(_factory_input_monitor "UINAME" "" "$type")" ;;
+            
+            # NA Specific
+            "Package")   _fac_update_cell "$row_idx" 10 "$(_factory_input_monitor "PKG" "" "$type")" ;;
+            "Target")    _fac_update_cell "$row_idx" 11 "$(_factory_input_monitor "TARGET" "" "$type")" ;;
+            "Flags")     _fac_update_cell "$row_idx" 17 "$(_factory_input_monitor "FLAG" "" "$type")" ;;
+            
+            # NB Specific
+            "I-Head")    _fac_update_cell "$row_idx" 12 "$(_factory_input_monitor "IHEAD" "" "$type")" ;;
+            "I-Body")    _fac_update_cell "$row_idx" 13 "$(_factory_input_monitor "IBODY" "" "$type")" ;;
+            "Category")  _fac_update_cell "$row_idx" 16 "$(_factory_input_monitor "CATE" "" "$type")" ;;
+            "Mime")      _fac_update_cell "$row_idx" 15 "$(_factory_input_monitor "MIME" "" "$type")" ;;
+            "Extra Key") _fac_update_cell "$row_idx" 18 "$(_factory_input_monitor "EX" "" "$type")" ;;
+            "Extra Val") _fac_update_cell "$row_idx" 19 "$(_factory_input_monitor "EXTRA" "" "$type")" ;;
+            
+            # Smart URI/Engine
+            "URI")
+                 # 這裡可以放入你的智慧判斷邏輯
+                 local val=$(_factory_input_monitor "URI/ENGINE" "" "$type")
+                 if [[ "$val" == *"%s"* ]]; then
+                     _fac_update_cell "$row_idx" 20 "$val"      # Engine
+                     _fac_update_cell "$row_idx" 14 "\$__GO_TARGET" # URI
+                 else
+                     _fac_update_cell "$row_idx" 14 "$val"
+                     _fac_update_cell "$row_idx" 20 ""
+                 fi
+                 ;;
+                 
+            "Engine") # 如果直接點 Engine，也是一樣邏輯
+                 local val=$(_factory_input_monitor "ENGINE" "" "$type")
+                 _fac_update_cell "$row_idx" 20 "$val"
+                 ;;
+        esac
+        
+        # 迴圈繼續，重新載入 Detail View 以顯示更新後的值
+    done
+}
 
 
 

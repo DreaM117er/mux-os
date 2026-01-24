@@ -882,6 +882,35 @@ function _factory_fzf_detail_view() {
         > /dev/null
 }
 
+# 7. 類別編輯子選單 - Category Edit Submenu
+# 用法: _factory_fzf_catedit_submenu "Category Name"
+function _factory_fzf_catedit_submenu() {
+    local cat_name="$1"
+    
+    # 選項定義
+    local opt_title="Edit [${cat_name}]"
+    local opt_cmds="Edit Command in [${cat_name}]"
+    
+    # 動態計算 fzf 選單大小
+    local line_count=$(echo "$report" | wc -l)
+    local dynamic_height=$(( line_count + 4 ))
+    
+    local selected=$(echo -e "${opt_title}\n${opt_cmds}" | fzf --ansi \
+        --height="$dynamic_height" \
+        --layout=reverse \
+        --border=top \
+        --border-label=" :: Sub-Menu :: " \
+        --header=" :: Enter to return, Esc to exit :: " \
+        --prompt=" Action › " \
+        --pointer="››" \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:hidden,prompt:208,pointer:red,marker:208,border:208,header:240 \
+        --bind="resize:clear-screen"
+    )
+    
+    echo "$selected"
+}
+
 # 3. 創建神經連結選單 - Create Neural Link Selector
 function _factory_fzf_template_selector() {
     # 預留的權限接口 (目前用 # 註解標記，未來可傳入 "true" 開啟)
