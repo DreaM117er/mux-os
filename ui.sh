@@ -827,7 +827,7 @@ function _factory_fzf_detail_view() {
 
                 if (type == "NA" || type == "NA") { # Hack for visual grouping
                     printf "%s[%s]%s\n", C_TAG, catname, C_RST
-                    printf "%s[%3s:%2s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
+                    printf "%s[%3d:%2s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
                     printf " %sCommand:%s %s\n", C_LBL, C_VAL, command_str
                     printf " %sDetail :%s %s\n", C_LBL, C_VAL, hud
                     printf " %sUI     :%s %s\n", C_LBL, C_VAL, ui
@@ -838,7 +838,7 @@ function _factory_fzf_detail_view() {
                 }
                 else if (type == "NB") {
                     printf "%s[%s]%s\n", C_TAG, catname, C_RST
-                    printf "%s[%3s:%2s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
+                    printf "%s[%3d:%2s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
                     printf " %sCommand:%s %s\n", C_LBL, C_VAL, command_str
                     printf " %sDetail :%s %s\n", C_LBL, C_VAL, hud
                     printf " %sUI     :%s %s\n", C_LBL, C_VAL, ui
