@@ -1153,6 +1153,49 @@ function _factory_input_monitor() {
     fi
 }
 
+# 編輯選單生成器 - Context-Aware Edit Menu
+function _factory_fzf_edit_menu() {
+    local type="$1"
+    
+    # === 1. 定義共用房間 (Common Rooms) ===
+    # Format: "ID|Label|Description"
+    local common_menu="R1|Identity & Position|Category, ID, Type\nR2|Command Aliases|Primary & Secondary Triggers\nR3|HUD Description|Menu Display Text\nR4|System Codename|Internal UI Reference"
+    
+    # === 2. 定義專屬房間 (Specific Rooms) ===
+    local specific_menu=""
+    
+    if [ "$type" == "NA" ]; then
+        # NA 地圖
+        specific_menu="R5|Package ID|Application Package Name\nR6|Launch Target|Activity Class Name\nR7|Launch Flags|Intent Flags (Hex/Int)"
+    elif [ "$type" == "NB" ]; then
+        # NB 地圖
+        specific_menu="R5|Intent Action|Namespace & Body\nR6|URI & Engine|Smart Link Injection\nR7|Category|Intent Category\nR8|Mime Type|Data Type Specification\nR9|Extra Data|Extended Arguments\nR10|Package ID|Application Package (Optional)\nR11|Launch Target|Activity Class (Optional)"
+    fi
+
+    # === 3. 合併與渲染 ===
+    # 使用 awk 美化輸出，左邊是房間號，右邊是說明
+    # 這裡我們用與 detail_view 一致的風格
+    
+    local C_ID="\033[1;33m"   # 黃色 ID
+    local C_LBL="\033[1;37m"  # 白色標題
+    local C_DSC="\033[1;30m"  # 灰色說明
+    local C_RST="\033[0m"
+
+    echo -e "${common_menu}\n${specific_menu}" | awk -F'|' \
+        -v C_ID="$C_ID" -v C_LBL="$C_LBL" -v C_DSC="$C_DSC" -v C_RST="$C_RST" '{
+        printf " %s%-4s%s %s%-20s%s %s%s%s\n", C_ID, $1, C_RST, C_LBL, $2, C_RST, C_DSC, $3, C_RST
+    }' | fzf --ansi \
+        --height=20 \
+        --layout=reverse \
+        --border=bottom \
+        --header=" :: Neural Edit Matrix :: " \
+        --prompt=" Select Room › " \
+        --pointer="››" \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+        --bind="resize:clear-screen"
+}
+
 # 偽・星門 - UI Mask / Fake Gate
 function _ui_fake_gate() {
     local target_system="${1:-core}"

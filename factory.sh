@@ -164,7 +164,165 @@ function fac() {
 
         # : Edit Neural (Edit Command)
         "edit")
-            echo -e "${F_SUB} :: Command Need Build${F_RESET}"
+            # 1. 前置作業：選擇要修改的指令 (使用既有的 Detail View 選擇邏輯)
+            # 這裡假設你會先呼叫一個選擇器拿到 target_line 或 row_index
+            # 為了測試，我們先假設已經選好了一行，這裡我寫一個簡單的 fzf 選擇器範例
+            # 實際整合時，請替換成你的標準選擇流程
+            
+            _factory_auto_backup
+            
+            # [模擬選擇流程] 讀取 CSV 產生選單
+            local sel_line=$(awk -v FPAT='([^,]*)|("[^"]+")' 'NR>1 {gsub(/"/, "", $3); gsub(/"/, "", $5); print NR " " $3 " (" $5 ")"}' "$MUX_ROOT/app.csv.temp" | fzf --height=15 --reverse --header="Select Node to Edit")
+            
+            if [ -z "$sel_line" ]; then return; fi
+            local row_idx=$(echo "$sel_line" | awk '{print $1}')
+            
+            # 2. 讀取該行目前的狀態 (Type, Values...)
+            # 使用 awk 提取整行資料
+            local current_row=$(sed "${row_idx}q;d" "$MUX_ROOT/app.csv.temp")
+            
+            # 解析 Type (第 4 欄)
+            local type=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $4); print $4}')
+            
+            # 3. 呼叫 UI：顯示房間地圖
+            local room_selection=$(_factory_fzf_edit_menu "$type")
+            if [ -z "$room_selection" ]; then return; fi
+            
+            # 提取房間 ID (R1, R2...)
+            local room_id=$(echo "$room_selection" | awk '{print $1}')
+
+            # 4. 狀態機路由 (State Machine Routing)
+            case "$room_id" in
+                # === 共用房間 ===
+                "R1") # Identity (CATNO:1, COMNO:2, TYPE:4, CATNAME:3)
+                    # [Suite] 子選單
+                    local sub_sel=$(echo -e "Edit Label (CATNAME)\nChange Category (Move)" | fzf --height=10 --reverse --header=" :: Identity Settings :: ")
+                    if [[ "$sub_sel" == *"Edit Label"* ]]; then
+                        local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $3); print $3}')
+                        local new_val=$(_factory_input_monitor "CATNAME" "$curr_val" "$type")
+                        _fac_update_cell "$row_idx" 3 "$new_val"
+                    elif [[ "$sub_sel" == *"Change Category"* ]]; then
+                        _bot_say "factory" "Category Mover module pending..."
+                    fi
+                    ;;
+
+                "R2") # Command (COM:5, COM2:6)
+                    # [Suite] 子選單
+                    local sub_sel=$(echo -e "Primary (COM)\nSecondary (COM2)" | fzf --height=10 --reverse --header=" :: Command Aliases :: ")
+                    if [[ "$sub_sel" == *"Primary"* ]]; then
+                        local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $5); print $5}')
+                        local new_val=$(_factory_input_monitor "COM" "$curr_val" "$type")
+                        _fac_update_cell "$row_idx" 5 "$new_val"
+                    elif [[ "$sub_sel" == *"Secondary"* ]]; then
+                        local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $6); print $6}')
+                        local new_val=$(_factory_input_monitor "COM2" "$curr_val" "$type")
+                        _fac_update_cell "$row_idx" 6 "$new_val"
+                    fi
+                    ;;
+
+                "R3") # HUD (HUDNAME:8) -> [Single]
+                    local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $8); print $8}')
+                    local new_val=$(_factory_input_monitor "HUDNAME" "$curr_val" "$type")
+                    _fac_update_cell "$row_idx" 8 "$new_val"
+                    ;;
+
+                "R4") # UI (UINAME:9) -> [Single]
+                    local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $9); print $9}')
+                    local new_val=$(_factory_input_monitor "UINAME" "$curr_val" "$type")
+                    _fac_update_cell "$row_idx" 9 "$new_val"
+                    ;;
+
+                # === NA 專屬 ===
+                "R5") # NA: PKG(10) / NB: Intent(12,13)
+                    if [ "$type" == "NA" ]; then
+                        local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $10); print $10}')
+                        local new_val=$(_factory_input_monitor "PKG" "$curr_val" "NA")
+                        _fac_update_cell "$row_idx" 10 "$new_val"
+                    else # NB
+                        local sub_sel=$(echo -e "Action Head (Namespace)\nAction Body (Event)" | fzf --height=10 --reverse --header=" :: Intent Settings :: ")
+                        if [[ "$sub_sel" == *"Head"* ]]; then
+                            local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $12); print $12}')
+                            local new_val=$(_factory_input_monitor "IHEAD" "$curr_val" "NB")
+                            _fac_update_cell "$row_idx" 12 "$new_val"
+                        elif [[ "$sub_sel" == *"Body"* ]]; then
+                            local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $13); print $13}')
+                            local new_val=$(_factory_input_monitor "IBODY" "$curr_val" "NB")
+                            _fac_update_cell "$row_idx" 13 "$new_val"
+                        fi
+                    fi
+                    ;;
+                
+                "R6") # NA: Target(11) / NB: URI(14) & Engine(20)
+                    if [ "$type" == "NA" ]; then
+                        local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $11); print $11}')
+                        local new_val=$(_factory_input_monitor "TARGET" "$curr_val" "NA")
+                        _fac_update_cell "$row_idx" 11 "$new_val"
+                    else # NB Smart URI
+                        # 讀取目前顯示值 (優先顯示 Engine)
+                        local curr_uri=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $14); print $14}')
+                        local curr_eng=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $20); print $20}')
+                        local display_val="$curr_uri"
+                        if [ -n "$curr_eng" ]; then display_val="$curr_eng"; fi
+                        
+                        local new_val=$(_factory_input_monitor "URI/ENGINE" "$display_val" "NB")
+                        
+                        # 智慧判斷邏輯
+                        if [[ "$new_val" == *"%s"* ]]; then
+                            _fac_update_cell "$row_idx" 20 "$new_val"      # Engine
+                            _fac_update_cell "$row_idx" 14 "\$__GO_TARGET" # URI
+                        else
+                            _fac_update_cell "$row_idx" 14 "$new_val"      # URI
+                            _fac_update_cell "$row_idx" 20 ""              # Clear Engine
+                        fi
+                    fi
+                    ;;
+
+                "R7") # NA: Flags(17) / NB: Category(16)
+                    if [ "$type" == "NA" ]; then
+                        local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $17); print $17}')
+                        local new_val=$(_factory_input_monitor "FLAG" "$curr_val" "NA")
+                        _fac_update_cell "$row_idx" 17 "$new_val"
+                    else # NB
+                        local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $16); print $16}')
+                        local new_val=$(_factory_input_monitor "CATE" "$curr_val" "NB")
+                        _fac_update_cell "$row_idx" 16 "$new_val"
+                    fi
+                    ;;
+                
+                # === NB 剩餘房間 (R8-R11) ===
+                "R8") # NB: Mime(15)
+                    local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $15); print $15}')
+                    local new_val=$(_factory_input_monitor "MIME" "$curr_val" "NB")
+                    _fac_update_cell "$row_idx" 15 "$new_val"
+                    ;;
+
+                "R9") # NB: Extra(19) [Suite for EX/EXTRA]
+                    local sub_sel=$(echo -e "Extra Key (EX)\nExtra Value (EXTRA)" | fzf --height=10 --reverse --header=" :: Extra Data :: ")
+                    if [[ "$sub_sel" == *"Key"* ]]; then
+                        local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $18); print $18}')
+                        local new_val=$(_factory_input_monitor "EX" "$curr_val" "NB")
+                        _fac_update_cell "$row_idx" 18 "$new_val"
+                    elif [[ "$sub_sel" == *"Value"* ]]; then
+                        local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $19); print $19}')
+                        local new_val=$(_factory_input_monitor "EXTRA" "$curr_val" "NB")
+                        _fac_update_cell "$row_idx" 19 "$new_val"
+                    fi
+                    ;;
+
+                "R10") # NB: Package(10)
+                    local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $10); print $10}')
+                    local new_val=$(_factory_input_monitor "PKG" "$curr_val" "NB")
+                    _fac_update_cell "$row_idx" 10 "$new_val"
+                    ;;
+
+                "R11") # NB: Target(11)
+                    local curr_val=$(echo "$current_row" | awk -v FPAT='([^,]*)|("[^"]+")' '{gsub(/"/, "", $11); print $11}')
+                    local new_val=$(_factory_input_monitor "TARGET" "$curr_val" "NB")
+                    _fac_update_cell "$row_idx" 11 "$new_val"
+                    ;;
+            esac
+            
+            _bot_say "success" "Matrix updated. Please verify."
             ;;
 
         # : Load Neural (Test Command)
@@ -174,7 +332,44 @@ function fac() {
 
         # : Break Neural (Delete Command)
         "del") 
-            echo -e "${F_SUB} :: Command Need Build${F_RESET}"
+            # 1. 選擇目標 (Target Acquisition)
+            # 使用 awk 預覽資料，格式: "LineNo [CAT] COM (PKG)"
+            # NR>1 跳過標題列
+            local sel_line=$(awk -v FPAT='([^,]*)|("[^"]+")' '
+                NR>1 {
+                    gsub(/"/, "", $3); # CATNAME
+                    gsub(/"/, "", $5); # COM
+                    gsub(/"/, "", $10); # PKG
+                    if ($5=="") $5="[Empty]"
+                    printf "%3d  %-15s %-10s %s\n", NR, "[" $3 "]", $5, $10
+                }
+            ' "$MUX_ROOT/app.csv.temp" | fzf --height=20 --reverse --header=" :: Select Node to DELETE :: " --prompt=" TERMINATE › " --pointer="XX")
+
+            if [ -z "$sel_line" ]; then return; fi
+            
+            # 提取行號 (第一欄)
+            local row_idx=$(echo "$sel_line" | awk '{print $1}')
+            local target_name=$(echo "$sel_line" | awk '{print $3 " " $4}')
+
+            # 2. 最終確認 (Final Confirmation)
+            # 這裡用一個簡單的 read 確認，防止手滑
+            _bot_say "warn" "WARNING: Deleting node $target_name at line $row_idx."
+            echo -e "\033[1;31m    Are you sure? (Type 'yes' to confirm)\033[0m"
+            read -p "    › " confirm
+
+            if [ "$confirm" == "yes" ]; then
+                # 3. 執行刪除 (Execution)
+                # 使用 sed 刪除指定行
+                sed -i "${row_idx}d" "$MUX_ROOT/app.csv.temp"
+                
+                _bot_say "success" "Node terminated."
+                
+                # 4. 系統修復 (Maintenance)
+                # 重新排序 ID，填補空缺
+                _fac_maintenance
+            else
+                _bot_say "factory" "Deletion canceled."
+            fi
             ;;
 
         # : Time Stone Undo (Rebak)
@@ -311,20 +506,6 @@ function _fac_list() {
     
     echo -e "${F_GRAY} :: End of List :: ${F_RESET}"
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # 自動備份 - Auto Backup
 function _factory_auto_backup() {
@@ -651,6 +832,53 @@ function _fac_maintenance() {
     echo -e ""
     _bot_say "factory" "Mechanism maintenance complete, Commander."
 }
+
+# 內部工具：安全更新 CSV 單一儲存格 (保持 20 欄位引號結構)
+# 用法: _fac_update_cell "行號" "欄位號" "新數值"
+function _fac_update_cell() {
+    local row_idx="$1"
+    local col_idx="$2"
+    local new_val="$3"
+    local target_file="$MUX_ROOT/app.csv.temp"
+
+    # 使用 awk 精準替換並重建整行，確保引號不遺失
+    awk -v r="$row_idx" -v c="$col_idx" -v v="$new_val" -v FPAT='([^,]*)|("[^"]+")' '
+    BEGIN { OFS="," }
+    NR == r {
+        # 移除舊數值的引號 (如果有的話) 以便乾淨處理，這裡直接強制覆寫
+        # 替換指定欄位，並強制加上雙引號
+        $c = "\"" v "\""
+        
+        # 重建整行輸出 (確保每一欄都有引號，防止 awk 輸出時遺漏)
+        for(i=1; i<=NF; i++) {
+            # 如果欄位本身沒有引號，補上 (針對 awk 修改後的欄位)
+            if ($i !~ /^".*"$/) $i = "\"" $i "\""
+        }
+    }
+    { print $0 }
+    ' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # 初始化視覺效果 (Initialize Visuals)
 function _fac_init() {
