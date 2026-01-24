@@ -766,6 +766,7 @@ function _mux_neural_fire_control() {
 
     case "$_VAL_TYPE" in
         "NA")
+            # 明確指定外部呼叫
             if [ -z "$_VAL_COM2" ]; then
                 _require_no_args "$input_args" || return 1
                 _launch_android_app
@@ -776,6 +777,7 @@ function _mux_neural_fire_control() {
             ;;
 
         "NB")
+            # 外部呼叫需要fallback
             local real_args=""
             if [ -n "$_VAL_COM2" ]; then
                 real_args="${*:3}"
@@ -783,14 +785,14 @@ function _mux_neural_fire_control() {
                 real_args="$input_args"
             fi
             
-            # 安全檢查：參數
+            # 參數檢查：跳出 or 跳轉
             if [ -z "$real_args" ]; then
                 if [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
                     _VAL_URI=""
                     _launch_android_app
                     return 0
                 fi
-                _bot_say "error" "Strict Protocol [$_VAL_COM]: Parameter required."
+                _bot_say "error" "Strict Protocol '$_VAL_COM': Parameter required."
                 return 1
             fi
             
@@ -805,11 +807,23 @@ function _mux_neural_fire_control() {
             if [[ "$final_action" == *".WEB_SEARCH"* ]]; then
                 local raw_input=$(echo "$real_args" | sed 'y/。．/../' | sed 's/　/ /g')
                 local safe_query="${raw_input//\"/\\\"}"
+
                 _bot_say "neural" "Payload: Raw Search ›› '$safe_query'"
+
                 local cmd="am start --user 0 -a $final_action$cate_arg -e query \"$safe_query\""
+
+                # 組裝核心參數
                 if [ -n "$_VAL_PKG" ]; then cmd="$cmd -p $_VAL_PKG"; fi
                 if [ -n "$_VAL_FLAG" ]; then cmd="$cmd -f $_VAL_FLAG"; fi
+
+                # 組裝次要參數
+                if [ -n "$_VAL_CATE" ]; then cmd="$cmd -c android.intent.category.$_VAL_CATE"; fi
+                if [ -n "$_VAL_EX" ]; then cmd="$cmd $_VAL_EX"; fi
+                if [ -n "$_VAL_EXTRA" ]; then cmd="$cmd $_VAL_EXTRA"; fi
+
+                # FIRE THE COMMAND
                 local output=$(eval "$cmd" 2>&1)
+
                 if [[ "$output" == *"Error"* ]]; then
                     _bot_say "error" "Launch Failed: $output"
                     return 1
@@ -825,6 +839,7 @@ function _mux_neural_fire_control() {
                 if [ -n "$_VAL_ENGINE" ]; then
                     local expanded_engine=$(eval echo "$_VAL_ENGINE")
                     _resolve_smart_url "$expanded_engine" "$real_args"
+                    
                     final_uri="$__GO_TARGET"
                     if [ "$__GO_MODE" == "neural" ]; then
                          _bot_say "neural" "Searching via Engine: '$real_args'"
@@ -837,6 +852,7 @@ function _mux_neural_fire_control() {
                 fi
             elif [[ "$_VAL_URI" == *"\$query"* ]]; then
                 local safe_args="${real_args// /+}"
+
                 final_uri="${_VAL_URI//\$query/$safe_args}"
                 _bot_say "neural" "Navigating: '$real_args'"
             else
@@ -919,6 +935,7 @@ function _mux_neural_fire_control() {
             ;;
 
         "SYS")
+            # SYS 單次執行就可
             local cmd="am start --user 0"
             
             # 1. 先看 Action (-a) & Data (-d)
@@ -976,9 +993,6 @@ function command_not_found_handle() {
 
     # 第二關：Mux-OS 核心執行 (Neural Fire Control)
     _mux_neural_fire_control "$cmd" "$args" && return 0
-
-    # 第三關：真正的未知指令 (The Void)
-    _bot_say "error" "Command signature '$cmd' not found in Neural Network."
     
     return 127
 }
