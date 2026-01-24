@@ -225,30 +225,48 @@ function fac() {
                 local raw_cat=$(_factory_fzf_cat_selector)
                 if [ -z "$raw_cat" ]; then break; fi
                 
-                # 1. 提取CATNAME
-                local cat_name=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{$1=""; print $0}' | sed 's/^[ \t]*//')
+                # [Step 1] 提取 ID (信任選單的第一欄絕對是 ID)
+                local temp_id=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
 
-                # 2. 重新抓取 ID
-                local cat_id=$(awk -F, -v target="$cat_name" '
+                # [Step 2] 權威查詢 (Database Lookup)
+                # 使用 ID 去 CSV 抓取最乾淨的 ID 和 Name
+                local db_data=$(awk -F, -v tid="$temp_id" '
                     NR>1 {
-                        orig_name=$3; gsub(/^"|"$/, "", orig_name)
+                        # 移除 CSV ID 的引號
+                        cid=$1; gsub(/^"|"$/, "", cid)
                         
-                        if (orig_name == target) {
-                            gsub(/^"|"$/, "", $1)
-                            print $1
+                        if (cid == tid) {
+                            # 抓取 Name (第3欄)，移除引號
+                            name=$3; gsub(/^"|"$/, "", name)
+                            # 輸出格式: ID|Name
+                            print cid "|" name
                             exit
                         }
                     }
                 ' "$MUX_ROOT/app.csv.temp")
 
-                # 抓不到 ID 設為 XX 處理
-                if [ -z "$cat_id" ]; then cat_id="XX"; fi
+                # [Step 3] 解析查詢結果
+                local cat_id=""
+                local cat_name=""
+
+                if [ -n "$db_data" ]; then
+                    cat_id=$(echo "$db_data" | awk -F'|' '{print $1}')
+                    cat_name=$(echo "$db_data" | awk -F'|' '{print $2}')
+                else
+                    # 如果查不到 (理論上不該發生)，使用備用方案
+                    cat_id="XX"
+                    # 嘗試從選單字串硬切
+                    cat_name=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{$1=""; print $0}' | sed 's/^[ \t]*//')
+                    if [ -z "$cat_name" ]; then cat_name="Unknown"; fi
+                fi
 
                 while true; do
+                    # Level 2: 進入 Submenu (傳入正確的 ID 和 Name)
                     local action=$(_factory_fzf_catedit_submenu "$cat_id" "$cat_name")
                     if [ -z "$action" ]; then break; fi
 
                     # Level 3: 分歧處理
+                    # 這裡用 grep 抓關鍵字，忽略顏色和括號
                     if echo "$action" | grep -q "Edit Name" ; then
                         # Branch A: 修改標題
                         _bot_say "warn" "Edit CATNAME [$cat_name] pending..."
@@ -256,6 +274,7 @@ function fac() {
                     elif echo "$action" | grep -q "Edit Command in" ; then
                         # Branch B: 修改分類下的指令
                         while true; do
+                            # 搜尋時使用權威 Name
                             local raw_cmd=$(_factory_fzf_cmd_in_cat "$cat_name")
                             if [ -z "$raw_cmd" ]; then break; fi
                             
