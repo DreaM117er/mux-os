@@ -141,19 +141,37 @@ function fac() {
             local view_state="VIEW"
 
             while true; do
+                # Level 1: 選擇分類
                 local raw_cat=$(_factory_fzf_cat_selector)
                 if [ -z "$raw_cat" ]; then break; fi
                 
-                local clean_cat=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{$1=""; print $0}' | sed 's/^[ \t]*//')
-                
-                if [ -z "$clean_cat" ]; then 
-                    clean_cat=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
-                fi
+                # [Fix] 策略更換：ID 反查法 (Source of Truth)
+                # 1. 先抓取最穩定的 ID (第一欄數字)
+                local temp_id=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
+
+                # 2. 直接去 CSV 問這個 ID 對應的名字是什麼
+                # 這樣拿到的 clean_cat 絕對跟 CSV 裡的一模一樣，不多也不少
+                local clean_cat=$(awk -F, -v tid="$temp_id" '
+                    NR>1 {
+                        cid=$1; gsub(/^"|"$/, "", cid)
+                        if (cid == tid) {
+                            name=$3; gsub(/^"|"$/, "", name)
+                            print name
+                            exit
+                        }
+                    }
+                ' "$MUX_ROOT/app.csv.temp")
+
+                # 防呆
+                if [ -z "$clean_cat" ]; then clean_cat="Unknown"; fi
 
                 while true; do
+                    # Level 2: 選擇指令 (傳入權威名稱)
                     local raw_cmd=$(_factory_fzf_cmd_in_cat "$clean_cat")
                     if [ -z "$raw_cmd" ]; then break; fi
 
+                    # [Fix] 指令清洗
+                    # 這裡只做去色和前後去白，保留子指令 [SUB]
                     local clean_cmd=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
 
                     if [ "$view_state" == "VIEW" ]; then
