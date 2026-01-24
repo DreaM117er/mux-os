@@ -221,33 +221,35 @@ function fac() {
             local view_state="EDIT"
 
             while true; do
-                # Level 1: 選擇分類
                 local raw_cat=$(_factory_fzf_cat_selector)
                 if [ -z "$raw_cat" ]; then break; fi
                 
-                # [Fix] 資料清洗
-                local clean_cat=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{$1=""; print $0}' | sed 's/^[ \t]*//')
+                local clean_cat=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//' | sed 's/^[0-9]*//' | sed 's/^[ \t]*//')
+                
+                # 安全網：如果洗完變空的 (發生意外)，則退回只洗顏色
                 if [ -z "$clean_cat" ]; then 
-                    clean_cat=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
+                    clean_cat=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g')
                 fi
 
                 while true; do
-                    # Level 2: 進入 Submenu
+                    # Level 2: 進入 Submenu (現在 clean_cat 應該正確了)
                     local action=$(_factory_fzf_catedit_submenu "$clean_cat")
                     if [ -z "$action" ]; then break; fi
 
                     # Level 3: 分歧處理
-                    if [[ "$action" == *"Edit [$clean_cat]"* ]]; then
+                    # 這裡使用 grep 模糊比對，避免括號轉義問題
+                    if echo "$action" | grep -q "^Edit \[" ; then
                         # Branch A: 修改標題
                         _bot_say "warn" "Edit CATNAME pending..."
+                        # 這裡之後接: _factory_input_monitor "CATNAME" "$clean_cat" "SYS"
                         
-                    elif [[ "$action" == *"Edit Command"* ]]; then
+                    elif echo "$action" | grep -q "Edit Command in" ; then
                         # Branch B: 修改分類下的指令
                         while true; do
                             local raw_cmd=$(_factory_fzf_cmd_in_cat "$clean_cat")
                             if [ -z "$raw_cmd" ]; then break; fi
                             
-                            # [Fix] 資料清洗
+                            # [Fix] Cmd 資料清洗 (保持不變，這通常很穩定)
                             local clean_cmd=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
 
                             if [ "$view_state" == "EDIT" ]; then
