@@ -121,13 +121,17 @@ function fac() {
             local view_state="VIEW"
 
             while true; do
-                local target=$(_factory_fzf_menu "Select App to Inspect")
-                if [ -z "$target" ]; then break; fi
+                local raw_target=$(_factory_fzf_menu "Select App to Inspect")
+                if [ -z "$raw_target" ]; then break; fi
+                         
+                local clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | awk -F']' '{print $2}' | awk '{print $1}')
                 
+                if [ -z "$clean_target" ]; then
+                    clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
+                fi
+
                 if [ "$view_state" == "VIEW" ]; then
-                    _factory_fzf_detail_view "$target" "VIEW" > /dev/null
-                elif [ "$view_state" == "EDIT" ]; then
-                    local selection=$(_factory_fzf_detail_view "$target" "VIEW")
+                    _factory_fzf_detail_view "$clean_target" "VIEW" > /dev/null
                 fi
             done
             ;;
@@ -137,14 +141,23 @@ function fac() {
             local view_state="VIEW"
 
             while true; do
-                local cat_id=$(_factory_fzf_cat_selector)
-                if [ -z "$cat_id" ]; then break; fi
+                local raw_cat=$(_factory_fzf_cat_selector)
+                if [ -z "$raw_cat" ]; then break; fi
+                
+                local clean_cat=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{$1=""; print $0}' | sed 's/^[ \t]*//')
+                
+                if [ -z "$clean_cat" ]; then 
+                    clean_cat=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
+                fi
+
                 while true; do
-                    local target_cmd=$(_factory_fzf_cmd_in_cat "$cat_id")
-                    if [ -z "$target_cmd" ]; then break; fi
+                    local raw_cmd=$(_factory_fzf_cmd_in_cat "$clean_cat")
+                    if [ -z "$raw_cmd" ]; then break; fi
                     
+                    local clean_cmd=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
+
                     if [ "$view_state" == "VIEW" ]; then
-                        _factory_fzf_detail_view "$target_cmd" "VIEW" > /dev/null
+                        _factory_fzf_detail_view "$clean_cmd" "VIEW" > /dev/null
                     fi
                 done
             done
@@ -179,16 +192,26 @@ function fac() {
             local view_state="EDIT"
 
             while true; do
-                # Level 1: 全局指令選擇
-                local target=$(_factory_fzf_menu "Select App to Edit")
-                if [ -z "$target" ]; then break; fi
+                # Level 1: 選指令
+                local raw_target=$(_factory_fzf_menu "Select App to Edit")
+                if [ -z "$raw_target" ]; then break; fi
                 
-                # Level 2: 進入 Detail View (EDIT 模式)
+                # [Fix] 資料清洗 (同上)
+                local clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | awk -F']' '{print $2}' | awk '{print $1}')
+                if [ -z "$clean_target" ]; then
+                    clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
+                fi
+
+                # Level 2: 進入 Detail (EDIT Mode)
                 if [ "$view_state" == "EDIT" ]; then
-                    # 這裡使用變數接收回傳值，為接下來的 Router 做準備
-                    local selection=$(_factory_fzf_detail_view "$target" "EDIT")
+                    # 這裡接收 detail_view 的回傳值 (選中的行)
+                    local selection=$(_factory_fzf_detail_view "$clean_target" "EDIT")
                     
-                    # [TODO] 這裡未來會插入: _fac_edit_router "$selection"
+                    # 如果使用者有選擇 (非 ESC)，則進入路由 (待實作)
+                    if [ -n "$selection" ]; then
+                        # [TODO] _fac_edit_router "$selection" ...
+                        : # No-op
+                    fi
                 fi
             done
             ;;
@@ -198,40 +221,37 @@ function fac() {
             local view_state="EDIT"
 
             while true; do
-                # Level 1: 選擇分類 (Category Selector)
-                local cat_id=$(_factory_fzf_cat_selector)
-                if [ -z "$cat_id" ]; then break; fi
+                # Level 1: 選擇分類
+                local raw_cat=$(_factory_fzf_cat_selector)
+                if [ -z "$raw_cat" ]; then break; fi
                 
+                # [Fix] 資料清洗
+                local clean_cat=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{$1=""; print $0}' | sed 's/^[ \t]*//')
+                if [ -z "$clean_cat" ]; then 
+                    clean_cat=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
+                fi
+
                 while true; do
-                    # Level 2: 選擇動作 (Submenu)
-                    # 使用先前建立的 _factory_fzf_catedit_submenu
-                    local action=$(_factory_fzf_catedit_submenu "$cat_id")
-                    
-                    # 如果使用者按 Esc，跳出 Level 2，回到 Level 1 (選分類)
+                    # Level 2: 進入 Submenu
+                    local action=$(_factory_fzf_catedit_submenu "$clean_cat")
                     if [ -z "$action" ]; then break; fi
 
-                    # Level 3: 分歧判斷
-                    if [[ "$action" == *"Edit [$cat_id]"* ]]; then
-                        # Branch A: 修改標題 (Rename Category)
-                        # [TODO] 這裡未來插入修改標題的邏輯
-                        # _factory_input_monitor "CATNAME" ...
-                        
-                        # 修改完後，通常 break 回到 Level 1 更新列表，或 stay
-                        # 這裡暫時 break 模擬「修改後跳出」
-                        break
+                    # Level 3: 分歧處理
+                    if [[ "$action" == *"Edit [$clean_cat]"* ]]; then
+                        # Branch A: 修改標題
+                        _bot_say "warn" "Edit CATNAME pending..."
                         
                     elif [[ "$action" == *"Edit Command"* ]]; then
-                        # Branch B: 修改該分類下的指令
+                        # Branch B: 修改分類下的指令
                         while true; do
-                            # Level 3-B: 該分類下的指令選擇
-                            local target_cmd=$(_factory_fzf_cmd_in_cat "$cat_id")
-                            if [ -z "$target_cmd" ]; then break; fi # Back to Level 2
+                            local raw_cmd=$(_factory_fzf_cmd_in_cat "$clean_cat")
+                            if [ -z "$raw_cmd" ]; then break; fi
                             
+                            # [Fix] 資料清洗
+                            local clean_cmd=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
+
                             if [ "$view_state" == "EDIT" ]; then
-                                # 進入 Detail View
-                                local selection=$(_factory_fzf_detail_view "$target_cmd" "EDIT")
-                                
-                                # [TODO] 這裡未來會插入: _fac_edit_router "$selection"
+                                _factory_fzf_detail_view "$clean_cmd" "EDIT"
                             fi
                         done
                     fi
@@ -644,104 +664,49 @@ function _fac_maintenance() {
     _bot_say "factory" "Mechanism maintenance complete, Commander."
 }
 
-# 內部工具：安全更新 CSV 單一儲存格 (保持 20 欄位引號結構)
-# 用法: _fac_update_cell "行號" "欄位號" "新數值"
-function _fac_update_cell() {
-    local row_idx="$1"
-    local col_idx="$2"
-    local new_val="$3"
-    local target_file="$MUX_ROOT/app.csv.temp"
+# 核心編輯路由器 (The Logic Router)
+function _fac_edit_router() {
+    local raw_selection="$1"
+    local row_idx="$2"  # 知道要改哪一行 CSV
+    local type="$3"     # 知道是 NA 還是 NB
 
-    # 使用 awk 精準替換並重建整行，確保引號不遺失
-    awk -v r="$row_idx" -v c="$col_idx" -v v="$new_val" -v FPAT='([^,]*)|("[^"]+")' '
-    BEGIN { OFS="," }
-    NR == r {
-        # 移除舊數值的引號 (如果有的話) 以便乾淨處理，這裡直接強制覆寫
-        # 替換指定欄位，並強制加上雙引號
-        $c = "\"" v "\""
-        
-        # 重建整行輸出 (確保每一欄都有引號，防止 awk 輸出時遺漏)
-        for(i=1; i<=NF; i++) {
-            # 如果欄位本身沒有引號，補上 (針對 awk 修改後的欄位)
-            if ($i !~ /^".*"$/) $i = "\"" $i "\""
-        }
-    }
-    { print $0 }
-    ' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
-}
+    if [ -z "$raw_selection" ]; then return; fi
 
-# 核心編輯迴圈 (The Edit Loop)
-# 自動判斷 NA/NB 並處理跳轉
-function _fac_edit_loop() {
-    local target_com="$1"
-    
-    # 取得行號
-    local row_idx=$(awk -F, -v c="$target_com" 'NR>1 {gsub(/^"|"$/, "", $5); if($5==c) print NR}' "$MUX_ROOT/app.csv.temp" | head -n 1)
-    if [ -z "$row_idx" ]; then return; fi
+    # 1. 解析 Label (去除顏色代碼，抓冒號前面的字)
+    local label=$(echo "$raw_selection" | sed 's/\x1b\[[0-9;]*m//g' | awk -F':' '{print $1}' | xargs)
 
-    while true; do
-        # 1. 取得當前類型 (Type)
-        local type=$(sed "${row_idx}q;d" "$MUX_ROOT/app.csv.temp" | awk -F, '{gsub(/^"|"$/, "", $4); print $4}')
+    # 2. 狀態機判斷 (Case Switch)
+    case "$label" in
+        "Command")   _fac_update_cell "$row_idx" 5 "$(_factory_input_monitor "COM" "" "$type")" ;;
+        "Command 2") _fac_update_cell "$row_idx" 6 "$(_factory_input_monitor "COM2" "" "$type")" ;;
+        "HUD Name")  _fac_update_cell "$row_idx" 8 "$(_factory_input_monitor "HUDNAME" "" "$type")" ;;
+        "UI Name")   _fac_update_cell "$row_idx" 9 "$(_factory_input_monitor "UINAME" "" "$type")" ;;
         
-        # 2. 顯示 Detail View (現在是選擇器)
-        local selection=$(_factory_fzf_detail_view "$target_com" "VIEW")
+        # NA 區
+        "Package")   _fac_update_cell "$row_idx" 10 "$(_factory_input_monitor "PKG" "" "$type")" ;;
+        "Target")    _fac_update_cell "$row_idx" 11 "$(_factory_input_monitor "TARGET" "" "$type")" ;;
+        "Flags")     _fac_update_cell "$row_idx" 17 "$(_factory_input_monitor "FLAG" "" "$type")" ;;
         
-        # 3. 處理離開 (ESC 回傳空字串)
-        if [ -z "$selection" ]; then break; fi
-        
-        # 4. 解析選擇 (Extract Label)
-        # selection 格式如 " [黃色]Command    : [白色]yt"
-        # 我們去掉顏色代碼，抓取冒號前的字
-        local label=$(echo "$selection" | sed 's/\x1b\[[0-9;]*m//g' | awk -F':' '{print $1}' | xargs) # xargs 去除前後空白
-
-        # 5. 路由表 (Router) - 將 Label 映射到欄位 ID
-        case "$label" in
-            "Identity")  # CATNAME(3), TYPE(4)
-                 # 這裡可以做一個小選單：Rename Category or Change Type
-                 local new_val=$(_factory_input_monitor "CATNAME" "" "$type")
-                 # 只改這一行的 Category? 還是全部? 這裡假設只改單行(移動)
-                 # 但若要移動，應改 CATNO，這裡先簡單處理 label
-                 _fac_update_cell "$row_idx" 3 "$new_val"
-                 ;;
-            "Command")   _fac_update_cell "$row_idx" 5 "$(_factory_input_monitor "COM" "" "$type")" ;;
-            "Command 2") _fac_update_cell "$row_idx" 6 "$(_factory_input_monitor "COM2" "" "$type")" ;;
-            "HUD Name")  _fac_update_cell "$row_idx" 8 "$(_factory_input_monitor "HUDNAME" "" "$type")" ;;
-            "UI Name")   _fac_update_cell "$row_idx" 9 "$(_factory_input_monitor "UINAME" "" "$type")" ;;
-            
-            # NA Specific
-            "Package")   _fac_update_cell "$row_idx" 10 "$(_factory_input_monitor "PKG" "" "$type")" ;;
-            "Target")    _fac_update_cell "$row_idx" 11 "$(_factory_input_monitor "TARGET" "" "$type")" ;;
-            "Flags")     _fac_update_cell "$row_idx" 17 "$(_factory_input_monitor "FLAG" "" "$type")" ;;
-            
-            # NB Specific
-            "I-Head")    _fac_update_cell "$row_idx" 12 "$(_factory_input_monitor "IHEAD" "" "$type")" ;;
-            "I-Body")    _fac_update_cell "$row_idx" 13 "$(_factory_input_monitor "IBODY" "" "$type")" ;;
-            "Category")  _fac_update_cell "$row_idx" 16 "$(_factory_input_monitor "CATE" "" "$type")" ;;
-            "Mime")      _fac_update_cell "$row_idx" 15 "$(_factory_input_monitor "MIME" "" "$type")" ;;
-            "Extra Key") _fac_update_cell "$row_idx" 18 "$(_factory_input_monitor "EX" "" "$type")" ;;
-            "Extra Val") _fac_update_cell "$row_idx" 19 "$(_factory_input_monitor "EXTRA" "" "$type")" ;;
-            
-            # Smart URI/Engine
-            "URI")
-                 # 這裡可以放入你的智慧判斷邏輯
-                 local val=$(_factory_input_monitor "URI/ENGINE" "" "$type")
-                 if [[ "$val" == *"%s"* ]]; then
-                     _fac_update_cell "$row_idx" 20 "$val"      # Engine
-                     _fac_update_cell "$row_idx" 14 "\$__GO_TARGET" # URI
-                 else
-                     _fac_update_cell "$row_idx" 14 "$val"
-                     _fac_update_cell "$row_idx" 20 ""
-                 fi
-                 ;;
-                 
-            "Engine") # 如果直接點 Engine，也是一樣邏輯
-                 local val=$(_factory_input_monitor "ENGINE" "" "$type")
+        # NB 區
+        "Intent")    # 特殊處理：可能要跳子選單問 Head 還是 Body
+             local sub=$(_factory_fzf_submenu "Head|Body")
+             if [ "$sub" == "Head" ]; then _fac_update_cell "$row_idx" 12 "$(_factory_input_monitor "IHEAD" "" "$type")"; fi
+             if [ "$sub" == "Body" ]; then _fac_update_cell "$row_idx" 13 "$(_factory_input_monitor "IBODY" "" "$type")"; fi
+             ;;
+        "URI")       
+             # 智慧判斷邏輯放在這裡
+             local val=$(_factory_input_monitor "URI/ENGINE" "" "$type")
+             if [[ "$val" == *"%s"* ]]; then
                  _fac_update_cell "$row_idx" 20 "$val"
-                 ;;
-        esac
-        
-        # 迴圈繼續，重新載入 Detail View 以顯示更新後的值
-    done
+                 _fac_update_cell "$row_idx" 14 "\$__GO_TARGET"
+             else
+                 _fac_update_cell "$row_idx" 14 "$val"
+                 _fac_update_cell "$row_idx" 20 ""
+             fi
+             ;;
+             
+        *) _bot_say "warn" "Field [$label] is read-only or not mapped." ;;
+    esac
 }
 
 
