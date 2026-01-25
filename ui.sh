@@ -943,6 +943,8 @@ function _factory_fzf_detail_view() {
     esac
 
     echo -e "$report" | fzf --ansi \
+        --delimiter="│" \
+        --with-nth=1 \
         --height="$dynamic_height" \
         --layout=reverse \
         --border-label=" :: $header_text :: " \
