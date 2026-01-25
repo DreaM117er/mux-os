@@ -660,7 +660,7 @@ function _factory_fzf_menu() {
         --info=hidden \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:208,marker:208,border:$border_color,header:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:$border_color,header:240 \
         --bind="resize:clear-screen"
     )
 
@@ -714,7 +714,7 @@ function _factory_fzf_cat_selector() {
         --header="$header_msg" \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:208,marker:208,border:$border_color,header:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:$border_color,header:240 \
         --bind="resize:clear-screen"
     )
 
@@ -779,7 +779,7 @@ function _factory_fzf_cmd_in_cat() {
         --header=" :: Category: [${target_cat_name}] ($total) :: " \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:208,marker:208,border:$border_color,header:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:$border_color,header:240 \
         --bind="resize:clear-screen"
     )
 
@@ -946,7 +946,7 @@ function _factory_fzf_detail_view() {
         --info=hidden \
         --prompt=" :: Details › " \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:208,marker:208,border:$border_color,header:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:$border_color,header:240 \
         --bind="resize:clear-screen"
 }
 
@@ -971,7 +971,7 @@ function _factory_fzf_catedit_submenu() {
     # 組合選單內容
     local menu_content="${opt_title}\n${opt_cmds}"
 
-    # --- 1. 樣式定義 ---
+    # --- 樣式定義 ---
     local header_text=" :: MODIFY PARAMETER :: "
     local border_color="208" # 預設橘色 (EDIT)
     
@@ -994,6 +994,7 @@ function _factory_fzf_catedit_submenu() {
     local line_count=$(echo -e "$menu_content" | wc -l)
     local dynamic_height=$(( line_count + 4 ))
     
+    # [Config] Border=Dynamic, Pointer=red(紅)
     local selected=$(echo -e "$menu_content" | fzf --ansi \
         --height="$dynamic_height" \
         --layout=reverse \
@@ -1021,7 +1022,12 @@ function _factory_fzf_add_type_menu() {
     local line_count=$(printf "%b" "$options" | wc -l)
     local dynamic_height=$(( line_count + 4 ))
 
-    # [UI Update] 邊框改為綠色 (46)，明確表示新增狀態
+    # [UI Fix] 設定最小高度門檻 (Min Height)
+    if [ "$dynamic_height" -lt 10 ]; then
+        dynamic_height=10
+    fi
+
+    # [Config] Border=46(綠), Pointer=red(紅)
     local selected=$(printf "%b" "$options" | fzf --ansi \
         --height="$dynamic_height" \
         --layout=reverse \
