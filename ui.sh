@@ -606,13 +606,14 @@ function _factory_fzf_menu() {
     local target_file="$MUX_ROOT/app.csv.temp"
 
     local border_color="208"
-    local header_msg=" :: Slot Capacity: [Calculated] :: "
+    local prompt_msg="Select Command"
+    local header_msg="Slot Capacity: [Calculated]"
     
     case "$mode" in
         "DEL")
             border_color="196"
-            header_msg=" :: DELETE MODE ACTIVE :: "
-            prompt_msg="DELETE › "
+            header_msg="DELETE MODE ACTIVE"
+            prompt_msg="Select"
             ;;
         "NEW")
             border_color="46"
@@ -655,9 +656,9 @@ function _factory_fzf_menu() {
     local selected=$(echo "$list" | fzf --ansi \
         --height=10 \
         --layout=reverse \
-        --border-label="$header_msg" \
+        --border-label=" :: $header_msg :: " \
         --border=bottom \
-        --prompt=" :: $prompt_msg " \
+        --prompt=" :: $prompt_msg › " \
         --header=" :: Enter to Select, Esc to Return ::" \
         --info=hidden \
         --pointer="››" \
@@ -678,14 +679,14 @@ function _factory_fzf_cat_selector() {
     
     # --- 1. 樣式定義 ---
     local border_color="208"
-    local header_msg=" :: CATEGORY FILTER MODE :: "
-    local prompt_msg="Select Category › "
+    local header_msg="CATEGORY FILTER MODE"
+    local prompt_msg="Select Category"
 
     case "$mode" in
         "DEL")
             border_color="196"
-            header_msg=" :: DELETE CATEGORY MODE :: "
-            prompt_msg="DELETE CAT › "
+            header_msg="DELETE CATEGORY MODE"
+            prompt_msg="Choose"
             ;;
         *)
             border_color="208"
@@ -710,10 +711,10 @@ function _factory_fzf_cat_selector() {
     local selected=$(echo "$cat_list" | awk -F'|' '{printf " \033[1;33m%03d  \033[1;37m%s\n", $1, $2}' | fzf --ansi \
         --height=10 \
         --layout=reverse \
-        --border-label="$header_msg" \
+        --border-label=" :: $header_msg :: " \
         --border=bottom \
         --info=hidden \
-        --prompt=" :: $prompt_msg " \
+        --prompt=" :: $prompt_msg › " \
         --header=" :: Enter to Select, Esc to Return ::" \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
@@ -736,7 +737,7 @@ function _factory_fzf_cmd_in_cat() {
 
     # --- 1. 樣式定義 ---
     local border_color="208"
-    local prompt_msg="Select Command › "
+    local prompt_msg=" :: Select Command › "
     
     case "$mode" in
         "DEL")
@@ -779,7 +780,7 @@ function _factory_fzf_cmd_in_cat() {
         --border-label=" :: Category: [${target_cat_name}] [$total] :: " \
         --border=bottom \
         --info=hidden \
-        --prompt=" :: $prompt_msg " \
+        --prompt="$prompt_msg" \
         --header=" :: Enter to Select, Esc to Return ::" \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
