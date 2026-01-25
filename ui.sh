@@ -626,18 +626,31 @@ function _factory_fzf_menu() {
         }
     ' "$target_file")
 
+    # 根據模式決定標題顏色與文字
+    local header_text=" :: Detail Control :: "
+    local border_color="208" # 預設橘色系
+    
+    if [ "$view_mode" == "EDIT" ]; then
+        header_text=" :: MODIFY PARAMETER :: "
+        border_color="208" # 保持橘色
+    elif [ "$view_mode" == "NEW" ]; then
+        header_text=" :: CONFIRM CREATION :: "
+        border_color="46"  # 綠色
+    fi
+
     local total=$(echo "$list" | grep -c "^ ")
 
     local selected=$(echo "$list" | fzf --ansi \
         --height=10 \
         --layout=reverse \
         --border=bottom \
+        --border-label="$header_text" \
         --prompt=" :: $prompt_msg › " \
         --header=" :: Slot Capacity: [6/$total] :: " \
         --info=hidden \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:$border_color,header:240 \
         --bind="resize:clear-screen"
     )
 
@@ -665,16 +678,29 @@ function _factory_fzf_cat_selector() {
         }
     ' "$target_file" | sort -n)
 
+    # 根據模式決定標題顏色與文字
+    local header_text=" :: Detail Control :: "
+    local border_color="208" # 預設橘色系
+    
+    if [ "$view_mode" == "EDIT" ]; then
+        header_text=" :: MODIFY PARAMETER :: "
+        border_color="208" # 保持橘色
+    elif [ "$view_mode" == "NEW" ]; then
+        header_text=" :: CONFIRM CREATION :: "
+        border_color="46"  # 綠色
+    fi
+
     local selected=$(echo "$cat_list" | awk -F'|' '{printf " \033[1;33m%03d  \033[1;37m%s\n", $1, $2}' | fzf --ansi \
         --height=10 \
         --layout=reverse \
         --border=bottom \
+        --border-label="$header_text" \
         --info=hidden \
         --prompt=" :: Select Category › " \
         --header=" :: Category Filter Mode :: " \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:$border_color,header:240 \
         --bind="resize:clear-screen"
     )
 
@@ -862,7 +888,7 @@ function _factory_fzf_detail_view() {
                 #  模式 Footer
                 if (mode == "NEW") {
                     printf "%s%s%s\n", C_LBL, sep, C_RST
-                    printf " \033[1;32mConfirm\033[0m\n"
+                    printf "\033[1;32m[Confirm]\033[0m\n"
                 }
                 
                 exit
@@ -947,10 +973,10 @@ function _factory_fzf_add_type_menu() {
     # options="Command NA\nCommand NB\nCommand SYS #\nCommand SSL"
 
     # 動態計算高度
-    local line_count=$(echo -e "$menu_content" | wc -l)
+    local line_count=$(echo -e "$options" | wc -l)
     local dynamic_height=$(( line_count + 4 ))
 
-    local selected=$(echo -e "$options" | fzf --ansi \
+    local selected=$(printf "%b" "$options" | fzf --ansi \
         --height="$dynamic_height" \
         --layout=reverse \
         --border=top \
