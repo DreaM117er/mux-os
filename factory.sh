@@ -213,6 +213,7 @@ function fac() {
             # 防呆計算
             local com3_flag="N"
             local target_cat="999"
+            local target_catname="\"Others\"" # [Update] 預設分類名稱
             
             if [ -z "$next_comno" ] || [ "$next_comno" -eq 1 ]; then
                 # 如果是第一筆，或是計算失敗(awk回傳空)，設為 1
@@ -222,8 +223,9 @@ function fac() {
             # 如果計算出的數字極度不合理 (例如 awk 錯誤)，掛上 F 旗標
             if ! [[ "$next_comno" =~ ^[0-9]+$ ]]; then
                 com3_flag="F"
-                target_cat="" # 清空 CATNO
-                next_comno="" # 清空 COMNO
+                target_cat=""     # 清空 CATNO
+                next_comno=""     # 清空 COMNO
+                target_catname="" # [Update] 異常時一併清空 CATNAME
             fi
 
             # 4. 生成暫時的指令名稱 (Unique ID)
@@ -233,20 +235,20 @@ function fac() {
 
             # 5. 建構 CSV 行 (Construct Row)
             # 欄位總數：20
-            # 預設 CATNAME: "Others"
+            # 預設 CATNAME: "Others" -> 改用變數控制
             local new_row=""
             
             case "$type_sel" in
                 "Command NA")
                     # NA 模板: TYPE=NA, COM3=N
                     # 格式: 999,NO,"Others","NA","tmp_name",,,"N",,, ... (其餘留空)
-                    new_row="${target_cat},${next_comno},\"Others\",\"NA\",\"${temp_cmd_name}\",,\"${com3_flag}\",,,,,,,,,,,,,"
+                    new_row="${target_cat},${next_comno},${target_catname},\"NA\",\"${temp_cmd_name}\",,\"${com3_flag}\",,,,,,,,,,,,,"
                     ;;
                     
                 "Command NB")
                     # NB 模板: TYPE=NB, COM3=N, URI=$__GO_TARGET, ENGINE=$SEARCH_GOOGLE
                     # Col 14(URI), Col 20(ENGINE)
-                    new_row="${target_cat},${next_comno},\"Others\",\"NB\",\"${temp_cmd_name}\",,\"${com3_flag}\",,,,,,,,\"$(echo '$__GO_TARGET')\",,,,,,\"$(echo '$SEARCH_GOOGLE')\""
+                    new_row="${target_cat},${next_comno},${target_catname},\"NB\",\"${temp_cmd_name}\",,\"${com3_flag}\",,,,,,,,\"$(echo '$__GO_TARGET')\",,,,,,\"$(echo '$SEARCH_GOOGLE')\""
                     ;;
                     
                 "Command SYS"*) 
@@ -617,6 +619,7 @@ function _fac_maintenance() {
         NR==1 { print; next }
         
         {
+            catname=$3;   gsub(/^"|"$/, "", catname)
             type=$4;   gsub(/^"|"$/, "", type)
             pkg=$10;   gsub(/^"|"$/, "", pkg)
             tgt=$11;   gsub(/^"|"$/, "", tgt)
@@ -650,6 +653,7 @@ function _fac_maintenance() {
             if (valid == 0) {
                 $1 = ""
                 $2 = ""
+                $3 = "\"\""
                 $7 = "\"F\""
             } else {
                 # [Action] 合規：如果原本是 F，嘗試移除 F (可選)

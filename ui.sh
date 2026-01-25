@@ -600,8 +600,27 @@ function _factory_show_info() {
 # 兵工廠指令選擇器 - Factory Command Scanner
 function _factory_fzf_menu() {
     local prompt_msg="${1:-Select Target}"
+    local mode="${2:-VIEW}"
     
     local target_file="$MUX_ROOT/app.csv.temp"
+
+    local border_color="208"
+    local header_msg=" :: Slot Capacity: [Calculated] :: "
+    
+    case "$mode" in
+        "DEL")
+            border_color="196"
+            header_msg=" :: DELETE MODE ACTIVE :: "
+            prompt_msg="DELETE › "
+            ;;
+        "NEW")
+            border_color="46"  # 綠色
+            ;;
+        *)
+            # VIEW / EDIT 保持橘色
+            border_color="208"
+            ;;
+    esac
 
     local list=$(awk -v FPAT='([^,]*)|("[^"]+")' '
         BEGIN {
@@ -626,31 +645,22 @@ function _factory_fzf_menu() {
         }
     ' "$target_file")
 
-    # 根據模式決定標題顏色與文字
-    local header_text=" :: Detail Control :: "
-    local border_color="208" # 預設橘色系
-    
-    if [ "$view_mode" == "EDIT" ]; then
-        header_text=" :: MODIFY PARAMETER :: "
-        border_color="208" # 保持橘色
-    elif [ "$view_mode" == "NEW" ]; then
-        header_text=" :: CONFIRM CREATION :: "
-        border_color="46"  # 綠色
-    fi
-
     local total=$(echo "$list" | grep -c "^ ")
+
+    if [ "$mode" != "DEL" ]; then
+        header_msg=" :: Slot Capacity: [6/$total] :: "
+    fi
 
     local selected=$(echo "$list" | fzf --ansi \
         --height=10 \
         --layout=reverse \
         --border=bottom \
-        --border-label="$header_text" \
-        --prompt=" :: $prompt_msg › " \
-        --header=" :: Slot Capacity: [6/$total] :: " \
+        --prompt=" :: $prompt_msg " \
+        --header="$header_msg" \
         --info=hidden \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:red,marker:208,border:$border_color,header:240 \
+        --color=info:240,prompt:208,pointer:208,marker:208,border:$border_color,header:240 \
         --bind="resize:clear-screen"
     )
 
@@ -661,8 +671,25 @@ function _factory_fzf_menu() {
 
 # 兵工廠指令選擇器 - Factory Category Scanner
 function _factory_fzf_cat_selector() {
+    local mode="${1:-VIEW}"
     local target_file="$MUX_ROOT/app.csv.temp"
     
+    # --- 1. 樣式定義 ---
+    local border_color="208"
+    local header_msg=" :: Category Filter Mode :: "
+    local prompt_msg="Select Category › "
+
+    case "$mode" in
+        "DEL")
+            border_color="196"
+            header_msg=" :: DELETE CATEGORY MODE :: "
+            prompt_msg="DELETE CAT › "
+            ;;
+        *)
+            border_color="208"
+            ;;
+    esac
+
     local cat_list=$(awk -v FPAT='([^,]*)|("[^"]+")' '
         BEGIN {
             C_ID="\033[1;33m" 
@@ -678,29 +705,16 @@ function _factory_fzf_cat_selector() {
         }
     ' "$target_file" | sort -n)
 
-    # 根據模式決定標題顏色與文字
-    local header_text=" :: Detail Control :: "
-    local border_color="208" # 預設橘色系
-    
-    if [ "$view_mode" == "EDIT" ]; then
-        header_text=" :: MODIFY PARAMETER :: "
-        border_color="208" # 保持橘色
-    elif [ "$view_mode" == "NEW" ]; then
-        header_text=" :: CONFIRM CREATION :: "
-        border_color="46"  # 綠色
-    fi
-
     local selected=$(echo "$cat_list" | awk -F'|' '{printf " \033[1;33m%03d  \033[1;37m%s\n", $1, $2}' | fzf --ansi \
         --height=10 \
         --layout=reverse \
         --border=bottom \
-        --border-label="$header_text" \
         --info=hidden \
-        --prompt=" :: Select Category › " \
-        --header=" :: Category Filter Mode :: " \
+        --prompt=" :: $prompt_msg " \
+        --header="$header_msg" \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:red,marker:208,border:$border_color,header:240 \
+        --color=info:240,prompt:208,pointer:208,marker:208,border:$border_color,header:240 \
         --bind="resize:clear-screen"
     )
 
@@ -712,9 +726,24 @@ function _factory_fzf_cat_selector() {
 # 兵工廠指令選擇器 - Factory inCommand Scanner
 function _factory_fzf_cmd_in_cat() {
     local target_cat_name="$1"
+    local mode="${2:-VIEW}"
     local target_file="$MUX_ROOT/app.csv.temp"
     
     if [ -z "$target_cat_name" ]; then return 1; fi
+
+    # --- 1. 樣式定義 ---
+    local border_color="208"
+    local prompt_msg="Select Command › "
+    
+    case "$mode" in
+        "DEL")
+            border_color="196"
+            prompt_msg="DELETE › "
+            ;;
+        *)
+            border_color="208"
+            ;;
+    esac
 
     local cmd_list=$(awk -v FPAT='([^,]*)|("[^"]+")' -v target="$target_cat_name" '
         BEGIN {
@@ -726,7 +755,6 @@ function _factory_fzf_cmd_in_cat() {
         !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
             csv_cat=$3; gsub(/^"|"$/, "", csv_cat)
             
-            # 使用字串比對，而非數字比對
             if (csv_cat == target) {
                 gsub(/^"|"$/, "", $5); cmd = $5
                 gsub(/^"|"$/, "", $6); sub_cmd = $6
@@ -740,7 +768,6 @@ function _factory_fzf_cmd_in_cat() {
         }
     ' "$target_file")
     
-    # 計算數量
     local total=$(echo "$cmd_list" | grep -c "^ ")
 
     local selected=$(echo "$cmd_list" | fzf --ansi \
@@ -748,17 +775,16 @@ function _factory_fzf_cmd_in_cat() {
         --layout=reverse \
         --border=bottom \
         --info=hidden \
-        --prompt=" :: Select Command › " \
+        --prompt=" :: $prompt_msg " \
         --header=" :: Category: [${target_cat_name}] ($total) :: " \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+        --color=info:240,prompt:208,pointer:208,marker:208,border:$border_color,header:240 \
         --bind="resize:clear-screen"
     )
 
     if [ -n "$selected" ]; then
-        # 回傳乾淨的指令供 Factory 使用
-        echo "$selected" | awk '{print $1, $2}' | sed 's/^[ \t]*//;s/[ \t]*$//'
+        echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//'
     fi
 }
 
@@ -781,17 +807,14 @@ function _factory_fzf_detail_view() {
                        -v t_sub="$t_sub" \
                        -v mode="$view_mode" '
         BEGIN {
-            # 基礎色票
             C_LBL="\033[1;30m"
             C_VAL="\033[1;37m"
             C_TAG="\033[1;33m"
             C_RST="\033[0m"
             sep="----------"
-            
-            # 特殊狀態色 (NEW/EDIT 模式生效)
-            C_EMP_R="\033[1;31m[Empty]\033[0m"  # 必填 (紅)
-            C_EMP_Y="\033[1;33m[Empty]\033[0m"  # 選填 (黃)
-            C_UNK="\033[1;30m[Unknown]\033[0m" # 未知 (灰)
+            C_EMP_R="\033[1;31m[Empty]\033[0m"
+            C_EMP_Y="\033[1;33m[Empty]\033[0m"
+            C_UNK="\033[1;30m[Unknown]\033[0m"
         }
 
         !/^#/ && NF >= 5 {
@@ -827,28 +850,25 @@ function _factory_fzf_detail_view() {
 
                 if (s == "") s_disp = "[Empty]"; else s_disp = s
                 
-                # 身份偽裝 (Identity Masking) - 只在純新增時隱藏真實 ID
                 if (mode == "NEW") {
-                    catname = "NEW NODE"
+                    catname = "\033[1;32mNEW NODE\033[0m"
                     cat = "NEW"
                     comno = "XX"
                 }
 
-                # 視覺警示 (Visual Alert) - NEW 或 EDIT
                 if (mode == "NEW" || mode == "EDIT") {
                     if (type == "NA") {
                         if (c == "[Empty]") c = C_EMP_R
                         if (pkg == "[Empty]") pkg = C_EMP_R
                         if (act == "[Empty]") act = C_EMP_R
-                        
                         if (hud == "[Empty]") hud = C_UNK
                         if (ui == "[Empty]") ui = C_UNK
                     }
                     else if (type == "NB") {
-                        if (ihead == "[Empty]") ihead = C_EMP_R
-                        if (pkg == "[Empty]") pkg = C_EMP_Y
-                        if (act == "[Empty]") act = C_EMP_Y
-                        
+                        if (pkg == "[Empty]" && ihead == "[Empty]" && uri == "[Empty]") {
+                             pkg = C_EMP_R
+                             uri = C_EMP_R
+                        }
                         if (hud == "[Empty]") hud = C_UNK
                         if (ui == "[Empty]") ui = C_UNK
                     }
@@ -885,12 +905,10 @@ function _factory_fzf_detail_view() {
                     printf " %sTarget :%s %s\n", C_LBL, C_VAL, act
                 }
                 
-                #  模式 Footer
                 if (mode == "NEW") {
                     printf "%s%s%s\n", C_LBL, sep, C_RST
-                    printf "\033[1;32m[Confirm]\033[0m\n"
+                    printf "  \033[1;32m[ Confirm ]\033[0m\n"
                 }
-                
                 exit
             }
         }
@@ -901,17 +919,23 @@ function _factory_fzf_detail_view() {
     local line_count=$(echo "$report" | wc -l)
     local dynamic_height=$(( line_count + 4 ))
 
-    # 根據模式決定標題顏色與文字
     local header_text=" :: Detail Control :: "
-    local border_color="208" # 預設橘色系
-    
-    if [ "$view_mode" == "EDIT" ]; then
-        header_text=" :: MODIFY PARAMETER :: "
-        border_color="208" # 保持橘色
-    elif [ "$view_mode" == "NEW" ]; then
-        header_text=" :: CONFIRM CREATION :: "
-        border_color="46"  # 綠色
-    fi
+    local border_color="208"
+
+    case "$view_mode" in
+        "NEW")
+            header_text=" :: CONFIRM CREATION :: "
+            border_color="46"  # 綠色
+            ;;
+        "EDIT")
+            header_text=" :: MODIFY PARAMETER :: "
+            border_color="208" # 橘色
+            ;;
+        "VIEW"|*)
+            header_text=" :: Detail Control :: "
+            border_color="208" # 橘色
+            ;;
+    esac
 
     echo -e "$report" | fzf --ansi \
         --height="$dynamic_height" \
@@ -922,7 +946,7 @@ function _factory_fzf_detail_view() {
         --info=hidden \
         --prompt=" :: Details › " \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:red,marker:208,border:$border_color,header:240 \
+        --color=info:240,prompt:208,pointer:208,marker:208,border:$border_color,header:240 \
         --bind="resize:clear-screen"
 }
 
@@ -930,6 +954,7 @@ function _factory_fzf_detail_view() {
 function _factory_fzf_catedit_submenu() {
     local cat_id="$1"
     local cat_name="${2:-Unknown}"
+    local view_mode="${3:-EDIT}"
     
     # 定義色票
     local C_TAG="\033[1;33m"
@@ -945,6 +970,25 @@ function _factory_fzf_catedit_submenu() {
     
     # 組合選單內容
     local menu_content="${opt_title}\n${opt_cmds}"
+
+    # --- 1. 樣式定義 ---
+    local header_text=" :: MODIFY PARAMETER :: "
+    local border_color="208" # 預設橘色 (EDIT)
+    
+    case "$view_mode" in
+        "NEW")
+            header_text=" :: CONFIRM CREATION :: "
+            border_color="46"  # 綠色
+            ;;
+        "DEL")
+            header_text=" :: DELETE CATEGORY :: "
+            border_color="196" # 紅色
+            ;;
+        "EDIT"|*)
+            header_text=" :: MODIFY PARAMETER :: "
+            border_color="208" # 橘色
+            ;;
+    esac
     
     # 動態計算高度
     local line_count=$(echo -e "$menu_content" | wc -l)
@@ -954,12 +998,13 @@ function _factory_fzf_catedit_submenu() {
         --height="$dynamic_height" \
         --layout=reverse \
         --border=bottom \
+        --border-label="$header_text" \
         --header=" :: Enter to return, Esc to exit :: " \
         --prompt=" Action › " \
         --pointer="››" \
         --info=hidden \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:$border_color,header:240 \
         --bind="resize:clear-screen"
     )
     
@@ -973,9 +1018,10 @@ function _factory_fzf_add_type_menu() {
     # options="Command NA\nCommand NB\nCommand SYS #\nCommand SSL"
 
     # 動態計算高度
-    local line_count=$(echo -e "$options" | wc -l)
+    local line_count=$(printf "%b" "$options" | wc -l)
     local dynamic_height=$(( line_count + 4 ))
 
+    # [UI Update] 邊框改為綠色 (46)，明確表示新增狀態
     local selected=$(printf "%b" "$options" | fzf --ansi \
         --height="$dynamic_height" \
         --layout=reverse \
@@ -985,7 +1031,7 @@ function _factory_fzf_add_type_menu() {
         --pointer="››" \
         --info=hidden \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:46,header:240 \
         --bind="resize:clear-screen"
     )
 
