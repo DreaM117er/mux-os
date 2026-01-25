@@ -371,8 +371,8 @@ function fac() {
                 # 解析 COM 與 COM2
                 local t_com=$(echo "$clean_target" | awk '{print $1}')
                 local t_sub=""
-                if [[ "$clean_target" == *\[*\] ]]; then
-                    t_sub=$(echo "$clean_target" | awk -F'[][]' '{print $2}')
+                if [[ "$clean_target" == *"'"* ]]; then
+                    t_sub=$(echo "$clean_target" | awk -F"'" '{print $2}')
                 fi
 
                 # 3. 確認刪除
@@ -445,7 +445,6 @@ function fac() {
                     if [ "$confirm" == "CONFIRM" ]; then
                         if command -v _factory_auto_backup &> /dev/null; then _factory_auto_backup; fi
                         
-                        # [Core] 執行安全合併
                         _fac_safe_merge "999" "$temp_id"
                         break
                     else
@@ -463,8 +462,8 @@ function fac() {
                         local clean_target=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
                         local t_com=$(echo "$clean_target" | awk '{print $1}')
                         local t_sub=""
-                        if [[ "$clean_target" == *\[*\] ]]; then
-                            t_sub=$(echo "$clean_target" | awk -F'[][]' '{print $2}')
+                        if [[ "$clean_target" == *"'"* ]]; then
+                            t_sub=$(echo "$clean_target" | awk -F"'" '{print $2}')
                         fi
 
                         echo -e "\033[1;31m :: WARNING: Deleting Node [$clean_target] from [$db_name]\033[0m"

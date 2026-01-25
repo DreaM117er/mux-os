@@ -401,6 +401,7 @@ function _mux_fuzzy_menu() {
         BEGIN {
             C_CMD="\x1b[1;37m"
             C_DESC="\x1b[1;30m"
+            C_SUB="\x1b[1;34m"
             C_RESET="\x1b[0m"
         }
         
@@ -419,7 +420,7 @@ function _mux_fuzzy_menu() {
             }
             
             if (sub_cmd != "") {
-                display_name = cmd " " sub_cmd ""
+                display_name = cmd " " C_SUB "'" sub_cmd "'" C_RESET
             } else {
                 display_name = cmd
             }
@@ -433,6 +434,7 @@ function _mux_fuzzy_menu() {
     local selected=$(echo "$cmd_list" | fzf --ansi \
         --height=10 \
         --layout=reverse \
+        --border-label=" :: FIRE CONTROL :: " \
         --border=bottom \
         --prompt=" :: Neural Link › " \
         --header=" :: Slot Capacity: [6/$total_cmds] :: " \
@@ -636,7 +638,7 @@ function _factory_fzf_menu() {
             gsub(/^"|"$/, "", $8); desc = $8
 
             if (sub_cmd != "") {
-                display = cmd " " C_SUB "[" sub_cmd "]" C_RESET
+                display = cmd " " C_SUB "'" sub_cmd "'" C_RESET
             } else {
                 display = cmd
             }
@@ -654,9 +656,10 @@ function _factory_fzf_menu() {
     local selected=$(echo "$list" | fzf --ansi \
         --height=10 \
         --layout=reverse \
+        --border-label="$header_msg" \
         --border=bottom \
         --prompt=" :: $prompt_msg " \
-        --header="$header_msg" \
+        --header=" :: Enter to Select, Esc to Return ::" \
         --info=hidden \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
@@ -708,10 +711,11 @@ function _factory_fzf_cat_selector() {
     local selected=$(echo "$cat_list" | awk -F'|' '{printf " \033[1;33m%03d  \033[1;37m%s\n", $1, $2}' | fzf --ansi \
         --height=10 \
         --layout=reverse \
+        --border-label="$header_msg" \
         --border=bottom \
         --info=hidden \
         --prompt=" :: $prompt_msg " \
-        --header="$header_msg" \
+        --header=" :: Enter to Select, Esc to Return ::" \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
         --color=info:240,prompt:208,pointer:red,marker:208,border:$border_color,header:240 \
@@ -760,7 +764,7 @@ function _factory_fzf_cmd_in_cat() {
                 gsub(/^"|"$/, "", $6); sub_cmd = $6
                 
                 if (sub_cmd != "") {
-                    printf " %s%s %s[%s]%s\n", C_CMD, cmd, C_SUB, sub_cmd, C_RST
+                    printf " %s%s %s'"'"'%s'"'"'%s\n", C_CMD, cmd, C_SUB, sub_cmd, C_RST
                 } else {
                     printf " %s%s%s\n", C_CMD, cmd, C_RST
                 }
@@ -773,10 +777,11 @@ function _factory_fzf_cmd_in_cat() {
     local selected=$(echo "$cmd_list" | fzf --ansi \
         --height=10 \
         --layout=reverse \
+        --border-label=" :: Category: [${target_cat_name}] [$total] :: " \
         --border=bottom \
         --info=hidden \
         --prompt=" :: $prompt_msg " \
-        --header=" :: Category: [${target_cat_name}] ($total) :: " \
+        --header=" :: Enter to Select, Esc to Return ::" \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
         --color=info:240,prompt:208,pointer:red,marker:208,border:$border_color,header:240 \
@@ -798,8 +803,8 @@ function _factory_fzf_detail_view() {
 
     local t_com=$(echo "$target_key" | awk '{print $1}')
     local t_sub=""
-    if [[ "$target_key" == *\[*\] ]]; then
-        t_sub=$(echo "$target_key" | awk -F'[][]' '{print $2}')
+    if [[ "$target_key" == *"'"* ]]; then
+        t_sub=$(echo "$target_key" | awk -F"'" '{print $2}')
     fi
 
     local report=$(awk -v FPAT='([^,]*)|("[^"]+")' \
@@ -940,9 +945,9 @@ function _factory_fzf_detail_view() {
     echo -e "$report" | fzf --ansi \
         --height="$dynamic_height" \
         --layout=reverse \
+        --border-label="$header_text" \
         --border=bottom \
         --header=" :: Enter to Select, Esc to Return ::" \
-        --border-label="$header_text" \
         --info=hidden \
         --prompt=" :: Details › " \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
