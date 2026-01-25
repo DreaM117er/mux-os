@@ -1035,16 +1035,15 @@ function _factory_fzf_add_type_menu() {
     local line_count=$(printf "%b" "$options" | wc -l)
     local dynamic_height=$(( line_count + 4 ))
 
-    # [UI Fix] 設定最小高度門檻 (Min Height)
-    if [ "$dynamic_height" -lt 10 ]; then
-        dynamic_height=10
-    fi
+    # 動態計算高度
+    local line_count=$(echo -e "$menu_content" | wc -l)
+    local dynamic_height=$(( line_count + 4 ))
 
     # [Config] Border=46(綠), Pointer=red(紅)
     local selected=$(printf "%b" "$options" | fzf --ansi \
         --height="$dynamic_height" \
         --layout=reverse \
-        --border=top \
+        --border=bottom \
         --header=" :: Enter to Choose, Esc to exit :: " \
         --prompt=" Create › " \
         --pointer="››" \
