@@ -818,7 +818,7 @@ function _factory_fzf_detail_view() {
             C_UNK="\033[1;30m[Unknown]\033[0m"
 
             # Set Room Label
-            S="│"
+            S="\t"
         }
 
         !/^#/ && NF >= 5 {
@@ -943,7 +943,7 @@ function _factory_fzf_detail_view() {
     esac
 
     echo -e "$report" | fzf --ansi \
-        --delimiter="│" \
+        --delimiter="\t" \
         --with-nth=1 \
         --height="$dynamic_height" \
         --layout=reverse \

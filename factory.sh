@@ -980,8 +980,8 @@ function _fac_edit_router() {
     local raw_selection="$1"
     local target_key="$2"
     
-    # 1. 切割出房間代碼 (取分隔符 │ 後面的部分)
-    local room_id=$(echo "$raw_selection" | awk -F'│' '{print $2}')
+    # 1. 切割出房間代碼
+    local room_id=$(echo "$raw_selection" | awk -F'\t' '{print $2}')
     
     # 2. 狀態機分流
     case "$room_id" in
