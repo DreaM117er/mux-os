@@ -364,7 +364,129 @@ function fac() {
 
         # : Break Neural (Delete Command)
         "del") 
-            _bot_say "error" "New Feature Waiting"
+            "del"|"comd"|"delcom")
+            while true; do
+                # 1. 紅色警示選單 (Global)
+                local raw_target=$(_factory_fzf_menu "Select to Destroy" "DEL")
+                if [ -z "$raw_target" ]; then break; fi
+                
+                # 2. 清洗與解析座標
+                local clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+                
+                # 解析 COM 與 COM2 (Sub)
+                # 使用與 detail_view 相同的解析邏輯
+                local t_com=$(echo "$clean_target" | awk '{print $1}')
+                local t_sub=""
+                if [[ "$clean_target" == *\[*\] ]]; then
+                    t_sub=$(echo "$clean_target" | awk -F'[][]' '{print $2}')
+                fi
+
+                # 3. 確認刪除 (Double Check)
+                echo -e "\033[1;31m :: WARNING: Deleting Node [ $clean_target ] \033[0m"
+                echo -ne "\033[1;33m    ›› Confirm destruction? [Y/n]: \033[0m"
+                read -r choice
+                if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
+                    continue
+                fi
+
+                # 4. 執行備份
+                if command -v _factory_auto_backup &> /dev/null; then
+                    _factory_auto_backup
+                fi
+
+                # 5. 執行物理刪除 (Awk Exclude Logic)
+                # 邏輯：印出所有「不匹配」的行 -> 寫入暫存 -> 覆蓋
+                local target_file="$MUX_ROOT/app.csv.temp"
+                local temp_del="${target_file}.del"
+                
+                awk -F, -v c="$t_com" -v s="$t_sub" '
+                    {
+                        # 提取 CSV 欄位並去引號
+                        csv_c=$5; gsub(/^"|"$/, "", csv_c)
+                        csv_s=$6; gsub(/^"|"$/, "", csv_s)
+                        
+                        # 判定是否為目標行
+                        is_target = 0
+                        if (csv_c == c) {
+                            if (s == "" && csv_s == "") is_target = 1
+                            if (s != "" && csv_s == s) is_target = 1
+                        }
+
+                        # 只印出非目標行 (保留 Header)
+                        if (is_target == 0 || NR == 1) {
+                            print $0
+                        }
+                    }
+                ' "$target_file" > "$temp_del"
+                
+                mv "$temp_del" "$target_file"
+                
+                # 6. 序列重整 (排序 COMNO)
+                _fac_sort_optimization
+            done
+            ;;
+        
+        # : Delete Command via Category (Filter Search)
+        "catd"|"catdel")
+            while true; do
+                # Level 1: 選擇分類 (紅色模式)
+                local raw_cat=$(_factory_fzf_cat_selector "DEL")
+                if [ -z "$raw_cat" ]; then break; fi
+                
+                # [SOP] ID 查表法
+                local temp_id=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
+                local db_name=$(awk -F, -v tid="$temp_id" 'NR>1 {cid=$1; gsub(/^"|"$/, "", cid); if(cid==tid){name=$3; gsub(/^"|"$/, "", name); print name; exit}}' "$MUX_ROOT/app.csv.temp")
+                if [ -z "$db_name" ]; then db_name="Unknown"; fi
+
+                while true; do
+                    # Level 2: 選擇指令 (紅色模式)
+                    local raw_cmd=$(_factory_fzf_cmd_in_cat "$db_name" "DEL")
+                    if [ -z "$raw_cmd" ]; then break; fi
+                    
+                    # 清洗與解析
+                    local clean_target=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+                    
+                    local t_com=$(echo "$clean_target" | awk '{print $1}')
+                    local t_sub=""
+                    if [[ "$clean_target" == *\[*\] ]]; then
+                        t_sub=$(echo "$clean_target" | awk -F'[][]' '{print $2}')
+                    fi
+
+                    # 確認刪除
+                    echo -e "\033[1;31m :: WARNING: Deleting Node [ $clean_target ] from [ $db_name ] \033[0m"
+                    echo -ne "\033[1;33m    ›› Confirm destruction? [Y/n]: \033[0m"
+                    read -r choice
+                    if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
+                        continue
+                    fi
+
+                    # 備份
+                    if command -v _factory_auto_backup &> /dev/null; then _factory_auto_backup; fi
+
+                    # 物理刪除
+                    local target_file="$MUX_ROOT/app.csv.temp"
+                    local temp_del="${target_file}.del"
+                    
+                    awk -F, -v c="$t_com" -v s="$t_sub" '
+                        {
+                            csv_c=$5; gsub(/^"|"$/, "", csv_c)
+                            csv_s=$6; gsub(/^"|"$/, "", csv_s)
+                            
+                            is_target = 0
+                            if (csv_c == c) {
+                                if (s == "" && csv_s == "") is_target = 1
+                                if (s != "" && csv_s == s) is_target = 1
+                            }
+                            if (is_target == 0 || NR == 1) print $0
+                        }
+                    ' "$target_file" > "$temp_del"
+                    
+                    mv "$temp_del" "$target_file"
+                    
+                    # 序列重整
+                    _fac_sort_optimization
+                done
+            done
             ;;
 
         # : Time Stone Undo (Rebak)

@@ -851,7 +851,7 @@ function _factory_fzf_detail_view() {
                 if (s == "") s_disp = "[Empty]"; else s_disp = s
                 
                 if (mode == "NEW") {
-                    catname = "\033[1;32mNEW NODE\033[0m"
+                    catname = "NEW NODE"
                     cat = "NEW"
                     comno = "XX"
                 }
