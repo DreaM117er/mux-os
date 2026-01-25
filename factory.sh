@@ -614,29 +614,31 @@ function _fac_maintenance() {
 
     # 使用 awk 進行逐行掃描與修復
     awk -F, -v OFS=, '
-        # Header 直接通過
         NR==1 { print; next }
         
         {
-            # 1. 提取關鍵欄位 (去除引號)
-            type=$4;  gsub(/^"|"$/, "", type)
-            pkg=$10;  gsub(/^"|"$/, "", pkg)
-            tgt=$11;  gsub(/^"|"$/, "", tgt)
-            uri=$14;  gsub(/^"|"$/, "", uri)
+            type=$4;   gsub(/^"|"$/, "", type)
+            pkg=$10;   gsub(/^"|"$/, "", pkg)
+            tgt=$11;   gsub(/^"|"$/, "", tgt)
+            ihead=$12; gsub(/^"|"$/, "", ihead)
+            ibody=$13; gsub(/^"|"$/, "", ibody)
+            uri=$14;   gsub(/^"|"$/, "", uri)
             
-            # 預設驗證狀態：失敗 (0) - 採用白名單機制
             valid = 0
             
-            # 2. 核心規則對接 (Core Rules Mapping)
             if (type == "NA") {
-                # NA 規則：必須具備 Package 和 Target
                 if (pkg != "" && tgt != "") {
                     valid = 1
                 }
             }
             else if (type == "NB") {
-                # NB 規則：必須具備 URI
-                if (uri != "") {
+                if (ihead != "" && ibody != "") {
+                    valid = 1
+                }
+                else if (pkg != "") {
+                    valid = 1
+                }
+                else if (uri != "") {
                     valid = 1
                 }
             }
@@ -645,18 +647,15 @@ function _fac_maintenance() {
                 valid = 1
             }
             
-            # 3. 異常處置 (Execution)
             if (valid == 0) {
-                # [Action] 不合規：清空 ID，掛上 F 旗標
-                $1 = ""       # CATNO 清空
-                $2 = ""       # COMNO 清空
-                $7 = "\"F\""  # COM3 掛上 "F"
+                $1 = ""
+                $2 = ""
+                $7 = "\"F\""
             } else {
                 # [Action] 合規：如果原本是 F，嘗試移除 F (可選)
                 # 這裡暫不自動移除 F，讓使用者手動確認，或之後在 sort 移除
             }
             
-            # 4. 輸出結果
             print $0
         }
     ' "$target_file" > "$temp_file"

@@ -803,7 +803,7 @@ function _factory_fzf_detail_view() {
                 
                 # 身份偽裝 (Identity Masking) - 只在純新增時隱藏真實 ID
                 if (mode == "NEW") {
-                    catname = "\033[1;32mNEW NODE\033[0m"
+                    catname = "NEW NODE"
                     cat = "NEW"
                     comno = "XX"
                 }
@@ -862,7 +862,7 @@ function _factory_fzf_detail_view() {
                 #  模式 Footer
                 if (mode == "NEW") {
                     printf "%s%s%s\n", C_LBL, sep, C_RST
-                    printf "  \033[1;32m[ Confirm ]\033[0m\n"
+                    printf " \033[1;32mConfirm\033[0m\n"
                 }
                 
                 exit
@@ -942,19 +942,19 @@ function _factory_fzf_catedit_submenu() {
 
 # 新增類型選擇器 - Add Type Selector
 function _factory_fzf_add_type_menu() {
-    # 選項定義
-    # 使用 fzf 的 --header-lines 無法處理中間的分隔線，所以我們直接用文字呈現
-    # 這裡用 awk 或 echo 組合
-    
-    local options="Command NA\nCommand NB\n------\nCancel"
+    local options="Command NA\nCommand NB"
     # 若要開啟 SYS/SSL，解除下方註解
-    # options="Command NA\nCommand NB\nCommand SYS #\nCommand SSL #\n------\nCancel"
+    # options="Command NA\nCommand NB\nCommand SYS #\nCommand SSL"
+
+    # 動態計算高度
+    local line_count=$(echo -e "$menu_content" | wc -l)
+    local dynamic_height=$(( line_count + 4 ))
 
     local selected=$(echo -e "$options" | fzf --ansi \
-        --height="30%" \
+        --height="$dynamic_height" \
         --layout=reverse \
         --border=top \
-        --header=" :: Select Node Type :: " \
+        --header=" :: Enter to Choose, Esc to exit :: " \
         --prompt=" Create › " \
         --pointer="››" \
         --info=hidden \
