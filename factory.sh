@@ -363,8 +363,7 @@ function fac() {
             ;;
 
         # : Break Neural (Delete Command)
-        "del") 
-            "del"|"comd"|"delcom")
+        "del"|"comd"|"delcom")
             while true; do
                 # 1. 紅色警示選單 (Global)
                 local raw_target=$(_factory_fzf_menu "Select to Destroy" "DEL")
