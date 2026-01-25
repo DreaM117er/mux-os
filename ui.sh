@@ -714,7 +714,7 @@ function _factory_fzf_cmd_in_cat() {
         }
     ' "$target_file")
     
-    # 計算數量 (用於 header 顯示)
+    # 計算數量
     local total=$(echo "$cmd_list" | grep -c "^ ")
 
     local selected=$(echo "$cmd_list" | fzf --ansi \

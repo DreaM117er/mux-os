@@ -123,13 +123,9 @@ function fac() {
             while true; do
                 local raw_target=$(_factory_fzf_menu "Select App to Inspect")
                 if [ -z "$raw_target" ]; then break; fi
-                         
-                local clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | awk -F']' '{print $2}' | awk '{print $1}')
                 
-                if [ -z "$clean_target" ]; then
-                    clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
-                fi
-
+                local clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+                
                 if [ "$view_state" == "VIEW" ]; then
                     _factory_fzf_detail_view "$clean_target" "VIEW" > /dev/null
                 fi
@@ -141,17 +137,12 @@ function fac() {
             local view_state="VIEW"
 
             while true; do
-                # Level 1: 選擇分類
                 local raw_cat=$(_factory_fzf_cat_selector)
                 if [ -z "$raw_cat" ]; then break; fi
                 
-                # [Fix] 策略更換：ID 反查法 (Source of Truth)
-                # 1. 先抓取最穩定的 ID (第一欄數字)
                 local temp_id=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
 
-                # 2. 直接去 CSV 問這個 ID 對應的名字是什麼
-                # 這樣拿到的 clean_cat 絕對跟 CSV 裡的一模一樣，不多也不少
-                local clean_cat=$(awk -F, -v tid="$temp_id" '
+                local db_name=$(awk -F, -v tid="$temp_id" '
                     NR>1 {
                         cid=$1; gsub(/^"|"$/, "", cid)
                         if (cid == tid) {
@@ -162,16 +153,14 @@ function fac() {
                     }
                 ' "$MUX_ROOT/app.csv.temp")
 
-                # 防呆
-                if [ -z "$clean_cat" ]; then clean_cat="Unknown"; fi
+                if [ -z "$db_name" ]; then 
+                    db_name=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{$1=""; print $0}' | sed 's/^[ \t]*//')
+                fi
 
                 while true; do
-                    # Level 2: 選擇指令 (傳入權威名稱)
-                    local raw_cmd=$(_factory_fzf_cmd_in_cat "$clean_cat")
+                    local raw_cmd=$(_factory_fzf_cmd_in_cat "$db_name")
                     if [ -z "$raw_cmd" ]; then break; fi
-
-                    # [Fix] 指令清洗
-                    # 這裡只做去色和前後去白，保留子指令 [SUB]
+                    
                     local clean_cmd=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
 
                     if [ "$view_state" == "VIEW" ]; then
@@ -210,25 +199,21 @@ function fac() {
             local view_state="EDIT"
 
             while true; do
-                # Level 1: 選指令
+                # Level 1: Select Command
                 local raw_target=$(_factory_fzf_menu "Select App to Edit")
                 if [ -z "$raw_target" ]; then break; fi
                 
-                # [Fix] 資料清洗 (同上)
-                local clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | awk -F']' '{print $2}' | awk '{print $1}')
-                if [ -z "$clean_target" ]; then
-                    clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
-                fi
+                # [Logic] 清洗目標字串
+                local clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
 
-                # Level 2: 進入 Detail (EDIT Mode)
+                # Level 2: Detail View (EDIT Mode)
                 if [ "$view_state" == "EDIT" ]; then
-                    # 這裡接收 detail_view 的回傳值 (選中的行)
+                    # 接收 Detail View 回傳的選擇 (準備路由)
                     local selection=$(_factory_fzf_detail_view "$clean_target" "EDIT")
                     
-                    # 如果使用者有選擇 (非 ESC)，則進入路由 (待實作)
                     if [ -n "$selection" ]; then
                         # [TODO] _fac_edit_router "$selection" ...
-                        : # No-op
+                        : # 佔位符
                     fi
                 fi
             done
@@ -239,64 +224,49 @@ function fac() {
             local view_state="EDIT"
 
             while true; do
-                # Level 1: 選擇分類
+                # Level 1: Select Category
                 local raw_cat=$(_factory_fzf_cat_selector)
                 if [ -z "$raw_cat" ]; then break; fi
                 
-                # [Step 1] 提取 ID (信任選單的第一欄絕對是 ID)
+                # [SOP 1] 提取 ID
                 local temp_id=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
 
-                # [Step 2] 權威查詢 (Database Lookup)
-                # 使用 ID 去 CSV 抓取最乾淨的 ID 和 Name
+                # [SOP 2] 查表獲取權威 ID & Name (Lookup ID/Name by ID)
                 local db_data=$(awk -F, -v tid="$temp_id" '
                     NR>1 {
-                        # 移除 CSV ID 的引號
                         cid=$1; gsub(/^"|"$/, "", cid)
-                        
                         if (cid == tid) {
-                            # 抓取 Name (第3欄)，移除引號
                             name=$3; gsub(/^"|"$/, "", name)
-                            # 輸出格式: ID|Name
                             print cid "|" name
                             exit
                         }
                     }
                 ' "$MUX_ROOT/app.csv.temp")
 
-                # [Step 3] 解析查詢結果
-                local cat_id=""
-                local cat_name=""
+                local cat_id=$(echo "$db_data" | awk -F'|' '{print $1}')
+                local cat_name=$(echo "$db_data" | awk -F'|' '{print $2}')
 
-                if [ -n "$db_data" ]; then
-                    cat_id=$(echo "$db_data" | awk -F'|' '{print $1}')
-                    cat_name=$(echo "$db_data" | awk -F'|' '{print $2}')
-                else
-                    # 如果查不到 (理論上不該發生)，使用備用方案
-                    cat_id="XX"
-                    # 嘗試從選單字串硬切
-                    cat_name=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{$1=""; print $0}' | sed 's/^[ \t]*//')
-                    if [ -z "$cat_name" ]; then cat_name="Unknown"; fi
-                fi
+                # 防呆
+                if [ -z "$cat_id" ]; then cat_id="XX"; cat_name="Unknown"; fi
 
                 while true; do
-                    # Level 2: 進入 Submenu (傳入正確的 ID 和 Name)
+                    # Level 2: Submenu (傳入權威 ID & Name)
                     local action=$(_factory_fzf_catedit_submenu "$cat_id" "$cat_name")
                     if [ -z "$action" ]; then break; fi
 
-                    # Level 3: 分歧處理
-                    # 這裡用 grep 抓關鍵字，忽略顏色和括號
+                    # Level 3: Action Branch
                     if echo "$action" | grep -q "Edit Name" ; then
-                        # Branch A: 修改標題
+                        # Branch A: Modify Category Name
                         _bot_say "warn" "Edit CATNAME [$cat_name] pending..."
                         
                     elif echo "$action" | grep -q "Edit Command in" ; then
-                        # Branch B: 修改分類下的指令
+                        # Branch B: Modify Commands in Category
                         while true; do
-                            # 搜尋時使用權威 Name
+                            # 使用權威名稱搜尋指令
                             local raw_cmd=$(_factory_fzf_cmd_in_cat "$cat_name")
                             if [ -z "$raw_cmd" ]; then break; fi
                             
-                            local clean_cmd=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
+                            local clean_cmd=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
 
                             if [ "$view_state" == "EDIT" ]; then
                                 _factory_fzf_detail_view "$clean_cmd" "EDIT"
