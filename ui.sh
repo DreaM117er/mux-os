@@ -940,6 +940,32 @@ function _factory_fzf_catedit_submenu() {
     echo "$selected"
 }
 
+# 新增類型選擇器 - Add Type Selector
+function _factory_fzf_add_type_menu() {
+    # 選項定義
+    # 使用 fzf 的 --header-lines 無法處理中間的分隔線，所以我們直接用文字呈現
+    # 這裡用 awk 或 echo 組合
+    
+    local options="Command NA\nCommand NB\n------\nCancel"
+    # 若要開啟 SYS/SSL，解除下方註解
+    # options="Command NA\nCommand NB\nCommand SYS #\nCommand SSL #\n------\nCancel"
+
+    local selected=$(echo -e "$options" | fzf --ansi \
+        --height="30%" \
+        --layout=reverse \
+        --border=top \
+        --header=" :: Select Node Type :: " \
+        --prompt=" Create › " \
+        --pointer="››" \
+        --info=hidden \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+        --bind="resize:clear-screen"
+    )
+
+    echo "$selected"
+}
+
 
 
 # 偽・星門 - UI Mask / Fake Gate

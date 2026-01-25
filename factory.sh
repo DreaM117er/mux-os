@@ -173,6 +173,7 @@ function fac() {
         # : Check & Fix Formatting
         "check")
             _fac_maintenance
+            _fac_sort_optimization
             ;;
 
         # : List all links
@@ -191,7 +192,84 @@ function fac() {
 
         # : Neural Forge (Create Command)
         "add"|"new") 
-            _bot_say "error" "New Feature Waiting"
+            # 1. 呼叫類型選單
+            local type_sel=$(_factory_fzf_add_type_menu)
+            
+            # 處理 Cancel 或 ESC
+            if [[ -z "$type_sel" || "$type_sel" == "Cancel" || "$type_sel" == *"------"* ]]; then
+                return
+            fi
+
+            # 2. 確定新增，執行備份
+            if command -v _factory_auto_backup &> /dev/null; then
+                _fac_maintenance
+                _factory_auto_backup
+            fi
+
+            # 3. 計算 COMNO (Target Category: 999 - Others)
+            # 邏輯：掃描 CATNO=999 的所有行，找出最大的 COMNO，加 1
+            local next_comno=$(awk -F, '$1==999 {gsub(/^"|"$/, "", $2); if(($2+0) > max) max=$2} END {print max+1}' "$MUX_ROOT/app.csv.temp")
+            
+            # 防呆計算
+            local com3_flag="N"
+            local target_cat="999"
+            
+            if [ -z "$next_comno" ] || [ "$next_comno" -eq 1 ]; then
+                # 如果是第一筆，或是計算失敗(awk回傳空)，設為 1
+                next_comno=1
+            fi
+            
+            # 如果計算出的數字極度不合理 (例如 awk 錯誤)，掛上 F 旗標
+            if ! [[ "$next_comno" =~ ^[0-9]+$ ]]; then
+                com3_flag="F"
+                target_cat="" # 清空 CATNO
+                next_comno="" # 清空 COMNO
+            fi
+
+            # 4. 生成暫時的指令名稱 (Unique ID)
+            # 為了讓 detail_view 能馬上找到它，我們需要一個獨一無二的名字
+            local ts=$(date +%s)
+            local temp_cmd_name="ND${ts}"
+
+            # 5. 建構 CSV 行 (Construct Row)
+            # 欄位總數：20
+            # 預設 CATNAME: "Others"
+            local new_row=""
+            
+            case "$type_sel" in
+                "Command NA")
+                    # NA 模板: TYPE=NA, COM3=N
+                    # 格式: 999,NO,"Others","NA","tmp_name",,,"N",,, ... (其餘留空)
+                    new_row="${target_cat},${next_comno},\"Others\",\"NA\",\"${temp_cmd_name}\",,\"${com3_flag}\",,,,,,,,,,,,,"
+                    ;;
+                    
+                "Command NB")
+                    # NB 模板: TYPE=NB, COM3=N, URI=$__GO_TARGET, ENGINE=$SEARCH_GOOGLE
+                    # Col 14(URI), Col 20(ENGINE)
+                    new_row="${target_cat},${next_comno},\"Others\",\"NB\",\"${temp_cmd_name}\",,\"${com3_flag}\",,,,,,,,\"$(echo '$__GO_TARGET')\",,,,,,\"$(echo '$SEARCH_GOOGLE')\""
+                    ;;
+                    
+                "Command SYS"*) 
+                    # 預留接口
+                    _bot_say "warn" "SYS Creation not implemented."
+                    return
+                    ;;
+            esac
+
+            # 6. 寫入檔案 (Append)
+            if [ -n "$new_row" ]; then
+                echo "$new_row" >> "$MUX_ROOT/app.csv.temp"
+                
+                # 7. 直接進入 EDIT 模式
+                # 這裡我們使用剛才生成的 temp_cmd_name 讓 detail_view 鎖定它
+                # 因為 detail_view 現在支援 COM3="N" 的視覺變色，使用者會看到紅色的必填框
+                
+                # [Important] 這裡要確保 detail_view 收到的是乾淨的指令名
+                _factory_fzf_detail_view "${temp_cmd_name}" "NEW"
+                
+                # [TODO] 編輯完後，記得要有一個後處理機制（例如移除 N 旗標、重新排序等）
+                # 這部分屬於 _fac_maintenance 的範疇，目前先不處理
+            fi
             ;;
 
         # : Edit Neural (Edit Command)
@@ -527,159 +605,104 @@ function _factory_deploy_sequence() {
 
 # 機體維護工具 (Mechanism Maintenance)
 function _fac_maintenance() {
-    local main_target="$MUX_ROOT/app.csv.temp"
-    local other_targets=("$MUX_ROOT/system.csv" "$MUX_ROOT/vendor.csv")
+    _bot_say "system" "Scanning Neural Integrity..."
     
-    echo -e "${F_MAIN} :: Initiating Mechanism Maintenance (Data Integrity)...${F_RESET}"
-    
-    # 大破修復 - for app.csv.temp 
-    if [ -f "$main_target" ]; then
-        echo -e "${F_GRAY}    ›› Deep Scanning: $(basename "$main_target")...${F_RESET}"
+    local target_file="$MUX_ROOT/app.csv.temp"
+    local temp_file="${target_file}.chk"
 
-        if [ -n "$(tail -c 1 "$main_target")" ]; then echo "" >> "$main_target"; fi
+    if [ ! -f "$target_file" ]; then return; fi
 
-        local temp_out="${main_target}.chk"
+    # 使用 awk 進行逐行掃描與修復
+    awk -F, -v OFS=, '
+        # Header 直接通過
+        NR==1 { print; next }
         
-        awk -v FPAT='([^,]*)|("[^"]+")' -v OFS=',' '
-        BEGIN {
-            C_RED="\033[1;31m"; C_YEL="\033[1;33m"; C_RES="\033[0m"
-        }
-        
-        # 學習階段 (建立分類映射表)
-        NR > 1 {
-            lines[NR] = $0
-            c_no = $1; gsub(/^"|"$/, "", c_no)
-            c_name = $3; gsub(/^"|"$/, "", c_name)
-            if (c_no != "" && c_name != "" && c_name != "Others") {
-                cat_map[c_no] = c_name
-            }
-        }
-
-        # 執行階段 (檢查與修正)
-        END {
-            getline header < FILENAME
-            print header
+        {
+            # 1. 提取關鍵欄位 (去除引號)
+            type=$4;  gsub(/^"|"$/, "", type)
+            pkg=$10;  gsub(/^"|"$/, "", pkg)
+            tgt=$11;  gsub(/^"|"$/, "", tgt)
+            uri=$14;  gsub(/^"|"$/, "", uri)
             
-            for (i = 2; i <= NR; i++) {
-                $0 = lines[i]
-                status = "OK"
-                msg = ""
-                flag_lock = "" # 指令標記
-                
-                # 欄位解析
-                cat_no = $1;  gsub(/^"|"$/, "", cat_no)
-                type   = $4;  gsub(/^"|"$/, "", type)
-                com    = $5;  gsub(/^"|"$/, "", com)
-                com2   = $6;  gsub(/^"|"$/, "", com2)
-                pkg    = $10; gsub(/^"|"$/, "", pkg)
-                target = $11; gsub(/^"|"$/, "", target)
-                ihead  = $12; gsub(/^"|"$/, "", ihead)
-                ibody  = $13; gsub(/^"|"$/, "", ibody)
-                
-                # 進階參數解析
-                flg    = $17; gsub(/^"|"$/, "", flg)
-                ex     = $18; gsub(/^"|"$/, "", ex)
-                extra  = $19; gsub(/^"|"$/, "", extra)
-                
-                # 指令結構檢查
-                if (com == "" && com2 != "") {
-                    status = "ERR"; flag_lock = "F"; msg = "Invalid Command Structure (COM2 only)";
+            # 預設驗證狀態：失敗 (0) - 採用白名單機制
+            valid = 0
+            
+            # 2. 核心規則對接 (Core Rules Mapping)
+            if (type == "NA") {
+                # NA 規則：必須具備 Package 和 Target
+                if (pkg != "" && tgt != "") {
+                    valid = 1
                 }
-
-                # AM 核心參數檢查
-                if (type == "NA") {
-                    # NA: Explicit Intent (PKG + CLASS)
-                    if (pkg == "" || target == "") {
-                        status = "ERR"; flag_lock = "F"; msg = "Type NA missing PKG/TARGET";
-                    }
-                } else if (type == "NB" || type == "SYS") {
-                    if (ihead == "" || ibody == "") {
-                        status = "ERR"; flag_lock = "F"; msg = "Type " type " missing ACTION (IHEAD+IBODY)";
-                    }
-                }
-
-                # EX-EXTRA 參數耦合檢查
-                if ( (ex == "" && extra != "") || (ex != "" && extra == "") ) {
-                    status = "ERR"; flag_lock = "F"; msg = "Broken Parameter Coupling (EX/EXTRA mismatch)";
-                }
-
-                # Flags 格式檢查
-                if (flg != "") {
-                    if (flg !~ /^[0-9]+$/ && flg !~ /^0x[0-9a-fA-F]+$/) {
-                        status = "ERR"; flag_lock = "F"; msg = "Invalid Flag Format (Must be Int or Hex)";
-                    }
-                }
-
-                # 矩陣排序檢查
-                cat_fix = 0
-                if (cat_no == "") {
-                    status = "ERR"; flag_lock = "F"; msg = "Missing Category Index";
-                    cat_fix = 1;
-                } else if (cat_map[cat_no] == "") {
-                    msg = "Unknown Category ID: " cat_no " -> Auto-classified to Others";
-                    if (status == "OK") { 
-                        print C_YEL "    ›› [INFO] Line " i ": " msg C_RES > "/dev/stderr"
-                    }
-                    cat_fix = 1;
-                } else {
-                    # 自動校正分類名稱
-                    $3 = "\"" cat_map[cat_no] "\""
-                }
-
-                # 執行分類修復
-                if (cat_fix == 1) {
-                    $1 = 999
-                    $3 = "\"Others\""
-                }
-
-                # COM3寫入
-                if (status == "ERR") {
-                    $7 = "\"F\""
-                    print C_RED "    ›› [ERR] Line " i ": " msg " -> Locked (F)" C_RES > "/dev/stderr"
-                } else if (status == "WARN") {
-                    $7 = "\"W\""
-                    print C_YEL "    ›› [WARN] Line " i ": " msg " -> Warning (W)" C_RES > "/dev/stderr"
-                } else {
-                    $7 = "" # 清空標記
-                }
-                
-                print $0
             }
+            else if (type == "NB") {
+                # NB 規則：必須具備 URI
+                if (uri != "") {
+                    valid = 1
+                }
+            }
+            else if (type == "SYS" || type == "SSL") {
+                # [預留] 系統指令暫時放行，或定義更嚴格規則
+                valid = 1
+            }
+            
+            # 3. 異常處置 (Execution)
+            if (valid == 0) {
+                # [Action] 不合規：清空 ID，掛上 F 旗標
+                $1 = ""       # CATNO 清空
+                $2 = ""       # COMNO 清空
+                $7 = "\"F\""  # COM3 掛上 "F"
+            } else {
+                # [Action] 合規：如果原本是 F，嘗試移除 F (可選)
+                # 這裡暫不自動移除 F，讓使用者手動確認，或之後在 sort 移除
+            }
+            
+            # 4. 輸出結果
+            print $0
         }
-        ' "$main_target" > "$temp_out"
+    ' "$target_file" > "$temp_file"
 
-        # 排序整理 (Sort)
-        local header=$(head -n 1 "$temp_out")
-        local body=$(tail -n +2 "$temp_out" | sort -t',' -k1,1n -k2,2n)
-        
-        echo "$header" > "$main_target"
-        echo "$body" >> "$main_target"
-        rm -f "$temp_out"
-        
-        echo -e "${F_WARN}    ›› Integrity Check & Sort Complete. ✅${F_RESET}"
+    # 覆蓋原始檔案
+    if [ -s "$temp_file" ]; then
+        mv "$temp_file" "$target_file"
+        _bot_say "success" "Neural Nodes Verified."
+    else
+        rm "$temp_file"
+        _bot_say "error" "Maintenance Failed: Output empty."
+    fi
+}
+
+# 系統序列重整與優化 - System Sort Optimization
+function _fac_sort_optimization() {
+    _bot_say "system" "Optimizing Neural Sequence..."
+
+    local target_file="$MUX_ROOT/app.csv.temp"
+    local temp_file="${target_file}.sorted"
+
+    # 1. 安全檢查
+    if [ ! -f "$target_file" ]; then
+        _bot_say "error" "Target Neural Map not found."
+        return 1
     fi
 
-    # 基礎維護 - for system/vendor
-    for file in "${other_targets[@]}"; do
-        if [ -f "$file" ]; then
-            if [ -n "$(tail -c 1 "$file")" ]; then echo "" >> "$file"; fi
-            local row_count=$(wc -l < "$file")
-            if [ "$row_count" -gt 1 ]; then
-                local header=$(head -n 1 "$file")
-                local body_raw=$(tail -n +2 "$file")
-                local body_sorted=$(echo "$body_raw" | sort -t',' -k1,1n -k2,2n)
-                
-                if [ "$body_raw" != "$body_sorted" ]; then
-                     echo "$header" > "$file"
-                     echo "$body_sorted" >> "$file"
-                fi
-            fi
-        fi
-    done
+    # 2. 分離 Header 與 Data
+    # Header 寫入暫存
+    head -n 1 "$target_file" > "$temp_file"
 
-    sleep 0.5
-    echo -e ""
-    _bot_say "factory" "Mechanism maintenance complete, Commander."
+    # 3. 執行數值排序 (Sort Logic)
+    # -t,      : 分隔符
+    # -k1,1n   : 第一欄 (CATNO) 數值排序 (空值會浮到最上)
+    # -k2,2n   : 第二欄 (COMNO) 數值排序
+    # tail -n +2 : 跳過 Header
+    tail -n +2 "$target_file" | sort -t',' -k1,1n -k2,2n >> "$temp_file"
+
+    # 4. 覆蓋原始檔案
+    if [ -s "$temp_file" ]; then
+        mv "$temp_file" "$target_file"
+        _bot_say "success" "Sequence Optimized. Nodes Realigned."
+    else
+        rm "$temp_file"
+        _bot_say "error" "Optimization Failed: Empty Output."
+    fi
 }
 
 # 核心編輯路由器 (The Logic Router)
