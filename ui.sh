@@ -401,7 +401,7 @@ function _mux_fuzzy_menu() {
         BEGIN {
             C_CMD="\x1b[1;37m"
             C_DESC="\x1b[1;30m"
-            C_SUB="\x1b[1;34m" 
+            C_SUB="\x1b[1;34m"
             C_RESET="\x1b[0m"
         }
         
@@ -425,7 +425,7 @@ function _mux_fuzzy_menu() {
                 display_name = cmd
             }
 
-            printf " %s%-12s %s%s\n", C_CMD, display_name, C_DESC, desc;
+            printf " %s%s %s%s\n", C_CMD, display_name, C_DESC, desc;
         }
     ')
 
