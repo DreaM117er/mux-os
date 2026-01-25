@@ -284,19 +284,23 @@ function fac() {
                 local raw_target=$(_factory_fzf_menu "Select App to Edit")
                 if [ -z "$raw_target" ]; then break; fi
                 
-                # [Logic] 清洗目標字串
+                # 清洗目標字串
                 local clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
 
                 # Level 2: Detail View (EDIT Mode)
-                if [ "$view_state" == "EDIT" ]; then
-                    # 接收 Detail View 回傳的選擇 (準備路由)
+                while true; do
+                    # 傳入 EDIT 模式，獲取帶有 ROOM_ID 的原始字串
                     local selection=$(_factory_fzf_detail_view "$clean_target" "EDIT")
                     
-                    if [ -n "$selection" ]; then
-                        # [TODO] _fac_edit_router "$selection" ...
-                        : # 佔位符
+                    if [ -z "$selection" ]; then 
+                        break # 如果按 Esc，跳回上一層 (選指令)
                     fi
-                fi
+                    
+                    # [Core] 進入路由器
+                    _fac_edit_router "$selection" "$clean_target"
+                    
+                    # 編輯完回來後，迴圈會繼續，重新顯示 Detail View (刷新數值)
+                done
             done
             ;;
 
@@ -338,6 +342,7 @@ function fac() {
                     # Level 3: Action Branch
                     if echo "$action" | grep -q "Edit Name" ; then
                         # Branch A: Modify Category Name
+                        # [TODO] 這裡未來也可以做一個簡單的 Router 或者直接呼叫輸入框
                         _bot_say "warn" "Edit CATNAME [$cat_name] pending..."
                         
                     elif echo "$action" | grep -q "Edit Command in" ; then
@@ -347,10 +352,22 @@ function fac() {
                             local raw_cmd=$(_factory_fzf_cmd_in_cat "$cat_name")
                             if [ -z "$raw_cmd" ]; then break; fi
                             
-                            local clean_cmd=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+                            local clean_target=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
 
                             if [ "$view_state" == "EDIT" ]; then
-                                _factory_fzf_detail_view "$clean_cmd" "EDIT"
+                                # [Core Integration] 接入編輯路由器迴圈
+                                while true; do
+                                    # 1. 顯示 Detail View (獲取帶有 ROOM_ID 的字串)
+                                    local selection=$(_factory_fzf_detail_view "$clean_target" "EDIT")
+                                    
+                                    # 如果按 Esc，跳出 Detailed View，回到指令選擇列表
+                                    if [ -z "$selection" ]; then break; fi
+                                    
+                                    # 2. 丟給 Router 處理 (進入房間)
+                                    _fac_edit_router "$selection" "$clean_target"
+                                    
+                                    # 3. 房間處理完後，迴圈繼續，重新渲染 Detail View 顯示最新數值
+                                done
                             fi
                         done
                     fi
@@ -369,10 +386,16 @@ function fac() {
                 local clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
                 
                 # 解析 COM 與 COM2
-                local t_com=$(echo "$clean_target" | awk '{print $1}')
+                local t_com=""
                 local t_sub=""
+
                 if [[ "$clean_target" == *"'"* ]]; then
+                    # 有子指令：切割並去除 t_com 尾端的空格
+                    t_com=$(echo "$clean_target" | awk -F"'" '{print $1}' | sed 's/[ \t]*$//')
                     t_sub=$(echo "$clean_target" | awk -F"'" '{print $2}')
+                else
+                    # 無子指令
+                    t_com="$clean_target"
                 fi
 
                 # 3. 確認刪除
@@ -460,10 +483,13 @@ function fac() {
                         
                         # 清洗與解析 (含 Sub Command 修正)
                         local clean_target=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
-                        local t_com=$(echo "$clean_target" | awk '{print $1}')
+                        local t_com=""
                         local t_sub=""
                         if [[ "$clean_target" == *"'"* ]]; then
+                            t_com=$(echo "$clean_target" | awk -F"'" '{print $1}' | sed 's/[ \t]*$//')
                             t_sub=$(echo "$clean_target" | awk -F"'" '{print $2}')
+                        else
+                            t_com="$clean_target"
                         fi
 
                         echo -e "\033[1;31m :: WARNING: Deleting Node [$clean_target] from [$db_name]\033[0m"
@@ -952,45 +978,56 @@ function _fac_matrix_defrag() {
 # 核心編輯路由器 (The Logic Router)
 function _fac_edit_router() {
     local raw_selection="$1"
-    local row_idx="$2"  # 知道要改哪一行 CSV
-    local type="$3"     # 知道是 NA 還是 NB
-
-    if [ -z "$raw_selection" ]; then return; fi
-
-    # 1. 解析 Label (去除顏色代碼，抓冒號前面的字)
-    local label=$(echo "$raw_selection" | sed 's/\x1b\[[0-9;]*m//g' | awk -F':' '{print $1}' | xargs)
-
-    # 2. 狀態機判斷 (Case Switch)
-    case "$label" in
-        "Command")   _fac_update_cell "$row_idx" 5 "$(_factory_input_monitor "COM" "" "$type")" ;;
-        "Command 2") _fac_update_cell "$row_idx" 6 "$(_factory_input_monitor "COM2" "" "$type")" ;;
-        "HUD Name")  _fac_update_cell "$row_idx" 8 "$(_factory_input_monitor "HUDNAME" "" "$type")" ;;
-        "UI Name")   _fac_update_cell "$row_idx" 9 "$(_factory_input_monitor "UINAME" "" "$type")" ;;
-        
-        # NA 區
-        "Package")   _fac_update_cell "$row_idx" 10 "$(_factory_input_monitor "PKG" "" "$type")" ;;
-        "Target")    _fac_update_cell "$row_idx" 11 "$(_factory_input_monitor "TARGET" "" "$type")" ;;
-        "Flags")     _fac_update_cell "$row_idx" 17 "$(_factory_input_monitor "FLAG" "" "$type")" ;;
-        
-        # NB 區
-        "Intent")    # 特殊處理：可能要跳子選單問 Head 還是 Body
-             local sub=$(_factory_fzf_submenu "Head|Body")
-             if [ "$sub" == "Head" ]; then _fac_update_cell "$row_idx" 12 "$(_factory_input_monitor "IHEAD" "" "$type")"; fi
-             if [ "$sub" == "Body" ]; then _fac_update_cell "$row_idx" 13 "$(_factory_input_monitor "IBODY" "" "$type")"; fi
-             ;;
-        "URI")       
-             # 智慧判斷邏輯放在這裡
-             local val=$(_factory_input_monitor "URI/ENGINE" "" "$type")
-             if [[ "$val" == *"%s"* ]]; then
-                 _fac_update_cell "$row_idx" 20 "$val"
-                 _fac_update_cell "$row_idx" 14 "\$__GO_TARGET"
-             else
-                 _fac_update_cell "$row_idx" 14 "$val"
-                 _fac_update_cell "$row_idx" 20 ""
-             fi
-             ;;
-             
-        *) _bot_say "warn" "Field [$label] is read-only or not mapped." ;;
+    local target_key="$2"
+    
+    # 1. 切割出房間代碼 (取分隔符 │ 後面的部分)
+    local room_id=$(echo "$raw_selection" | awk -F'│' '{print $2}')
+    
+    # 2. 狀態機分流
+    case "$room_id" in
+        "ROOM_CMD")
+            _bot_say "system" "[Room] Entering Command Editor for $target_key"
+            # [TODO] _fac_room_cmd "$target_key"
+            ;;
+        "ROOM_HUD")
+            _bot_say "system" "[Room] Entering HUD Editor..."
+            # [TODO] _fac_room_hud "$target_key"
+            ;;
+        "ROOM_UI")
+            _bot_say "system" "[Room] Entering UI Mode Selector..."
+            ;;
+        "ROOM_PKG")
+            _bot_say "system" "[Room] Entering Package Editor..."
+            ;;
+        "ROOM_ACT")
+            _bot_say "system" "[Room] Entering Action/Target Editor..."
+            ;;
+        "ROOM_FLAG")
+            _bot_say "system" "[Room] Entering Flag Editor..."
+            ;;
+        "ROOM_INTENT")
+            _bot_say "system" "[Room] Entering Intent Construction..."
+            ;;
+        "ROOM_URI")
+            _bot_say "system" "[Room] Entering URI/Engine Editor..."
+            ;;
+        "ROOM_LOOKUP")
+            # [Nav] 實作查找功能
+            if command -v apklist &> /dev/null; then
+                _bot_say "action" "Launching Reference Tool..."
+                apklist
+                echo -e "\n\033[1;30m[Press Enter to return to Factory]\033[0m"
+                read
+            else
+                _bot_say "error" "Tool 'apklist' not found." # 待測試文字跳出效果
+            fi
+            ;;
+        "ROOM_INFO")
+            # 點到標題，不做事
+            ;;
+        *)
+            # 點到無效區域 (如分隔線)
+            ;;
     esac
 }
 

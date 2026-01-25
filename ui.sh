@@ -678,7 +678,7 @@ function _factory_fzf_cat_selector() {
     
     # --- 1. 樣式定義 ---
     local border_color="208"
-    local header_msg=" :: Category Filter Mode :: "
+    local header_msg=" :: CATEGORY FILTER MODE :: "
     local prompt_msg="Select Category › "
 
     case "$mode" in
@@ -819,6 +819,9 @@ function _factory_fzf_detail_view() {
             C_EMP_R="\033[1;31m[Empty]\033[0m"
             C_EMP_Y="\033[1;33m[Empty]\033[0m"
             C_UNK="\033[1;30m[Unknown]\033[0m"
+
+            # Set Room Label
+            S="│"
         }
 
         !/^#/ && NF >= 5 {
@@ -883,35 +886,36 @@ function _factory_fzf_detail_view() {
                 if (engine != "[Empty]") final_uri = engine
 
                 if (type == "NA" || type == "NA") { 
-                    printf "%s[%s]%s\n", C_TAG, catname, C_RST
-                    printf "%s[%03d:%2s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
-                    printf " %sCommand:%s %s\n", C_LBL, C_VAL, command_str
-                    printf " %sDetail :%s %s\n", C_LBL, C_VAL, hud
-                    printf " %sUI     :%s %s\n", C_LBL, C_VAL, ui
+                    printf "%s[%s]%s%sROOM_INFO\n", C_TAG, catname, C_RST, S
+                    printf "%s[%03d:%2s]%s[%s: %s]%s%sROOM_INFO\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST, S
+                    printf " %sCommand:%s %s%sROOM_CMD\n", C_LBL, C_VAL, command_str, S
+                    printf " %sDetail :%s %s%sROOM_HUD\n", C_LBL, C_VAL, hud, S
+                    printf " %sUI     :%s %s%sROOM_UI\n", C_LBL, C_VAL, ui, S
                     printf "%s%s%s\n", C_LBL, sep, C_RST
-                    printf " %sPackage:%s %s\n", C_LBL, C_VAL, pkg
-                    printf " %sTarget :%s %s\n", C_LBL, C_VAL, act
-                    printf " %sFlag   :%s %s\n", C_LBL, C_VAL, flag
+                    printf " %sPackage:%s %s%sROOM_PKG\n", C_LBL, C_VAL, pkg, S
+                    printf " %sTarget :%s %s%sROOM_ACT\n", C_LBL, C_VAL, act, S
+                    printf " %sFlag   :%s %s%sROOM_FLAG\n", C_LBL, C_VAL, flag, S
                 }
                 else if (type == "NB") {
-                    printf "%s[%s]%s\n", C_TAG, catname, C_RST
-                    printf "%s[%03d:%2s]%s[%s: %s]%s\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST
-                    printf " %sCommand:%s %s\n", C_LBL, C_VAL, command_str
-                    printf " %sDetail :%s %s\n", C_LBL, C_VAL, hud
-                    printf " %sUI     :%s %s\n", C_LBL, C_VAL, ui
+                    printf "%s[%s]%s%sROOM_INFO\n", C_TAG, catname, C_RST, S
+                    printf "%s[%03d:%2s]%s[%s: %s]%s%sROOM_INFO\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST, S
+                    printf " %sCommand:%s %s%sROOM_CMD\n", C_LBL, C_VAL, command_str, S
+                    printf " %sDetail :%s %s%sROOM_HUD\n", C_LBL, C_VAL, hud, S
+                    printf " %sUI     :%s %s%sROOM_UI\n", C_LBL, C_VAL, ui, S
                     printf "%s%s%s\n", C_LBL, sep, C_RST
-                    printf " %sIntent :%s %s%s\n", C_LBL, C_VAL, ihead, ibody
-                    printf " %sURI    :%s %s\n", C_LBL, C_VAL, final_uri
-                    printf " %sCate   :%s %s\n", C_LBL, C_VAL, cate
-                    printf " %sMime   :%s %s\n", C_LBL, C_VAL, mime
-                    printf " %sEXTRA  :%s %s %s\n", C_LBL, C_VAL, ex, extra
-                    printf " %sPackage:%s %s\n", C_LBL, C_VAL, pkg
-                    printf " %sTarget :%s %s\n", C_LBL, C_VAL, act
+                    printf " %sIntent :%s %s%s%sROOM_INTENT\n", C_LBL, C_VAL, ihead, ibody, S
+                    printf " %sURI    :%s %s%sROOM_URI\n", C_LBL, C_VAL, final_uri, S
+                    printf " %sCate   :%s %s%sROOM_CATE\n", C_LBL, C_VAL, cate, S
+                    printf " %sMime   :%s %s%sROOM_MIME\n", C_LBL, C_VAL, mime, S
+                    printf " %sExtra  :%s %s %s%sROOM_EXTRA\n", C_LBL, C_VAL, ex, extra, S
+                    printf " %sPackage:%s %s%sROOM_PKG\n", C_LBL, C_VAL, pkg, S
+                    printf " %sTarget :%s %s%sROOM_ACT\n", C_LBL, C_VAL, act, S
                 }
                 
                 if (mode == "NEW") {
                     printf "%s%s%s\n", C_LBL, sep, C_RST
-                    printf "  \033[1;32m[ Confirm ]\033[0m\n"
+                    printf "\033[1;36m[Lookup] 'apklist'\033[0m\n", S
+                    printf "\033[1;32m[Confirm]\033[0m\n", S
                 }
                 exit
             }
@@ -923,7 +927,7 @@ function _factory_fzf_detail_view() {
     local line_count=$(echo "$report" | wc -l)
     local dynamic_height=$(( line_count + 4 ))
 
-    local header_text=" :: Detail Control :: "
+    local header_text=" :: DETIAL CONTROL :: "
     local border_color="208"
 
     case "$view_mode" in
@@ -936,7 +940,7 @@ function _factory_fzf_detail_view() {
             border_color="208" # 橘色
             ;;
         "VIEW"|*)
-            header_text=" :: Detail Control :: "
+            header_text=" :: DETIAL CONTROL :: "
             border_color="208" # 橘色
             ;;
     esac
