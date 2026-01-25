@@ -614,10 +614,9 @@ function _factory_fzf_menu() {
             prompt_msg="DELETE › "
             ;;
         "NEW")
-            border_color="46"  # 綠色
+            border_color="46"
             ;;
         *)
-            # VIEW / EDIT 保持橘色
             border_color="208"
             ;;
     esac
@@ -626,6 +625,7 @@ function _factory_fzf_menu() {
         BEGIN {
             C_CMD="\x1b[1;37m"
             C_DESC="\x1b[1;30m"
+            C_SUB="\x1b[1;34m"  # 新增 Sub 顏色
             C_RESET="\x1b[0m"
         }
         
@@ -636,12 +636,12 @@ function _factory_fzf_menu() {
             gsub(/^"|"$/, "", $8); desc = $8
 
             if (sub_cmd != "") {
-                display = cmd " " sub_cmd ""
+                display = cmd " " C_SUB "[" sub_cmd "]" C_RESET
             } else {
                 display = cmd
             }
 
-            printf " %s%-12s %s%s\n", C_CMD, display, C_DESC, desc
+            printf " %s%-16s %s%s\n", C_CMD, display, C_DESC, desc
         }
     ' "$target_file")
 
@@ -665,7 +665,7 @@ function _factory_fzf_menu() {
     )
 
     if [ -n "$selected" ]; then
-        echo "$selected" | awk '{print $1, $2}' | sed 's/^[ \t]*//;s/[ \t]*$//'
+        echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//'
     fi
 }
 
@@ -990,13 +990,8 @@ function _factory_fzf_catedit_submenu() {
             ;;
     esac
     
-    # 動態計算高度
-    local line_count=$(echo -e "$menu_content" | wc -l)
-    local dynamic_height=$(( line_count + 4 ))
-    
-    # [Config] Border=Dynamic, Pointer=red(紅)
     local selected=$(echo -e "$menu_content" | fzf --ansi \
-        --height="$dynamic_height" \
+        --height=5 \
         --layout=reverse \
         --border=bottom \
         --border-label="$header_text" \

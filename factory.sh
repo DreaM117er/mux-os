@@ -174,6 +174,7 @@ function fac() {
         "check")
             _fac_maintenance
             _fac_sort_optimization
+            _fac_matrix_defrag
             ;;
 
         # : List all links
@@ -357,30 +358,24 @@ function fac() {
             done
             ;;
 
-        # : Load Neural (Test Command)
-        "load"|"test") 
-            echo -e "${F_SUB} :: Command Need Build${F_RESET}"
-            ;;
-
         # : Break Neural (Delete Command)
         "del"|"comd"|"delcom")
             while true; do
-                # 1. 紅色警示選單 (Global)
+                # 1. 紅色警示選單
                 local raw_target=$(_factory_fzf_menu "Select to Destroy" "DEL")
                 if [ -z "$raw_target" ]; then break; fi
                 
                 # 2. 清洗與解析座標
                 local clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
                 
-                # 解析 COM 與 COM2 (Sub)
-                # 使用與 detail_view 相同的解析邏輯
+                # 解析 COM 與 COM2
                 local t_com=$(echo "$clean_target" | awk '{print $1}')
                 local t_sub=""
                 if [[ "$clean_target" == *\[*\] ]]; then
                     t_sub=$(echo "$clean_target" | awk -F'[][]' '{print $2}')
                 fi
 
-                # 3. 確認刪除 (Double Check)
+                # 3. 確認刪除
                 echo -e "\033[1;31m :: WARNING: Deleting Node [ $clean_target ] \033[0m"
                 echo -ne "\033[1;33m    ›› Confirm destruction? [Y/n]: \033[0m"
                 read -r choice
@@ -393,25 +388,21 @@ function fac() {
                     _factory_auto_backup
                 fi
 
-                # 5. 執行物理刪除 (Awk Exclude Logic)
-                # 邏輯：印出所有「不匹配」的行 -> 寫入暫存 -> 覆蓋
+                # 5. 物理刪除
                 local target_file="$MUX_ROOT/app.csv.temp"
                 local temp_del="${target_file}.del"
                 
                 awk -F, -v c="$t_com" -v s="$t_sub" '
                     {
-                        # 提取 CSV 欄位並去引號
                         csv_c=$5; gsub(/^"|"$/, "", csv_c)
                         csv_s=$6; gsub(/^"|"$/, "", csv_s)
                         
-                        # 判定是否為目標行
                         is_target = 0
                         if (csv_c == c) {
                             if (s == "" && csv_s == "") is_target = 1
                             if (s != "" && csv_s == s) is_target = 1
                         }
 
-                        # 只印出非目標行 (保留 Header)
                         if (is_target == 0 || NR == 1) {
                             print $0
                         }
@@ -420,8 +411,9 @@ function fac() {
                 
                 mv "$temp_del" "$target_file"
                 
-                # 6. 序列重整 (排序 COMNO)
+                # 6. 排序 + 重組
                 _fac_sort_optimization
+                _fac_matrix_defrag
             done
             ;;
         
@@ -432,65 +424,94 @@ function fac() {
                 local raw_cat=$(_factory_fzf_cat_selector "DEL")
                 if [ -z "$raw_cat" ]; then break; fi
                 
-                # [SOP] ID 查表法
+                # 解析 ID 與 Name
                 local temp_id=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
                 local db_name=$(awk -F, -v tid="$temp_id" 'NR>1 {cid=$1; gsub(/^"|"$/, "", cid); if(cid==tid){name=$3; gsub(/^"|"$/, "", name); print name; exit}}' "$MUX_ROOT/app.csv.temp")
                 if [ -z "$db_name" ]; then db_name="Unknown"; fi
 
-                while true; do
-                    # Level 2: 選擇指令 (紅色模式)
-                    local raw_cmd=$(_factory_fzf_cmd_in_cat "$db_name" "DEL")
-                    if [ -z "$raw_cmd" ]; then break; fi
+                # Level 2: 戰術決策 (Dissolve or Purge)
+                # 這裡使用一個臨時的 fzf 選單來決定對分類的操作
+                local action=$(echo -e "Dissolve Category (Merge to Others)\nPurge Specific Commands" | fzf --ansi \
+                    --height=6 \
+                    --layout=reverse \
+                    --border=bottom \
+                    --prompt=" Action for [$db_name] › " \
+                    --header=" :: Select Tactical Operation :: " \
+                    --color=info:240,prompt:196,pointer:196,marker:196,border:196,header:240)
+                
+                if [ -z "$action" ]; then continue; fi
+
+                # Branch A: 解散分類 (Dissolve)
+                if [[ "$action" == *"Dissolve"* ]]; then
+                    echo -e "\033[1;31m :: CRITICAL: Dissolving Category [$db_name] [$temp_id] \033[0m"
+                    echo -e "\033[1;30m    All assets will be transferred to 'Others' [999].\033[0m"
+                    echo -ne "\033[1;33m    ›› TYPE 'CONFIRM' TO DISOLUTION?\033[0m"
+                    read -r confirm
                     
-                    # 清洗與解析
-                    local clean_target=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
-                    
-                    local t_com=$(echo "$clean_target" | awk '{print $1}')
-                    local t_sub=""
-                    if [[ "$clean_target" == *\[*\] ]]; then
-                        t_sub=$(echo "$clean_target" | awk -F'[][]' '{print $2}')
+                    if [ "$confirm" == "CONFIRM" ]; then
+                        if command -v _factory_auto_backup &> /dev/null; then _factory_auto_backup; fi
+                        
+                        _fac_safe_merge "999" "$temp_id"
+                        
+                        break
+                    else
+                        _bot_say "system" "Operation Aborted."
                     fi
 
-                    # 確認刪除
-                    echo -e "\033[1;31m :: WARNING: Deleting Node [ $clean_target ] from [ $db_name ] \033[0m"
-                    echo -ne "\033[1;33m    ›› Confirm destruction? [Y/n]: \033[0m"
-                    read -r choice
-                    if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
-                        continue
-                    fi
+                # Branch B: 肅清指令 (Purge)
+                elif [[ "$action" == *"Purge"* ]]; then
+                    while true; do
+                        local raw_cmd=$(_factory_fzf_cmd_in_cat "$db_name" "DEL")
+                        if [ -z "$raw_cmd" ]; then break; fi
+                        
+                        local clean_target=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+                        
+                        local t_com=$(echo "$clean_target" | awk '{print $1}')
+                        local t_sub=""
+                        if [[ "$clean_target" == *\[*\] ]]; then
+                            t_sub=$(echo "$clean_target" | awk -F'[][]' '{print $2}')
+                        fi
 
-                    # 備份
-                    if command -v _factory_auto_backup &> /dev/null; then _factory_auto_backup; fi
+                        echo -e "\033[1;31m :: WARNING: Deleting Node [ $clean_target ] from [ $db_name ] \033[0m"
+                        echo -ne "\033[1;33m    ›› Confirm destruction? [Y/n]: \033[0m"
+                        read -r choice
+                        if [[ "$choice" != "y" && "$choice" != "Y" ]]; then continue; fi
 
-                    # 物理刪除
-                    local target_file="$MUX_ROOT/app.csv.temp"
-                    local temp_del="${target_file}.del"
-                    
-                    awk -F, -v c="$t_com" -v s="$t_sub" '
-                        {
-                            csv_c=$5; gsub(/^"|"$/, "", csv_c)
-                            csv_s=$6; gsub(/^"|"$/, "", csv_s)
-                            
-                            is_target = 0
-                            if (csv_c == c) {
-                                if (s == "" && csv_s == "") is_target = 1
-                                if (s != "" && csv_s == s) is_target = 1
+                        if command -v _factory_auto_backup &> /dev/null; then _factory_auto_backup; fi
+
+                        # 物理刪除
+                        local target_file="$MUX_ROOT/app.csv.temp"
+                        local temp_del="${target_file}.del"
+                        awk -F, -v c="$t_com" -v s="$t_sub" '
+                            {
+                                csv_c=$5; gsub(/^"|"$/, "", csv_c)
+                                csv_s=$6; gsub(/^"|"$/, "", csv_s)
+                                is_target = 0
+                                if (csv_c == c) {
+                                    if (s == "" && csv_s == "") is_target = 1
+                                    if (s != "" && csv_s == s) is_target = 1
+                                }
+                                if (is_target == 0 || NR == 1) print $0
                             }
-                            if (is_target == 0 || NR == 1) print $0
-                        }
-                    ' "$target_file" > "$temp_del"
-                    
-                    mv "$temp_del" "$target_file"
-                    
-                    # 序列重整
-                    _fac_sort_optimization
-                done
+                        ' "$target_file" > "$temp_del"
+                        mv "$temp_del" "$target_file"
+                        
+                        # 序列重整 + 矩陣重組
+                        _fac_sort_optimization
+                        _fac_matrix_defrag
+                    done
+                fi
             done
             ;;
 
         # : Time Stone Undo (Rebak)
         "undo"|"rebak")
             _fac_rebak_wizard
+            ;;
+
+        # : Load Neural (Test Command)
+        "load"|"test") 
+            echo -e "${F_SUB} :: Command Need Build${F_RESET}"
             ;;
 
         # : Show Factory Info
@@ -735,7 +756,6 @@ function _fac_maintenance() {
 
     if [ ! -f "$target_file" ]; then return; fi
 
-    # 使用 awk 進行逐行掃描與修復
     awk -F, -v OFS=, '
         NR==1 { print; next }
         
@@ -785,7 +805,6 @@ function _fac_maintenance() {
         }
     ' "$target_file" > "$temp_file"
 
-    # 覆蓋原始檔案
     if [ -s "$temp_file" ]; then
         mv "$temp_file" "$target_file"
         _bot_say "success" "Neural Nodes Verified."
@@ -802,30 +821,155 @@ function _fac_sort_optimization() {
     local target_file="$MUX_ROOT/app.csv.temp"
     local temp_file="${target_file}.sorted"
 
-    # 1. 安全檢查
     if [ ! -f "$target_file" ]; then
         _bot_say "error" "Target Neural Map not found."
         return 1
     fi
 
-    # 2. 分離 Header 與 Data
-    # Header 寫入暫存
     head -n 1 "$target_file" > "$temp_file"
 
-    # 3. 執行數值排序 (Sort Logic)
-    # -t,      : 分隔符
-    # -k1,1n   : 第一欄 (CATNO) 數值排序 (空值會浮到最上)
-    # -k2,2n   : 第二欄 (COMNO) 數值排序
-    # tail -n +2 : 跳過 Header
     tail -n +2 "$target_file" | sort -t',' -k1,1n -k2,2n >> "$temp_file"
 
-    # 4. 覆蓋原始檔案
     if [ -s "$temp_file" ]; then
         mv "$temp_file" "$target_file"
         _bot_say "success" "Sequence Optimized. Nodes Realigned."
     else
         rm "$temp_file"
         _bot_say "error" "Optimization Failed: Empty Output."
+    fi
+}
+
+# 安全合併與繼承系統 - Safe Merge & Inheritance Protocol
+function _fac_safe_merge() {
+    local target_id="$1"
+    local source_id="$2"
+    local target_file="$MUX_ROOT/app.csv.temp"
+    local temp_file="${target_file}.merge"
+
+    if [ -z "$target_id" ] || [ -z "$source_id" ]; then
+        _bot_say "error" "Merge Protocol Error: Missing coordinates."
+        return 1
+    fi
+
+    _bot_say "system" "Migrating Node Matrix: [${source_id}] -> [${target_id}]..."
+
+    eval $(awk -F, -v tid="$target_id" '
+        BEGIN { max=0; name="Unknown" }
+        {
+            id=$1; gsub(/^"|"$/, "", id)
+            cno=$2; gsub(/^"|"$/, "", cno)
+            nm=$3; gsub(/^"|"$/, "", nm)
+            
+            if (id == tid) {
+                name = nm
+                if ((cno+0) > max) max = cno+0
+            }
+        }
+        END {
+            printf "local TARGET_NAME=\"%s\"\n", name
+            printf "local START_SEQ=%d\n", max
+        }
+    ' "$target_file")
+
+    if [ "$target_id" == "999" ] && [ "$TARGET_NAME" == "Unknown" ]; then
+        TARGET_NAME="Others"
+    fi
+
+    awk -F, -v sid="$source_id" \
+            -v tid="$target_id" \
+            -v tname="$TARGET_NAME" \
+            -v seq="$START_SEQ" '
+        BEGIN { OFS="," }
+        
+        NR==1 { print; next }
+        
+        {
+            cid=$1; gsub(/^"|"$/, "", cid)
+            
+            if (cid == sid) {
+                seq++
+                $1 = tid
+                $2 = seq
+                $3 = "\"" tname "\""
+                
+                print $0
+            } else {
+                print $0
+            }
+        }
+    ' "$target_file" > "$temp_file"
+
+    # Phase 3: 部署 (Deploy)
+    if [ -s "$temp_file" ]; then
+        mv "$temp_file" "$target_file"
+        _bot_say "success" "Matrix Merged. Assets Transferred."
+        
+        _fac_sort_optimization
+        _fac_matrix_defrag
+    else
+        rm "$temp_file"
+        _bot_say "error" "Merge Failed: Output stream broken."
+    fi
+}
+
+# 矩陣重組與格式化 - Matrix Defragmentation & Sanitizer
+# 功能：
+# 1. 消除 COMNO 空洞 (1, 3, 5 -> 1, 2, 3)
+# 2. 強制同步同一 CATNO 下的 CATNAME (修復名稱分裂)
+function _fac_matrix_defrag() {
+    local target_file="$MUX_ROOT/app.csv.temp"
+    local temp_file="${target_file}.defrag"
+
+    if [ ! -f "$target_file" ]; then return; fi
+
+    # 先執行物理排序，確保資料是依照 CATNO > COMNO 排列的
+    # 這是重編號的前提
+    _fac_sort_optimization > /dev/null
+
+    _bot_say "system" "Defragmenting Matrix..."
+
+    # Awk 邏輯：
+    # 遍歷每一行，監測 CATNO 的變化。
+    # 當 CATNO 改變時，重置計數器 (seq)。
+    # 鎖定該組的第一個 CATNAME 作為 Master Name。
+    awk -F, -v OFS=, '
+        # Header 直接輸出
+        NR==1 { print; next }
+
+        {
+            # 提取當前行的 CATNO 和 CATNAME
+            curr_cat = $1; gsub(/^"|"$/, "", curr_cat)
+            curr_name = $3; gsub(/^"|"$/, "", curr_name)
+
+            # 檢測是否進入新的分類 (CATNO 變化)
+            if (curr_cat != prev_cat) {
+                seq = 1                 # 重置序號
+                master_name = curr_name # 鎖定新分類的名稱 (以第一筆為準)
+                prev_cat = curr_cat     # 更新指針
+            } else {
+                seq++                   # 同一分類，序號遞增
+            }
+
+            # [Action 1] 寫回連續序號 (COMNO)
+            $2 = seq
+
+            # [Action 2] 強制同步分類名稱 (CATNAME)
+            # 如果目前行的名稱跟 master 不一樣，強制修正
+            if (curr_name != master_name) {
+                $3 = "\"" master_name "\""
+            }
+
+            print $0
+        }
+    ' "$target_file" > "$temp_file"
+
+    # 覆蓋回寫
+    if [ -s "$temp_file" ]; then
+        mv "$temp_file" "$target_file"
+        _bot_say "success" "Matrix Defragmented. Sequence aligned."
+    else
+        rm "$temp_file"
+        _bot_say "error" "Defrag Failed."
     fi
 }
 
