@@ -366,7 +366,7 @@ function _show_menu_dashboard() {
             if (com2 == "") {
                 printf "    %s%-9s%s %s%s%s\n", C_COM, com, C_RST, C_DESC, desc, C_RST
             } else {
-                printf "    %s%s %s%-7s %s%s%s\n", C_COM, com, C_SUB, com2, C_RST " ", C_DESC, desc, C_RST
+                printf "    %s%s %s%-7s %s'%s'%s\n", C_COM, com, C_SUB, com2, C_RST " ", C_DESC, desc, C_RST
             }
         }
     '
@@ -401,7 +401,6 @@ function _mux_fuzzy_menu() {
         BEGIN {
             C_CMD="\x1b[1;37m"
             C_DESC="\x1b[1;30m"
-            C_SUB="\x1b[1;34m"
             C_RESET="\x1b[0m"
         }
         
@@ -420,12 +419,12 @@ function _mux_fuzzy_menu() {
             }
             
             if (sub_cmd != "") {
-                display_name = cmd " " C_SUB "'" sub_cmd "'" C_RESET
+                display_name = cmd " '" sub_cmd "'"
             } else {
                 display_name = cmd
             }
 
-            printf " %s%-12s %s%s\n", C_CMD, display_name, C_DESC, desc;
+            printf " %s%-14s %s%s\n", C_CMD, display_name, C_DESC, desc;
         }
     ')
 
