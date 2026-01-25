@@ -607,7 +607,7 @@ function _factory_fzf_menu() {
 
     local border_color="208"
     local prompt_msg="Select Command"
-    local header_msg="Slot Capacity: [Calculated]"
+    local header_msg="DETIAL CONTROL"
     
     case "$mode" in
         "DEL")
@@ -648,10 +648,6 @@ function _factory_fzf_menu() {
     ' "$target_file")
 
     local total=$(echo "$list" | grep -c "^ ")
-
-    if [ "$mode" != "DEL" ]; then
-        header_msg=" :: Slot Capacity: [6/$total] :: "
-    fi
 
     local selected=$(echo "$list" | fzf --ansi \
         --height=10 \
@@ -737,12 +733,12 @@ function _factory_fzf_cmd_in_cat() {
 
     # --- 1. 樣式定義 ---
     local border_color="208"
-    local prompt_msg=" :: Select Command › "
+    local prompt_msg="Select Command"
     
     case "$mode" in
         "DEL")
             border_color="196"
-            prompt_msg="DELETE › "
+            prompt_msg="Delete Command"
             ;;
         *)
             border_color="208"
@@ -780,7 +776,7 @@ function _factory_fzf_cmd_in_cat() {
         --border-label=" :: Category: [${target_cat_name}] [$total] :: " \
         --border=bottom \
         --info=hidden \
-        --prompt="$prompt_msg" \
+        --prompt=" :: $prompt_msg › " \
         --header=" :: Enter to Select, Esc to Return ::" \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
@@ -928,20 +924,20 @@ function _factory_fzf_detail_view() {
     local line_count=$(echo "$report" | wc -l)
     local dynamic_height=$(( line_count + 4 ))
 
-    local header_text=" :: DETIAL CONTROL :: "
+    local header_text="DETIAL CONTROL"
     local border_color="208"
 
     case "$view_mode" in
         "NEW")
-            header_text=" :: CONFIRM CREATION :: "
+            header_text="CONFIRM CREATION"
             border_color="46"  # 綠色
             ;;
         "EDIT")
-            header_text=" :: MODIFY PARAMETER :: "
+            header_text="MODIFY PARAMETER"
             border_color="208" # 橘色
             ;;
         "VIEW"|*)
-            header_text=" :: DETIAL CONTROL :: "
+            header_text="DETIAL CONTROL"
             border_color="208" # 橘色
             ;;
     esac
@@ -949,7 +945,7 @@ function _factory_fzf_detail_view() {
     echo -e "$report" | fzf --ansi \
         --height="$dynamic_height" \
         --layout=reverse \
-        --border-label="$header_text" \
+        --border-label=" :: $header_text :: " \
         --border=bottom \
         --header=" :: Enter to Select, Esc to Return ::" \
         --info=hidden \
