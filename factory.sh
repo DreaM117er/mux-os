@@ -429,52 +429,48 @@ function fac() {
                 local db_name=$(awk -F, -v tid="$temp_id" 'NR>1 {cid=$1; gsub(/^"|"$/, "", cid); if(cid==tid){name=$3; gsub(/^"|"$/, "", name); print name; exit}}' "$MUX_ROOT/app.csv.temp")
                 if [ -z "$db_name" ]; then db_name="Unknown"; fi
 
-                # Level 2: 戰術決策 (Dissolve or Purge)
-                # 這裡使用一個臨時的 fzf 選單來決定對分類的操作
-                local action=$(echo -e "Dissolve Category (Merge to Others)\nPurge Specific Commands" | fzf --ansi \
-                    --height=6 \
-                    --layout=reverse \
-                    --border=bottom \
-                    --prompt=" Action for [$db_name] › " \
-                    --header=" :: Select Tactical Operation :: " \
-                    --color=info:240,prompt:196,pointer:196,marker:196,border:196,header:240)
+                # Level 2: 戰術決策 (使用模組化子選單 - DEL 模式)
+                # UI 回傳字串範例: "Delete Category [005] Network" 或 "Delete Command in [005] Network"
+                local action=$(_factory_fzf_catedit_submenu "$temp_id" "$db_name" "DEL")
                 
                 if [ -z "$action" ]; then continue; fi
 
-                # Branch A: 解散分類 (Dissolve)
-                if [[ "$action" == *"Dissolve"* ]]; then
+                # Branch A: 解散分類 (Delete Category)
+                if [[ "$action" == *"Delete Category"* ]]; then
                     echo -e "\033[1;31m :: CRITICAL: Dissolving Category [$db_name] [$temp_id] \033[0m"
-                    echo -e "\033[1;30m    All assets will be transferred to 'Others' [999].\033[0m"
-                    echo -ne "\033[1;33m    ›› TYPE 'CONFIRM' TO DISOLUTION?\033[0m"
+                    echo -e "\033[1;30m    All assets will be transferred to [Others] [999].\033[0m"
+                    echo -ne "\033[1;33m    ›› TYPE 'CONFIRM' TO DEPLOY: \033[0m"
                     read -r confirm
-                    
+                    echo -e ""
                     if [ "$confirm" == "CONFIRM" ]; then
                         if command -v _factory_auto_backup &> /dev/null; then _factory_auto_backup; fi
                         
+                        # [Core] 執行安全合併
                         _fac_safe_merge "999" "$temp_id"
-                        
                         break
                     else
                         _bot_say "system" "Operation Aborted."
                     fi
 
-                # Branch B: 肅清指令 (Purge)
-                elif [[ "$action" == *"Purge"* ]]; then
+                # Branch B: 肅清指令 (Delete Command in...)
+                elif [[ "$action" == *"Delete Command"* ]]; then
                     while true; do
+                        # 進入分類內指令選擇 (紅色模式)
                         local raw_cmd=$(_factory_fzf_cmd_in_cat "$db_name" "DEL")
                         if [ -z "$raw_cmd" ]; then break; fi
                         
+                        # 清洗與解析 (含 Sub Command 修正)
                         local clean_target=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
-                        
                         local t_com=$(echo "$clean_target" | awk '{print $1}')
                         local t_sub=""
                         if [[ "$clean_target" == *\[*\] ]]; then
                             t_sub=$(echo "$clean_target" | awk -F'[][]' '{print $2}')
                         fi
 
-                        echo -e "\033[1;31m :: WARNING: Deleting Node [ $clean_target ] from [ $db_name ] \033[0m"
+                        echo -e "\033[1;31m :: WARNING: Deleting Node [$clean_target] from [$db_name]\033[0m"
                         echo -ne "\033[1;33m    ›› Confirm destruction? [Y/n]: \033[0m"
                         read -r choice
+                        echo -e ""
                         if [[ "$choice" != "y" && "$choice" != "Y" ]]; then continue; fi
 
                         if command -v _factory_auto_backup &> /dev/null; then _factory_auto_backup; fi
@@ -694,7 +690,7 @@ function _factory_deploy_sequence() {
     _system_unlock
     echo -ne "${F_WARN} :: Modifications verified? [Y/n]: ${F_RESET}"
     read choice
-    
+    echo ""
     if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
         _fac_init
         echo -e ""
@@ -704,21 +700,19 @@ function _factory_deploy_sequence() {
         return
     fi
     
-    echo ""
     echo -e "${F_ERR} :: CRITICAL WARNING ::${F_RESET}"
     echo -e "${F_SUB}    Sandbox (.temp) will OVERWRITE Production (app.csv).${F_RESET}"
     echo -e "${F_SUB}    This action is irreversible via undo.${F_RESET}"
     echo ""
     echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO DEPLOY: ${F_RESET}"
     read confirm
-    
+    echo ""
     if [ "$confirm" != "CONFIRM" ]; then
         _fac_init
         _bot_say "error" "Confirmation failed. Deployment aborted."
         return
     fi
 
-    _bot_say "deploy_start"
     sleep 1.0
     
     local temp_file="$MUX_ROOT/app.csv.temp"
@@ -735,7 +729,6 @@ function _factory_deploy_sequence() {
          return 1
     fi
     
-    echo ""
     echo -e "${F_GRE} :: DEPLOYMENT SUCCESSFUL ::${F_RESET}"
     sleep 1.9
     
@@ -749,7 +742,7 @@ function _factory_deploy_sequence() {
 
 # 機體維護工具 (Mechanism Maintenance)
 function _fac_maintenance() {
-    _bot_say "system" "Scanning Neural Integrity..."
+    echo -e "${F_GRAY} :: Scanning Neural Integrity...${F_RESET}"
     
     local target_file="$MUX_ROOT/app.csv.temp"
     local temp_file="${target_file}.chk"
@@ -807,22 +800,22 @@ function _fac_maintenance() {
 
     if [ -s "$temp_file" ]; then
         mv "$temp_file" "$target_file"
-        _bot_say "success" "Neural Nodes Verified."
+        echo -e "${F_GRE}    ›› Neural Nodes Verified.${F_RESET}"
     else
         rm "$temp_file"
-        _bot_say "error" "Maintenance Failed: Output empty."
+        echo -e "${F_ERR}    ›› Maintenance Failed: Output empty.${F_RESET}"
     fi
 }
 
 # 系統序列重整與優化 - System Sort Optimization
 function _fac_sort_optimization() {
-    _bot_say "system" "Optimizing Neural Sequence..."
+    echo -e "${F_GRAY} :: Optimizing Neural Sequence...${F_RESET}"
 
     local target_file="$MUX_ROOT/app.csv.temp"
     local temp_file="${target_file}.sorted"
 
     if [ ! -f "$target_file" ]; then
-        _bot_say "error" "Target Neural Map not found."
+        echo -e "${F_ERR} :: Target Neural Map not found.${F_RESET}"
         return 1
     fi
 
@@ -832,10 +825,10 @@ function _fac_sort_optimization() {
 
     if [ -s "$temp_file" ]; then
         mv "$temp_file" "$target_file"
-        _bot_say "success" "Sequence Optimized. Nodes Realigned."
+        echo -e "${F_GRE}    ›› Sequence Optimized. Nodes Realigned.${F_RESET}"
     else
         rm "$temp_file"
-        _bot_say "error" "Optimization Failed: Empty Output."
+        echo -e "${F_ERR}    ›› Optimization Failed: Empty Output.${F_RESET}"
     fi
 }
 
@@ -847,11 +840,11 @@ function _fac_safe_merge() {
     local temp_file="${target_file}.merge"
 
     if [ -z "$target_id" ] || [ -z "$source_id" ]; then
-        _bot_say "error" "Merge Protocol Error: Missing coordinates."
+        echo -e "${F_ERR} :: Merge Protocol Error: Missing coordinates.${F_RESET}"
         return 1
     fi
 
-    _bot_say "system" "Migrating Node Matrix: [${source_id}] -> [${target_id}]..."
+    echo -e "${F_GRAY} :: Migrating Node Matrix: [${source_id}] -> [${target_id}]...${F_RESET}"
 
     eval $(awk -F, -v tid="$target_id" '
         BEGIN { max=0; name="Unknown" }
@@ -902,59 +895,44 @@ function _fac_safe_merge() {
     # Phase 3: 部署 (Deploy)
     if [ -s "$temp_file" ]; then
         mv "$temp_file" "$target_file"
-        _bot_say "success" "Matrix Merged. Assets Transferred."
+        echo -e "${F_GRE}    ›› Matrix Merged. Assets Transferred.${F_RESET}"
         
         _fac_sort_optimization
         _fac_matrix_defrag
     else
         rm "$temp_file"
-        _bot_say "error" "Merge Failed: Output stream broken."
+        echo -e "${F_ERR}    ›› Merge Failed: Output stream broken.${F_RESET}"
     fi
 }
 
 # 矩陣重組與格式化 - Matrix Defragmentation & Sanitizer
-# 功能：
-# 1. 消除 COMNO 空洞 (1, 3, 5 -> 1, 2, 3)
-# 2. 強制同步同一 CATNO 下的 CATNAME (修復名稱分裂)
 function _fac_matrix_defrag() {
     local target_file="$MUX_ROOT/app.csv.temp"
     local temp_file="${target_file}.defrag"
 
     if [ ! -f "$target_file" ]; then return; fi
 
-    # 先執行物理排序，確保資料是依照 CATNO > COMNO 排列的
-    # 這是重編號的前提
     _fac_sort_optimization > /dev/null
 
-    _bot_say "system" "Defragmenting Matrix..."
+    echo -e "${F_GRAY} :: Defragmenting Matrix...${F_RESET}"
 
-    # Awk 邏輯：
-    # 遍歷每一行，監測 CATNO 的變化。
-    # 當 CATNO 改變時，重置計數器 (seq)。
-    # 鎖定該組的第一個 CATNAME 作為 Master Name。
     awk -F, -v OFS=, '
-        # Header 直接輸出
         NR==1 { print; next }
 
         {
-            # 提取當前行的 CATNO 和 CATNAME
             curr_cat = $1; gsub(/^"|"$/, "", curr_cat)
             curr_name = $3; gsub(/^"|"$/, "", curr_name)
 
-            # 檢測是否進入新的分類 (CATNO 變化)
             if (curr_cat != prev_cat) {
-                seq = 1                 # 重置序號
-                master_name = curr_name # 鎖定新分類的名稱 (以第一筆為準)
-                prev_cat = curr_cat     # 更新指針
+                seq = 1
+                master_name = curr_name
+                prev_cat = curr_cat
             } else {
-                seq++                   # 同一分類，序號遞增
+                seq++
             }
 
-            # [Action 1] 寫回連續序號 (COMNO)
             $2 = seq
 
-            # [Action 2] 強制同步分類名稱 (CATNAME)
-            # 如果目前行的名稱跟 master 不一樣，強制修正
             if (curr_name != master_name) {
                 $3 = "\"" master_name "\""
             }
@@ -963,13 +941,12 @@ function _fac_matrix_defrag() {
         }
     ' "$target_file" > "$temp_file"
 
-    # 覆蓋回寫
     if [ -s "$temp_file" ]; then
         mv "$temp_file" "$target_file"
-        _bot_say "success" "Matrix Defragmented. Sequence aligned."
+        echo -e "${F_GRE}    ›› Matrix Defragmented. Sequence aligned.${F_RESET}"
     else
         rm "$temp_file"
-        _bot_say "error" "Defrag Failed."
+        echo -e "${F_ERR}    ›› Defrag Failed.${F_RESET}"
     fi
 }
 

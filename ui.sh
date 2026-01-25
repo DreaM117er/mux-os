@@ -964,9 +964,16 @@ function _factory_fzf_catedit_submenu() {
     local fmt_id=$(printf "%03d" "$cat_id" 2>/dev/null || echo "$cat_id")
     local display_label="${C_TAG}[${fmt_id}]${C_RST} ${cat_name}"
 
-    # 選項定義
+    # --- [Core] 選項定義 (依據模式切換文字) ---
+    # 預設為 Edit 模式文字
     local opt_title="Edit Name ${display_label}"
     local opt_cmds="Edit Command in ${display_label}"
+
+    # [UPDATE] 針對 DEL 模式的文字替換
+    if [ "$view_mode" == "DEL" ]; then
+        opt_title="Delete Category ${display_label}"    # 對應 Dissolve
+        opt_cmds="Delete Command in ${display_label}"   # 對應 Purge
+    fi
     
     # 組合選單內容
     local menu_content="${opt_title}\n${opt_cmds}"
@@ -990,8 +997,12 @@ function _factory_fzf_catedit_submenu() {
             ;;
     esac
     
+    # 動態計算高度
+    local line_count=$(echo -e "$menu_content" | wc -l)
+    local dynamic_height=$(( line_count + 4 ))
+    
     local selected=$(echo -e "$menu_content" | fzf --ansi \
-        --height=5 \
+        --height="$dynamic_height" \
         --layout=reverse \
         --border=bottom \
         --border-label="$header_text" \
