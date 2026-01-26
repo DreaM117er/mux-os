@@ -22,7 +22,7 @@ F_WARN="\033[1;33m"
 F_ERR="\033[1;31m"
 F_GRAY="\033[1;30m"
 F_RESET="\033[0m"
-F_GRE="\n\033[1;32m"
+F_GRE="\033[1;32m"
 
 # 兵工廠系統啟動 (Factory System Boot)
 function _factory_system_boot() {
@@ -287,27 +287,26 @@ function fac() {
             local view_state="EDIT"
 
             while true; do
-                # Level 1: Select Command
-                local raw_target=$(_factory_fzf_menu "Select App to Edit")
-                if [ -z "$raw_target" ]; then break; fi
-                
-                # 清洗目標字串
-                local clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+                local selection=$(_factory_fzf_detail_view "$clean_target" "EDIT")
+                if [ -z "$selection" ]; then break; fi
 
-                # Level 2: Detail View (EDIT Mode)
-                while true; do
-                    # 傳入 EDIT 模式，獲取帶有 ROOM_ID 的原始字串
-                    local selection=$(_factory_fzf_detail_view "$clean_target" "EDIT")
-                    
-                    if [ -z "$selection" ]; then 
-                        break # 如果按 Esc，跳回上一層 (選指令)
-                    fi
-                    
-                    # [Core] 進入路由器
-                    _fac_edit_router "$selection" "$clean_target" "EDIT"
-                    
-                    # 編輯完回來後，迴圈會繼續，重新顯示 Detail View (刷新數值)
-                done
+                # [Fix] 這裡要分兩步：1.捕捉輸出 2.捕捉狀態碼
+                local router_out
+                router_out=$(_fac_edit_router "$selection" "$clean_target" "EDIT")
+                local router_code=$?  # <--- 抓住它！
+
+                # 顯示路由器的文字回應 (過濾掉控制信號)
+                echo "$router_out" | grep -v "UPDATE_KEY"
+
+                # [Logic] 根據狀態碼行動
+                if [ $router_code -eq 1 ]; then
+                    # 收到 1 (CONFIRM) -> 退出編輯視窗
+                    break 
+                elif [ $router_code -eq 2 ]; then
+                    # 收到 2 (UPDATE_KEY) -> 更新鎖定目標，不退出
+                    local new_k=$(echo "$router_out" | awk -F: '{print $2}')
+                    if [ -n "$new_k" ]; then clean_target="$new_k"; fi
+                fi
             done
             ;;
 
@@ -320,62 +319,48 @@ function fac() {
                 local raw_cat=$(_factory_fzf_cat_selector)
                 if [ -z "$raw_cat" ]; then break; fi
                 
-                # [SOP 1] 提取 ID
                 local temp_id=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
 
-                # [SOP 2] 查表獲取權威 ID & Name (Lookup ID/Name by ID)
-                local db_data=$(awk -F, -v tid="$temp_id" '
-                    NR>1 {
-                        cid=$1; gsub(/^"|"$/, "", cid)
-                        if (cid == tid) {
-                            name=$3; gsub(/^"|"$/, "", name)
-                            print cid "|" name
-                            exit
-                        }
-                    }
-                ' "$MUX_ROOT/app.csv.temp")
-
+                # Lookup authority ID/Name
+                local db_data=$(awk -F, -v tid="$temp_id" 'NR>1 {gsub(/^"|"$/, "", $1); if($1==tid){gsub(/^"|"$/, "", $3); print $1 "|" $3; exit}}' "$MUX_ROOT/app.csv.temp")
                 local cat_id=$(echo "$db_data" | awk -F'|' '{print $1}')
                 local cat_name=$(echo "$db_data" | awk -F'|' '{print $2}')
-
-                # 防呆
                 if [ -z "$cat_id" ]; then cat_id="XX"; cat_name="Unknown"; fi
 
                 while true; do
-                    # Level 2: Submenu (傳入權威 ID & Name)
-                    local action=$(_factory_fzf_catedit_submenu "$cat_id" "$cat_name")
+                    # Level 2: Submenu (傳入 EDIT 模式)
+                    local action=$(_factory_fzf_catedit_submenu "$cat_id" "$cat_name" "EDIT")
                     if [ -z "$action" ]; then break; fi
 
-                    # Level 3: Action Branch
                     if echo "$action" | grep -q "Edit Name" ; then
-                        # Branch A: Modify Category Name
-                        # [TODO] 這裡未來也可以做一個簡單的 Router 或者直接呼叫輸入框
-                        _bot_say "warn" "Edit CATNAME [$cat_name] pending..."
+                        _bot_say "warn" "Edit Name: Feature pending..."
                         
                     elif echo "$action" | grep -q "Edit Command in" ; then
                         # Branch B: Modify Commands in Category
                         while true; do
-                            # 使用權威名稱搜尋指令
+                            # 1. Select Command in Category
                             local raw_cmd=$(_factory_fzf_cmd_in_cat "$cat_name")
+                            
                             if [ -z "$raw_cmd" ]; then break; fi
                             
                             local clean_target=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
 
-                            if [ "$view_state" == "EDIT" ]; then
-                                # [Core Integration] 接入編輯路由器迴圈
-                                while true; do
-                                    # 1. 顯示 Detail View (獲取帶有 ROOM_ID 的字串)
-                                    local selection=$(_factory_fzf_detail_view "$clean_target" "EDIT")
-                                    
-                                    # 如果按 Esc，跳出 Detailed View，回到指令選擇列表
-                                    if [ -z "$selection" ]; then break; fi
-                                    
-                                    # 2. 丟給 Router 處理 (進入房間)
-                                    _fac_edit_router "$selection" "$clean_target" "EDIT"
-                                    
-                                    # 3. 房間處理完後，迴圈繼續，重新渲染 Detail View 顯示最新數值
-                                done
-                            fi
+                            # 2. Enter Edit Router Loop
+                            while true; do
+                                local selection=$(_factory_fzf_detail_view "$clean_target" "EDIT")
+                                if [ -z "$selection" ]; then break; fi # Back to list
+                                
+                                local router_out
+                                router_out=$(_fac_edit_router "$selection" "$clean_target" "EDIT")
+                                local router_code=$?
+                                
+                                echo "$router_out" | grep -v "UPDATE_KEY"
+                                
+                                if [ $router_code -eq 2 ]; then
+                                    local new_k=$(echo "$router_out" | awk -F: '{print $2}')
+                                    if [ -n "$new_k" ]; then clean_target="$new_k"; fi
+                                fi
+                            done
                         done
                     fi
                 done
@@ -385,65 +370,31 @@ function fac() {
         # : Break Neural (Delete Command)
         "del"|"comd"|"delcom")
             while true; do
-                # 1. 紅色警示選單
-                local raw_target=$(_factory_fzf_menu "Select to Destroy" "DEL")
+                # 1. Select Command
+                local raw_target=$(_factory_fzf_menu "Select App to DELETE")
                 if [ -z "$raw_target" ]; then break; fi
-                
-                # 2. 清洗與解析座標
+
                 local clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
                 
-                # 解析 COM 與 COM2
-                local t_com=""
-                local t_sub=""
-
-                if [[ "$clean_target" == *"'"* ]]; then
-                    # 有子指令：切割並去除 t_com 尾端的空格
-                    t_com=$(echo "$clean_target" | awk -F"'" '{print $1}' | sed 's/[ \t]*$//')
-                    t_sub=$(echo "$clean_target" | awk -F"'" '{print $2}')
+                # 2. Review (Visual Confirm)
+                # 使用 DEL 模式顯示紅框詳情，讓使用者看清楚要殺誰
+                _factory_fzf_detail_view "$clean_target" "DEL"
+                
+                # 3. Final Confirmation
+                echo -e "${F_WARN} :: WARNING :: Are you sure you want to DELETE this node? [y/N] ${F_RESET}"
+                read -p "    › " conf
+                
+                if [[ "$conf" == "y" || "$conf" == "Y" ]]; then
+                    # [Core] 執行精準刪除
+                    _fac_delete_node "$clean_target"
+                    _bot_say "success" "Target neutralized."
+                    
+                    # 4. Post-processing (重整矩陣)
+                    _fac_sort_optimization
+                    _fac_matrix_defrag
                 else
-                    # 無子指令
-                    t_com="$clean_target"
+                    _bot_say "action" "Operation cancelled."
                 fi
-
-                # 3. 確認刪除
-                echo -e "\033[1;31m :: WARNING: Deleting Node [ $clean_target ] \033[0m"
-                echo -ne "\033[1;33m    ›› Confirm destruction? [Y/n]: \033[0m"
-                read -r choice
-                if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
-                    continue
-                fi
-
-                # 4. 執行備份
-                if command -v _factory_auto_backup &> /dev/null; then
-                    _factory_auto_backup
-                fi
-
-                # 5. 物理刪除
-                local target_file="$MUX_ROOT/app.csv.temp"
-                local temp_del="${target_file}.del"
-                
-                awk -F, -v c="$t_com" -v s="$t_sub" '
-                    {
-                        csv_c=$5; gsub(/^"|"$/, "", csv_c)
-                        csv_s=$6; gsub(/^"|"$/, "", csv_s)
-                        
-                        is_target = 0
-                        if (csv_c == c) {
-                            if (s == "" && csv_s == "") is_target = 1
-                            if (s != "" && csv_s == s) is_target = 1
-                        }
-
-                        if (is_target == 0 || NR == 1) {
-                            print $0
-                        }
-                    }
-                ' "$target_file" > "$temp_del"
-                
-                mv "$temp_del" "$target_file"
-                
-                # 6. 排序 + 重組
-                _fac_sort_optimization
-                _fac_matrix_defrag
             done
             ;;
         
@@ -484,49 +435,30 @@ function fac() {
                 # Branch B: 肅清指令 (Delete Command in...)
                 elif [[ "$action" == *"Delete Command"* ]]; then
                     while true; do
-                        # 進入分類內指令選擇 (紅色模式)
+                        # 1. 進入分類內指令選擇 (紅色模式)
                         local raw_cmd=$(_factory_fzf_cmd_in_cat "$db_name" "DEL")
                         if [ -z "$raw_cmd" ]; then break; fi
                         
-                        # 清洗與解析 (含 Sub Command 修正)
+                        # 2. 清洗目標字串 (只需清洗，不用自己拆解 COM/SUB，函數會自己拆)
                         local clean_target=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
-                        local t_com=""
-                        local t_sub=""
-                        if [[ "$clean_target" == *"'"* ]]; then
-                            t_com=$(echo "$clean_target" | awk -F"'" '{print $1}' | sed 's/[ \t]*$//')
-                            t_sub=$(echo "$clean_target" | awk -F"'" '{print $2}')
-                        else
-                            t_com="$clean_target"
-                        fi
 
+                        # 3. 視覺確認
                         echo -e "\033[1;31m :: WARNING: Deleting Node [$clean_target] from [$db_name]\033[0m"
                         echo -ne "\033[1;33m    ›› Confirm destruction? [Y/n]: \033[0m"
                         read -r choice
                         echo -e ""
-                        if [[ "$choice" != "y" && "$choice" != "Y" ]]; then continue; fi
-
-                        if command -v _factory_auto_backup &> /dev/null; then _factory_auto_backup; fi
-
-                        # 物理刪除
-                        local target_file="$MUX_ROOT/app.csv.temp"
-                        local temp_del="${target_file}.del"
-                        awk -F, -v c="$t_com" -v s="$t_sub" '
-                            {
-                                csv_c=$5; gsub(/^"|"$/, "", csv_c)
-                                csv_s=$6; gsub(/^"|"$/, "", csv_s)
-                                is_target = 0
-                                if (csv_c == c) {
-                                    if (s == "" && csv_s == "") is_target = 1
-                                    if (s != "" && csv_s == s) is_target = 1
-                                }
-                                if (is_target == 0 || NR == 1) print $0
-                            }
-                        ' "$target_file" > "$temp_del"
-                        mv "$temp_del" "$target_file"
                         
-                        # 序列重整 + 矩陣重組
-                        _fac_sort_optimization
-                        _fac_matrix_defrag
+                        if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+                            if command -v _factory_auto_backup &> /dev/null; then _factory_auto_backup; fi
+
+                            _fac_delete_node "$clean_target"
+                            
+                            _bot_say "success" "Target neutralized."
+
+                            # 4. 序列重整 + 矩陣重組
+                            _fac_sort_optimization
+                            _fac_matrix_defrag
+                        fi
                     done
                 fi
             done
@@ -737,7 +669,7 @@ function _factory_deploy_sequence() {
     echo ""
     echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO DEPLOY: ${F_RESET}"
     read confirm
-    echo ""
+
     if [ "$confirm" != "CONFIRM" ]; then
         _fac_init
         _bot_say "error" "Confirmation failed. Deployment aborted."
@@ -876,7 +808,7 @@ function _fac_safe_merge() {
         return 1
     fi
 
-    echo -e "${F_GRAY} :: Migrating Node Matrix: [${source_id}] -> [${target_id}]...${F_RESET}"
+    echo -e "${F_GRAY} :: Migrating Node Matrix: [${source_id}] ›› [${target_id}]...${F_RESET}"
 
     eval $(awk -F, -v tid="$target_id" '
         BEGIN { max=0; name="Unknown" }
@@ -1025,6 +957,47 @@ function _fac_update_node() {
             }
         }
         print $0
+    }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
+}
+
+# 原子刪除函數 - Atomic Node Deleter
+function _fac_delete_node() {
+    local target_key="$1"
+    local target_file="$MUX_ROOT/app.csv.temp"
+
+    # 解析 Key
+    local t_com=$(echo "$target_key" | awk '{print $1}')
+    local t_sub=""
+    if [[ "$target_key" == *"'"* ]]; then
+        t_com=$(echo "$target_key" | awk -F"'" '{print $1}' | sed 's/[ \t]*$//')
+        t_sub=$(echo "$target_key" | awk -F"'" '{print $2}')
+    fi
+
+    # 使用 awk 進行雙重驗證過濾 (只有 COM 和 COM2 都對上才跳過不印)
+    awk -F, -v tc="$t_com" -v ts="$t_sub" '
+    {
+        # 備份原始行以便輸出
+        raw = $0
+        
+        # 清洗引號進行比對
+        gsub(/^"|"$/, "", $5); c=$5
+        gsub(/^"|"$/, "", $6); s=$6
+        
+        match_found = 0
+        if (c == tc) {
+            if (ts == "" && s == "") match_found = 1
+            if (ts != "" && s == ts) match_found = 1
+        }
+
+        # 如果匹配，則跳過 (即刪除)
+        if (match_found) {
+            # 可以在 stderr 輸出刪除日誌
+            print "Deleted: " c " " s > "/dev/stderr"
+            next
+        }
+        
+        # 沒匹配的行保留
+        print raw
     }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
 }
 
