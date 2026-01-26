@@ -442,7 +442,7 @@ function mux() {
 
         *)
             if command -v "$cmd" &> /dev/null; then "$cmd" "${@:2}"; return; fi
-            echo -e "\033[1;37m :: Unknown Directive: $cmd\033[0m"
+            echo -e "\033[1;33m :: Unknown Directive: '$cmd'.\033[0m"
             ;;
     esac
 }

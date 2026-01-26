@@ -498,7 +498,7 @@ function _factory_show_status() {
     local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
 
     echo -e "${F_MAIN} :: Neural Forge Status Report ::${F_RESET}"
-    echo -e "${F_GRAY}    --------------------------------${F_RESET}"
+    echo -e "${F_GRAY}    --------------------------${F_RESET}"
 
     if [ -f "$temp_file" ]; then
         local line_count=$(wc -l < "$temp_file")
@@ -535,7 +535,7 @@ function _factory_show_status() {
     local atb_files=$(ls -t "$bak_dir"/app.csv.*.atb 2>/dev/null | head -n 3)
     
     if [ -n "$atb_files" ]; then
-        [ "$found_any" -eq 1 ] && echo -e "${F_GRAY}    --------------------------------${F_RESET}"
+        [ "$found_any" -eq 1 ] && echo -e "${F_GRAY}    --------------------------${F_RESET}"
         
         SAVEIFS=$IFS
         IFS=$'\n'
@@ -557,7 +557,7 @@ function _factory_show_status() {
         echo -e "${F_GRAY} :: No temporal snapshots found in $bak_dir.${F_RESET}"
     fi
 
-    echo -e "${F_GRAY}    --------------------------------${F_RESET}"
+    echo -e "${F_GRAY}    --------------------------${F_RESET}"
     
     if command -v _bot_say &> /dev/null; then
         _bot_say "factory" "Status report generated."
@@ -615,7 +615,6 @@ function _factory_fzf_menu() {
             border_color="196"
             prompt_color="196"
             header_msg="DELETE MODE ACTIVE"
-            prompt_msg="Select"
             ;;
         "NEW")
             prompt_color="46"
@@ -889,7 +888,7 @@ function _factory_fzf_detail_view() {
 
                 if (type == "NA" || type == "NA") { 
                     printf "%s[%s]%s%sROOM_INFO\n", C_TAG, catname, C_RST, S
-                    printf "%s[%03d:%2s]%s[%s: %s]%s%sROOM_INFO\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST, S
+                    printf "%s[%03d:%3s]%s[%s: %s]%s%sROOM_INFO\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST, S
                     printf " %sCommand:%s %s%sROOM_CMD\n", C_LBL, C_VAL, command_str, S
                     printf " %sDetail :%s %s%sROOM_HUD\n", C_LBL, C_VAL, hud, S
                     printf " %sUI     :%s %s%sROOM_UI\n", C_LBL, C_VAL, ui, S
@@ -900,7 +899,7 @@ function _factory_fzf_detail_view() {
                 }
                 else if (type == "NB") {
                     printf "%s[%s]%s%sROOM_INFO\n", C_TAG, catname, C_RST, S
-                    printf "%s[%03d:%2s]%s[%s: %s]%s%sROOM_INFO\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST, S
+                    printf "%s[%03d:%3s]%s[%s: %s]%s%sROOM_INFO\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST, S
                     printf " %sCommand:%s %s%sROOM_CMD\n", C_LBL, C_VAL, command_str, S
                     printf " %sDetail :%s %s%sROOM_HUD\n", C_LBL, C_VAL, hud, S
                     printf " %sUI     :%s %s%sROOM_UI\n", C_LBL, C_VAL, ui, S
@@ -916,8 +915,8 @@ function _factory_fzf_detail_view() {
                 
                 if (mode == "NEW") {
                     printf "%s%s%s\n", C_LBL, sep, C_RST
-                    printf "\033[1;36m[Lookup] 'apklist'\033[0m\n", S
-                    printf "\033[1;32m[Confirm]\033[0m\n", S
+                    printf "\033[1;36m[Lookup] 'apklist'\033[0m%sROOM_LOOKUP\n", S
+                    printf "\033[1;32m[Confirm]\033[0m%sROOM_CONFIRM\n", S
                 }
                 exit
             }
@@ -926,9 +925,7 @@ function _factory_fzf_detail_view() {
 
     if [ -z "$report" ]; then return; fi
 
-    local line_count=$(echo "$report" | wc -l)
-    local dynamic_height=$(( line_count + 4 ))
-
+    # 模式定義
     local header_text="DETIAL CONTROL"
     local border_color="208"
     local prompt_color="208"
@@ -953,6 +950,10 @@ function _factory_fzf_detail_view() {
             prompt_color="208"
             ;;
     esac
+
+    # 動態計算 fzf 選單
+    local line_count=$(echo "$report" | wc -l)
+    local dynamic_height=$(( line_count + 4 ))
 
     echo -e "$report" | fzf --ansi \
         --delimiter="\t" \
@@ -983,21 +984,17 @@ function _factory_fzf_catedit_submenu() {
     local fmt_id=$(printf "%03d" "$cat_id" 2>/dev/null || echo "$cat_id")
     local display_label="${C_TAG}[${fmt_id}]${C_RST} ${cat_name}"
 
-    # --- [Core] 選項定義 (依據模式切換文字) ---
-    # 預設為 Edit 模式文字
+    # 依模式切換選單
     local opt_title="Edit Name ${display_label}"
     local opt_cmds="Edit Command in ${display_label}"
 
-    # [UPDATE] 針對 DEL 模式的文字替換
     if [ "$view_mode" == "DEL" ]; then
-        opt_title="Delete Category ${display_label}"    # 對應 Dissolve
-        opt_cmds="Delete Command in ${display_label}"   # 對應 Purge
-    fi
+        opt_title="Delete Category ${display_label}"
+        opt_cmds="Delete Command in ${display_label}"
     
-    # 組合選單內容
     local menu_content="${opt_title}\n${opt_cmds}"
 
-    # --- 樣式定義 ---
+    # 模式定義
     local header_text="MODIFY PARAMETER"
     local prompt_color="208"
     local border_color="208"

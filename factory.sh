@@ -208,13 +208,12 @@ function fac() {
             fi
 
             # 3. 計算 COMNO (Target Category: 999 - Others)
-            # 邏輯：掃描 CATNO=999 的所有行，找出最大的 COMNO，加 1
             local next_comno=$(awk -F, '$1==999 {gsub(/^"|"$/, "", $2); if(($2+0) > max) max=$2} END {print max+1}' "$MUX_ROOT/app.csv.temp")
             
             # 防呆計算
             local com3_flag="N"
             local target_cat="999"
-            local target_catname="\"Others\"" # [Update] 預設分類名稱
+            local target_catname="\"Others\""
             
             if [ -z "$next_comno" ] || [ "$next_comno" -eq 1 ]; then
                 # 如果是第一筆，或是計算失敗(awk回傳空)，設為 1
@@ -224,37 +223,32 @@ function fac() {
             # 如果計算出的數字極度不合理 (例如 awk 錯誤)，掛上 F 旗標
             if ! [[ "$next_comno" =~ ^[0-9]+$ ]]; then
                 com3_flag="F"
-                target_cat=""     # 清空 CATNO
-                next_comno=""     # 清空 COMNO
-                target_catname="" # [Update] 異常時一併清空 CATNAME
+                target_cat=""
+                next_comno=""
+                target_catname=""
             fi
 
-            # 4. 生成暫時的指令名稱 (Unique ID)
-            # 為了讓 detail_view 能馬上找到它，我們需要一個獨一無二的名字
+            # 4. 生成暫時的指令名稱
             local ts=$(date +%s)
             local temp_cmd_name="ND${ts}"
 
             # 5. 建構 CSV 行 (Construct Row)
-            # 欄位總數：20
-            # 預設 CATNAME: "Others" -> 改用變數控制
             local new_row=""
             
             case "$type_sel" in
                 "Command NA")
-                    # NA 模板: TYPE=NA, COM3=N
-                    # 格式: 999,NO,"Others","NA","tmp_name",,,"N",,, ... (其餘留空)
+                    # NA 模板: TYPE=NA, COM3=N 
                     new_row="${target_cat},${next_comno},${target_catname},\"NA\",\"${temp_cmd_name}\",,\"${com3_flag}\",,,,,,,,,,,,,"
                     ;;
                     
                 "Command NB")
                     # NB 模板: TYPE=NB, COM3=N, URI=$__GO_TARGET, ENGINE=$SEARCH_GOOGLE
-                    # Col 14(URI), Col 20(ENGINE)
                     new_row="${target_cat},${next_comno},${target_catname},\"NB\",\"${temp_cmd_name}\",,\"${com3_flag}\",,,,,,,,\"$(echo '$__GO_TARGET')\",,,,,,\"$(echo '$SEARCH_GOOGLE')\""
                     ;;
                     
                 "Command SYS"*) 
                     # 預留接口
-                    _bot_say "warn" "SYS Creation not implemented."
+                    _bot_say "error" "SYS Creation not implemented."
                     return
                     ;;
             esac
@@ -263,15 +257,28 @@ function fac() {
             if [ -n "$new_row" ]; then
                 echo "$new_row" >> "$MUX_ROOT/app.csv.temp"
                 
-                # 7. 直接進入 EDIT 模式
-                # 這裡我們使用剛才生成的 temp_cmd_name 讓 detail_view 鎖定它
-                # 因為 detail_view 現在支援 COM3="N" 的視覺變色，使用者會看到紅色的必填框
+                while true; do
+                    # 1. 顯示 Detail View ( NEW 模式)
+                    # 使用 temp_cmd_name 作為鎖定目標
+                    local selection=$(_factory_fzf_detail_view "${temp_cmd_name}" "NEW")
+                    
+                    # 使用者按 Esc：
+                    # 啓用：視為「暫存並離開」
+                    # 關閉：強制不准離開 (除非按 Confirm)
+                    # if [ -z "$selection" ]; then break; fi
+                    
+                    # 2. 進入路由器
+                    _fac_edit_router "$selection" "${temp_cmd_name}"
+                    
+                    # 3. 檢查信號 (接受 Router 回傳值)
+                    if [ $? -eq 1 ]; then
+                        break 
+                    fi
+                done
                 
-                # [Important] 這裡要確保 detail_view 收到的是乾淨的指令名
-                _factory_fzf_detail_view "${temp_cmd_name}" "NEW"
-                
-                # [TODO] 編輯完後，記得要有一個後處理機制（例如移除 N 旗標、重新排序等）
-                # 這部分屬於 _fac_maintenance 的範疇，目前先不處理
+                # 7. 執行排序與重整
+                _fac_sort_optimization
+                _fac_matrix_defrag
             fi
             ;;
 
@@ -544,8 +551,7 @@ function fac() {
 
         # : Reload Factory
         "reload")
-            echo -e "\033[1;33m :: Cycling Factory Power... \033[0m"
-            sleep 0.5
+            sleep 0.1
             if [ -f "$MUX_ROOT/gate.sh" ]; then
                 source "$MUX_ROOT/gate.sh" "factory"
             else
@@ -568,7 +574,7 @@ function fac() {
             ;;
 
         *)
-            echo -e "${F_SUB} :: Unknown Directive: $cmd${F_RESET}"
+            echo -e "${F_WARN} :: Unknown Directive: '$cmd'.${F_RESET}"
             ;;
     esac
 }
@@ -751,6 +757,7 @@ function _factory_deploy_sequence() {
         fi
     else
          _bot_say "error" "Sandbox integrity failed."
+         sleep 1.9
          return 1
     fi
     
@@ -975,6 +982,105 @@ function _fac_matrix_defrag() {
     fi
 }
 
+# 原子寫入函數 - Atomic Node Updater
+function _fac_update_node() {
+    # 用法: _fac_update_node "TARGET_KEY" "COL_INDEX" "NEW_VALUE"
+    local target_key="$1"
+    local col_idx="$2"
+    local new_val="$3"
+    local target_file="$MUX_ROOT/app.csv.temp"
+
+    # 解析 Key (為了 awk 定位)
+    local t_com=$(echo "$target_key" | awk '{print $1}')
+    local t_sub=""
+    if [[ "$target_key" == *"'"* ]]; then
+        t_com=$(echo "$target_key" | awk -F"'" '{print $1}' | sed 's/[ \t]*$//')
+        t_sub=$(echo "$target_key" | awk -F"'" '{print $2}')
+    fi
+
+    # 執行 awk 手術
+    # 同時需要處理 "回傳新 Key"，改的是 Col 5 (Command) 或 Col 6 (Sub)，Key 會變
+    awk -F, -v OFS=, -v tc="$t_com" -v ts="$t_sub" \
+        -v col="$col_idx" -v val="$new_val" '
+    {
+        gsub(/^"|"$/, "", $5); c=$5
+        gsub(/^"|"$/, "", $6); s=$6
+        
+        match_found = 0
+        if (c == tc) {
+            if (ts == "" && s == "") match_found = 1
+            if (ts != "" && s == ts) match_found = 1
+        }
+
+        if (match_found) {
+            $col = "\"" val "\""
+            
+            new_c = $5; gsub(/^"|"$/, "", new_c)
+            new_s = $6; gsub(/^"|"$/, "", new_s)
+            
+            if (new_s != "") {
+                print new_c " \047" new_s "\047" > "/dev/stderr" # 輸出到 stderr 讓 Shell 捕捉
+            } else {
+                print new_c > "/dev/stderr"
+            }
+        }
+        print $0
+    }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
+}
+
+# 房間引導手冊 - Room Context Guide
+function _fac_room_guide() {
+    # 用法: _fac_room_guide "ROOM_ID"
+    local room_id="$1"
+    local guide_text=""
+    local example_text=""
+
+    case "$room_id" in
+        "ROOM_CMD")
+            guide_text="Enter the CLI trigger command."
+            example_text="Example: 'chrome', 'music', 'sys_info' (No spaces)"
+            ;;
+        "ROOM_HUD")
+            guide_text="Enter the Description shown in the menu."
+            example_text="Example: 'Google Chrome Browser'"
+            ;;
+        "ROOM_UI")
+            guide_text="Specify UI rendering mode."
+            example_text="Options: [Empty]=Default, 'fzf', 'cli', 'silent'"
+            ;;
+        "ROOM_PKG")
+            guide_text="Target Android Package Name."
+            example_text="Example: 'com.android.chrome'"
+            ;;
+        "ROOM_ACT")
+            guide_text="Target Activity Class (Optional)."
+            example_text="Example: 'com.google.android.apps.chrome.Main'"
+            ;;
+        "ROOM_FLAG")
+            guide_text="Execution Flags."
+            example_text="Options: '--user 0', '--grant-read-uri-permission'"
+            ;;
+        "ROOM_INTENT")
+            guide_text="Intent Action Head & Body."
+            example_text="Format: 'android.intent.action.VIEW'"
+            ;;
+        "ROOM_URI")
+            guide_text="Target URI or Engine Variable."
+            example_text="Example: 'https://google.com' OR '\$SEARCH_ENGINE'"
+            ;;
+        *)
+            guide_text="Edit value for this field."
+            ;;
+    esac
+
+    # 統一輸出格式
+    echo -e "${F_GRAY}    :: Guide   : ${guide_text}${F_RESET}"
+    if [ -n "$example_text" ]; then
+        echo -e "${F_GRAY}    :: Format  : ${example_text}${F_RESET}"
+    fi
+    echo -e ""
+}
+
 # 核心編輯路由器 (The Logic Router)
 function _fac_edit_router() {
     local raw_selection="$1"
@@ -985,9 +1091,91 @@ function _fac_edit_router() {
     
     # 2. 狀態機分流
     case "$room_id" in
+        "ROOM_INFO")
+            # 點到標題，不做事
+            ;;
         "ROOM_CMD")
-            _bot_say "system" "[Room] Entering Command Editor for $target_key"
-            # [TODO] _fac_room_cmd "$target_key"
+            # 1. 解析當前 Key 為獨立變數 (作為編輯緩衝區)
+            local edit_com=$(echo "$target_key" | awk '{print $1}')
+            local edit_sub=""
+            if [[ "$target_key" == *"'"* ]]; then
+                edit_com=$(echo "$target_key" | awk -F"'" '{print $1}' | sed 's/[ \t]*$//')
+                edit_sub=$(echo "$target_key" | awk -F"'" '{print $2}')
+            fi
+            
+            # 為了讓 Guide 顯示在 FZF Header，我們先捕捉 Guide 的輸出
+            # (這裡利用 subshell 技巧移除 ANSI code 以免 fzf header 跑版，或是保留看 fzf 支援度)
+            # 簡單起見，我們手動組裝 header
+            local header_txt=" :: Guide : Enter the CLI trigger command.\n :: Format: 'chrome', 'music' (No spaces)"
+
+            while true; do
+                # 2. 準備 FZF 選單內容
+                # 使用顏色標記當前數值
+                local menu_list=$(
+                    echo -e "Command \t$edit_com"
+                    if [ -z "$edit_sub" ]; then
+                        echo -e "Sub Cmd \t\033[1;30m[Empty]\033[0m"
+                    else
+                        echo -e "Sub Cmd \t$edit_sub"
+                    fi
+                    echo -e "\033[1;32m[ Confirm ]\033[0m" # 綠色確認紐
+                )
+
+                # 3. 呼叫 FZF 顯示介面
+                # --header: 顯示 Guide
+                # --prompt: 顯示 ":: Command ›"
+                local choice=$(echo -e "$menu_list" | fzf --ansi \
+                    --height=10 \
+                    --layout=reverse \
+                    --border=top \
+                    --header-first \
+                    --header="$header_txt" \
+                    --prompt=" :: Command › " \
+                    --pointer="››" \
+                    --delimiter="\t" \
+                    --with-nth=1,2 \
+                    --color=header:240,prompt:208,border:240
+                )
+
+                # 4. 處理選擇
+                if [ -z "$choice" ]; then return 0; fi # 按 Esc 取消編輯，不存檔
+
+                if echo "$choice" | grep -q "Command"; then
+                    # 編輯主指令
+                    _bot_say "action" "Edit Command Name:"
+                    read -e -p "    › " -i "$edit_com" input_val
+                    edit_com="${input_val:-$edit_com}" # 若輸入為空則保持原值(或允許空值視需求而定)
+
+                elif echo "$choice" | grep -q "Sub Cmd"; then
+                    # 編輯子指令
+                    _bot_say "action" "Edit Sub-Command (Empty to clear):"
+                    read -e -p "    › " -i "$edit_sub" input_val
+                    edit_sub="$input_val"
+
+                elif echo "$choice" | grep -q "Confirm"; then
+                    # 5. 提交變更 (Atomic Update Sequence)
+                    
+                    # A. 先更新 Col 5 (Command)
+                    # 注意：如果原本 Key 是 "cmd 'sub'"，改了 cmd 後，Key 會變，所以要抓回傳值
+                    local step1_key=$(_fac_update_node "$target_key" 5 "$edit_com" 2>&1 >/dev/null)
+                    
+                    # B. 使用新的 Key (step1_key) 來更新 Col 6 (Sub Command)
+                    # 如果 step1 沒有變更 (比如沒改 COM 只改了 SUB)，update_node 可能沒回傳 output
+                    # 所以要防呆：如果 output 空，代表 Key 沒變，沿用舊的
+                    local current_key="${step1_key:-$target_key}"
+                    
+                    local final_key=$(_fac_update_node "$current_key" 6 "$edit_sub" 2>&1 >/dev/null)
+                    
+                    # 最終防呆：如果連 step2 都沒回傳 (代表都沒變)，就回傳原本的
+                    final_key="${final_key:-$current_key}"
+
+                    _bot_say "success" "Command Identity Updated."
+                    
+                    # 回傳控制信號給主迴圈
+                    echo "UPDATE_KEY:$final_key"
+                    return 2
+                fi
+            done
             ;;
         "ROOM_HUD")
             _bot_say "system" "[Room] Entering HUD Editor..."
@@ -1012,23 +1200,49 @@ function _fac_edit_router() {
             _bot_say "system" "[Room] Entering URI/Engine Editor..."
             ;;
         "ROOM_LOOKUP")
-            # [Nav] 實作查找功能
-            if command -v apklist &> /dev/null; then
-                _bot_say "action" "Launching Reference Tool..."
-                apklist
-                echo -e "\n\033[1;30m[Press Enter to return to Factory]\033[0m"
-                read
+            _bot_say "action" "Launching Reference Tool..."
+            apklist
+            echo -e ""
+            echo -e "${F_GRAY}    (Press Enter to return to Factory)${F_RESET}"
+            read
+            ;;
+        "ROOM_CONFIRM")
+            local check_data=$(awk -F, -v key="$target_key" '
+                {
+                    gsub(/^"|"$/, "", $5); c=$5
+                    gsub(/^"|"$/, "", $6); s=$6
+                    
+                    # 簡單的比對邏輯：找出當前正在編輯的那個目標
+                    # (這裡假設 target_key 是 "cmd" 或 "cmd 'sub'")
+                    t_c=key; t_s=""
+                    if (index(key, "'\''") > 0) {
+                        split(key, a, "'\''"); t_c=a[1]; t_s=a[2];
+                        gsub(/[ \t]*$/, "", t_c) # 去除尾端空格
+                    }
+
+                    if (c == t_c && s == t_s) {
+                        print c "|" $10  # 輸出 Command|Package
+                        exit
+                    }
+                }
+            ' "$MUX_ROOT/app.csv.temp")
+
+            local chk_com=$(echo "$check_data" | awk -F'|' '{print $1}')
+            
+            # [Validation] 核心欄位檢查
+            if [ -z "$chk_com" ] || [ "$chk_com" == "[Empty]" ]; then
+                _bot_say "error" "Command Name is required!"
+                return 0 # 驗收失敗，留在迴圈繼續填
             else
-                _bot_say "error" "Tool 'apklist' not found." # 待測試文字跳出效果
+                _bot_say "success" "Node Validated. Committing..."
+                return 1 # 驗收通過，發出結束信號
             fi
             ;;
-        "ROOM_INFO")
-            # 點到標題，不做事
-            ;;
         *)
-            # 點到無效區域 (如分隔線)
+            # 點到無效區域如分隔線，不做事
             ;;
     esac
+    return 0
 }
 
 
