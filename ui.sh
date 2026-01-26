@@ -606,16 +606,19 @@ function _factory_fzf_menu() {
     local target_file="$MUX_ROOT/app.csv.temp"
 
     local border_color="208"
+    local prompt_color="208"
     local prompt_msg="Select Command"
     local header_msg="DETIAL CONTROL"
     
     case "$mode" in
         "DEL")
             border_color="196"
+            prompt_color="196"
             header_msg="DELETE MODE ACTIVE"
             prompt_msg="Select"
             ;;
         "NEW")
+            prompt_color="46"
             border_color="46"
             ;;
         *)
@@ -659,7 +662,7 @@ function _factory_fzf_menu() {
         --info=hidden \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:red,marker:208,border:$border_color,header:240 \
+        --color=info:240,prompt:$prompt_color,pointer:red,marker:208,border:$border_color,header:240 \
         --bind="resize:clear-screen"
     )
 
@@ -675,12 +678,14 @@ function _factory_fzf_cat_selector() {
     
     # --- 1. 樣式定義 ---
     local border_color="208"
+    local prompt_color="208"
     local header_msg="CATEGORY FILTER MODE"
     local prompt_msg="Select Category"
 
     case "$mode" in
         "DEL")
             border_color="196"
+            prompt_color="196"
             header_msg="DELETE CATEGORY MODE"
             prompt_msg="Choose"
             ;;
@@ -714,7 +719,7 @@ function _factory_fzf_cat_selector() {
         --header=" :: Enter to Select, Esc to Return ::" \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:red,marker:208,border:$border_color,header:240 \
+        --color=info:240,prompt:$prompt_color,pointer:red,marker:208,border:$border_color,header:240 \
         --bind="resize:clear-screen"
     )
 
@@ -926,19 +931,26 @@ function _factory_fzf_detail_view() {
 
     local header_text="DETIAL CONTROL"
     local border_color="208"
+    local prompt_color="208"
 
     case "$view_mode" in
         "NEW")
+            # 綠色
             header_text="CONFIRM CREATION"
-            border_color="46"  # 綠色
+            border_color="46"
+            prompt_color="46"
             ;;
         "EDIT")
+            # 橘色
             header_text="MODIFY PARAMETER"
-            border_color="208" # 橘色
+            border_color="208"
+            prompt_color="208"
             ;;
         "VIEW"|*)
+            # 橘色
             header_text="DETIAL CONTROL"
-            border_color="208" # 橘色
+            border_color="208"
+            prompt_color="208"
             ;;
     esac
 
@@ -953,7 +965,7 @@ function _factory_fzf_detail_view() {
         --info=hidden \
         --prompt=" :: Details › " \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:red,marker:208,border:$border_color,header:240 \
+        --color=info:240,prompt:$prompt_color,pointer:red,marker:208,border:$border_color,header:240 \
         --bind="resize:clear-screen"
 }
 
@@ -986,21 +998,27 @@ function _factory_fzf_catedit_submenu() {
     local menu_content="${opt_title}\n${opt_cmds}"
 
     # --- 樣式定義 ---
-    local header_text=" :: MODIFY PARAMETER :: "
-    local border_color="208" # 預設橘色 (EDIT)
+    local header_text="MODIFY PARAMETER"
+    local prompt_color="208"
+    local border_color="208"
     
     case "$view_mode" in
         "NEW")
-            header_text=" :: CONFIRM CREATION :: "
-            border_color="46"  # 綠色
+            # 綠色
+            header_text="CONFIRM CREATION"
+            border_color="46"  
+            prompt_color="46"
             ;;
         "DEL")
-            header_text=" :: DELETE CATEGORY :: "
-            border_color="196" # 紅色
+            # 紅色
+            header_text="DELETE CATEGORY"
+            border_color="196" 
+            prompt_color="196"
             ;;
         "EDIT"|*)
-            header_text=" :: MODIFY PARAMETER :: "
-            border_color="208" # 橘色
+            # 橘色
+            header_text="MODIFY PARAMETER"
+            border_color="208" 
             ;;
     esac
     
@@ -1012,13 +1030,13 @@ function _factory_fzf_catedit_submenu() {
         --height="$dynamic_height" \
         --layout=reverse \
         --border=bottom \
-        --border-label="$header_text" \
+        --border-label=" :: $header_text :: " \
         --header=" :: Enter to return, Esc to exit :: " \
         --prompt=" Action › " \
         --pointer="››" \
         --info=hidden \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:red,marker:208,border:$border_color,header:240 \
+        --color=info:240,prompt:$prompt_color,pointer:red,marker:208,border:$border_color,header:240 \
         --bind="resize:clear-screen"
     )
     
@@ -1031,25 +1049,17 @@ function _factory_fzf_add_type_menu() {
     # 若要開啟 SYS/SSL，解除下方註解
     # options="Command NA\nCommand NB\nCommand SYS #\nCommand SSL"
 
-    # 動態計算高度
-    local line_count=$(printf "%b" "$options" | wc -l)
-    local dynamic_height=$(( line_count + 4 ))
-
-    # 動態計算高度
-    local line_count=$(echo -e "$menu_content" | wc -l)
-    local dynamic_height=$(( line_count + 4 ))
-
-    # [Config] Border=46(綠), Pointer=red(紅)
     local selected=$(printf "%b" "$options" | fzf --ansi \
-        --height="$dynamic_height" \
+        --height=8 \
         --layout=reverse \
+        --border-label=" :: CONFIRM CREATION :: " \
         --border=bottom \
         --header=" :: Enter to Choose, Esc to exit :: " \
         --prompt=" Create › " \
         --pointer="››" \
         --info=hidden \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:red,marker:208,border:46,header:240 \
+        --color=info:240,prompt:46,pointer:red,marker:208,border:46,header:240 \
         --bind="resize:clear-screen"
     )
 
