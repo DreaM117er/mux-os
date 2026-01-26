@@ -256,6 +256,8 @@ function fac() {
             # 6. 寫入檔案 (Append)
             if [ -n "$new_row" ]; then
                 echo "$new_row" >> "$MUX_ROOT/app.csv.temp"
+
+                local current_edit_target="${temp_cmd_name}"
                 
                 while true; do
                     # 1. 顯示介面 (NEW 模式 -> 綠色邊框 + [Confirm] 按鈕)
@@ -380,31 +382,36 @@ function fac() {
             local view_state="DEL"
 
             while true; do
-                # 1. Select Command
-                local raw_target=$(_factory_fzf_menu "Select App to DELETE")
+                local raw_target=$(_factory_fzf_menu "Select Target to DESTROY" "DEL")
+                
+                # 若按 Esc 則退出
                 if [ -z "$raw_target" ]; then break; fi
 
                 local clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
                 
-                # 2. Review (Visual Confirm)
-                # 使用 DEL 模式顯示紅框詳情，讓使用者看清楚要殺誰
-                _factory_fzf_detail_view "$clean_target" "DEL"
+                echo -e ""
+                echo -e "${F_WARN} :: WARNING :: NEUTRALIZING TARGET NODE ::${F_RESET}"
+                echo -e "${F_WARN}    Target Identifier : [${clean_target}]${F_RESET}"
+                echo -ne "${F_WARN}    ›› Confirm Deletion Sequence? [Y/n]: ${F_RESET}"
                 
-                # 3. Final Confirmation
-                echo -e "${F_WARN} :: WARNING :: COMMAND DELETE ACTION ::${F_RESET}"
-                echo -ne "${F_WARN}    ›› Confirm your choice [Y/n]: ${F_RESET}"
-                read -r conf
+                read -n 1 -r conf
+                echo -e "" 
                 
-                if [[ "$conf" == "y" || "$conf" == "Y" ]]; then
-                    # [Core] 執行精準刪除
+                if [[ "$conf" =~ ^[Yy]$ ]]; then
+                    _bot_say "action" "Executing Deletion..."
+                    
                     _fac_delete_node "$clean_target"
+                    
+                    sleep 0.2
                     echo -e "${F_GRAY}    ›› Target neutralized.${F_RESET}"
                     
-                    # 4. Post-processing (重整矩陣)
                     _fac_sort_optimization
                     _fac_matrix_defrag
+                    
+                    sleep 0.5
                 else
-                    echo -e "${F_GRAY}    ›› Operation cancelled.${F_RESET}"
+                    echo -e "${F_GRAY}    ›› Operation Aborted.${F_RESET}"
+                    sleep 0.5
                 fi
             done
             ;;
@@ -423,8 +430,6 @@ function fac() {
                 local db_name=$(awk -F, -v tid="$temp_id" 'NR>1 {cid=$1; gsub(/^"|"$/, "", cid); if(cid==tid){name=$3; gsub(/^"|"$/, "", name); print name; exit}}' "$MUX_ROOT/app.csv.temp")
                 if [ -z "$db_name" ]; then db_name="Unknown"; fi
 
-                # Level 2: 戰術決策 (使用模組化子選單 - DEL 模式)
-                # UI 回傳字串範例: "Delete Category [005] Network" 或 "Delete Command in [005] Network"
                 local action=$(_factory_fzf_catedit_submenu "$temp_id" "$db_name" "DEL")
                 
                 if [ -z "$action" ]; then continue; fi
@@ -448,15 +453,13 @@ function fac() {
                 # Branch B: 肅清指令 (Delete Command in...)
                 elif [[ "$action" == *"Delete Command"* ]]; then
                     while true; do
-                        # 1. 進入分類內指令選擇 (紅色模式)
                         local raw_cmd=$(_factory_fzf_cmd_in_cat "$db_name" "DEL")
                         if [ -z "$raw_cmd" ]; then break; fi
                         
-                        # 2. 清洗目標字串 (只需清洗，不用自己拆解 COM/SUB，函數會自己拆)
                         local clean_target=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
 
-                        # 3. 視覺確認
-                        echo -e "\033[1;31m :: WARNING: Deleting Node [$clean_target] from [$db_name]\033[0m"
+                        echo -e "\033[1;31m :: WARNING :: NEUTRALIZING TARGET NODE ::\033[0m"
+                        echo -e "\033[1;31m    Deleting Node [$clean_target] from [$db_name].\033[0m"
                         echo -ne "\033[1;33m    ›› Confirm destruction? [Y/n]: \033[0m"
                         read -r choice
                         echo -e ""
