@@ -991,6 +991,7 @@ function _factory_fzf_catedit_submenu() {
     if [ "$view_mode" == "DEL" ]; then
         opt_title="Delete Category ${display_label}"
         opt_cmds="Delete Command in ${display_label}"
+    fi
     
     local menu_content="${opt_title}\n${opt_cmds}"
 
