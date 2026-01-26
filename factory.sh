@@ -268,7 +268,7 @@ function fac() {
                     # if [ -z "$selection" ]; then break; fi
                     
                     # 2. 進入路由器
-                    _fac_edit_router "$selection" "${temp_cmd_name}"
+                    _fac_edit_router "$selection" "${temp_cmd_name}" "NEW"
                     
                     # 3. 檢查信號 (接受 Router 回傳值)
                     if [ $? -eq 1 ]; then
@@ -304,7 +304,7 @@ function fac() {
                     fi
                     
                     # [Core] 進入路由器
-                    _fac_edit_router "$selection" "$clean_target"
+                    _fac_edit_router "$selection" "$clean_target" "EDIT"
                     
                     # 編輯完回來後，迴圈會繼續，重新顯示 Detail View (刷新數值)
                 done
@@ -371,7 +371,7 @@ function fac() {
                                     if [ -z "$selection" ]; then break; fi
                                     
                                     # 2. 丟給 Router 處理 (進入房間)
-                                    _fac_edit_router "$selection" "$clean_target"
+                                    _fac_edit_router "$selection" "$clean_target" "EDIT"
                                     
                                     # 3. 房間處理完後，迴圈繼續，重新渲染 Detail View 顯示最新數值
                                 done
