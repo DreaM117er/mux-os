@@ -258,21 +258,29 @@ function fac() {
                 echo "$new_row" >> "$MUX_ROOT/app.csv.temp"
                 
                 while true; do
-                    # 1. 顯示 Detail View ( NEW 模式)
-                    # 使用 temp_cmd_name 作為鎖定目標
-                    local selection=$(_factory_fzf_detail_view "${temp_cmd_name}" "NEW")
+                    # 1. 顯示介面 (NEW 模式 -> 綠色邊框 + [Confirm] 按鈕)
+                    local selection=$(_factory_fzf_detail_view "${current_edit_target}" "NEW")
                     
-                    # 使用者按 Esc：
-                    # 啓用：視為「暫存並離開」
-                    # 關閉：強制不准離開 (除非按 Confirm)
-                    # if [ -z "$selection" ]; then break; fi
+                    # 2. 若按 Esc，暫存並跳出 (或可選擇刪除暫存行，看你需求)
+                    if [ -z "$selection" ]; then break; fi
                     
-                    # 2. 進入路由器
-                    _fac_edit_router "$selection" "${temp_cmd_name}" "NEW"
+                    # 3. 進入路由器 (傳入 NEW 模式)
+                    # 捕捉 stdout 以獲取 UPDATE_KEY，並捕捉 Exit Code
+                    local router_out
+                    router_out=$(_fac_edit_router "$selection" "${current_edit_target}" "NEW")
+                    local router_code=$?
                     
-                    # 3. 檢查信號 (接受 Router 回傳值)
-                    if [ $? -eq 1 ]; then
-                        break 
+                    # 顯示非控制訊息
+                    echo "$router_out" | grep -v "UPDATE_KEY"
+
+                    # 4. 處理回傳信號
+                    if [ $router_code -eq 1 ]; then
+                        # 收到 ROOM_CONFIRM (1) -> 驗收通過，正式結束新增流程
+                        break
+                    elif [ $router_code -eq 2 ]; then
+                        # 收到 UPDATE_KEY (2) -> 使用者改了指令名，更新鎖定目標
+                        local new_k=$(echo "$router_out" | awk -F: '{print $2}')
+                        if [ -n "$new_k" ]; then current_edit_target="$new_k"; fi
                     fi
                 done
                 
@@ -369,6 +377,8 @@ function fac() {
 
         # : Break Neural (Delete Command)
         "del"|"comd"|"delcom")
+            local view_state="DEL"
+
             while true; do
                 # 1. Select Command
                 local raw_target=$(_factory_fzf_menu "Select App to DELETE")
@@ -381,25 +391,28 @@ function fac() {
                 _factory_fzf_detail_view "$clean_target" "DEL"
                 
                 # 3. Final Confirmation
-                echo -e "${F_WARN} :: WARNING :: Are you sure you want to DELETE this node? [y/N] ${F_RESET}"
-                read -p "    › " conf
+                echo -e "${F_WARN} :: WARNING :: COMMAND DELETE ACTION ::${F_RESET}"
+                echo -ne "${F_WARN}    ›› Confirm your choice [Y/n]: ${F_RESET}"
+                read -r conf
                 
                 if [[ "$conf" == "y" || "$conf" == "Y" ]]; then
                     # [Core] 執行精準刪除
                     _fac_delete_node "$clean_target"
-                    _bot_say "success" "Target neutralized."
+                    echo -e "${F_GRAY}    ›› Target neutralized.${F_RESET}"
                     
                     # 4. Post-processing (重整矩陣)
                     _fac_sort_optimization
                     _fac_matrix_defrag
                 else
-                    _bot_say "action" "Operation cancelled."
+                    echo -e "${F_GRAY}    ›› Operation cancelled.${F_RESET}"
                 fi
             done
             ;;
         
         # : Delete Command via Category (Filter Search)
         "catd"|"catdel")
+            local view_state="DEL"
+
             while true; do
                 # Level 1: 選擇分類 (紅色模式)
                 local raw_cat=$(_factory_fzf_cat_selector "DEL")
@@ -429,7 +442,7 @@ function fac() {
                         _fac_safe_merge "999" "$temp_id"
                         break
                     else
-                        _bot_say "system" "Operation Aborted."
+                        echo -e "${F_GRAY}    ›› Operation Aborted.${F_RESET}"
                     fi
 
                 # Branch B: 肅清指令 (Delete Command in...)

@@ -943,6 +943,12 @@ function _factory_fzf_detail_view() {
             border_color="208"
             prompt_color="208"
             ;;
+        "DEL")
+            # 紅色
+            header_text="DELETE CATEGORY"
+            border_color="196" 
+            prompt_color="196"
+            ;;
         "VIEW"|*)
             # 橘色
             header_text="DETIAL CONTROL"
