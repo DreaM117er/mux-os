@@ -627,21 +627,20 @@ function _factory_fzf_menu() {
 
     local list=$(awk -v FPAT='([^,]*)|("[^"]+")' '
         BEGIN {
-            C_CMD="\x1b[1;37m"
-            C_DESC="\x1b[1;30m"
-            C_SUB="\x1b[1;34m"  # 新增 Sub 顏色
-            C_RESET="\x1b[0m"
+            C_CMD="\033[1;37m"
+            C_DESC="\033[1;30m"
+            C_RESET="\033[0m"
         }
         
         !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
-            
             gsub(/^"|"$/, "", $5); cmd = $5
             gsub(/^"|"$/, "", $6); sub_cmd = $6
             gsub(/^"|"$/, "", $8); desc = $8
 
             if (sub_cmd != "") {
-                display = cmd " " C_SUB "'" sub_cmd "'" C_RESET
+                display = cmd " \047" sub_cmd "\047"
             } else {
+                # Format: cmd
                 display = cmd
             }
 
@@ -752,7 +751,6 @@ function _factory_fzf_cmd_in_cat() {
     local cmd_list=$(awk -v FPAT='([^,]*)|("[^"]+")' -v target="$target_cat_name" '
         BEGIN {
             C_CMD="\x1b[1;37m"
-            C_SUB="\x1b[1;34m"
             C_RST="\x1b[0m"
         }
         
@@ -764,7 +762,7 @@ function _factory_fzf_cmd_in_cat() {
                 gsub(/^"|"$/, "", $6); sub_cmd = $6
                 
                 if (sub_cmd != "") {
-                    printf " %s%s %s'"'"'%s'"'"'%s\n", C_CMD, cmd, C_SUB, sub_cmd, C_RST
+                    printf " %s%s '"'"'%s'"'"'%s\n", C_CMD, cmd, sub_cmd, C_RST
                 } else {
                     printf " %s%s%s\n", C_CMD, cmd, C_RST
                 }
