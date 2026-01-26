@@ -1085,7 +1085,31 @@ function _fac_room_guide() {
 function _fac_edit_router() {
     local raw_selection="$1"
     local target_key="$2"
+    local view_mode="${3:-EDIT}" # 預設為 EDIT，防止未傳參
     
+    # 房間變數
+    local header_text="MODIFY PARAMETER"
+    local border_color="208" # 預設橘色
+    local prompt_color="208"
+    
+    case "$view_mode" in
+        "NEW")
+            header_text="CONFIRM CREATION"
+            border_color="46"  # 鮮綠色
+            prompt_color="46"
+            ;;
+        "DEL")
+            header_text="DELETE PARAMETER"
+            border_color="196" # 鮮紅色
+            prompt_color="196"
+            ;;
+        "EDIT"|*)
+            header_text="MODIFY PARAMETER :: "
+            border_color="208" # Mux Orange
+            prompt_color="208"
+            ;;
+    esac
+
     # 1. 切割出房間代碼
     local room_id=$(echo "$raw_selection" | awk -F'\t' '{print $2}')
     
@@ -1095,7 +1119,7 @@ function _fac_edit_router() {
             # 點到標題，不做事
             ;;
         "ROOM_CMD")
-            # 1. 解析當前 Key 為獨立變數 (作為編輯緩衝區)
+            # [Logic] 解析當前 Key 為獨立變數
             local edit_com=$(echo "$target_key" | awk '{print $1}')
             local edit_sub=""
             if [[ "$target_key" == *"'"* ]]; then
@@ -1103,14 +1127,11 @@ function _fac_edit_router() {
                 edit_sub=$(echo "$target_key" | awk -F"'" '{print $2}')
             fi
             
-            # 為了讓 Guide 顯示在 FZF Header，我們先捕捉 Guide 的輸出
-            # (這裡利用 subshell 技巧移除 ANSI code 以免 fzf header 跑版，或是保留看 fzf 支援度)
-            # 簡單起見，我們手動組裝 header
-            local header_txt=" :: Guide : Enter the CLI trigger command.\n :: Format: 'chrome', 'music' (No spaces)"
+            # [UI] 根據模式動態調整 Header 說明
+            local guide_txt="Enter the CLI trigger command"
 
             while true; do
-                # 2. 準備 FZF 選單內容
-                # 使用顏色標記當前數值
+                # 準備 FZF 選單內容
                 local menu_list=$(
                     echo -e "Command \t$edit_com"
                     if [ -z "$edit_sub" ]; then
@@ -1118,60 +1139,47 @@ function _fac_edit_router() {
                     else
                         echo -e "Sub Cmd \t$edit_sub"
                     fi
-                    echo -e "\033[1;32m[ Confirm ]\033[0m" # 綠色確認紐
+                    echo -e "\033[1;32m[ Confirm ]\033[0m"
                 )
 
-                # 3. 呼叫 FZF 顯示介面
-                # --header: 顯示 Guide
-                # --prompt: 顯示 ":: Command ›"
+                # [UI] 呼叫 FZF (套用動態顏色)
                 local choice=$(echo -e "$menu_list" | fzf --ansi \
-                    --height=10 \
+                    --height=6 \
                     --layout=reverse \
-                    --border=top \
+                    --border-label=" :: $header_text :: " \
+                    --border=bottom \
                     --header-first \
-                    --header="$header_txt" \
+                    --header=" :: $guide_txt ::" \
                     --prompt=" :: Command › " \
+                    --info=hidden \
                     --pointer="››" \
                     --delimiter="\t" \
                     --with-nth=1,2 \
-                    --color=header:240,prompt:208,border:240
+                    --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                    --color=info:240,prompt:$prompt_color,pointer:red,marker:208,border:$border_color,header:240 \
+                    --bind="resize:clear-screen"
                 )
 
-                # 4. 處理選擇
-                if [ -z "$choice" ]; then return 0; fi # 按 Esc 取消編輯，不存檔
+                if [ -z "$choice" ]; then return 0; fi 
 
                 if echo "$choice" | grep -q "Command"; then
-                    # 編輯主指令
                     _bot_say "action" "Edit Command Name:"
                     read -e -p "    › " -i "$edit_com" input_val
-                    edit_com="${input_val:-$edit_com}" # 若輸入為空則保持原值(或允許空值視需求而定)
+                    edit_com="${input_val:-$edit_com}" 
 
                 elif echo "$choice" | grep -q "Sub Cmd"; then
-                    # 編輯子指令
                     _bot_say "action" "Edit Sub-Command (Empty to clear):"
                     read -e -p "    › " -i "$edit_sub" input_val
                     edit_sub="$input_val"
 
                 elif echo "$choice" | grep -q "Confirm"; then
-                    # 5. 提交變更 (Atomic Update Sequence)
-                    
-                    # A. 先更新 Col 5 (Command)
-                    # 注意：如果原本 Key 是 "cmd 'sub'"，改了 cmd 後，Key 會變，所以要抓回傳值
+                    # 提交變更 (Atomic Update)
                     local step1_key=$(_fac_update_node "$target_key" 5 "$edit_com" 2>&1 >/dev/null)
-                    
-                    # B. 使用新的 Key (step1_key) 來更新 Col 6 (Sub Command)
-                    # 如果 step1 沒有變更 (比如沒改 COM 只改了 SUB)，update_node 可能沒回傳 output
-                    # 所以要防呆：如果 output 空，代表 Key 沒變，沿用舊的
                     local current_key="${step1_key:-$target_key}"
-                    
                     local final_key=$(_fac_update_node "$current_key" 6 "$edit_sub" 2>&1 >/dev/null)
-                    
-                    # 最終防呆：如果連 step2 都沒回傳 (代表都沒變)，就回傳原本的
                     final_key="${final_key:-$current_key}"
 
                     _bot_say "success" "Command Identity Updated."
-                    
-                    # 回傳控制信號給主迴圈
                     echo "UPDATE_KEY:$final_key"
                     return 2
                 fi
