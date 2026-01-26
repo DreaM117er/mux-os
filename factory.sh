@@ -296,26 +296,55 @@ function fac() {
         "edit"|"comedit"|"comm")
             local view_state="EDIT"
 
+            local single_shot="false"
+            if [ -n "$clean_target" ]; then single_shot="true"; fi
+
             while true; do
-                local selection=$(_factory_fzf_detail_view "$clean_target" "EDIT")
-                if [ -z "$selection" ]; then break; fi
+                # --- Level 1: 目標鎖定 (Target Acquisition) ---
+                if [ -z "$clean_target" ]; then
+                    local raw_target=$(_factory_fzf_menu "Select App to EDIT" "EDIT")
+                    
+                    # 如果在列表按 Esc，直接退出整個 edit 功能
+                    if [ -z "$raw_target" ]; then break; fi
+                    
+                    # 清洗目標名稱
+                    clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+                fi
 
-                # [Fix] 這裡要分兩步：1.捕捉輸出 2.捕捉狀態碼
-                local router_out
-                router_out=$(_fac_edit_router "$selection" "$clean_target" "EDIT")
-                local router_code=$?  # <--- 抓住它！
+                # --- Level 2: 編輯迴圈 (Editor Loop) ---
+                while true; do
+                    # 顯示 Detail View
+                    local selection=$(_factory_fzf_detail_view "$clean_target" "EDIT")
+                    
+                    # 如果在 Detail View 按 Esc -> 跳出編輯，回到上一層
+                    if [ -z "$selection" ]; then break; fi
 
-                # 顯示路由器的文字回應 (過濾掉控制信號)
-                echo "$router_out" | grep -v "UPDATE_KEY"
+                    # 呼叫路由器
+                    local router_out
+                    router_out=$(_fac_edit_router "$selection" "$clean_target" "EDIT")
+                    local router_code=$?  
 
-                # [Logic] 根據狀態碼行動
-                if [ $router_code -eq 1 ]; then
-                    # 收到 1 (CONFIRM) -> 退出編輯視窗
-                    break 
-                elif [ $router_code -eq 2 ]; then
-                    # 收到 2 (UPDATE_KEY) -> 更新鎖定目標，不退出
-                    local new_k=$(echo "$router_out" | awk -F: '{print $2}')
-                    if [ -n "$new_k" ]; then clean_target="$new_k"; fi
+                    # 顯示非控制訊息
+                    echo "$router_out" | grep -v "UPDATE_KEY"
+
+                    # 處理路由器回傳
+                    if [ $router_code -eq 1 ]; then
+                        # 收到 1 (CONFIRM) -> 編輯完成，跳出 Level 2
+                        break 
+                    elif [ $router_code -eq 2 ]; then
+                        # 收到 2 (UPDATE_KEY) -> 更新鎖定目標，繼續留在 Level 2
+                        local new_k=$(echo "$router_out" | awk -F: '{print $2}')
+                        if [ -n "$new_k" ]; then clean_target="$new_k"; fi
+                    fi
+                done
+
+                # --- Level 3: 退出策略 (Exit Strategy) ---
+                if [ "$single_shot" == "true" ]; then
+                    # 情況 A: 指定指令進入 (fac edit chrome) -> 改完直接下班
+                    break
+                else
+                    # 情況 B: 選單進入 (fac edit) -> 清空目標，回到 Level 1 選下一個
+                    clean_target=""
                 fi
             done
             ;;
@@ -440,7 +469,6 @@ function fac() {
                     echo -e "\033[1;30m    All assets will be transferred to [Others] [999].\033[0m"
                     echo -ne "\033[1;33m    ›› TYPE 'CONFIRM' TO DEPLOY: \033[0m"
                     read -r confirm
-                    echo -e ""
                     if [ "$confirm" == "CONFIRM" ]; then
                         if command -v _factory_auto_backup &> /dev/null; then _factory_auto_backup; fi
                         
@@ -462,7 +490,6 @@ function fac() {
                         echo -e "\033[1;31m    Deleting Node [$clean_target] from [$db_name].\033[0m"
                         echo -ne "\033[1;33m    ›› Confirm destruction? [Y/n]: \033[0m"
                         read -r choice
-                        echo -e ""
                         
                         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
                             if command -v _factory_auto_backup &> /dev/null; then _factory_auto_backup; fi
@@ -624,7 +651,6 @@ function _fac_rebak_wizard() {
         echo -e "${F_GRAY}    Source: $target_file${F_RESET}"
         echo -ne "${F_WARN} :: Confirm? [Y/n]: ${F_RESET}"
         read -r confirm
-        echo ""
 
         if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
             cp "$bak_dir/$target_file" "$MUX_ROOT/app.csv.temp"
@@ -1062,7 +1088,6 @@ function _fac_room_guide() {
             ;;
     esac
 
-    # 統一輸出格式
     echo -e "${F_GRAY}    :: Guide   : ${guide_text}${F_RESET}"
     if [ -n "$example_text" ]; then
         echo -e "${F_GRAY}    :: Format  : ${example_text}${F_RESET}"
@@ -1070,11 +1095,44 @@ function _fac_room_guide() {
     echo -e ""
 }
 
+# 通用單欄位編輯器 - Generic Editor
+function _fac_generic_edit() {
+    local target_key="$1"
+    local col_idx="$2"
+    local prompt_text="$3"
+    
+    local current_val=$(awk -F, -v key="$target_key" -v col="$col_idx" '
+        {
+            gsub(/^"|"$/, "", $5); c=$5
+            gsub(/^"|"$/, "", $6); s=$6
+            
+            t_c=key; t_s=""
+            if (index(key, "'\''") > 0) {
+                split(key, a, "'\''"); t_c=a[1]; t_s=a[2];
+                gsub(/[ \t]*$/, "", t_c)
+            }
+            if (c == t_c && s == t_s) {
+                gsub(/^"|"$/, "", $col)
+                print $col
+                exit
+            }
+        }
+    ' "$MUX_ROOT/app.csv.temp")
+    
+    _bot_say "action" "$prompt_text"
+    echo -e "${F_GRAY}    Current: [ ${current_val:-Empty} ]${F_RESET}"
+    
+    read -e -p "    › " -i "$current_val" input_val
+    
+    _fac_update_node "$target_key" "$col_idx" "$input_val" >/dev/null
+    _bot_say "success" "Parameter Updated."
+}
+
 # 核心編輯路由器 (The Logic Router)
 function _fac_edit_router() {
     local raw_selection="$1"
     local target_key="$2"
-    local view_mode="${3:-EDIT}" # 預設為 EDIT，防止未傳參
+    local view_mode="${3:-EDIT}"
     
     # 房間變數
     local header_text="MODIFY PARAMETER"
@@ -1099,16 +1157,14 @@ function _fac_edit_router() {
             ;;
     esac
 
-    # 1. 切割出房間代碼
+    # 房間代碼
     local room_id=$(echo "$raw_selection" | awk -F'\t' '{print $2}')
     
-    # 2. 狀態機分流
     case "$room_id" in
         "ROOM_INFO")
             # 點到標題，不做事
             ;;
         "ROOM_CMD")
-            # [Logic] 解析當前 Key 為獨立變數
             local edit_com=$(echo "$target_key" | awk '{print $1}')
             local edit_sub=""
             if [[ "$target_key" == *"'"* ]]; then
@@ -1116,24 +1172,22 @@ function _fac_edit_router() {
                 edit_sub=$(echo "$target_key" | awk -F"'" '{print $2}')
             fi
             
-            # [UI] 根據模式動態調整 Header 說明
             local guide_txt="Enter the CLI trigger command"
 
             while true; do
-                # 準備 FZF 選單內容
                 local menu_list=$(
-                    echo -e "Command \t$edit_com"
+                    echo -e " COMMAND \t$edit_com"
                     if [ -z "$edit_sub" ]; then
-                        echo -e "Sub Cmd \t\033[1;30m[Empty]\033[0m"
+                        echo -e " SUBCMD  \t\033[1;30m[Empty]\033[0m"
                     else
-                        echo -e "Sub Cmd \t$edit_sub"
+                        echo -e " SUBCMD  \t$edit_sub"
                     fi
-                    echo -e "\033[1;32m[ Confirm ]\033[0m"
+                    echo -e "\033[1;30m----------\033[0m"
+                    echo -e "\033[1;32m[Confirm]\033[0m"
                 )
 
-                # [UI] 呼叫 FZF (套用動態顏色)
                 local choice=$(echo -e "$menu_list" | fzf --ansi \
-                    --height=6 \
+                    --height=8 \
                     --layout=reverse \
                     --border-label=" :: $header_text :: " \
                     --border=bottom \
@@ -1150,19 +1204,18 @@ function _fac_edit_router() {
                 )
 
                 if [ -z "$choice" ]; then return 0; fi 
-
-                if echo "$choice" | grep -q "Command"; then
+             
+                if echo "$choice" | grep -q "COMMAND"; then
                     _bot_say "action" "Edit Command Name:"
                     read -e -p "    › " -i "$edit_com" input_val
                     edit_com="${input_val:-$edit_com}" 
 
-                elif echo "$choice" | grep -q "Sub Cmd"; then
+                elif echo "$choice" | grep -q "SUBCMD"; then
                     _bot_say "action" "Edit Sub-Command (Empty to clear):"
                     read -e -p "    › " -i "$edit_sub" input_val
                     edit_sub="$input_val"
 
                 elif echo "$choice" | grep -q "Confirm"; then
-                    # 提交變更 (Atomic Update)
                     local step1_key=$(_fac_update_node "$target_key" 5 "$edit_com" 2>&1 >/dev/null)
                     local current_key="${step1_key:-$target_key}"
                     local final_key=$(_fac_update_node "$current_key" 6 "$edit_sub" 2>&1 >/dev/null)
@@ -1175,26 +1228,121 @@ function _fac_edit_router() {
             done
             ;;
         "ROOM_HUD")
-            _bot_say "system" "[Room] Entering HUD Editor..."
-            # [TODO] _fac_room_hud "$target_key"
+            _fac_generic_edit "$target_key" 8 "Edit Description (HUD Name):"
             ;;
         "ROOM_UI")
-            _bot_say "system" "[Room] Entering UI Mode Selector..."
+            _fac_generic_edit "$target_key" 9 "Edit Display Name (Bot Label):"
             ;;
         "ROOM_PKG")
-            _bot_say "system" "[Room] Entering Package Editor..."
+            _fac_generic_edit "$target_key" 10 "Edit Package Name (com.xxx.xxx):"
             ;;
         "ROOM_ACT")
-            _bot_say "system" "[Room] Entering Action/Target Editor..."
+            _fac_generic_edit "$target_key" 11 "Edit Activity / Class Path:"
             ;;
         "ROOM_FLAG")
-            _bot_say "system" "[Room] Entering Flag Editor..."
+            _fac_generic_edit "$target_key" 17 "Edit Execution Flags:"
             ;;
         "ROOM_INTENT")
-            _bot_say "system" "[Room] Entering Intent Construction..."
+            _fac_generic_edit "$target_key" 12 "Edit Intent Action (Head):"
+            _fac_generic_edit "$target_key" 13 "Edit Intent Data (Body):"
             ;;
         "ROOM_URI")
-            _bot_say "system" "[Room] Entering URI/Engine Editor..."
+            # 1. 解析當前資料 (URI=Col 14, ENGINE=Col 20)
+            # 使用 awk 精準抓取，避免 csv 格式跑掉
+            local raw_data=$(awk -F, -v key="$target_key" '
+                {
+                    gsub(/^"|"$/, "", $5); c=$5
+                    gsub(/^"|"$/, "", $6); s=$6
+                    t_c=key; t_s=""
+                    if (index(key, "'\''") > 0) {
+                        split(key, a, "'\''"); t_c=a[1]; t_s=a[2];
+                        gsub(/[ \t]*$/, "", t_c)
+                    }
+                    if (c == t_c && s == t_s) {
+                        gsub(/^"|"$/, "", $14); u=$14
+                        gsub(/^"|"$/, "", $20); e=$20
+                        print u "|" e
+                        exit
+                    }
+                }
+            ' "$MUX_ROOT/app.csv.temp")
+
+            local edit_uri=$(echo "$raw_data" | awk -F'|' '{print $1}')
+            local edit_engine=$(echo "$raw_data" | awk -F'|' '{print $2}')
+            
+            local engine_list="[Empty]\n\$SEARCH_GOOGLE\n\$SEARCH_BING\n\$SEARCH_DUCK\n\$SEARCH_YT\n\$SEARCH_GITHUB"
+
+            while true; do
+                local uri_display="$edit_uri"
+                if [ -n "$edit_engine" ] && [ "$edit_engine" != "[Empty]" ]; then
+                    uri_display="\033[1;30m$edit_uri (Auto-Linked)\033[0m"
+                fi
+                
+                local menu_list=$(
+                    echo -e " URI     \t$uri_display"
+                    if [ -z "$edit_engine" ]; then
+                        echo -e " ENGINE  \t\033[1;30m[Empty]\033[0m"
+                    else
+                        echo -e " ENGINE  \t$edit_engine"
+                    fi
+                    echo -e "\033[1;30m----------\033[0m"
+                    echo -e "\033[1;32m[Confirm]\033[0m"
+                )
+
+                local choice=$(echo -e "$menu_list" | fzf --ansi \
+                    --height=8 \
+                    --layout=reverse \
+                    --border-label=" :: URI ENGINE LINK :: " \
+                    --border=bottom \
+                    --header-first \
+                    --header=" :: Guide : Set Engine OR Static URI ::" \
+                    --prompt=" :: Setting › " \
+                    --info=hidden \
+                    --pointer="››" \
+                    --delimiter="\t" \
+                    --with-nth=1,2 \
+                    --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                    --color=info:240,prompt:$prompt_color,pointer:red,marker:208,border:$border_color,header:240
+                )
+
+                if [ -z "$choice" ]; then return 0; fi
+
+                if echo "$choice" | grep -q "URI"; then
+                    _bot_say "action" "Enter Static URI (e.g., http://...):"
+                    read -e -p "    › " -i "$edit_uri" input_val
+                    
+                    if [ -n "$input_val" ]; then
+                        edit_uri="$input_val"
+                        if [ "$input_val" != "\$__GO_TARGET" ]; then
+                            edit_engine=""
+                            _bot_say "warn" "Engine Unlinked due to static URI."
+                        fi
+                    else
+                         edit_uri=""
+                    fi
+
+                elif echo "$choice" | grep -q "ENGINE"; then
+                    _bot_say "action" "Select Search Engine:"
+                    local sel_eng=$(echo -e "$engine_list" | fzf --height=8 --layout=reverse --header=":: Select Engine ::")
+                    
+                    if [ -n "$sel_eng" ]; then
+                        if [ "$sel_eng" == "[Empty]" ]; then
+                            edit_engine=""
+                        else
+                            edit_engine="$sel_eng"
+                            edit_uri="\$__GO_TARGET"
+                            _bot_say "success" "Engine Linked. URI set to \$__GO_TARGET."
+                        fi
+                    fi
+
+                elif echo "$choice" | grep -q "Confirm"; then
+                    _fac_update_node "$target_key" 14 "$edit_uri" >/dev/null
+                    _fac_update_node "$target_key" 20 "$edit_engine" >/dev/null
+                    
+                    _bot_say "success" "URI/Engine Configuration Saved."
+                    return 2
+                fi
+            done
             ;;
         "ROOM_LOOKUP")
             _bot_say "action" "Launching Reference Tool..."
@@ -1226,7 +1374,6 @@ function _fac_edit_router() {
 
             local chk_com=$(echo "$check_data" | awk -F'|' '{print $1}')
             
-            # [Validation] 核心欄位檢查
             if [ -z "$chk_com" ] || [ "$chk_com" == "[Empty]" ]; then
                 _bot_say "error" "Command Name is required!"
                 return 0 # 驗收失敗，留在迴圈繼續填
@@ -1241,25 +1388,6 @@ function _fac_edit_router() {
     esac
     return 0
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # 初始化視覺效果 (Initialize Visuals)
 function _fac_init() {
