@@ -669,7 +669,7 @@ function _factory_deploy_sequence() {
     echo ""
     echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO DEPLOY: ${F_RESET}"
     read confirm
-
+    echo ""
     if [ "$confirm" != "CONFIRM" ]; then
         _fac_init
         _bot_say "error" "Confirmation failed. Deployment aborted."
