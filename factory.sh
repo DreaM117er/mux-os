@@ -29,6 +29,7 @@ F_GRE="\033[1;32m"
 function _fac_neural_read() {
     local target_key="$1"
     local target_file="${2:-$MUX_ROOT/app.csv.temp}"
+    local target_state="${__FAC_IO_STATE:-ANY}" 
 
     local t_com=$(echo "$target_key" | awk '{print $1}')
     local t_sub=""
@@ -38,17 +39,29 @@ function _fac_neural_read() {
 
     local raw_data=$(awk -v FPAT='([^,]*)|("[^"]+")' \
                          -v key="$t_com" \
-                         -v subkey="$t_sub" '
+                         -v subkey="$t_sub" \
+                         -v tstate="$target_state" '
         !/^#/ { 
             row_com = $5; gsub(/^"|"$/, "", row_com); gsub(/\r| /, "", row_com)
             row_com2 = $6; gsub(/^"|"$/, "", row_com2); gsub(/\r| /, "", row_com2)
-
-            if (row_com == key && row_com2 == subkey && subkey != "") {
-                print $0; exit
-            }
             
-            if (row_com == key && row_com2 == "") {
-                fallback = $0
+            # [NEW] 狀態檢查
+            row_state = $7; gsub(/^"|"$/, "", row_state); gsub(/\r| /, "", row_state)
+            
+            state_match = 0
+            if (tstate == "ANY") {
+                if (row_state != "E") state_match = 1
+            } else {
+                if (row_state == tstate) state_match = 1
+            }
+
+            if (state_match) {
+                if (row_com == key && row_com2 == subkey && subkey != "") {
+                    print $0; exit
+                }
+                if (row_com == key && row_com2 == "") {
+                    fallback = $0
+                }
             }
         }
         END {
@@ -59,37 +72,22 @@ function _fac_neural_read() {
     if [ -z "$raw_data" ]; then return 1; fi
 
     eval $(echo "$raw_data" | awk -v FPAT='([^,]*)|("[^"]+")' '{
-        fields[1]="_VAL_CATNO"
-        fields[2]="_VAL_COMNO"
-        fields[3]="_VAL_CATNAME"
-        fields[4]="_VAL_TYPE"
-        fields[5]="_VAL_COM"
-        fields[6]="_VAL_COM2"
-        fields[7]="_VAL_COM3"
-        fields[8]="_VAL_HUDNAME"
-        fields[9]="_VAL_UINAME"
-        fields[10]="_VAL_PKG"
-        fields[11]="_VAL_TARGET"
-        fields[12]="_VAL_IHEAD"
-        fields[13]="_VAL_IBODY"
-        fields[14]="_VAL_URI"
-        fields[15]="_VAL_MIME"
-        fields[16]="_VAL_CATE"
-        fields[17]="_VAL_FLAG"
-        fields[18]="_VAL_EX"
-        fields[19]="_VAL_EXTRA"
-        fields[20]="_VAL_ENGINE"
+        fields[1]="_VAL_CATNO"; fields[2]="_VAL_COMNO"; fields[3]="_VAL_CATNAME"
+        fields[4]="_VAL_TYPE";  fields[5]="_VAL_COM";   fields[6]="_VAL_COM2"
+        fields[7]="_VAL_COM3";  fields[8]="_VAL_HUDNAME"; fields[9]="_VAL_UINAME"
+        fields[10]="_VAL_PKG";  fields[11]="_VAL_TARGET"; fields[12]="_VAL_IHEAD"
+        fields[13]="_VAL_IBODY"; fields[14]="_VAL_URI";   fields[15]="_VAL_MIME"
+        fields[16]="_VAL_CATE"; fields[17]="_VAL_FLAG";   fields[18]="_VAL_EX"
+        fields[19]="_VAL_EXTRA"; fields[20]="_VAL_ENGINE"
 
         for (i=1; i<=20; i++) {
             val = $i
             if (val ~ /^".*"$/) { val = substr(val, 2, length(val)-2) }
-            gsub(/""/, "\"", val)
-            gsub(/'\''/, "'\''\\'\'''\''", val)
+            gsub(/""/, "\"", val); gsub(/'\''/, "'\''\\'\'''\''", val)
             printf "%s='\''%s'\''; ", fields[i], val
         }
     }')
     
-    # 清洗特殊字元 (微調)
     _VAL_ENGINE=${_VAL_ENGINE//$'\r'/}
     return 0
 }
@@ -101,6 +99,7 @@ function _fac_neural_write() {
     local col_idx="$2"
     local new_val="$3"
     local target_file="${4:-$MUX_ROOT/app.csv.temp}"
+    local target_state="${__FAC_IO_STATE:-ANY}"
 
     local t_com=$(echo "$target_key" | awk '{print $1}')
     local t_sub=""
@@ -114,29 +113,34 @@ function _fac_neural_write() {
 
     awk -v FPAT='([^,]*)|("[^"]+")' -v OFS="," \
         -v tc="$t_com" -v ts="$t_sub" \
-        -v col="$col_idx" -v val="$safe_val" '
+        -v col="$col_idx" -v val="$safe_val" \
+        -v tstate="$target_state" '
     {
         c=$5; gsub(/^"|"$/, "", c); gsub(/\r| /, "", c)
         s=$6; gsub(/^"|"$/, "", s); gsub(/\r| /, "", s)
+        st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st) # COM3
 
         match_found = 0
-        if (c == tc) {
-            if (ts == "" && s == "") match_found = 1
-            if (ts != "" && s == ts) match_found = 1
+        
+        state_pass = 0
+        if (tstate == "ANY") { 
+            if (st != "E") state_pass = 1 
+        } else {
+            if (st == tstate) state_pass = 1
+        }
+
+        if (state_pass) {
+            if (c == tc) {
+                if (ts == "" && s == "") match_found = 1
+                if (ts != "" && s == ts) match_found = 1
+            }
         }
 
         if (match_found) {
             $col = val
-            
-            # new_c = $5; gsub(/^"|"$/, "", new_c)
-            # new_s = $6; gsub(/^"|"$/, "", new_s)
-            # if (new_s != "") print "UPDATE_KEY:" new_c " \047" new_s "\047" > "/dev/stderr"
-            # else print "UPDATE_KEY:" new_c > "/dev/stderr"
         }
-        
         print $0
-    }
-    ' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
+    }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
 }
 
 # 兵工廠系統啟動 (Factory System Boot)
@@ -154,6 +158,15 @@ function _factory_system_boot() {
     else
         echo '"CATNO","COMNO","CATNAME","TYPE","COM","COM2","COM3","HUDNAME","UINAME","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE","FLAG","EX","EXTRA","ENGINE"' > "$MUX_ROOT/app.csv.temp"
     fi
+
+    # 清除狀態 N 的指令
+    awk -F, -v OFS=, '
+    {
+        s=$7; gsub(/^"|"$/, "", s); gsub(/\r| /, "", s)
+        if (s == "N") { $7 = "\"\"" }
+        print $0
+    }
+    ' "$MUX_ROOT/app.csv.temp" > "$MUX_ROOT/app.csv.temp.tmp" && mv "$MUX_ROOT/app.csv.temp.tmp" "$MUX_ROOT/app.csv.temp"
 
     export PS1="\[\033[1;38;5;208m\]Fac\[\033[0m\] \w › "
     export PROMPT_COMMAND="tput sgr0; echo -ne '\033[0m'"
@@ -569,6 +582,17 @@ function fac() {
 
         # : Deploy Changes
         "deploy")
+            _fac_maintenance
+            if grep -q ',"E",' "$MUX_ROOT/app.csv.temp"; then
+                echo -e "\n\033[1;31m :: DEPLOY ABORTED :: Active Drafts (E) Detected.\033[0m"
+                echo -e "\033[1;30m    Please finish editing or delete drafts before deployment.\033[0m"
+                echo -ne "\n\033[1;33m    ›› Acknowledge and Return? [Y/n]: \033[0m"
+                read -n 1 -r
+                echo ""
+                return
+            fi
+            _fac_sort_optimization
+            _fac_matrix_defrag
             _factory_deploy_sequence
             ;;
 
@@ -789,11 +813,17 @@ function _fac_maintenance() {
         {
             catname=$3;   gsub(/^"|"$/, "", catname)
             type=$4;   gsub(/^"|"$/, "", type)
+            st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
             pkg=$10;   gsub(/^"|"$/, "", pkg)
             tgt=$11;   gsub(/^"|"$/, "", tgt)
             ihead=$12; gsub(/^"|"$/, "", ihead)
             ibody=$13; gsub(/^"|"$/, "", ibody)
             uri=$14;   gsub(/^"|"$/, "", uri)
+
+            if (st == "E" || st == "N") {
+                print $0
+                next
+            }
             
             valid = 0
             
@@ -814,7 +844,6 @@ function _fac_maintenance() {
                 }
             }
             else if (type == "SYS" || type == "SSL") {
-                # [預留] 系統指令暫時放行，或定義更嚴格規則
                 valid = 1
             }
             
@@ -823,6 +852,11 @@ function _fac_maintenance() {
                 $2 = ""
                 $3 = "\"\""
                 $7 = "\"F\""
+            } 
+            else {
+                if (st == "F") {
+                    $7 = "\"\""
+                }
             }
             
             print $0
@@ -992,35 +1026,24 @@ function _fac_safe_edit_protocol() {
     local original_key="$1"
     local target_file="$MUX_ROOT/app.csv.temp"
 
-    # 1. 讀取原始資料 (Source)
+    unset __FAC_IO_STATE
     if ! _fac_neural_read "$original_key"; then
         _bot_say "error" "Source Node Not Found."
         return 1
     fi
 
-    local orig_com="$_VAL_COM"
-    local orig_sub="$_VAL_COM2"
+    local source_state="$_VAL_COM3"
+    local final_state=""
+    if [ "$source_state" == "N" ]; then final_state="N"; fi
+
+    _bot_say "action" "Initializing Draft Sandbox..."
     
-    local draft_com="${orig_com}_DRAFT"
-    local draft_key="${draft_com}"
-    if [ -n "$orig_sub" ]; then
-        draft_key="${draft_com} '${orig_sub}'"
-    fi
+    local draft_row="$_VAL_CATNO,$_VAL_COMNO,\"$_VAL_CATNAME\",\"$_VAL_TYPE\",\"$_VAL_COM\",\"$_VAL_COM2\",\"E\",\"$_VAL_HUDNAME\",\"$_VAL_UINAME\",\"$_VAL_PKG\",\"$_VAL_TARGET\",\"$_VAL_IHEAD\",\"$_VAL_IBODY\",\"$_VAL_URI\",\"$_VAL_MIME\",\"$_VAL_CATE\",\"$_VAL_FLAG\",\"$_VAL_EX\",\"$_VAL_EXTRA\",\"$_VAL_ENGINE\""
+    
+    echo "$draft_row" >> "$target_file"
 
-    local current_draft_key="$draft_key"
-    local is_resuming=0
-
-    if _fac_neural_read "$draft_key" >/dev/null 2>&1; then
-        _bot_say "warn" "Unsaved Draft Detected. Resuming Session..."
-        is_resuming=1
-    else
-        _bot_say "action" "Initializing Draft Sandbox..."
-        _fac_neural_read "$original_key" >/dev/null
-
-        local draft_row="999,999,\"DRAFT MODE\",\"$_VAL_TYPE\",\"$draft_com\",\"$orig_sub\",\"EDITING\",\"$_VAL_HUDNAME\",\"$_VAL_UINAME\",\"$_VAL_PKG\",\"$_VAL_TARGET\",\"$_VAL_IHEAD\",\"$_VAL_IBODY\",\"$_VAL_URI\",\"$_VAL_MIME\",\"$_VAL_CATE\",\"$_VAL_FLAG\",\"$_VAL_EX\",\"$_VAL_EXTRA\",\"$_VAL_ENGINE\""
-        echo "$draft_row" >> "$target_file"
-    fi
-
+    export __FAC_IO_STATE="E"
+    local current_draft_key="$original_key"
     local loop_status="EDIT"
 
     while true; do
@@ -1041,33 +1064,33 @@ function _fac_safe_edit_protocol() {
             loop_status="CONFIRM"
             break
         elif [ $router_code -eq 2 ]; then
-
             local new_k=$(echo "$router_out" | awk -F: '{print $2}')
             if [ -n "$new_k" ]; then current_draft_key="$new_k"; fi
         fi
     done
 
+    # 4. 結算階段
     if [ "$loop_status" == "CONFIRM" ]; then
         _bot_say "neural" "Committing Changes..."
-
+        
+        unset __FAC_IO_STATE
         _fac_delete_node "$original_key"
         
-        _fac_neural_read "$current_draft_key"
-        local final_com_raw="$_VAL_COM"
+        export __FAC_IO_STATE="E"
+        _fac_neural_write "$current_draft_key" 7 "$final_state"
         
-        local final_real_com=${final_com_raw%_DRAFT}
-        
-        _fac_neural_write "$current_draft_key" 7 ""
-        _fac_neural_write "$current_draft_key" 5 "$final_real_com"
+        unset __FAC_IO_STATE
         
         _fac_sort_optimization
         _fac_matrix_defrag
         
-        _bot_say "success" "Node Updated & Re-indexed."
+        _bot_say "success" "Node Updated."
         
     else
         _bot_say "action" "Discarding Draft..."
+        export __FAC_IO_STATE="E"
         _fac_delete_node "$current_draft_key"
+        unset __FAC_IO_STATE
     fi
 }
 
@@ -1118,6 +1141,7 @@ function _fac_update_node() {
 function _fac_delete_node() {
     local target_key="$1"
     local target_file="$MUX_ROOT/app.csv.temp"
+    local target_state="${__FAC_IO_STATE:-NORMAL}" 
 
     local t_com=$(echo "$target_key" | awk '{print $1}')
     local t_sub=""
@@ -1127,24 +1151,34 @@ function _fac_delete_node() {
     fi
 
     awk -v FPAT='([^,]*)|("[^"]+")' \
-        -v tc="$t_com" -v ts="$t_sub" '
+        -v tc="$t_com" -v ts="$t_sub" \
+        -v tstate="$target_state" '
     {
         raw = $0
-        
         c=$5; gsub(/^"|"$/, "", c); gsub(/\r| /, "", c)
         s=$6; gsub(/^"|"$/, "", s); gsub(/\r| /, "", s)
-        
+        st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
+
         match_found = 0
-        if (c == tc) {
-            if (ts == "" && s == "") match_found = 1
-            if (ts != "" && s == ts) match_found = 1
+        
+        state_pass = 0
+        if (tstate == "NORMAL") {
+            if (st == "" || st == "N") state_pass = 1
+        } else {
+            if (st == tstate) state_pass = 1
+        }
+
+        if (state_pass) {
+            if (c == tc) {
+                if (ts == "" && s == "") match_found = 1
+                if (ts != "" && s == ts) match_found = 1
+            }
         }
 
         if (match_found) {
-            print "Deleted Node: [" c (s==""?"":" "s) "]" > "/dev/stderr"
+            print "Deleted Node: [" c " " s "] [" st "]" > "/dev/stderr"
             next
         }
-        
         print raw
     }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
 }
@@ -1166,7 +1200,7 @@ function _fac_room_guide() {
             example_text="Example: 'Google Chrome Browser'"
             ;;
         "ROOM_UI")
-            guide_text="Specify UI rendering mode."
+            guide_text="Specify UI rendering mode."_fac_room_guide
             example_text="Options: [Empty]=Default, 'fzf', 'cli', 'silent'"
             ;;
         "ROOM_PKG")
@@ -1526,7 +1560,12 @@ function _fac_init() {
     _draw_logo "factory"
     _system_check "factory"
     _show_hud "factory"
-    sed -i '/_DRAFT/d' "$MUX_ROOT/app.csv.temp"
+    awk -F, -v OFS=, '
+    {
+        s=$7; gsub(/^"|"$/, "", s); gsub(/\r| /, "", s)
+        if (s != "E") print $0
+    }
+    ' "$MUX_ROOT/app.csv.temp" > "$MUX_ROOT/app.csv.temp.tmp" && mv "$MUX_ROOT/app.csv.temp.tmp" "$MUX_ROOT/app.csv.temp"
     _system_unlock
 }
 
