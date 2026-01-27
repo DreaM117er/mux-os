@@ -1002,14 +1002,8 @@ function _mux_neural_fire_control() {
 function command_not_found_handle() {
     local cmd="$1"
     shift
-    local args="$@"
-
-    # 第一關：安全檢查 (Security Gate)
-    ! _mux_security_gate "$cmd" "$args" && return 0
-
-    # 第二關：Mux-OS 核心執行 (Neural Fire Control)
-    _mux_neural_fire_control "$cmd" "$args" && return 0
-    
+    ! _mux_security_gate "$cmd" "$@" && return 0
+    _mux_neural_fire_control "$cmd" "$@" && return 0
     return 127
 }
 
