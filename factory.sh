@@ -985,20 +985,13 @@ function _fac_matrix_defrag() {
     else
         rm "$temp_file"
         echo -e "${F_ERR}    ›› Defrag Failed.${F_RESET}"
+    fi
 }
 
 # 安全沙盒編輯協議 - Safe Edit Protocol
 function _fac_safe_edit_protocol() {
     local original_key="$1"
     local target_file="$MUX_ROOT/app.csv.temp"
-
-    if [[ "$original_key" == *"_DRAFT"* ]]; then
-        _bot_say "warn" "Target is already a Draft Node."
-        current_draft_key="$original_key"
-
-        _bot_say "error" "Please select the ORIGINAL node to edit."
-        return 1
-    fi
 
     if ! _fac_neural_read "$original_key"; then
         _bot_say "error" "Source Node Not Found."
