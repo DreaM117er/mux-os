@@ -359,7 +359,6 @@ function fac() {
                     _fac_delete_node "${temp_cmd_name}"
                 fi
             fi
-            fi
             ;;
 
         # : Edit Neural (Edit Command)
