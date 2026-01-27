@@ -795,160 +795,120 @@ function _factory_fzf_cmd_in_cat() {
 function _factory_fzf_detail_view() {
     local target_key="$1"
     local view_mode="${2:-VIEW}"
-    local target_file="$MUX_ROOT/app.csv.temp"
 
     if [ -z "$target_key" ]; then return; fi
 
-    local t_com=$(echo "$target_key" | awk '{print $1}')
-    local t_sub=""
-    if [[ "$target_key" == *"'"* ]]; then
-        t_sub=$(echo "$target_key" | awk -F"'" '{print $2}')
+    # 1. 呼叫核心讀取模組 (這會自動產生 _VAL_PKG, _VAL_TYPE 等變數)
+    # 注意：這裡依賴 factory.sh 的函式，確保 factory.sh 已載入
+    if ! command -v _fac_neural_read &> /dev/null; then
+        echo "Error: Neural Reader not found."
+        return
     fi
 
-    local report=$(awk -v FPAT='([^,]*)|("[^"]+")' \
-                       -v t_com="$t_com" \
-                       -v t_sub="$t_sub" \
-                       -v mode="$view_mode" '
-        BEGIN {
-            C_LBL="\033[1;30m"
-            C_VAL="\033[1;37m"
-            C_TAG="\033[1;33m"
-            C_RST="\033[0m"
-            sep="----------"
-            C_EMP_R="\033[1;31m[Empty]\033[0m"
-            C_EMP_Y="\033[1;33m[Empty]\033[0m"
-            C_UNK="\033[1;30m[Unknown]\033[0m"
-            S="\t"
-        }
+    # 讀取資料
+    _fac_neural_read "$target_key" || return
 
-        !/^#/ && NF >= 5 {
-            c=$5; gsub(/^"|"$/, "", c)
-            s=$6; gsub(/^"|"$/, "", s)
-            
-            match_found = 0
-            if (c == t_com) {
-                if (t_sub == "" && s == "") match_found = 1
-                if (t_sub != "" && s == t_sub) match_found = 1
-            }
+    # 2. 定義樣式 (Bash Native)
+    local C_LBL="\033[1;30m"
+    local C_VAL="\033[1;37m"
+    local C_TAG="\033[1;33m"
+    local C_RST="\033[0m"
+    local C_EMP_R="\033[1;31m[Empty]\033[0m"
+    local C_EMP_Y="\033[1;33m[Empty]\033[0m"
+    local C_UNK="\033[1;30m[Unknown]\033[0m"
+    local SEP="----------"
+    local S="\t"
 
-            if (match_found) {
-                cat=$1;      gsub(/^"|"$/, "", cat)
-                comno=$2;    gsub(/^"|"$/, "", comno)
-                catname=$3;  gsub(/^"|"$/, "", catname)
-                type=$4;     gsub(/^"|"$/, "", type);   if(type=="") type="[Empty]"
-                
-                hud=$8;      gsub(/^"|"$/, "", hud);    if(hud=="") hud="[Empty]"
-                ui=$9;       gsub(/^"|"$/, "", ui);     if(ui=="")  ui="[Empty]"
-                pkg=$10;     gsub(/^"|"$/, "", pkg);    if(pkg=="") pkg="[Empty]"
-                act=$11;     gsub(/^"|"$/, "", act);    if(act=="") act="[Empty]"
-                
-                ihead=$12;   gsub(/^"|"$/, "", ihead);  if(ihead=="") ihead="[Empty]"
-                ibody=$13;   gsub(/^"|"$/, "", ibody);  if(ibody=="") ibody="[Empty]"
-                uri=$14;     gsub(/^"|"$/, "", uri);    if(uri=="")   uri="[Empty]"
-                mime=$15;    gsub(/^"|"$/, "", mime);   if(mime=="") mime="[Empty]"
-                cate=$16;    gsub(/^"|"$/, "", cate);   if(cate=="") cate="[Empty]"
-                flag=$17;    gsub(/^"|"$/, "", flag);   if(flag=="") flag="[Empty]"
-                ex=$18;      gsub(/^"|"$/, "", ex);     if(ex=="") ex="[Empty]"
-                extra=$19;   gsub(/^"|"$/, "", extra);  if(extra=="") extra="[Empty]"
-                engine=$20;  gsub(/^"|"$/, "", engine); if(engine=="") engine="[Empty]"
+    # 3. 資料正規化 (Display Logic)
+    local d_sub="${_VAL_COM2:-[Empty]}"
+    local d_type="${_VAL_TYPE:-[Empty]}"
+    local d_hud="${_VAL_HUDNAME:-[Empty]}"
+    local d_ui="${_VAL_UINAME:-[Empty]}"
+    local d_pkg="${_VAL_PKG:-[Empty]}"
+    local d_act="${_VAL_TARGET:-[Empty]}"
+    local d_uri="${_VAL_URI:-[Empty]}"
+    local d_eng="${_VAL_ENGINE:-[Empty]}"
+    
+    # 針對不同模式的特殊處理
+    local cat_name_display="$_VAL_CATNAME"
+    local cat_no_display="$_VAL_CATNO"
+    local com_no_display="$_VAL_COMNO"
+    
+    if [ "$view_mode" == "NEW" ]; then
+        cat_name_display="NEW NODE"
+        cat_no_display="NEW"
+        com_no_display="XX"
+    fi
 
-                if (s == "") s_disp = "[Empty]"; else s_disp = s
-                
-                if (mode == "NEW") {
-                    catname = "NEW NODE"
-                    cat = "NEW"
-                    comno = "XX"
-                }
+    # 錯誤標記邏輯 (Validation Highlight)
+    if [[ "$view_mode" == "NEW" || "$view_mode" == "EDIT" ]]; then
+        if [ "$_VAL_TYPE" == "NA" ]; then
+             if [ -z "$_VAL_PKG" ]; then d_pkg="$C_EMP_R"; fi
+             if [ -z "$_VAL_TARGET" ]; then d_act="$C_EMP_R"; fi
+        elif [ "$_VAL_TYPE" == "NB" ]; then
+             # NB 需要 PKG 或 URI
+             if [ -z "$_VAL_PKG" ] && [ -z "$_VAL_URI" ] && [ -z "$_VAL_ENGINE" ]; then
+                 d_pkg="$C_EMP_R"
+                 d_uri="$C_EMP_R"
+             fi
+        fi
+        if [ -z "$_VAL_HUDNAME" ]; then d_hud="$C_UNK"; fi
+        if [ -z "$_VAL_UINAME" ]; then d_ui="$C_UNK"; fi
+    fi
 
-                if (mode == "NEW" || mode == "EDIT") {
-                    if (type == "NA") {
-                        if (c == "[Empty]") c = C_EMP_R
-                        if (pkg == "[Empty]") pkg = C_EMP_R
-                        if (act == "[Empty]") act = C_EMP_R
-                        if (hud == "[Empty]") hud = C_UNK
-                        if (ui == "[Empty]") ui = C_UNK
-                    }
-                    else if (type == "NB") {
-                        if (pkg == "[Empty]" && ihead == "[Empty]" && uri == "[Empty]") {
-                             pkg = C_EMP_R
-                             uri = C_EMP_R
-                        }
-                        if (hud == "[Empty]") hud = C_UNK
-                        if (ui == "[Empty]") ui = C_UNK
-                    }
-                }
+    local command_str="$_VAL_COM $d_sub"
+    local final_uri="$d_uri"
+    if [ -n "$_VAL_ENGINE" ]; then final_uri="$d_eng"; fi
 
-                command_str = c " " s_disp
-                final_uri = uri
-                if (engine != "[Empty]") final_uri = engine
+    # 4. 生成報告 (Bash Printf)
+    local report=""
+    
+    # Header Section
+    report+="${C_TAG}[${cat_name_display}]${C_RST}${S}ROOM_INFO\n"
+    report+="${C_TAG}[${cat_no_display}:${com_no_display}]${C_TAG}[TYPE: ${d_type}]${C_RST}${S}ROOM_INFO\n"
+    
+    # Common Section
+    report+=" ${C_LBL}Command:${C_VAL} ${command_str} ${S}ROOM_CMD\n"
+    report+=" ${C_LBL}Detail :${C_VAL} ${d_hud} ${S}ROOM_HUD\n"
+    report+=" ${C_LBL}UI     :${C_VAL} ${d_ui} ${S}ROOM_UI\n"
+    report+="${C_LBL}${SEP}${C_RST}\n"
 
-                if (type == "NA" || type == "NA") { 
-                    printf "%s[%s]%s%sROOM_INFO\n", C_TAG, catname, C_RST, S
-                    printf "%s[%03d:%3s]%s[%s: %s]%s%sROOM_INFO\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST, S
-                    printf " %sCommand:%s %s%sROOM_CMD\n", C_LBL, C_VAL, command_str, S
-                    printf " %sDetail :%s %s%sROOM_HUD\n", C_LBL, C_VAL, hud, S
-                    printf " %sUI     :%s %s%sROOM_UI\n", C_LBL, C_VAL, ui, S
-                    printf "%s%s%s\n", C_LBL, sep, C_RST
-                    printf " %sPackage:%s %s%sROOM_PKG\n", C_LBL, C_VAL, pkg, S
-                    printf " %sTarget :%s %s%sROOM_ACT\n", C_LBL, C_VAL, act, S
-                    printf " %sFlag   :%s %s%sROOM_FLAG\n", C_LBL, C_VAL, flag, S
-                }
-                else if (type == "NB") {
-                    printf "%s[%s]%s%sROOM_INFO\n", C_TAG, catname, C_RST, S
-                    printf "%s[%03d:%3s]%s[%s: %s]%s%sROOM_INFO\n", C_TAG, cat, comno, C_TAG, "TYPE", type, C_RST, S
-                    printf " %sCommand:%s %s%sROOM_CMD\n", C_LBL, C_VAL, command_str, S
-                    printf " %sDetail :%s %s%sROOM_HUD\n", C_LBL, C_VAL, hud, S
-                    printf " %sUI     :%s %s%sROOM_UI\n", C_LBL, C_VAL, ui, S
-                    printf "%s%s%s\n", C_LBL, sep, C_RST
-                    printf " %sIntent :%s %s%s%sROOM_INTENT\n", C_LBL, C_VAL, ihead, ibody, S
-                    printf " %sURI    :%s %s%sROOM_URI\n", C_LBL, C_VAL, final_uri, S
-                    printf " %sCate   :%s %s%sROOM_CATE\n", C_LBL, C_VAL, cate, S
-                    printf " %sMime   :%s %s%sROOM_MIME\n", C_LBL, C_VAL, mime, S
-                    printf " %sExtra  :%s %s %s%sROOM_EXTRA\n", C_LBL, C_VAL, ex, extra, S
-                    printf " %sPackage:%s %s%sROOM_PKG\n", C_LBL, C_VAL, pkg, S
-                    printf " %sTarget :%s %s%sROOM_ACT\n", C_LBL, C_VAL, act, S
-                }
-                
-                if (mode == "NEW") {
-                    printf "%s%s%s\n", C_LBL, sep, C_RST
-                    printf "\033[1;36m[Lookup] 'apklist'\033[0m%sROOM_LOOKUP\n", S
-                    printf "\033[1;32m[Confirm]\033[0m%sROOM_CONFIRM\n", S
-                }
-                exit
-            }
-        }
-    ' "$target_file")
+    # Type Specific Section
+    if [ "$_VAL_TYPE" == "NB" ]; then
+        report+=" ${C_LBL}Intent :${C_VAL} ${_VAL_IHEAD} ${_VAL_IBODY}${S}ROOM_INTENT\n"
+        report+=" ${C_LBL}URI    :${C_VAL} ${final_uri} ${S}ROOM_URI\n"
+        report+=" ${C_LBL}Cate   :${C_VAL} ${_VAL_CATE:-[Empty]} ${S}ROOM_CATE\n"
+        report+=" ${C_LBL}Mime   :${C_VAL} ${_VAL_MIME:-[Empty]} ${S}ROOM_MIME\n"
+        report+=" ${C_LBL}Extra  :${C_VAL} ${_VAL_EX:-[Empty]} ${_VAL_EXTRA} ${S}ROOM_EXTRA\n"
+        report+=" ${C_LBL}Package:${C_VAL} ${d_pkg} ${S}ROOM_PKG\n"
+        report+=" ${C_LBL}Target :${C_VAL} ${d_act} ${S}ROOM_ACT\n"
+    else
+        # Default / NA / SYS
+        report+=" ${C_LBL}Package:${C_VAL} ${d_pkg} ${S}ROOM_PKG\n"
+        report+=" ${C_LBL}Target :${C_VAL} ${d_act} ${S}ROOM_ACT\n"
+        report+=" ${C_LBL}Flag   :${C_VAL} ${_VAL_FLAG:-[Empty]} ${S}ROOM_FLAG\n"
+    fi
 
-    if [ -z "$report" ]; then return; fi
+    # Footer Actions
+    if [ "$view_mode" == "NEW" ]; then
+        report+="${C_LBL}${SEP}${C_RST}\n"
+        report+="\033[1;36m[Lookup] 'apklist'\033[0m${S}ROOM_LOOKUP\n"
+        report+="\033[1;32m[Confirm]\033[0m${S}ROOM_CONFIRM\n"
+    fi
 
-    local header_text="DETIAL CONTROL"
+    # 5. 輸出給 FZF
+    # FZF 設定保持你原本的邏輯
+    local header_text="DETAIL CONTROL"
     local border_color="208"
     local prompt_color="208"
 
     case "$view_mode" in
-        "NEW")
-            header_text="CONFIRM CREATION"
-            border_color="46"
-            prompt_color="46"
-            ;;
-        "EDIT")
-            header_text="MODIFY PARAMETER"
-            border_color="208"
-            prompt_color="208"
-            ;;
-        "DEL")
-            header_text="DELETE CATEGORY"
-            border_color="196" 
-            prompt_color="196"
-            ;;
-        "VIEW"|*)
-            header_text="DETIAL CONTROL"
-            border_color="208"
-            prompt_color="208"
-            ;;
+        "NEW") header_text="CONFIRM CREATION"; border_color="46"; prompt_color="46" ;;
+        "EDIT") header_text="MODIFY PARAMETER"; border_color="208"; prompt_color="208" ;;
+        "DEL") header_text="DELETE CATEGORY"; border_color="196"; prompt_color="196" ;;
     esac
 
-    local line_count=$(echo "$report" | wc -l)
+    local line_count=$(echo -e "$report" | wc -l)
     local dynamic_height=$(( line_count + 4 ))
 
     echo -e "$report" | fzf --ansi \

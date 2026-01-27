@@ -411,56 +411,23 @@ function fac() {
         "edit"|"comedit"|"comm")
             local view_state="EDIT"
 
-            local single_shot="false"
-            if [ -n "$clean_target" ]; then single_shot="true"; fi
+            # 支援單次指令: fac edit chrome
+            if [ -n "$clean_target" ]; then
+                _fac_safe_edit_protocol "$clean_target"
+                return
+            fi
 
             while true; do
-                # --- Level 1: 目標鎖定 (Target Acquisition) ---
-                if [ -z "$clean_target" ]; then
-                    local raw_target=$(_factory_fzf_menu "Select App to EDIT" "EDIT")
-                    
-                    # 如果在列表按 Esc，直接退出整個 edit 功能
-                    if [ -z "$raw_target" ]; then break; fi
-                    
-                    # 清洗目標名稱
-                    clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
-                fi
+                # 1. 選擇目標
+                local raw_target=$(_factory_fzf_menu "Select App to EDIT" "EDIT")
+                if [ -z "$raw_target" ]; then break; fi
 
-                # --- Level 2: 編輯迴圈 (Editor Loop) ---
-                while true; do
-                    # 顯示 Detail View
-                    local selection=$(_factory_fzf_detail_view "$clean_target" "EDIT")
-                    
-                    # 如果在 Detail View 按 Esc -> 跳出編輯，回到上一層
-                    if [ -z "$selection" ]; then break; fi
-
-                    # 呼叫路由器
-                    local router_out
-                    router_out=$(_fac_edit_router "$selection" "$clean_target" "EDIT")
-                    local router_code=$?  
-
-                    # 顯示非控制訊息
-                    echo "$router_out" | grep -v "UPDATE_KEY"
-
-                    # 處理路由器回傳
-                    if [ $router_code -eq 1 ]; then
-                        # 收到 1 (CONFIRM) -> 編輯完成，跳出 Level 2
-                        break 
-                    elif [ $router_code -eq 2 ]; then
-                        # 收到 2 (UPDATE_KEY) -> 更新鎖定目標，繼續留在 Level 2
-                        local new_k=$(echo "$router_out" | awk -F: '{print $2}')
-                        if [ -n "$new_k" ]; then clean_target="$new_k"; fi
-                    fi
-                done
-
-                # --- Level 3: 退出策略 (Exit Strategy) ---
-                if [ "$single_shot" == "true" ]; then
-                    # 情況 A: 指定指令進入 (fac edit chrome) -> 改完直接下班
-                    break
-                else
-                    # 情況 B: 選單進入 (fac edit) -> 清空目標，回到 Level 1 選下一個
-                    clean_target=""
-                fi
+                local clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+                
+                # 2. 執行安全編輯協議
+                _fac_safe_edit_protocol "$clean_target"
+                
+                # 編輯完後回到選單，可以繼續選下一個
             done
             ;;
 
@@ -1071,6 +1038,125 @@ function _fac_matrix_defrag() {
     fi
 }
 
+# [Factory] 安全沙盒編輯協議 - Safe Edit Protocol
+# 流程：複製 -> 標記為草稿 -> 編輯草稿 -> 確認後覆蓋 -> 自動歸位
+function _fac_safe_edit_protocol() {
+    local original_key="$1"
+    local target_file="$MUX_ROOT/app.csv.temp"
+
+    if [[ "$original_key" == *"_DRAFT"* ]]; then
+        _bot_say "warn" "Target is already a Draft Node."
+        # 直接把這個分身當作當前的編輯目標，跳過複製步驟
+        current_draft_key="$original_key"
+        
+        # 但我們需要知道它的 "本尊" 是誰，以便最後刪除
+        # 這裡假設命名規則是 NAME_DRAFT，所以去除後綴
+        # (這邏輯比較複雜，因為原本的 key 可能包含空白)
+        # 簡單策略：如果是 Draft，就直接進入編輯模式，但最後 "不執行刪除舊檔" (因為找不到舊檔)
+        # 或者：禁止編輯 Draft，強制使用者去選本尊
+        
+        _bot_say "error" "Please select the ORIGINAL node to edit."
+        return 1
+    fi
+
+    # 1. 讀取原始資料 (Source)
+    if ! _fac_neural_read "$original_key"; then
+        _bot_say "error" "Source Node Not Found."
+        return 1
+    fi
+
+    # 保存原始的 Command 和 SubCommand (用於最後還原)
+    local orig_com="$_VAL_COM"
+    local orig_sub="$_VAL_COM2"
+    
+    # 2. 生成草稿 Key (Draft Key) 以避免讀取衝突
+    # 這裡我們用一個特殊的後綴，確保它是唯一的
+    local draft_com="${orig_com}_DRAFT"
+    local draft_key="${draft_com}"
+    if [ -n "$orig_sub" ]; then
+        draft_key="${draft_com} '${orig_sub}'"
+    fi
+
+    _bot_say "action" "Initializing Draft Sandbox..."
+
+    # 3. 複製並寫入草稿 (Copy to Bottom)
+    # 我們利用既有的變數，手動組裝一行，但把 COM 改成 draft_com
+    # 並強制將 COM3 (Integrity) 設為 "EDITING" 以便識別
+    local draft_row="999,999,\"DRAFT MODE\",\"$_VAL_TYPE\",\"$draft_com\",\"$orig_sub\",\"EDITING\",\"$_VAL_HUDNAME\",\"$_VAL_UINAME\",\"$_VAL_PKG\",\"$_VAL_TARGET\",\"$_VAL_IHEAD\",\"$_VAL_IBODY\",\"$_VAL_URI\",\"$_VAL_MIME\",\"$_VAL_CATE\",\"$_VAL_FLAG\",\"$_VAL_EX\",\"$_VAL_EXTRA\",\"$_VAL_ENGINE\""
+    
+    # [關鍵操作] 直接 Append 到檔案最下方
+    echo "$draft_row" >> "$target_file"
+
+    # 4. 進入編輯迴圈 (針對草稿)
+    local loop_status="EDIT"
+    local current_draft_key="$draft_key"
+
+    while true; do
+        # 顯示介面 (Target 是草稿)
+        local selection=$(_factory_fzf_detail_view "$current_draft_key" "EDIT")
+        
+        # 如果使用者按 Esc (取消編輯)
+        if [ -z "$selection" ]; then
+            loop_status="CANCEL"
+            break
+        fi
+
+        # 進入路由器修改參數
+        # 注意：這裡所有的修改，都是針對底部那行 _DRAFT
+        local router_out
+        router_out=$(_fac_edit_router "$selection" "$current_draft_key" "EDIT")
+        local router_code=$?
+        
+        echo "$router_out" | grep -v "UPDATE_KEY"
+
+        if [ $router_code -eq 1 ]; then
+            # 收到 CONFIRM 信號
+            loop_status="CONFIRM"
+            break
+        elif [ $router_code -eq 2 ]; then
+            # 收到改名信號 (UPDATE_KEY)
+            # 因為使用者可能在編輯過程中改了 Command 名稱
+            local new_k=$(echo "$router_out" | awk -F: '{print $2}')
+            if [ -n "$new_k" ]; then current_draft_key="$new_k"; fi
+        fi
+    done
+
+    # 5. 結算階段 (Commit or Rollback)
+    if [ "$loop_status" == "CONFIRM" ]; then
+        _bot_say "neural" "Committing Changes..."
+        
+        # A. 刪除原始節點 (Delete Old)
+        _fac_delete_node "$original_key"
+        
+        # B. 將草稿還原為正式名稱 (Rename Draft to Real)
+        # 我們需要把 _DRAFT 後綴拿掉。
+        # 注意：如果使用者在編輯過程中改了名字(例如改成 google_DRAFT)，我們要把 _DRAFT 去掉
+        
+        # 讀取草稿的最新狀態
+        _fac_neural_read "$current_draft_key"
+        local final_com_raw="$_VAL_COM"
+        
+        # 移除 _DRAFT 後綴
+        local final_real_com=${final_com_raw%_DRAFT}
+        
+        # 執行最後的寫入：改回真名，並把 COM3 (EDITING) 改回原本的狀態(或是空)
+        # 這裡我們分兩步：先改 COM3，再改 COM (因為改 COM 會變 Key)
+        _fac_neural_write "$current_draft_key" 7 "" # 清除 EDITING 標記
+        _fac_neural_write "$current_draft_key" 5 "$final_real_com" # 改回真名
+        
+        # C. 自動歸位 (Sort)
+        _fac_sort_optimization
+        _fac_matrix_defrag
+        
+        _bot_say "success" "Node Updated & Re-indexed."
+        
+    else
+        # 取消編輯：直接刪除草稿
+        _bot_say "action" "Discarding Draft..."
+        _fac_delete_node "$current_draft_key"
+    fi
+}
+
 # 原子寫入函數 - Atomic Node Updater
 function _fac_update_node() {
     # 用法: _fac_update_node "TARGET_KEY" "COL_INDEX" "NEW_VALUE"
@@ -1216,30 +1302,41 @@ function _fac_generic_edit() {
     local col_idx="$2"
     local prompt_text="$3"
     
-    local current_val=$(awk -v FPAT='([^,]*)|("[^"]+")' -v key="$target_key" -v col="$col_idx" '
-        {
-            gsub(/^"|"$/, "", $5); c=$5
-            gsub(/^"|"$/, "", $6); s=$6
-            t_c=key; t_s=""
-            if (index(key, "'\''") > 0) {
-                split(key, a, "'\''"); t_c=a[1]; t_s=a[2];
-                gsub(/[ \t]*$/, "", t_c)
-            }
-            if (c == t_c && s == t_s) {
-                val=$col
-                gsub(/^"|"$/, "", val)
-                print val
-                exit
-            }
-        }
-    ' "$MUX_ROOT/app.csv.temp")
+    # 1. 讀取最新狀態
+    _fac_neural_read "$target_key"
     
+    # 2. 映射欄位索引到變數 (為了顯示 Default Value)
+    local current_val=""
+    case "$col_idx" in
+        8) current_val="$_VAL_HUDNAME" ;;
+        9) current_val="$_VAL_UINAME" ;;
+        10) current_val="$_VAL_PKG" ;;
+        11) current_val="$_VAL_TARGET" ;;
+        12) current_val="$_VAL_IHEAD" ;;
+        13) current_val="$_VAL_IBODY" ;;
+        14) current_val="$_VAL_URI" ;;
+        15) current_val="$_VAL_MIME" ;;
+        16) current_val="$_VAL_CATE" ;;
+        17) current_val="$_VAL_FLAG" ;;
+        18) current_val="$_VAL_EX" ;;
+        19) current_val="$_VAL_EXTRA" ;;
+        20) current_val="$_VAL_ENGINE" ;;
+        *) current_val="" ;;
+    esac
+    
+    # 3. 用戶交互
     _bot_say "action" "$prompt_text"
-    echo -e "${F_GRAY}    Current: [ ${current_val:-Empty} ]${F_RESET}"
+    if command -v _fac_room_guide &> /dev/null; then
+        # 自動偵測 Room ID 太複雜，這裡暫時跳過，或你可以傳入 Room ID
+        echo -e "${F_GRAY}    Current: [ ${current_val:-Empty} ]${F_RESET}"
+    else
+        echo -e "${F_GRAY}    Current: [ ${current_val:-Empty} ]${F_RESET}"
+    fi
     
     read -e -p "    › " -i "$current_val" input_val
     
-    _fac_update_node "$target_key" "$col_idx" "$input_val" >/dev/null
+    # 4. 原子寫入
+    _fac_neural_write "$target_key" "$col_idx" "$input_val"
     _bot_say "success" "Parameter Updated."
 }
 
@@ -1248,6 +1345,13 @@ function _fac_edit_router() {
     local raw_selection="$1"
     local target_key="$2"
     local view_mode="${3:-EDIT}"
+
+    local room_id=$(echo "$raw_selection" | awk -F'\t' '{print $2}')
+    
+    # 1. 顯示該房間的說明書 (Guide)
+    if command -v _fac_room_guide &> /dev/null; then
+        _fac_room_guide "$room_id"
+    fi
     
     # 房間變數
     local header_text="MODIFY PARAMETER"
@@ -1255,21 +1359,9 @@ function _fac_edit_router() {
     local prompt_color="208"
     
     case "$view_mode" in
-        "NEW")
-            header_text="CONFIRM CREATION"
-            border_color="46"  # 鮮綠色
-            prompt_color="46"
-            ;;
-        "DEL")
-            header_text="DELETE PARAMETER"
-            border_color="196" # 鮮紅色
-            prompt_color="196"
-            ;;
-        "EDIT"|*)
-            header_text="MODIFY PARAMETER :: "
-            border_color="208" # Mux Orange
-            prompt_color="208"
-            ;;
+        "NEW") header_text="CONFIRM CREATION"; border_color="46"; prompt_color="46" ;;
+        "DEL") header_text="DELETE PARAMETER"; border_color="196"; prompt_color="196" ;;
+        "EDIT"|*) header_text="MODIFY PARAMETER :: "; border_color="208"; prompt_color="208" ;;
     esac
 
     # 房間代碼
@@ -1467,34 +1559,13 @@ function _fac_edit_router() {
             read
             ;;
         "ROOM_CONFIRM")
-            local check_data=$(awk -F, -v key="$target_key" '
-                {
-                    gsub(/^"|"$/, "", $5); c=$5
-                    gsub(/^"|"$/, "", $6); s=$6
-                    
-                    # 簡單的比對邏輯：找出當前正在編輯的那個目標
-                    # (這裡假設 target_key 是 "cmd" 或 "cmd 'sub'")
-                    t_c=key; t_s=""
-                    if (index(key, "'\''") > 0) {
-                        split(key, a, "'\''"); t_c=a[1]; t_s=a[2];
-                        gsub(/[ \t]*$/, "", t_c) # 去除尾端空格
-                    }
-
-                    if (c == t_c && s == t_s) {
-                        print c "|" $10  # 輸出 Command|Package
-                        exit
-                    }
-                }
-            ' "$MUX_ROOT/app.csv.temp")
-
-            local chk_com=$(echo "$check_data" | awk -F'|' '{print $1}')
-            
-            if [ -z "$chk_com" ] || [ "$chk_com" == "[Empty]" ]; then
+            _fac_neural_read "$target_key"
+            if [ -z "$_VAL_COM" ] || [ "$_VAL_COM" == "[Empty]" ]; then
                 _bot_say "error" "Command Name is required!"
-                return 0 # 驗收失敗，留在迴圈繼續填
+                return 0
             else
-                _bot_say "success" "Node Validated. Committing..."
-                return 1 # 驗收通過，發出結束信號
+                _bot_say "success" "Node Validated."
+                return 1
             fi
             ;;
         *)
@@ -1512,6 +1583,7 @@ function _fac_init() {
     _draw_logo "factory"
     _system_check "factory"
     _show_hud "factory"
+    sed -i '/_DRAFT/d' "$MUX_ROOT/app.csv.temp"
     _system_unlock
 }
 
