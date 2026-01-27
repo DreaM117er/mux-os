@@ -454,34 +454,29 @@ function fac() {
                     if [ -z "$action" ]; then break; fi
 
                     if echo "$action" | grep -q "Edit Name" ; then
-                        _bot_say "warn" "Edit Name: Feature pending..."
+                        # Branch A: Rename Category
+                        _bot_say "action" "Rename Category [$cat_name]:"
+                        read -e -p "    › " -i "$cat_name" new_cat_name
+                        
+                        if [ -n "$new_cat_name" ] && [ "$new_cat_name" != "$cat_name" ]; then
+                            _fac_update_category_name "$cat_id" "$new_cat_name"
+                            # 更新本地變數以反映變更
+                            cat_name="$new_cat_name"
+                        fi
                         
                     elif echo "$action" | grep -q "Edit Command in" ; then
-                        # Branch B: Modify Commands in Category
+                        # Branch B: Modify Commands in Category (Legacy Loop Removed)
                         while true; do
                             # 1. Select Command in Category
                             local raw_cmd=$(_factory_fzf_cmd_in_cat "$cat_name")
-                            
                             if [ -z "$raw_cmd" ]; then break; fi
                             
                             local clean_target=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
 
-                            # 2. Enter Edit Router Loop
-                            while true; do
-                                local selection=$(_factory_fzf_detail_view "$clean_target" "EDIT")
-                                if [ -z "$selection" ]; then break; fi # Back to list
-                                
-                                local router_out
-                                router_out=$(_fac_edit_router "$selection" "$clean_target" "EDIT")
-                                local router_code=$?
-                                
-                                echo "$router_out" | grep -v "UPDATE_KEY"
-                                
-                                if [ $router_code -eq 2 ]; then
-                                    local new_k=$(echo "$router_out" | awk -F: '{print $2}')
-                                    if [ -n "$new_k" ]; then clean_target="$new_k"; fi
-                                fi
-                            done
+                            # 2. [UPGRADE] 使用安全沙盒協議
+                            _fac_safe_edit_protocol "$clean_target"
+                            
+                            # 編輯結束後回到列表，方便繼續選下一個
                         done
                     fi
                 done
@@ -1340,6 +1335,31 @@ function _fac_generic_edit() {
     _bot_say "success" "Parameter Updated."
 }
 
+# 分類名稱批量更新器 - Batch Category Renamer
+function _fac_update_category_name() {
+    local target_id="$1"
+    local new_name="$2"
+    local target_file="$MUX_ROOT/app.csv.temp"
+    
+    local safe_name="${new_name//\"/\"\"}"
+    safe_name="\"$safe_name\""
+
+    echo -e "${F_GRAY}    ›› Updating Category [${target_id}] to ${safe_name}...${F_RESET}"
+
+    awk -v FPAT='([^,]*)|("[^"]+")' -v OFS="," \
+        -v tid="$target_id" -v val="$safe_name" '
+    {
+        cid=$1; gsub(/^"|"$/, "", cid)
+        
+        if (cid == tid) {
+            $3 = val
+        }
+        print $0
+    }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
+    
+    _bot_say "success" "Category Renamed."
+}
+
 # 核心編輯路由器 (The Logic Router)
 function _fac_edit_router() {
     local raw_selection="$1"
@@ -1369,7 +1389,28 @@ function _fac_edit_router() {
     
     case "$room_id" in
         "ROOM_INFO")
-            # 點到標題，不做事
+            # 1. 讀取當前節點資訊以獲取 CATNO
+            _fac_neural_read "$target_key"
+            local current_cat_no="$_VAL_CATNO"
+            local current_cat_name="$_VAL_CATNAME"
+            
+            # 判斷是否點擊了第一行 (Category Name)
+            # 這裡我們做一個簡單的交互：詢問是否要改分類名
+            if echo "$raw_selection" | grep -q "$current_cat_name"; then
+                _bot_say "action" "Edit Category Name:"
+                echo -e "${F_GRAY}    Target: [$current_cat_no] $current_cat_name${F_RESET}"
+                
+                read -e -p "    › " -i "$current_cat_name" input_val
+                
+                if [ -n "$input_val" ] && [ "$input_val" != "$current_cat_name" ]; then
+                    _fac_update_category_name "$current_cat_no" "$input_val"
+                    # 回傳 2 (UPDATE_KEY) 雖然 Key 沒變，但強制介面刷新是個好主意
+                    return 2 
+                fi
+            else
+                # 點擊第二行 (ID/Type)，暫時不做動作，或者你可以做 "Move Category" (改 CATNO)
+                _bot_say "info" "Node ID: $current_cat_no:$_VAL_COMNO"
+            fi
             ;;
         "ROOM_CMD")
             local edit_com=$(echo "$target_key" | awk '{print $1}')
