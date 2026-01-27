@@ -7,7 +7,7 @@
 2,1,"AI & Intelligence","NA","gemini",,,"Google Gemini AI","Gemini","com.google.android.apps.bard",".shellapp.BardEntryPointActivity",,,,,,,,,
 2,2,"AI & Intelligence","NA","grok",,,"Grok (xAI)","Grok","ai.x.grok",".main.GrokActivity",,,,,,,,,
 3,1,"Google Suite","NB","play",,,"Google Play Store & Search","Play Store","com.android.vending",".AssetBrowserActivity","android.intent.action",".VIEW","market://search?q=$query",,,,,,
-3,2,"Google Suite","NB","google",,,"Google app Search","Google app Search","com.google.android.googlequicksearchbox",,"android.intent.action",".WEB_SEARCH",,,,,"-e","query $query",
+3,2,"Google Suite","NB","google","search",,"Google app Search","Google app Search","com.google.android.googlequicksearchbox",,"android.intent.action",".WEB_SEARCH",,,,,"-e","query $query",
 3,3,"Google Suite","NA","gmail",,,"Gmail","Gmail","com.google.android.gm",".ConversationListActivityGmail",,,,,,,,,
 3,4,"Google Suite","NA","gdrive",,,"Google Drive","Google Drive","com.google.android.apps.docs",".app.NewMainProxyActivity",,,,,,,,,
 3,5,"Google Suite","NA","meet",,,"Google Meet","Meet","com.google.android.apps.tachyon",".MainActivity",,,,,,,,,

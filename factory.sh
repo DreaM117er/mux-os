@@ -24,6 +24,121 @@ F_GRAY="\033[1;30m"
 F_RESET="\033[0m"
 F_GRE="\033[1;32m"
 
+# 神經資料讀取器 - Neural Data Reader
+# 用法: _fac_neural_read "chrome" 或 _fac_neural_read "chrome 'incognito'"
+function _fac_neural_read() {
+    local target_key="$1"
+    local target_file="${2:-$MUX_ROOT/app.csv.temp}"
+
+    local t_com=$(echo "$target_key" | awk '{print $1}')
+    local t_sub=""
+    if [[ "$target_key" == *"'"* ]]; then
+        t_sub=$(echo "$target_key" | awk -F"'" '{print $2}')
+    fi
+
+    local raw_data=$(awk -v FPAT='([^,]*)|("[^"]+")' \
+                         -v key="$t_com" \
+                         -v subkey="$t_sub" '
+        !/^#/ { 
+            row_com = $5; gsub(/^"|"$/, "", row_com); gsub(/\r| /, "", row_com)
+            row_com2 = $6; gsub(/^"|"$/, "", row_com2); gsub(/\r| /, "", row_com2)
+
+            if (row_com == key && row_com2 == subkey && subkey != "") {
+                print $0; exit
+            }
+            
+            if (row_com == key && row_com2 == "") {
+                fallback = $0
+            }
+        }
+        END {
+            if (fallback != "") print fallback
+        }
+    ' "$target_file")
+
+    if [ -z "$raw_data" ]; then return 1; fi
+
+    eval $(echo "$raw_data" | awk -v FPAT='([^,]*)|("[^"]+")' '{
+        fields[1]="_VAL_CATNO"
+        fields[2]="_VAL_COMNO"
+        fields[3]="_VAL_CATNAME"
+        fields[4]="_VAL_TYPE"
+        fields[5]="_VAL_COM"
+        fields[6]="_VAL_COM2"
+        fields[7]="_VAL_COM3"
+        fields[8]="_VAL_HUDNAME"
+        fields[9]="_VAL_UINAME"
+        fields[10]="_VAL_PKG"
+        fields[11]="_VAL_TARGET"
+        fields[12]="_VAL_IHEAD"
+        fields[13]="_VAL_IBODY"
+        fields[14]="_VAL_URI"
+        fields[15]="_VAL_MIME"
+        fields[16]="_VAL_CATE"
+        fields[17]="_VAL_FLAG"
+        fields[18]="_VAL_EX"
+        fields[19]="_VAL_EXTRA"
+        fields[20]="_VAL_ENGINE"
+
+        for (i=1; i<=20; i++) {
+            val = $i
+            if (val ~ /^".*"$/) { val = substr(val, 2, length(val)-2) }
+            gsub(/""/, "\"", val)
+            gsub(/'\''/, "'\''\\'\'''\''", val)
+            printf "%s='\''%s'\''; ", fields[i], val
+        }
+    }')
+    
+    # 清洗特殊字元 (微調)
+    _VAL_ENGINE=${_VAL_ENGINE//$'\r'/}
+    return 0
+}
+
+# 神經資料寫入器 - Neural Data Writer (Atomic)
+# 用法: _fac_neural_write "chrome" 10 "com.android.chrome"
+function _fac_neural_write() {
+    local target_key="$1"
+    local col_idx="$2"
+    local new_val="$3"
+    local target_file="${4:-$MUX_ROOT/app.csv.temp}"
+
+    local t_com=$(echo "$target_key" | awk '{print $1}')
+    local t_sub=""
+    if [[ "$target_key" == *"'"* ]]; then
+        t_com=$(echo "$target_key" | awk -F"'" '{print $1}' | sed 's/[ \t]*$//')
+        t_sub=$(echo "$target_key" | awk -F"'" '{print $2}')
+    fi
+
+    local safe_val="${new_val//\"/\"\"}"
+    safe_val="\"$safe_val\""
+
+    awk -v FPAT='([^,]*)|("[^"]+")' -v OFS="," \
+        -v tc="$t_com" -v ts="$t_sub" \
+        -v col="$col_idx" -v val="$safe_val" '
+    {
+        c=$5; gsub(/^"|"$/, "", c); gsub(/\r| /, "", c)
+        s=$6; gsub(/^"|"$/, "", s); gsub(/\r| /, "", s)
+
+        match_found = 0
+        if (c == tc) {
+            if (ts == "" && s == "") match_found = 1
+            if (ts != "" && s == ts) match_found = 1
+        }
+
+        if (match_found) {
+            $col = val
+            
+            # new_c = $5; gsub(/^"|"$/, "", new_c)
+            # new_s = $6; gsub(/^"|"$/, "", new_s)
+            # if (new_s != "") print "UPDATE_KEY:" new_c " \047" new_s "\047" > "/dev/stderr"
+            # else print "UPDATE_KEY:" new_c > "/dev/stderr"
+        }
+        
+        print $0
+    }
+    ' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
+}
+
 # 兵工廠系統啟動 (Factory System Boot)
 function _factory_system_boot() {
     export __MUX_MODE="factory"

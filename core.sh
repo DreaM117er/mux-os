@@ -724,6 +724,7 @@ function _mux_security_gate() {
     return 0
 }
 
+# 神經火控系統 - Neural Fire Control
 function _mux_neural_fire_control() {
     local input_signal="$1" # COM
     local input_sub="$2" # COM2 (Candidate)
