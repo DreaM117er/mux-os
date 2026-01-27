@@ -1101,19 +1101,19 @@ function _fac_generic_edit() {
     local col_idx="$2"
     local prompt_text="$3"
     
-    local current_val=$(awk -F, -v key="$target_key" -v col="$col_idx" '
+    local current_val=$(awk -v FPAT='([^,]*)|("[^"]+")' -v key="$target_key" -v col="$col_idx" '
         {
             gsub(/^"|"$/, "", $5); c=$5
             gsub(/^"|"$/, "", $6); s=$6
-            
             t_c=key; t_s=""
             if (index(key, "'\''") > 0) {
                 split(key, a, "'\''"); t_c=a[1]; t_s=a[2];
                 gsub(/[ \t]*$/, "", t_c)
             }
             if (c == t_c && s == t_s) {
-                gsub(/^"|"$/, "", $col)
-                print $col
+                val=$col
+                gsub(/^"|"$/, "", val)
+                print val
                 exit
             }
         }

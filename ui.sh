@@ -818,14 +818,12 @@ function _factory_fzf_detail_view() {
             C_EMP_R="\033[1;31m[Empty]\033[0m"
             C_EMP_Y="\033[1;33m[Empty]\033[0m"
             C_UNK="\033[1;30m[Unknown]\033[0m"
-
-            # Set Room Label
             S="\t"
         }
 
         !/^#/ && NF >= 5 {
-            gsub(/^"|"$/, "", $5); c=$5
-            gsub(/^"|"$/, "", $6); s=$6
+            c=$5; gsub(/^"|"$/, "", c)
+            s=$6; gsub(/^"|"$/, "", s)
             
             match_found = 0
             if (c == t_com) {
@@ -834,25 +832,25 @@ function _factory_fzf_detail_view() {
             }
 
             if (match_found) {
-                cat=$1;  gsub(/^"|"$/, "", cat)
-                comno=$2; gsub(/^"|"$/, "", comno)
-                catname=$3; gsub(/^"|"$/, "", catname)
-                type=$4; gsub(/^"|"$/, "", type); if(type=="") type="[Empty]"
+                cat=$1;      gsub(/^"|"$/, "", cat)
+                comno=$2;    gsub(/^"|"$/, "", comno)
+                catname=$3;  gsub(/^"|"$/, "", catname)
+                type=$4;     gsub(/^"|"$/, "", type);   if(type=="") type="[Empty]"
                 
-                hud=$8;  gsub(/^"|"$/, "", hud); if(hud=="") hud="[Empty]"
-                ui=$9;   gsub(/^"|"$/, "", ui);  if(ui=="")  ui="[Empty]"
-                pkg=$10; gsub(/^"|"$/, "", pkg); if(pkg=="") pkg="[Empty]"
-                act=$11; gsub(/^"|"$/, "", act); if(act=="") act="[Empty]"
+                hud=$8;      gsub(/^"|"$/, "", hud);    if(hud=="") hud="[Empty]"
+                ui=$9;       gsub(/^"|"$/, "", ui);     if(ui=="")  ui="[Empty]"
+                pkg=$10;     gsub(/^"|"$/, "", pkg);    if(pkg=="") pkg="[Empty]"
+                act=$11;     gsub(/^"|"$/, "", act);    if(act=="") act="[Empty]"
                 
-                ihead=$12; gsub(/^"|"$/, "", ihead); if(ihead=="") ihead="[Empty]"
-                ibody=$13; gsub(/^"|"$/, "", ibody); if(ibody=="") ibody="[Empty]"
-                uri=$14;   gsub(/^"|"$/, "", uri);   if(uri=="")   uri="[Empty]"
-                mime=$15; gsub(/^"|"$/, "", mime); if(mime=="") mime="[Empty]"
-                cate=$16; gsub(/^"|"$/, "", cate); if(cate=="") cate="[Empty]"
-                flag=$17; gsub(/^"|"$/, "", flag); if(flag=="") flag="[Empty]"
-                ex=$18; gsub(/^"|"$/, "", ex); if(ex=="") ex="[Empty]"
-                extra=$19; gsub(/^"|"$/, "", extra); if(extra=="") extra="[Empty]"
-                engine=$20; gsub(/^"|"$/, "", engine); if(engine=="") engine="[Empty]"
+                ihead=$12;   gsub(/^"|"$/, "", ihead);  if(ihead=="") ihead="[Empty]"
+                ibody=$13;   gsub(/^"|"$/, "", ibody);  if(ibody=="") ibody="[Empty]"
+                uri=$14;     gsub(/^"|"$/, "", uri);    if(uri=="")   uri="[Empty]"
+                mime=$15;    gsub(/^"|"$/, "", mime);   if(mime=="") mime="[Empty]"
+                cate=$16;    gsub(/^"|"$/, "", cate);   if(cate=="") cate="[Empty]"
+                flag=$17;    gsub(/^"|"$/, "", flag);   if(flag=="") flag="[Empty]"
+                ex=$18;      gsub(/^"|"$/, "", ex);     if(ex=="") ex="[Empty]"
+                extra=$19;   gsub(/^"|"$/, "", extra);  if(extra=="") extra="[Empty]"
+                engine=$20;  gsub(/^"|"$/, "", engine); if(engine=="") engine="[Empty]"
 
                 if (s == "") s_disp = "[Empty]"; else s_disp = s
                 
@@ -923,39 +921,33 @@ function _factory_fzf_detail_view() {
 
     if [ -z "$report" ]; then return; fi
 
-    # 模式定義
     local header_text="DETIAL CONTROL"
     local border_color="208"
     local prompt_color="208"
 
     case "$view_mode" in
         "NEW")
-            # 綠色
             header_text="CONFIRM CREATION"
             border_color="46"
             prompt_color="46"
             ;;
         "EDIT")
-            # 橘色
             header_text="MODIFY PARAMETER"
             border_color="208"
             prompt_color="208"
             ;;
         "DEL")
-            # 紅色
             header_text="DELETE CATEGORY"
             border_color="196" 
             prompt_color="196"
             ;;
         "VIEW"|*)
-            # 橘色
             header_text="DETIAL CONTROL"
             border_color="208"
             prompt_color="208"
             ;;
     esac
 
-    # 動態計算 fzf 選單
     local line_count=$(echo "$report" | wc -l)
     local dynamic_height=$(( line_count + 4 ))
 
