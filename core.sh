@@ -810,7 +810,7 @@ function _mux_neural_fire_control() {
 
                 _bot_say "neural" "Payload: Raw Search ›› '$safe_query'"
 
-                local cmd="am start --user 0 -a $final_action$cate_arg -e query \"$safe_query\""
+                local cmd="am start --user 0 -a \"$final_action\" -e query \"$safe_query\""
 
                 # 組裝核心參數
                 if [ -n "$_VAL_PKG" ]; then cmd="$cmd -p $_VAL_PKG"; fi
