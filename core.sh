@@ -737,8 +737,18 @@ function _mux_neural_fire_control() {
     fi
    
     if ! _mux_neural_data "$input_signal" "$input_sub"; then
-        _bot_say "error" "'$input_signal' command not found."
-        return 127
+        
+        local recovered=0
+        if [ -n "$input_sub" ]; then
+            if _mux_neural_data "$input_signal" ""; then
+                recovered=1
+            fi
+        fi
+
+        if [ "$recovered" -eq 0 ]; then
+            _bot_say "error" "'$input_signal' command not found."
+            return 127
+        fi
     fi
 
     integrity_flag=$(echo "$_VAL_COM3" | tr -d ' "')

@@ -1141,7 +1141,7 @@ function _fac_delete_node() {
         }
 
         if (match_found) {
-            print "Deleted Node: [" c " " s "]" > "/dev/stderr"
+            print "Deleted Node: [" c (s==""?"":" "s) "]" > "/dev/stderr"
             next
         }
         
