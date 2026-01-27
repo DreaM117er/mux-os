@@ -812,14 +812,19 @@ function _mux_neural_fire_control() {
 
                 local cmd="am start --user 0 -a \"$final_action\""
 
-                # 組裝核心參數
                 if [ -n "$_VAL_PKG" ]; then cmd="$cmd -p $_VAL_PKG"; fi
                 if [ -n "$_VAL_FLAG" ]; then cmd="$cmd -f $_VAL_FLAG"; fi
-
-                # 組裝次要參數
                 if [ -n "$_VAL_CATE" ]; then cmd="$cmd -c android.intent.category.$_VAL_CATE"; fi
-                if [ -n "$_VAL_EX" ]; then cmd="$cmd $_VAL_EX"; fi
-                if [ -n "$_VAL_EXTRA" ]; then cmd="$cmd $_VAL_EXTRA"; fi
+                
+                if [ -n "$_VAL_EX" ]; then
+                    local injected_ex="${_VAL_EX//\$query/$safe_query}"
+                    cmd="$cmd $injected_ex"
+                fi
+
+                if [ -n "$_VAL_EXTRA" ]; then
+                    local injected_extra="${_VAL_EXTRA//\$query/$safe_query}"
+                    cmd="$cmd $injected_extra"
+                fi
 
                 # FIRE THE COMMAND
                 local output=$(eval "$cmd" 2>&1)
