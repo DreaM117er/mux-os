@@ -831,8 +831,8 @@ function _factory_fzf_detail_view() {
     
     # 針對不同模式的特殊處理
     local cat_name_display="$_VAL_CATNAME"
-    local cat_no_display="$_VAL_CATNO"
-    local com_no_display="$_VAL_COMNO"
+    local cat_no_display=$(printf "%03d" "$_VAL_CATNO" 2>/dev/null || echo "$_VAL_CATNO")
+    local com_no_display=$(printf "%3s" "$_VAL_COMNO" 2>/dev/null || echo "$_VAL_COMNO")
     
     if [ "$view_mode" == "NEW" ]; then
         cat_name_display="NEW NODE"

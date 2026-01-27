@@ -992,6 +992,7 @@ function _fac_safe_edit_protocol() {
     local original_key="$1"
     local target_file="$MUX_ROOT/app.csv.temp"
 
+    # 1. 讀取原始資料 (Source)
     if ! _fac_neural_read "$original_key"; then
         _bot_say "error" "Source Node Not Found."
         return 1
@@ -1006,14 +1007,21 @@ function _fac_safe_edit_protocol() {
         draft_key="${draft_com} '${orig_sub}'"
     fi
 
-    _bot_say "action" "Initializing Draft Sandbox..."
+    local current_draft_key="$draft_key"
+    local is_resuming=0
 
-    local draft_row="999,999,\"DRAFT MODE\",\"$_VAL_TYPE\",\"$draft_com\",\"$orig_sub\",\"EDITING\",\"$_VAL_HUDNAME\",\"$_VAL_UINAME\",\"$_VAL_PKG\",\"$_VAL_TARGET\",\"$_VAL_IHEAD\",\"$_VAL_IBODY\",\"$_VAL_URI\",\"$_VAL_MIME\",\"$_VAL_CATE\",\"$_VAL_FLAG\",\"$_VAL_EX\",\"$_VAL_EXTRA\",\"$_VAL_ENGINE\""
-    
-    echo "$draft_row" >> "$target_file"
+    if _fac_neural_read "$draft_key" >/dev/null 2>&1; then
+        _bot_say "warn" "Unsaved Draft Detected. Resuming Session..."
+        is_resuming=1
+    else
+        _bot_say "action" "Initializing Draft Sandbox..."
+        _fac_neural_read "$original_key" >/dev/null
+
+        local draft_row="999,999,\"DRAFT MODE\",\"$_VAL_TYPE\",\"$draft_com\",\"$orig_sub\",\"EDITING\",\"$_VAL_HUDNAME\",\"$_VAL_UINAME\",\"$_VAL_PKG\",\"$_VAL_TARGET\",\"$_VAL_IHEAD\",\"$_VAL_IBODY\",\"$_VAL_URI\",\"$_VAL_MIME\",\"$_VAL_CATE\",\"$_VAL_FLAG\",\"$_VAL_EX\",\"$_VAL_EXTRA\",\"$_VAL_ENGINE\""
+        echo "$draft_row" >> "$target_file"
+    fi
 
     local loop_status="EDIT"
-    local current_draft_key="$draft_key"
 
     while true; do
         local selection=$(_factory_fzf_detail_view "$current_draft_key" "EDIT")
