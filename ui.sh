@@ -906,7 +906,7 @@ function _factory_fzf_detail_view() {
     fi
 
     # Footer Actions
-    if [ "$view_mode" == "NEW" ]; then
+    if [[ "$view_mode" == "NEW" || "$view_mode" == "EDIT" ]]; then
         report+="${C_LBL}${SEP}${C_RST}\n"
         report+="\033[1;36m[Lookup] 'apklist'\033[0m${S}ROOM_LOOKUP\n"
         report+="\033[1;32m[Confirm]\033[0m${S}ROOM_CONFIRM\n"
