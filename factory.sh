@@ -1523,8 +1523,20 @@ function _fac_edit_router() {
     local target_key="$2"
     local view_mode="${3:-EDIT}"
 
+    # 1. Plan A: 嘗試標準 Tab 切割 (最精準)
     local room_id=$(echo "$raw_selection" | awk -F'\t' '{print $2}')
-    
+
+    # 2. Plan B: 如果 Plan A 失敗 (空值)，啟動特徵掃描
+    if [ -z "$room_id" ]; then
+        room_id=$(echo "$raw_selection" | grep -o "ROOM_[A-Z_]*")
+    fi
+
+    # 3. 最後淨化 (Sanitization)
+    room_id=$(echo "$room_id" | tr -d '[:space:]')
+
+    # Debug
+    # echo "DEBUG: Router ID=[$room_id]" >&2
+
     if command -v _fac_room_guide &> /dev/null; then
         _fac_room_guide "$room_id"
     fi
@@ -1538,8 +1550,6 @@ function _fac_edit_router() {
         "DEL") header_text="DELETE PARAMETER"; border_color="196"; prompt_color="196" ;;
         "EDIT"|*) header_text="MODIFY PARAMETER :: "; border_color="208"; prompt_color="208" ;;
     esac
-
-    local room_id=$(echo "$raw_selection" | awk -F'\t' '{print $2}')
     
     case "$room_id" in
         "ROOM_INFO")
@@ -1558,38 +1568,26 @@ function _fac_edit_router() {
                     return 2 
                 fi
             else
-                # 點擊第二行 (ID/Type)，不做動作
                 _bot_say "info" "Node ID: $current_cat_no:$_VAL_COMNO"
             fi
             ;;
         "ROOM_CMD")
-            # 1. 獲取輸入
             _bot_say "action" "Edit Command Name (Main):"
-            # 使用原生 read 確保讀取正確，預設值為當前值
             read -e -p "    › " -i "$_VAL_COM" new_com
             
             _bot_say "action" "Edit Sub Command (2nd):"
             read -e -p "    › " -i "$_VAL_COM2" new_sub
             
-            # 去除前後空白 (Sanitize)
             new_com=$(echo "$new_com" | sed 's/^[ \t]*//;s/[ \t]*$//')
             new_sub=$(echo "$new_sub" | sed 's/^[ \t]*//;s/[ \t]*$//')
 
-            # 必填檢查
             if [ -z "$new_com" ]; then return 0; fi
 
-            # 初始化追蹤 Key (Key Drift Tracking)
-            # 這是修正的關鍵：我們需要一個變數來追蹤當下在資料庫裡真正的 Key
             local current_track_key="$target_key"
             local key_changed=0
 
-            # 2. 修改主指令 (COM - Column 5)
             if [ "$new_com" != "$_VAL_COM" ]; then
                 _fac_neural_write "$current_track_key" 5 "$new_com"
-                
-                # [CRITICAL FIX]
-                # 一旦寫入成功，CSV 裡的這一行 Key 已經變了！
-                # 必須立刻更新 current_track_key，否則下一步修改 COM2 會找不到人
                 if [ -n "$_VAL_COM2" ]; then
                     current_track_key="$new_com '$_VAL_COM2'"
                 else
@@ -1598,14 +1596,9 @@ function _fac_edit_router() {
                 key_changed=1
             fi
 
-            # 3. 修改副指令 (COM2 - Column 6)
             if [ "$new_sub" != "$_VAL_COM2" ]; then
-                # 使用「已經更新過」的 current_track_key 進行寫入
                 _fac_neural_write "$current_track_key" 6 "$new_sub"
-                
-                # 再次計算最終 Key (Final Key Calculation)
                 local final_com="${new_com:-$_VAL_COM}"
-                
                 if [ -n "$new_sub" ]; then
                     current_track_key="$final_com '$new_sub'"
                 else
@@ -1614,16 +1607,9 @@ function _fac_edit_router() {
                 key_changed=1
             fi
 
-            # 4. 回傳結果給父迴圈
             if [ "$key_changed" -eq 1 ]; then
                 _bot_say "action" "Identity Updated. Tracking new key..."
-                
-                # [CRITICAL FIX] 
-                # 告訴父迴圈 (Safe Edit Protocol)：鑰匙換了，請更新你的 working_key
-                # 透過 stdout 輸出特殊標記
                 echo "UPDATE_KEY:$current_track_key"
-                
-                # 回傳 2 代表發生了改名事件
                 return 2
             else
                 return 0
@@ -1656,7 +1642,6 @@ function _fac_edit_router() {
             
             local edit_uri="$_VAL_URI"
             local edit_engine="$_VAL_ENGINE"
-            
             local engine_list="[Empty]\n\$SEARCH_GOOGLE\n\$SEARCH_BING\n\$SEARCH_DUCK\n\$SEARCH_YT\n\$SEARCH_GITHUB"
 
             while true; do
@@ -1699,7 +1684,6 @@ function _fac_edit_router() {
                 if echo "$choice" | grep -q "URI"; then
                     _bot_say "action" "Enter Static URI (e.g., https://...):"
                     read -e -p "    › " -i "$edit_uri" input_val
-                    
                     if [ -n "$input_val" ]; then
                         edit_uri="$input_val"
                         if [ "$input_val" != "\$__GO_TARGET" ]; then
@@ -1714,7 +1698,6 @@ function _fac_edit_router() {
 
                 elif echo "$choice" | grep -q "ENGINE"; then
                     local sel_eng=$(echo -e "$engine_list" | fzf --height=8 --layout=reverse --header=":: Select Search Engine ::")
-                    
                     if [ -n "$sel_eng" ]; then
                         if [ "$sel_eng" == "[Empty]" ]; then
                             edit_engine=""
@@ -1729,7 +1712,6 @@ function _fac_edit_router() {
                 elif echo "$choice" | grep -q "Confirm"; then
                     _fac_neural_write "$target_key" 14 "$edit_uri"
                     _fac_neural_write "$target_key" 20 "$edit_engine"
-                    
                     _bot_say "success" "URI/Engine Configuration Saved."
                     return 2
                 fi
@@ -1737,7 +1719,7 @@ function _fac_edit_router() {
             ;;
         "ROOM_LOOKUP")
             _bot_say "action" "Launching Reference Tool..."
-            apklist
+            if command -v apklist &> /dev/null; then apklist; else echo "Module missing"; fi
             echo -e ""
             echo -e "${F_GRAY}    (Press 'Enter' to return to Factory)${F_RESET}"
             read
@@ -1753,7 +1735,6 @@ function _fac_edit_router() {
             fi
             ;;
         *)
-            # 點到無效區域如分隔線，不做事
             ;;
     esac
     return 0
