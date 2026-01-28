@@ -374,85 +374,87 @@ function _show_menu_dashboard() {
 
 # 模糊指令選單介面 - Fuzzy Command Menu Interface
 function _mux_fuzzy_menu() {
-   if ! command -v fzf &> /dev/null; then
-        echo -e "\n\033[1;31m :: Neural Search Module (fzf) is missing.\033[0m"
-        echo -ne "\033[1;32m :: Install interactive interface? [Y/n]: \033[0m"
-        read choice
-        
-        if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
-            echo "    ›› Installing fzf..."
-            pkg install fzf -y
-            
-            echo -e "\033[1;32m    ›› Module installed. Initializing Neural Link... ✅\033[0m"
-            sleep 1
-            _mux_fuzzy_menu
-            return
-        else
-            echo -e "\033[1;30m    ›› Keeping legacy menu.\033[0m"
-            return
-        fi
+   local prompt_msg="${1:-Select Target}"
+    local mode="${2:-VIEW}"
+    local cat_filter="$3" # [新增] 第三參數：分類過濾器
+    
+    local target_file="$MUX_ROOT/app.csv.temp"
+    local border_color="208"
+    local header_msg="NEURAL FORGE"
+    
+    case "$mode" in
+        "DEL") border_color="196"; header_msg="DELETE MODE" ;;
+        "NEW") border_color="46";  header_msg="CREATION MODE" ;;
+        "EDIT") border_color="220"; header_msg="EDIT PROTOCOL" ;; # 黃色邊框
+        *)     border_color="208"; header_msg="CONTROL DECK" ;;
+    esac
+
+    # 如果有設定過濾器，標題要變
+    if [ -n "$cat_filter" ]; then
+        header_msg="FOCUS: $cat_filter"
     fi
 
-    local cmd_list=$(
-        {
-            echo "0,1,Core,MUX,mux,,,Core Command Entry"
-            cat "$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD" 2>/dev/null
-        } | awk -v FPAT='([^,]*)|("[^"]+")' '
+    local list=$(awk -v FPAT='([^,]*)|("[^"]+")' -v filter="$cat_filter" '
         BEGIN {
-            C_CMD="\x1b[1;37m"
-            C_DESC="\x1b[1;30m"
-            C_RESET="\x1b[0m"
+            C_RST="\033[0m"
+            C_CMD="\033[1;37m"
+            C_DESC="\033[1;30m"
+            
+            TAG_N="\033[1;36m[N]\033[0m "
+            TAG_E="\033[1;33m[E]\033[0m "
+            TAG_S="\033[1;32m[S]\033[0m "
+            TAG_F="\033[1;31m[F]\033[0m "
+            TAG_P="[ ]" 
         }
         
         !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
+            gsub(/^"|"$/, "", $3); cat = $3 # 讀取分類
             
-            cmd = ""; sub_cmd = ""; desc = ""
+            # [Filter Logic] 如果有過濾器且分類不匹配，跳過
+            if (filter != "" && cat != filter) next
 
             gsub(/^"|"$/, "", $5); cmd = $5
+            gsub(/^"|"$/, "", $6); sub_cmd = $6
+            gsub(/^"|"$/, "", $8); desc = $8
+            gsub(/^"|"$/, "", $7); st = $7 
 
-            if (NF >= 6) {
-                gsub(/^"|"$/, "", $6); sub_cmd = $6
-            }
+            if (st == "B" || st == "C") next
 
-            if (NF >= 8) {
-                gsub(/^"|"$/, "", $8); desc = $8
-            }
-            
+            prefix = TAG_P
+            if (st == "N") prefix = TAG_N
+            if (st == "E") prefix = TAG_E
+            if (st == "S") prefix = TAG_S
+            if (st == "F") prefix = TAG_F
+            if (st == "")  prefix = TAG_P 
+
             if (sub_cmd != "") {
-                display_name = cmd " " sub_cmd ""
+                display = cmd " \047" sub_cmd "\047"
             } else {
-                display_name = cmd
+                display = cmd
             }
 
-            printf " %s%-12s %s%s\n", C_CMD, display_name, C_DESC, desc;
+            printf " %s%s%-16s %s%s\n", prefix, C_CMD, display, C_DESC, desc
         }
-    ')
+    ' "$target_file")
 
-    local total_cmds=$(echo "$cmd_list" | grep -c "^ ")
+    local total=$(echo "$list" | grep -c "^ ")
 
-    local selected=$(echo "$cmd_list" | fzf --ansi \
-        --height=10 \
+    local selected=$(echo "$list" | fzf --ansi \
+        --height=12 \
         --layout=reverse \
-        --border-label=" :: FIRE CONTROL :: " \
+        --border-label=" :: $header_msg :: " \
         --border=bottom \
-        --prompt=" :: Neural Link › " \
-        --header=" :: Slot Capacity: [6/$total_cmds] :: " \
+        --prompt=" :: $prompt_msg › " \
+        --header=" :: Nodes: [$total] ::" \
         --info=hidden \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:yellow,prompt:cyan,pointer:red,marker:green,border:blue,header:240 \
+        --color=info:240,prompt:$border_color,pointer:red,marker:208,border:$border_color,header:240 \
         --bind="resize:clear-screen"
     )
 
     if [ -n "$selected" ]; then
-        local cmd_to_run=$(echo "$selected" | awk '{print $1}')
-        local prompt_text=$'\033[1;33m :: '$cmd_to_run$' \033[1;30m(Params?): \033[0m'
-        read -e -p "$prompt_text" params < /dev/tty
-        
-        local final_cmd="$cmd_to_run"
-        [ -n "$params" ] && final_cmd="$cmd_to_run $params"
-        history -s "$final_cmd"
-        eval "$final_cmd"
+        echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^ \[[A-Z]\] //' | sed 's/^    //' | sed 's/^[ \t]*//' | awk '{print $1, $2}' | sed 's/[ \t]*$//'
     fi
 }
 
@@ -602,33 +604,42 @@ function _factory_show_info() {
 function _factory_fzf_menu() {
     local prompt_msg="${1:-Select Target}"
     local mode="${2:-VIEW}"
-    local target_file="$MUX_ROOT/app.csv.temp"
+    local cat_filter="$3" 
     
-    # 定義介面顏色
+    local target_file="$MUX_ROOT/app.csv.temp"
     local border_color="208"
     local header_msg="NEURAL FORGE"
     
     case "$mode" in
         "DEL") border_color="196"; header_msg="DELETE MODE" ;;
         "NEW") border_color="46";  header_msg="CREATION MODE" ;;
+        "EDIT") border_color="46"; header_msg="EDIT PROTOCOL" ;;
         *)     border_color="208"; header_msg="CONTROL DECK" ;;
     esac
 
-    local list=$(awk -v FPAT='([^,]*)|("[^"]+")' '
+    if [ -n "$cat_filter" ]; then
+        header_msg="FOCUS: $cat_filter"
+    fi
+
+    local list=$(awk -v FPAT='([^,]*)|("[^"]+")' -v filter="$cat_filter" '
         BEGIN {
             C_RST="\033[0m"
             C_CMD="\033[1;37m"
             C_DESC="\033[1;30m"
             
-            # 狀態標籤定義
-            TAG_N="\033[1;36m[N]\033[0m "
-            TAG_E="\033[1;33m[E]\033[0m "
-            TAG_S="\033[1;32m[S]\033[0m "
-            TAG_F="\033[1;31m[F]\033[0m "
-            TAG_P="    "
+            # 狀態標籤定義 (統一格式 [X])
+            TAG_N="\033[1;36m[N]\033[0m " # Cyan   : New
+            TAG_E="\033[1;33m[E]\033[0m " # Yellow : Edit
+            TAG_S="\033[1;32m[S]\033[0m " # Green  : Saved
+            TAG_F="\033[1;31m[F]\033[0m " # Red    : Fail
+            TAG_P="\033[1;30m[P]\033[0m " # Gray   : Pass
         }
         
         !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
+            gsub(/^"|"$/, "", $3); cat = $3 
+            
+            if (filter != "" && cat != filter) next
+
             gsub(/^"|"$/, "", $5); cmd = $5
             gsub(/^"|"$/, "", $6); sub_cmd = $6
             gsub(/^"|"$/, "", $8); desc = $8
@@ -670,7 +681,7 @@ function _factory_fzf_menu() {
     )
 
     if [ -n "$selected" ]; then
-        echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^ \[[A-Z]\] //' | sed 's/^    //' | sed 's/^[ \t]*//' | awk '{print $1, $2}' | sed 's/[ \t]*$//'
+        echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^ \[[A-Z]\] //' | sed 's/^[ \t]*//' | awk '{print $1, $2}' | sed 's/[ \t]*$//'
     fi
 }
 

@@ -395,15 +395,17 @@ function fac() {
         # : Edit Neural (Edit Command)
         "edit"|"comedit"|"comm")
             local view_state="EDIT"
+            local target_arg="$2"
 
-            if [ -n "$clean_target" ]; then
-                _fac_safe_edit_protocol "$clean_target"
-                return
+            if [ -n "$target_arg" ]; then
+                _fac_safe_edit_protocol "$target_arg"
+                return 
             fi
 
             while true; do
                 local raw_target=$(_factory_fzf_menu "Select App to EDIT" "EDIT")
                 if [ -z "$raw_target" ]; then break; fi
+                
                 local clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
 
                 _fac_safe_edit_protocol "$clean_target"
@@ -442,7 +444,9 @@ function fac() {
                         while true; do
                             local raw_cmd=$(_factory_fzf_cmd_in_cat "$cat_name")
                             if [ -z "$raw_cmd" ]; then break; fi
+                            
                             local clean_target=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+                            
                             _fac_safe_edit_protocol "$clean_target"
                         done
                     fi
@@ -470,7 +474,7 @@ function fac() {
                 echo -e "${F_GRAY}    Package Binding   : ${del_pkg}${F_RESET}"
                 echo -e "${F_GRAY}    Description       : ${del_desc}${F_RESET}"
                 echo -e ""
-                echo -ne "${F_ERR}    ›› TYPE 'y' TO CONFIRM DESTRUCTION: ${F_RESET}"
+                echo -ne "${F_ERR}    ›› CONFIRM DESTRUCTION [Y/n]: ${F_RESET}"
                 
                 read -n 1 -r conf
                 echo -e "" 
@@ -590,7 +594,7 @@ function fac() {
             if [ -n "$target_node" ]; then
                 _fac_launch_test "$target_node" "$user_params"
                 
-                echo -ne "\033[1;30m    (Press [Enter] to return...)\033[0m"
+                echo -ne "\033[1;30m    (Press 'Enter' to return...)\033[0m"
                 read
             fi
             ;;
@@ -816,9 +820,6 @@ function _factory_deploy_sequence() {
         rm "$stats_log"
         echo -e "${F_ERR} :: QA FAILED. Invalid nodes detected.${F_RESET}"
         echo -e "${F_GRAY}    Reason: $(echo "$qa_error" | cut -d: -f2 | head -n 1)${F_RESET}"
-        
-        echo -ne "\n\033[1;33m    ›› Acknowledge? [Any Key]: \033[0m"
-        read -n 1 -r
         return 1
     else
         # QA 通過：應用轉正後的檔案 (P State applied)
@@ -833,7 +834,7 @@ function _factory_deploy_sequence() {
     echo -e "    ${F_GRAY}Modified (Saved):${F_RESET} \033[1;33m${cnt_s:-0}\033[0m"
     echo ""
     
-    echo -ne "${F_WARN} :: Press [Enter] to Review Changes...${F_RESET}"
+    echo -ne "${F_WARN} :: Press 'Enter' to Review Changes...${F_RESET}"
     read
 
     # Phase 1: 差異比對與確認 (Diff & Confirm)
@@ -1500,81 +1501,46 @@ function _fac_edit_router() {
             fi
             ;;
         "ROOM_CMD")
-            local edit_com=$(echo "$target_key" | awk '{print $1}')
-            local edit_sub=""
-            if [[ "$target_key" == *"'"* ]]; then
-                edit_com=$(echo "$target_key" | awk -F"'" '{print $1}' | sed 's/[ \t]*$//')
-                edit_sub=$(echo "$target_key" | awk -F"'" '{print $2}')
-            fi
+            local new_com=$(_safe_input "Command Name (Main)" "$_VAL_COM")
+            local new_sub=$(_safe_input "Sub Command (2nd)" "$_VAL_COM2")
             
-            local guide_txt="Modify CLI Identity (No spaces allowed)"
+            if [ -z "$new_com" ]; then return 0; fi
 
-            while true; do
-                local full_preview="${edit_com}"
-                if [ -n "$edit_sub" ]; then full_preview="${edit_com} '${edit_sub}'"; fi
+            local current_track_key="$target_key"
+            local key_changed=0
 
-                local menu_list=$(
-                    echo -e " COMMAND \t$edit_com"
-                    if [ -z "$edit_sub" ]; then
-                        echo -e " SUBCMD  \t\033[1;30m[Empty]\033[0m"
-                    else
-                        echo -e " SUBCMD  \t$edit_sub"
-                    fi
-                    echo -e "\033[1;30m----------\033[0m"
-                    echo -e "\033[1;32m[Confirm]\033[0m"
-                )
-
-                local choice=$(echo -e "$menu_list" | fzf --ansi \
-                    --height=8 \
-                    --layout=reverse \
-                    --border-label=" :: $header_text :: " \
-                    --border=bottom \
-                    --header-first \
-                    --header=" :: Identity: [$full_preview] ::" \
-                    --prompt=" :: Modify › " \
-                    --info=hidden \
-                    --pointer="››" \
-                    --delimiter="\t" \
-                    --with-nth=1,2 \
-                    --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-                    --color=info:240,prompt:$prompt_color,pointer:red,marker:208,border:$border_color,header:240 \
-                    --bind="resize:clear-screen"
-                )
-
-                if [ -z "$choice" ]; then return 0; fi 
-             
-                if echo "$choice" | grep -q "COMMAND"; then
-                    _bot_say "action" "Edit Command Name (Main):"
-                    read -e -p "    › " -i "$edit_com" input_val
-                    input_val="${input_val// /}"
-                    if [ -z "$input_val" ]; then
-                        _bot_say "warn" "Command name cannot be empty."
-                    else
-                        edit_com="$input_val"
-                    fi
-
-                elif echo "$choice" | grep -q "SUBCMD"; then
-                    _bot_say "action" "Edit Sub-Command (Empty to clear):"
-                    read -e -p "    › " -i "$edit_sub" input_val
-                    edit_sub=$(echo "$input_val" | sed 's/^[ \t]*//;s/[ \t]*$//')
-
-                elif echo "$choice" | grep -q "Confirm"; then
-                    if [ -z "$edit_com" ]; then
-                        _bot_say "error" "Invalid Identity: Command missing."
-                        continue
-                    fi
-
-                    local step1_key=$(_fac_update_node "$target_key" 5 "$edit_com" 2>&1 >/dev/null)
-                    local current_key="${step1_key:-$target_key}"
-                    
-                    local final_key=$(_fac_update_node "$current_key" 6 "$edit_sub" 2>&1 >/dev/null)
-                    final_key="${final_key:-$current_key}"
-
-                    _bot_say "success" "Command Identity Updated."
-                    echo "UPDATE_KEY:$final_key"
-                    return 2
+            if [ "$new_com" != "$_VAL_COM" ]; then
+                _fac_update_node "$current_track_key" 5 "$new_com"
+                
+                if [ -n "$_VAL_COM2" ]; then
+                    current_track_key="$new_com '$_VAL_COM2'"
+                else
+                    current_track_key="$new_com"
                 fi
-            done
+                key_changed=1
+            fi
+
+            if [ "$new_sub" != "$_VAL_COM2" ]; then
+                _fac_update_node "$current_track_key" 6 "$new_sub"
+                
+                local final_com="${new_com:-$_VAL_COM}"
+                
+                if [ -n "$new_sub" ]; then
+                    current_track_key="$final_com '$new_sub'"
+                else
+                    current_track_key="$final_com"
+                fi
+                key_changed=1
+            fi
+
+            if [ "$key_changed" -eq 1 ]; then
+                _bot_say "action" "Identity Updated. Tracking new key..."
+                echo "UPDATE_KEY:$current_track_key"
+                return 2
+            else
+                _bot_say "info" "No changes detected."
+                return 0
+            fi
             ;;
         "ROOM_HUD")
             _fac_generic_edit "$target_key" 8 "Edit Description (HUD Name):"
@@ -1683,7 +1649,7 @@ function _fac_edit_router() {
             _bot_say "action" "Launching Reference Tool..."
             apklist
             echo -e ""
-            echo -e "${F_GRAY}    (Press Enter to return to Factory)${F_RESET}"
+            echo -e "${F_GRAY}    (Press 'Enter' to return to Factory)${F_RESET}"
             read
             ;;
         "ROOM_CONFIRM")
