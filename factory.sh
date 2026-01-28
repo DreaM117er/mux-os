@@ -723,8 +723,78 @@ function _fac_rebak_wizard() {
 function _factory_deploy_sequence() {
     echo ""
     echo -ne "${F_WARN} :: Initiating Deployment Sequence...${F_RESET}"
-    sleep 1.5
+    sleep 0.5
+
+    # Phase 0: 最終品管與統計 (Final QA & Stats)
+    echo -e "\n${F_GRAY} :: Running Final Quality Assurance (QA)...${F_RESET}"
     
+    local target_file="$MUX_ROOT/app.csv.temp"
+    
+    # awk 掃描：統計 S/N，轉正狀態，攔截 E/F
+    local stats_log="${target_file}.log"
+    local qa_file="${target_file}.qa"
+
+    awk -F, -v OFS=, '
+        BEGIN { cn=0; cs=0; fail=0 }
+        NR==1 { print; next }
+        
+        {
+            st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
+            
+            # 1. 攔截 E (Draft) 與 F (Broken)
+            if (st == "E") { print "QA_FAIL:Draft detected (E)" > "/dev/stderr"; print $0; next }
+            if (st == "F") { print "QA_FAIL:Broken node (F)" > "/dev/stderr"; print $0; next }
+
+            # 2. 處理 S (Saved) -> 轉正為 Empty
+            if (st == "S") {
+                cs++
+                $7 = "\"\"" 
+            }
+            
+            # 3. 處理 N (New) -> 轉正為 Empty
+            if (st == "N") {
+                cn++
+                $7 = "\"\""
+            }
+
+            print $0
+        }
+        END { print "STATS:" cn ":" cs > "/dev/stderr" }
+    ' "$target_file" > "$qa_file" 2> "$stats_log"
+
+    # 解析 Log 與錯誤處理
+    local qa_error=$(grep "QA_FAIL" "$stats_log")
+    local stats_line=$(grep "STATS" "$stats_log")
+    local cnt_n=$(echo "$stats_line" | cut -d: -f2)
+    local cnt_s=$(echo "$stats_line" | cut -d: -f3)
+
+    if [ -n "$qa_error" ]; then
+        mv "$qa_file" "$target_file" # 寫回標記以便使用者檢查
+        rm "$stats_log"
+        echo -e "${F_ERR} :: QA FAILED. Drafts (E) or Broken (F) nodes detected.${F_RESET}"
+        
+        # 顯示具體錯誤原因 (可選)
+        echo -e "${F_GRAY}    $qa_error${F_RESET}"
+        
+        echo -ne "\n\033[1;33m    ›› Acknowledge? [Any Key]: \033[0m"
+        read -n 1 -r
+        return 1
+    else
+        # QA 通過：應用轉正後的檔案 (移除 S/N 標記)
+        mv "$qa_file" "$target_file"
+        rm "$stats_log"
+        echo -e "${F_GRE}    ›› QA Passed. All nodes validated.${F_RESET}"
+    fi
+
+    echo -e "${F_MAIN} :: SANDBOX SESSION REPORT ::${F_RESET}"
+    echo -e "    ${F_GRAY}Created (New)   :${F_RESET} \033[1;32m${cnt_n:-0}\033[0m"
+    echo -e "    ${F_GRAY}Modified (Saved):${F_RESET} \033[1;33m${cnt_s:-0}\033[0m"
+    echo ""
+    
+    echo -ne "${F_WARN} :: Press [Enter] to Review Changes...${F_RESET}"
+    read
+
+    # 正式比對資料
     clear
     _draw_logo "gray"
     
@@ -778,8 +848,10 @@ function _factory_deploy_sequence() {
     if [ -f "$temp_file" ]; then
         mv "$temp_file" "$prod_file"
         
-        if [ -f "$temp_file" ]; then
-            rm -f "$temp_file"
+        # [微調] 部署後因為 sandbox 移走了，建議立刻重建一個乾淨的
+        # 這樣下次進 fac 就不會報錯
+        if [ -f "$prod_file" ]; then
+            cp "$prod_file" "$temp_file"
         fi
     else
          _bot_say "error" "Sandbox integrity failed."
@@ -820,7 +892,7 @@ function _fac_maintenance() {
             ibody=$13; gsub(/^"|"$/, "", ibody)
             uri=$14;   gsub(/^"|"$/, "", uri)
 
-            if (st == "E" || st == "N") {
+            if (st == "E" || st == "N" || st == "S") {
                 print $0
                 next
             }
@@ -1026,24 +1098,24 @@ function _fac_safe_edit_protocol() {
     local original_key="$1"
     local target_file="$MUX_ROOT/app.csv.temp"
 
+    # 1. 讀取原始資料
     unset __FAC_IO_STATE
     if ! _fac_neural_read "$original_key"; then
         _bot_say "error" "Source Node Not Found."
         return 1
     fi
 
-    local source_state="$_VAL_COM3"
-    local final_state=""
-    if [ "$source_state" == "N" ]; then final_state="N"; fi
-
+    # 2. 建立分身 (Shadow Clone)
     _bot_say "action" "Initializing Draft Sandbox..."
     
+    # 強制將 COM3 設為 "E" (Editing)
     local draft_row="$_VAL_CATNO,$_VAL_COMNO,\"$_VAL_CATNAME\",\"$_VAL_TYPE\",\"$_VAL_COM\",\"$_VAL_COM2\",\"E\",\"$_VAL_HUDNAME\",\"$_VAL_UINAME\",\"$_VAL_PKG\",\"$_VAL_TARGET\",\"$_VAL_IHEAD\",\"$_VAL_IBODY\",\"$_VAL_URI\",\"$_VAL_MIME\",\"$_VAL_CATE\",\"$_VAL_FLAG\",\"$_VAL_EX\",\"$_VAL_EXTRA\",\"$_VAL_ENGINE\""
     
     echo "$draft_row" >> "$target_file"
 
+    # 3. 進入編輯迴圈 (開啟 I/O 狀態鎖 E)
     export __FAC_IO_STATE="E"
-    local current_draft_key="$original_key"
+    local current_draft_key="$original_key" 
     local loop_status="EDIT"
 
     while true; do
@@ -1069,22 +1141,48 @@ function _fac_safe_edit_protocol() {
         fi
     done
 
-    # 4. 結算階段
+    # 4. 結算階段 (Commit or Rollback)
     if [ "$loop_status" == "CONFIRM" ]; then
         _bot_say "neural" "Committing Changes..."
         
+        # 讀取最終的 Command Name (這可能是新的名字)
+        _fac_neural_read "$current_draft_key"
+        local final_com_raw="$_VAL_COM"
+        local final_real_com=${final_com_raw%_DRAFT} # 去掉 DRAFT 後綴的真名
+        local final_key_check="$final_real_com"
+        if [ -n "$_VAL_COM2" ]; then final_key_check="$final_real_com '$_VAL_COM2'"; fi
+
+        # === [關鍵修復] 焦土覆蓋邏輯 ===
+        # 暫時解鎖，因為我們要刪除的是 Normal 狀態的舊指令
         unset __FAC_IO_STATE
+        
+        # A. 刪除草稿的「本尊」 (Source)
         _fac_delete_node "$original_key"
-        
+
+        # B. [Fix] 如果改名後撞名，把「撞名對象」也刪除！
+        # 這解決了 "New command covering original command still fails" 的問題
+        if [ "$original_key" != "$final_key_check" ]; then
+             # 再次確認，刪除目標名稱的舊指令
+             _fac_delete_node "$final_key_check"
+        fi
+
+        # === 寫入新節點 ===
+        # 鎖定 E，將草稿轉正
         export __FAC_IO_STATE="E"
-        _fac_neural_write "$current_draft_key" 7 "$final_state"
         
+        # C. 寫入狀態 "S" (Saved)
+        # 不管原本是 N 還是什麼，只要 Confirm 過，就是 S
+        _fac_neural_write "$current_draft_key" 7 "S"
+        
+        # D. 修正 Command Name (去掉 _DRAFT)
+        _fac_neural_write "$current_draft_key" 5 "$final_real_com"
+
         unset __FAC_IO_STATE
         
         _fac_sort_optimization
         _fac_matrix_defrag
         
-        _bot_say "success" "Node Updated."
+        _bot_say "success" "Node Saved (State: S)."
         
     else
         _bot_say "action" "Discarding Draft..."
