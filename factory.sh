@@ -907,6 +907,7 @@ function _fac_maintenance() {
         NR==1 { print; next }
         
         {
+            # 讀取欄位
             catname=$3;   gsub(/^"|"$/, "", catname)
             type=$4;      gsub(/^"|"$/, "", type)
             st=$7;        gsub(/^"|"$/, "", st); gsub(/\r| /, "", st) # COM3 State
@@ -916,46 +917,32 @@ function _fac_maintenance() {
             ibody=$13;    gsub(/^"|"$/, "", ibody)
             uri=$14;      gsub(/^"|"$/, "", uri)
 
-            # 1. 豁免權 (Immunity Protocol)
-            # E: Editing (編輯中)
-            # N: New (新建立，尚未填寫)
-            # S: Saved (已暫存，等待部署)
-            # B: Backup (系統備份，交易中)
-            # C: Clone (瞬態)
-            # 這些狀態由交易系統管理，維護工具不應干涉
-            if (st == "E" || st == "N" || st == "S" || st == "B" || st == "C") {
+            if (st == "E" || st == "B" || st == "C") {
                 print $0
                 next
             }
             
-            # 2. 正規性驗證 (Validation Logic)
             valid = 0
             
+            # 驗證規則
             if (type == "NA") {
                 if (pkg != "" && tgt != "") valid = 1
             }
             else if (type == "NB") {
                 if ((ihead != "" && ibody != "") || pkg != "" || uri != "") valid = 1
             }
-            else if (type == "SYS" || type == "SSL") {
+            else if (type == "SYS" || type == "SSL" || type == "sh") {
                 valid = 1
             }
+            if (type == "") valid = 0
             
             if (valid == 0) {
-                # 驗證失敗：打上 "F" 標籤，並清空分類與ID以防干擾索引
-                $1 = ""
-                $2 = ""
-                $3 = "\"\""
+                # 結構損壞 / 外部篡改，轉 F
                 $7 = "\"F\""
             } 
             else {
-                # 3. 修復與遷移 (Recovery & Migration)
-                # 如果原本是 F (已修復) -> P
-                # 如果原本是 "" (舊資料) -> P
-                # 如果原本是 P (正常)   -> P
-                if (st == "F" || st == "" || st == "P") {
-                    $7 = "\"P\""
-                }
+                # 結構完整，將指令改爲 P
+                $7 = "\"P\""
             }
             
             print $0
@@ -964,7 +951,7 @@ function _fac_maintenance() {
 
     if [ -s "$temp_file" ]; then
         mv "$temp_file" "$target_file"
-        echo -e "${F_GRE}    ›› Neural Nodes Verified.${F_RESET}"
+        echo -e "${F_GRE}    ›› Neural Nodes Verified (Zero Trust Scan Completed).${F_RESET}"
     else
         rm "$temp_file"
         echo -e "${F_ERR}    ›› Maintenance Failed: Output empty.${F_RESET}"
