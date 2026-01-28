@@ -1037,8 +1037,6 @@ function _factory_fzf_add_type_menu() {
     echo "$selected"
 }
 
-
-
 # 偽・星門 - UI Mask / Fake Gate
 function _ui_fake_gate() {
     local target_system="${1:-core}"

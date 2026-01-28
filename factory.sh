@@ -33,7 +33,9 @@ function _fac_neural_read() {
 
     local t_com=$(echo "$target_key" | awk '{print $1}')
     local t_sub=""
+    
     if [[ "$target_key" == *"'"* ]]; then
+        t_com=$(echo "$target_key" | awk -F"'" '{print $1}' | sed 's/[ \t]*$//')
         t_sub=$(echo "$target_key" | awk -F"'" '{print $2}')
     fi
 
@@ -46,6 +48,9 @@ function _fac_neural_read() {
             row_com2 = $6; gsub(/^"|"$/, "", row_com2); gsub(/\r| /, "", row_com2)
             row_state = $7; gsub(/^"|"$/, "", row_state); gsub(/\r| /, "", row_state)
             
+            clean_key = key; gsub(/ /, "", clean_key)
+            clean_sub = subkey; gsub(/ /, "", clean_sub)
+
             state_match = 0
             if (tstate == "ANY") {
                 if (row_state != "E") state_match = 1
@@ -54,16 +59,15 @@ function _fac_neural_read() {
             }
 
             if (state_match) {
-                if (row_com == key && row_com2 == subkey && subkey != "") {
-                    print $0; exit
-                }
-                if (row_com == key && row_com2 == "") {
-                    fallback = $0
+                if (row_com == clean_key) {
+                    if (clean_sub == "" && row_com2 == "") {
+                         print $0; exit
+                    }
+                    if (clean_sub != "" && row_com2 == clean_sub) {
+                         print $0; exit
+                    }
                 }
             }
-        }
-        END {
-            if (fallback != "") print fallback
         }
     ' "$target_file")
 
@@ -101,6 +105,7 @@ function _fac_neural_write() {
 
     local t_com=$(echo "$target_key" | awk '{print $1}')
     local t_sub=""
+    
     if [[ "$target_key" == *"'"* ]]; then
         t_com=$(echo "$target_key" | awk -F"'" '{print $1}' | sed 's/[ \t]*$//')
         t_sub=$(echo "$target_key" | awk -F"'" '{print $2}')
@@ -116,11 +121,15 @@ function _fac_neural_write() {
     {
         c=$5; gsub(/^"|"$/, "", c); gsub(/\r| /, "", c)
         s=$6; gsub(/^"|"$/, "", s); gsub(/\r| /, "", s)
-        st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st) # COM3
+        st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
+
+        # Key 正規化
+        clean_key = tc; gsub(/ /, "", clean_key)
+        clean_sub = ts; gsub(/ /, "", clean_sub)
 
         match_found = 0
-        
         state_pass = 0
+        
         if (tstate == "ANY") { 
             if (st != "E") state_pass = 1 
         } else {
@@ -128,9 +137,9 @@ function _fac_neural_write() {
         }
 
         if (state_pass) {
-            if (c == tc) {
-                if (ts == "" && s == "") match_found = 1
-                if (ts != "" && s == ts) match_found = 1
+            if (c == clean_key) {
+                if (clean_sub == "" && s == "") match_found = 1
+                if (clean_sub != "" && s == clean_sub) match_found = 1
             }
         }
 
@@ -337,22 +346,28 @@ function fac() {
 
         # : Neural Forge (Create Command)
         "add"|"new") 
+            local view_state="NEW"
+
+            # 1. 呼叫類型選單
             local type_sel=$(_factory_fzf_add_type_menu)
             
             if [[ -z "$type_sel" || "$type_sel" == "Cancel" || "$type_sel" == *"------"* ]]; then
                 return
             fi
 
+            # 2. 自動備份 (保留你的邏輯)
             if command -v _factory_auto_backup &> /dev/null; then
                 _fac_maintenance
                 _factory_auto_backup
             fi
 
+            # 3. 計算 999 分類下的最大編號
             local next_comno=$(awk -F, '$1==999 {gsub(/^"|"$/, "", $2); if(($2+0) > max) max=$2} END {print max+1}' "$MUX_ROOT/app.csv.temp")
             
             if [ -z "$next_comno" ] || [ "$next_comno" -eq 1 ]; then next_comno=1; fi
             if ! [[ "$next_comno" =~ ^[0-9]+$ ]]; then next_comno=999; fi
 
+            # 4. 生成臨時節點名稱 (ND + Timestamp)
             local ts=$(date +%s)
             local temp_cmd_name="ND${ts}"
 
@@ -361,30 +376,40 @@ function fac() {
             local com3_flag="N"
             local new_row=""
             
+            # 5. 根據類型建構
             case "$type_sel" in
                 "Command NA")
-                    # NA 模板
-                    new_row="${target_cat},${next_comno},${target_catname},\"NA\",\"${temp_cmd_name}\",,\"${com3_flag}\",,,,,,,,,,,,,"
+                    # NA 模板: 預設 Type=NA, COM=TempName
+                    new_row="${target_cat},${next_comno},${target_catname},\"NA\",\"${temp_cmd_name}\",,\"${com3_flag}\",\"${temp_cmd_name}\",\"${temp_cmd_name}\",,,,,,,,,,,"
                     ;;
                 "Command NB")
-                    # NB 模板
-                    new_row="${target_cat},${next_comno},${target_catname},\"NB\",\"${temp_cmd_name}\",,\"${com3_flag}\",,,,,,,,\"$(echo '$__GO_TARGET')\",,,,,,\"$(echo '$SEARCH_GOOGLE')\""
+                    # NB 模板: 預設 Type=NB, IHEAD=android.intent.action, IBODY=.VIEW, ENGINE=$SEARCH_GOOGLE
+                    new_row="${target_cat},${next_comno},${target_catname},\"NB\",\"${temp_cmd_name}\",,\"${com3_flag}\",\"${temp_cmd_name}\",\"${temp_cmd_name}\",,,\"android.intent.action\",\".VIEW\",\"$(echo '$__GO_TARGET')\",,,,,,\"$(echo '$SEARCH_GOOGLE')\""
                     ;;
                 *) 
                     return ;;
             esac
 
+            # 6. 寫入與啟動編輯協議
             if [ -n "$new_row" ]; then
+                # 確保換行 (防止資料黏連)
+                if [ -s "$MUX_ROOT/app.csv.temp" ] && [ "$(tail -c 1 "$MUX_ROOT/app.csv.temp")" != "" ]; then
+                    echo "" >> "$MUX_ROOT/app.csv.temp"
+                fi
                 echo "$new_row" >> "$MUX_ROOT/app.csv.temp"
                 
                 _bot_say "action" "Initializing Construction Sequence..."
                 
+                # 進入編輯模式
                 _fac_safe_edit_protocol "${temp_cmd_name}"
                 
+                # 7. 清理邏輯
+                # 如果出來後還能讀到 NDxxx，代表使用者沒改名(放棄創建)，則刪除
                 if ! _fac_neural_read "${temp_cmd_name}" >/dev/null 2>&1; then
-                    : 
+                    : # 讀不到代表已經改名成功
                 else
-                    _bot_say "action" "Creation Aborted. Cleaning up..."
+                    _bot_say "action" "Creation Aborted / Unnamed. Cleaning up..."
+                    unset __FAC_IO_STATE 
                     _fac_delete_node "${temp_cmd_name}"
                 fi
             fi
