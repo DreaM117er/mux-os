@@ -1559,21 +1559,33 @@ function _fac_edit_router() {
             fi
             ;;
         "ROOM_CMD")
-            # 1. 獲取輸入 (修正：使用原生 read)
-            _bot_say "action" "Edit Cli Command:"
+            # 1. 獲取輸入
+            _bot_say "action" "Edit Command Name (Main):"
+            # 使用原生 read 確保讀取正確，預設值為當前值
             read -e -p "    › " -i "$_VAL_COM" new_com
             
-            _bot_say "action" "Edit Sub Command:"
+            _bot_say "action" "Edit Sub Command (2nd):"
             read -e -p "    › " -i "$_VAL_COM2" new_sub
             
+            # 去除前後空白 (Sanitize)
+            new_com=$(echo "$new_com" | sed 's/^[ \t]*//;s/[ \t]*$//')
+            new_sub=$(echo "$new_sub" | sed 's/^[ \t]*//;s/[ \t]*$//')
+
+            # 必填檢查
             if [ -z "$new_com" ]; then return 0; fi
 
+            # 初始化追蹤 Key (Key Drift Tracking)
+            # 這是修正的關鍵：我們需要一個變數來追蹤當下在資料庫裡真正的 Key
             local current_track_key="$target_key"
             local key_changed=0
 
+            # 2. 修改主指令 (COM - Column 5)
             if [ "$new_com" != "$_VAL_COM" ]; then
                 _fac_neural_write "$current_track_key" 5 "$new_com"
                 
+                # [CRITICAL FIX]
+                # 一旦寫入成功，CSV 裡的這一行 Key 已經變了！
+                # 必須立刻更新 current_track_key，否則下一步修改 COM2 會找不到人
                 if [ -n "$_VAL_COM2" ]; then
                     current_track_key="$new_com '$_VAL_COM2'"
                 else
@@ -1582,9 +1594,12 @@ function _fac_edit_router() {
                 key_changed=1
             fi
 
+            # 3. 修改副指令 (COM2 - Column 6)
             if [ "$new_sub" != "$_VAL_COM2" ]; then
+                # 使用「已經更新過」的 current_track_key 進行寫入
                 _fac_neural_write "$current_track_key" 6 "$new_sub"
                 
+                # 再次計算最終 Key (Final Key Calculation)
                 local final_com="${new_com:-$_VAL_COM}"
                 
                 if [ -n "$new_sub" ]; then
@@ -1595,9 +1610,16 @@ function _fac_edit_router() {
                 key_changed=1
             fi
 
+            # 4. 回傳結果給父迴圈
             if [ "$key_changed" -eq 1 ]; then
                 _bot_say "action" "Identity Updated. Tracking new key..."
+                
+                # [CRITICAL FIX] 
+                # 告訴父迴圈 (Safe Edit Protocol)：鑰匙換了，請更新你的 working_key
+                # 透過 stdout 輸出特殊標記
                 echo "UPDATE_KEY:$current_track_key"
+                
+                # 回傳 2 代表發生了改名事件
                 return 2
             else
                 return 0
