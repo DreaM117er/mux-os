@@ -44,8 +44,6 @@ function _fac_neural_read() {
         !/^#/ { 
             row_com = $5; gsub(/^"|"$/, "", row_com); gsub(/\r| /, "", row_com)
             row_com2 = $6; gsub(/^"|"$/, "", row_com2); gsub(/\r| /, "", row_com2)
-            
-            # [NEW] 狀態檢查
             row_state = $7; gsub(/^"|"$/, "", row_state); gsub(/\r| /, "", row_state)
             
             state_match = 0
@@ -467,6 +465,15 @@ function fac() {
                 _fac_neural_read "$clean_target"
                 local del_pkg="${_VAL_PKG:-N/A}"
                 local del_desc="${_VAL_HUDNAME:-N/A}"
+                
+                # [關鍵修正 1] 狀態檢查：禁止刪除正在編輯(E)或備份(B)的節點
+                local current_st=$(echo "$_VAL_COM3" | tr -d ' "')
+                if [[ "$current_st" == "B" || "$current_st" == "E" ]]; then
+                    echo ""
+                    _bot_say "error" "Operation Denied: Target is locked by active session (State: $current_st)."
+                    sleep 1
+                    continue
+                fi
 
                 echo -e ""
                 echo -e "${F_WARN} :: WARNING :: NEUTRALIZING TARGET NODE ::${F_RESET}"
@@ -482,6 +489,7 @@ function fac() {
                 if [[ "$conf" =~ ^[Yy]$ ]]; then
                     _bot_say "action" "Executing Deletion..."
 
+                    unset __FAC_IO_STATE
                     _fac_delete_node "$clean_target"
                     
                     sleep 0.2
@@ -528,8 +536,9 @@ function fac() {
                     read -r confirm
                     if [ "$confirm" == "CONFIRM" ]; then
                         if command -v _factory_auto_backup &> /dev/null; then _factory_auto_backup; fi
+                        
                         _fac_safe_merge "999" "$temp_id"
-                         awk -F, -v tid="$temp_id" -v OFS=, '$1 != tid {print $0}' "$MUX_ROOT/app.csv.temp" > "$MUX_ROOT/app.csv.temp.tmp" && mv "$MUX_ROOT/app.csv.temp.tmp" "$MUX_ROOT/app.csv.temp"
+                        awk -F, -v tid="$temp_id" -v OFS=, '$1 != tid {print $0}' "$MUX_ROOT/app.csv.temp" > "$MUX_ROOT/app.csv.temp.tmp" && mv "$MUX_ROOT/app.csv.temp.tmp" "$MUX_ROOT/app.csv.temp"
                         
                         _bot_say "success" "Category Dissolved."
 
@@ -550,6 +559,14 @@ function fac() {
                          
                         _fac_neural_read "$clean_target"
                         local del_pkg="${_VAL_PKG:-N/A}"
+                        
+                        local current_st=$(echo "$_VAL_COM3" | tr -d ' "')
+                        if [[ "$current_st" == "B" || "$current_st" == "E" ]]; then
+                            echo ""
+                            _bot_say "error" "Operation Denied: Target is locked by active session."
+                            sleep 1
+                            continue
+                        fi
 
                         echo -e "\033[1;31m :: WARNING :: NEUTRALIZING TARGET NODE ::\033[0m"
                         echo -e "\033[1;31m    Deleting Node [$clean_target] ($del_pkg)\033[0m"
@@ -558,6 +575,8 @@ function fac() {
                         
                         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
                             if command -v _factory_auto_backup &> /dev/null; then _factory_auto_backup; fi
+                            
+                            unset __FAC_IO_STATE
                             _fac_delete_node "$clean_target"
                             
                             _bot_say "success" "Target neutralized."
@@ -1293,45 +1312,59 @@ function _fac_update_node() {
 function _fac_delete_node() {
     local target_key="$1"
     local target_file="$MUX_ROOT/app.csv.temp"
-    local target_state="${__FAC_IO_STATE:-NORMAL}" 
+    
+    # 讀取全域權限鎖 (由 _fac_safe_edit_protocol 設定)
+    # 如果為空，代表是使用者手動操作 -> 開啟保護模式
+    # 如果有值 (e.g. "B", "E")，代表是系統操作 -> 精準獵殺模式
+    local auth_state="${__FAC_IO_STATE:-User}" 
 
     local t_com=$(echo "$target_key" | awk '{print $1}')
     local t_sub=""
     if [[ "$target_key" == *"'"* ]]; then
-        t_com=$(echo "$target_key" | awk -F"'" '{print $1}' | sed 's/[ \t]*$//')
         t_sub=$(echo "$target_key" | awk -F"'" '{print $2}')
     fi
 
-    awk -v FPAT='([^,]*)|("[^"]+")' \
+    awk -F, -v OFS=, \
         -v tc="$t_com" -v ts="$t_sub" \
-        -v tstate="$target_state" '
+        -v mode="$auth_state" '
     {
-        raw = $0
+        # 欄位正規化
         c=$5; gsub(/^"|"$/, "", c); gsub(/\r| /, "", c)
         s=$6; gsub(/^"|"$/, "", s); gsub(/\r| /, "", s)
         st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
-
-        match_found = 0
         
-        state_pass = 0
-        if (tstate == "NORMAL") {
-            if (st == "" || st == "N") state_pass = 1
-        } else {
-            if (st == tstate) state_pass = 1
+        # 1. 比對目標 Key (COM + COM2)
+        match_found = 0
+        if (c == tc) {
+            if (ts == "" && s == "") match_found = 1
+            if (ts != "" && s == ts) match_found = 1
         }
 
-        if (state_pass) {
-            if (c == tc) {
-                if (ts == "" && s == "") match_found = 1
-                if (ts != "" && s == ts) match_found = 1
-            }
-        }
-
+        # 2. 刪除決策邏輯
         if (match_found) {
-            print "Deleted Node: [" c " " s "] [" st "]" > "/dev/stderr"
-            next
+            if (mode == "User") {
+                # [User Mode] 保護機制
+                # 絕對禁止刪除 B (備份), E (編輯中), C (複製中)
+                if (st == "B" || st == "E" || st == "C") {
+                    # 這是受保護的節點，保留它 (Print)
+                    print $0
+                } else {
+                    # 允許刪除 P, N, S, F (Skip print = Delete)
+                }
+            } else {
+                # [System Mode] 精準獵殺
+                # 只刪除指定的狀態 (例如 Commit 時只刪 B)
+                if (st == mode) {
+                    # 狀態吻合，執行刪除 (Skip print)
+                } else {
+                    # 狀態不符，保留 (Print)
+                    print $0
+                }
+            }
+        } else {
+            # 非目標節點，原樣保留
+            print $0
         }
-        print raw
     }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
 }
 
@@ -1501,8 +1534,12 @@ function _fac_edit_router() {
             fi
             ;;
         "ROOM_CMD")
-            local new_com=$(_safe_input "Command Name (Main)" "$_VAL_COM")
-            local new_sub=$(_safe_input "Sub Command (2nd)" "$_VAL_COM2")
+            # 1. 獲取輸入 (修正：使用原生 read)
+            _bot_say "action" "Edit Cli Command:"
+            read -e -p "    › " -i "$_VAL_COM" new_com
+            
+            _bot_say "action" "Edit Sub Command:"
+            read -e -p "    › " -i "$_VAL_COM2" new_sub
             
             if [ -z "$new_com" ]; then return 0; fi
 
@@ -1510,7 +1547,7 @@ function _fac_edit_router() {
             local key_changed=0
 
             if [ "$new_com" != "$_VAL_COM" ]; then
-                _fac_update_node "$current_track_key" 5 "$new_com"
+                _fac_neural_write "$current_track_key" 5 "$new_com"
                 
                 if [ -n "$_VAL_COM2" ]; then
                     current_track_key="$new_com '$_VAL_COM2'"
@@ -1521,7 +1558,7 @@ function _fac_edit_router() {
             fi
 
             if [ "$new_sub" != "$_VAL_COM2" ]; then
-                _fac_update_node "$current_track_key" 6 "$new_sub"
+                _fac_neural_write "$current_track_key" 6 "$new_sub"
                 
                 local final_com="${new_com:-$_VAL_COM}"
                 
@@ -1538,12 +1575,14 @@ function _fac_edit_router() {
                 echo "UPDATE_KEY:$current_track_key"
                 return 2
             else
-                _bot_say "info" "No changes detected."
                 return 0
             fi
             ;;
         "ROOM_HUD")
             _fac_generic_edit "$target_key" 8 "Edit Description (HUD Name):"
+            ;;
+        "ROOM_CATE")
+            _fac_generic_edit "$target_key" 16 "Edit Category Type:"
             ;;
         "ROOM_UI")
             _fac_generic_edit "$target_key" 9 "Edit Display Name (Bot Label):"
