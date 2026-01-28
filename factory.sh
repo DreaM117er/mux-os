@@ -161,11 +161,29 @@ function _factory_system_boot() {
 
     # 清除狀態 N 的指令
     awk -F, -v OFS=, '
-    {
-        s=$7; gsub(/^"|"$/, "", s); gsub(/\r| /, "", s)
-        if (s == "N") { $7 = "\"\"" }
-        print $0
-    }
+        BEGIN { cn=0; cs=0; fail=0 }
+        NR==1 { print; next }
+        
+        {
+            st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
+            
+            if (st == "E") { print "QA_FAIL:Active Draft (E)" > "/dev/stderr"; print $0; next }
+            if (st == "B") { print "QA_FAIL:Stuck Backup (B)" > "/dev/stderr"; print $0; next }
+            if (st == "C") { print "QA_FAIL:Glitch Node (C)" > "/dev/stderr"; print $0; next }
+            if (st == "F") { print "QA_FAIL:Broken Node (F)" > "/dev/stderr"; print $0; next }
+
+            if (st == "S") {
+                cs++
+                $7 = "\"\"" 
+            }
+            
+            if (st == "N") {
+                cn++
+                $7 = "\"\""
+            }
+
+            print $0
+        }
     ' "$MUX_ROOT/app.csv.temp" > "$MUX_ROOT/app.csv.temp.tmp" && mv "$MUX_ROOT/app.csv.temp.tmp" "$MUX_ROOT/app.csv.temp"
 
     export PS1="\[\033[1;38;5;208m\]Fac\[\033[0m\] \w › "
@@ -725,14 +743,12 @@ function _factory_deploy_sequence() {
     echo -ne "${F_WARN} :: Initiating Deployment Sequence...${F_RESET}"
     sleep 0.5
 
-    # Phase 0: 最終品管與統計 (Final QA & Stats)
+    # Phase 0: 最終品管與統計 (Final QA & Stats & Migration)
     echo -e "\n${F_GRAY} :: Running Final Quality Assurance (QA)...${F_RESET}"
     
     local target_file="$MUX_ROOT/app.csv.temp"
-    
-    # awk 掃描：統計 S/N，轉正狀態，攔截 E/F
-    local stats_log="${target_file}.log"
     local qa_file="${target_file}.qa"
+    local stats_log="${target_file}.log"
 
     awk -F, -v OFS=, '
         BEGIN { cn=0; cs=0; fail=0 }
@@ -741,20 +757,27 @@ function _factory_deploy_sequence() {
         {
             st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
             
-            # 1. 攔截 E (Draft) 與 F (Broken)
-            if (st == "E") { print "QA_FAIL:Draft detected (E)" > "/dev/stderr"; print $0; next }
-            if (st == "F") { print "QA_FAIL:Broken node (F)" > "/dev/stderr"; print $0; next }
+            # [CRITICAL] 攔截非法狀態
+            if (st == "E") { print "QA_FAIL:Active Draft (E)" > "/dev/stderr"; print $0; next }
+            if (st == "B") { print "QA_FAIL:Stuck Backup (B)" > "/dev/stderr"; print $0; next }
+            if (st == "F") { print "QA_FAIL:Broken Node (F)" > "/dev/stderr"; print $0; next }
+            if (st == "C") { print "QA_FAIL:Glitch Node (C)" > "/dev/stderr"; print $0; next }
 
-            # 2. 處理 S (Saved) -> 轉正為 Empty
+            # [TRANSITION] 狀態轉正 (Graduation to P)
+            
+            # 1. S (Saved) -> P
             if (st == "S") {
                 cs++
-                $7 = "\"\"" 
+                $7 = "\"P\""
             }
-            
-            # 3. 處理 N (New) -> 轉正為 Empty
-            if (st == "N") {
+            # 2. N (New) -> P
+            else if (st == "N") {
                 cn++
-                $7 = "\"\""
+                $7 = "\"P\""
+            }
+            # 3. Empty (Old) -> P (自動遷移)
+            else if (st == "") {
+                $7 = "\"P\""
             }
 
             print $0
@@ -762,30 +785,30 @@ function _factory_deploy_sequence() {
         END { print "STATS:" cn ":" cs > "/dev/stderr" }
     ' "$target_file" > "$qa_file" 2> "$stats_log"
 
-    # 解析 Log 與錯誤處理
+    # 解析 QA 結果
     local qa_error=$(grep "QA_FAIL" "$stats_log")
     local stats_line=$(grep "STATS" "$stats_log")
     local cnt_n=$(echo "$stats_line" | cut -d: -f2)
     local cnt_s=$(echo "$stats_line" | cut -d: -f3)
 
+    # 錯誤處理
     if [ -n "$qa_error" ]; then
         mv "$qa_file" "$target_file" # 寫回標記以便使用者檢查
         rm "$stats_log"
-        echo -e "${F_ERR} :: QA FAILED. Drafts (E) or Broken (F) nodes detected.${F_RESET}"
-        
-        # 顯示具體錯誤原因 (可選)
-        echo -e "${F_GRAY}    $qa_error${F_RESET}"
+        echo -e "${F_ERR} :: QA FAILED. Invalid nodes detected.${F_RESET}"
+        echo -e "${F_GRAY}    Reason: $(echo "$qa_error" | cut -d: -f2 | head -n 1)${F_RESET}"
         
         echo -ne "\n\033[1;33m    ›› Acknowledge? [Any Key]: \033[0m"
         read -n 1 -r
         return 1
     else
-        # QA 通過：應用轉正後的檔案 (移除 S/N 標記)
+        # QA 通過：應用轉正後的檔案 (P State applied)
         mv "$qa_file" "$target_file"
         rm "$stats_log"
-        echo -e "${F_GRE}    ›› QA Passed. All nodes validated.${F_RESET}"
+        echo -e "${F_GRE}    ›› QA Passed. State normalized to [P].${F_RESET}"
     fi
 
+    #戰報顯示
     echo -e "${F_MAIN} :: SANDBOX SESSION REPORT ::${F_RESET}"
     echo -e "    ${F_GRAY}Created (New)   :${F_RESET} \033[1;32m${cnt_n:-0}\033[0m"
     echo -e "    ${F_GRAY}Modified (Saved):${F_RESET} \033[1;33m${cnt_s:-0}\033[0m"
@@ -794,7 +817,7 @@ function _factory_deploy_sequence() {
     echo -ne "${F_WARN} :: Press [Enter] to Review Changes...${F_RESET}"
     read
 
-    # 正式比對資料
+    # Phase 1: 差異比對與確認 (Diff & Confirm)
     clear
     _draw_logo "gray"
     
@@ -818,6 +841,7 @@ function _factory_deploy_sequence() {
     echo -ne "${F_WARN} :: Modifications verified? [Y/n]: ${F_RESET}"
     read choice
     echo ""
+    
     if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
         _fac_init
         echo -e ""
@@ -828,18 +852,20 @@ function _factory_deploy_sequence() {
     fi
     
     echo -e "${F_ERR} :: CRITICAL WARNING ::${F_RESET}"
-    echo -e "${F_SUB}    Sandbox (.temp) will OVERWRITE Production (app.csv).${F_RESET}"
+    echo -e "${F_SUB}    Sandbox will OVERWRITE Production.${F_RESET}"
     echo -e "${F_SUB}    This action is irreversible via undo.${F_RESET}"
     echo ""
     echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO DEPLOY: ${F_RESET}"
     read confirm
     echo ""
+    
     if [ "$confirm" != "CONFIRM" ]; then
         _fac_init
         _bot_say "error" "Confirmation failed. Deployment aborted."
         return
     fi
 
+    # Phase 2: 執行部署 (Execution)
     sleep 1.0
     
     local temp_file="$MUX_ROOT/app.csv.temp"
@@ -848,8 +874,6 @@ function _factory_deploy_sequence() {
     if [ -f "$temp_file" ]; then
         mv "$temp_file" "$prod_file"
         
-        # [微調] 部署後因為 sandbox 移走了，建議立刻重建一個乾淨的
-        # 這樣下次進 fac 就不會報錯
         if [ -f "$prod_file" ]; then
             cp "$prod_file" "$temp_file"
         fi
@@ -884,50 +908,53 @@ function _fac_maintenance() {
         
         {
             catname=$3;   gsub(/^"|"$/, "", catname)
-            type=$4;   gsub(/^"|"$/, "", type)
-            st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
-            pkg=$10;   gsub(/^"|"$/, "", pkg)
-            tgt=$11;   gsub(/^"|"$/, "", tgt)
-            ihead=$12; gsub(/^"|"$/, "", ihead)
-            ibody=$13; gsub(/^"|"$/, "", ibody)
-            uri=$14;   gsub(/^"|"$/, "", uri)
+            type=$4;      gsub(/^"|"$/, "", type)
+            st=$7;        gsub(/^"|"$/, "", st); gsub(/\r| /, "", st) # COM3 State
+            pkg=$10;      gsub(/^"|"$/, "", pkg)
+            tgt=$11;      gsub(/^"|"$/, "", tgt)
+            ihead=$12;    gsub(/^"|"$/, "", ihead)
+            ibody=$13;    gsub(/^"|"$/, "", ibody)
+            uri=$14;      gsub(/^"|"$/, "", uri)
 
-            if (st == "E" || st == "N" || st == "S") {
+            # 1. 豁免權 (Immunity Protocol)
+            # E: Editing (編輯中)
+            # N: New (新建立，尚未填寫)
+            # S: Saved (已暫存，等待部署)
+            # B: Backup (系統備份，交易中)
+            # C: Clone (瞬態)
+            # 這些狀態由交易系統管理，維護工具不應干涉
+            if (st == "E" || st == "N" || st == "S" || st == "B" || st == "C") {
                 print $0
                 next
             }
             
+            # 2. 正規性驗證 (Validation Logic)
             valid = 0
             
             if (type == "NA") {
-                if (pkg != "" && tgt != "") {
-                    valid = 1
-                }
+                if (pkg != "" && tgt != "") valid = 1
             }
             else if (type == "NB") {
-                if (ihead != "" && ibody != "") {
-                    valid = 1
-                }
-                else if (pkg != "") {
-                    valid = 1
-                }
-                else if (uri != "") {
-                    valid = 1
-                }
+                if ((ihead != "" && ibody != "") || pkg != "" || uri != "") valid = 1
             }
             else if (type == "SYS" || type == "SSL") {
                 valid = 1
             }
             
             if (valid == 0) {
+                # 驗證失敗：打上 "F" 標籤，並清空分類與ID以防干擾索引
                 $1 = ""
                 $2 = ""
                 $3 = "\"\""
                 $7 = "\"F\""
             } 
             else {
-                if (st == "F") {
-                    $7 = "\"\""
+                # 3. 修復與遷移 (Recovery & Migration)
+                # 如果原本是 F (已修復) -> P
+                # 如果原本是 "" (舊資料) -> P
+                # 如果原本是 P (正常)   -> P
+                if (st == "F" || st == "" || st == "P") {
+                    $7 = "\"P\""
                 }
             }
             
@@ -1095,31 +1122,52 @@ function _fac_matrix_defrag() {
 
 # 安全沙盒編輯協議 - Safe Edit Protocol
 function _fac_safe_edit_protocol() {
-    local original_key="$1"
+    local target_key="$1"
     local target_file="$MUX_ROOT/app.csv.temp"
 
-    # 1. 讀取原始資料
+    # 1. 鎖定目標與狀態識別
     unset __FAC_IO_STATE
-    if ! _fac_neural_read "$original_key"; then
-        _bot_say "error" "Source Node Not Found."
+    if ! _fac_neural_read "$target_key"; then
+        _bot_say "error" "Target Node Not Found."
         return 1
     fi
 
-    # 2. 建立分身 (Shadow Clone)
-    _bot_say "action" "Initializing Draft Sandbox..."
-    
-    # 強制將 COM3 設為 "E" (Editing)
-    local draft_row="$_VAL_CATNO,$_VAL_COMNO,\"$_VAL_CATNAME\",\"$_VAL_TYPE\",\"$_VAL_COM\",\"$_VAL_COM2\",\"E\",\"$_VAL_HUDNAME\",\"$_VAL_UINAME\",\"$_VAL_PKG\",\"$_VAL_TARGET\",\"$_VAL_IHEAD\",\"$_VAL_IBODY\",\"$_VAL_URI\",\"$_VAL_MIME\",\"$_VAL_CATE\",\"$_VAL_FLAG\",\"$_VAL_EX\",\"$_VAL_EXTRA\",\"$_VAL_ENGINE\""
-    
-    echo "$draft_row" >> "$target_file"
+    local current_state="$_VAL_COM3"
+    # 若是舊資料空字串，視為 P
+    if [ -z "$current_state" ]; then current_state="P"; fi 
 
-    # 3. 進入編輯迴圈 (開啟 I/O 狀態鎖 E)
+    local working_key="$target_key"
+    local origin_type="$current_state"
+
+    # 2. 啟動交易 (Transaction Start)
+    if [ "$current_state" == "E" ]; then
+        _bot_say "warn" "Resuming Edit Session (State: E)..."
+    else
+        # 建立 B/E 交易對
+        _bot_say "action" "Initializing Transaction..."
+
+        # [Action] 將本尊轉為 B (Backup)
+        # 這裡鎖定本尊，不管它是 P, N, S, F，都暫時轉為 B 隱藏起來
+        _fac_neural_write "$target_key" 7 "B"
+
+        # [Action] 複製產生 E (Clone -> Edit)
+        # 這裡實現了 C 的邏輯：複製一份，並直接標記為 E
+        local draft_row="$_VAL_CATNO,$_VAL_COMNO,\"$_VAL_CATNAME\",\"$_VAL_TYPE\",\"$_VAL_COM\",\"$_VAL_COM2\",\"E\",\"$_VAL_HUDNAME\",\"$_VAL_UINAME\",\"$_VAL_PKG\",\"$_VAL_TARGET\",\"$_VAL_IHEAD\",\"$_VAL_IBODY\",\"$_VAL_URI\",\"$_VAL_MIME\",\"$_VAL_CATE\",\"$_VAL_FLAG\",\"$_VAL_EX\",\"$_VAL_EXTRA\",\"$_VAL_ENGINE\""
+        echo "$draft_row" >> "$target_file"
+        
+        # 記錄原始 Key 以便刪除 B
+        export __FAC_ORIGIN_KEY="$target_key"
+        # 記錄原始狀態以便 Rollback (如果是 N 轉 B，還原時要變回 N)
+        export __FAC_RESTORE_TYPE="$origin_type"
+    fi
+
+    # 3. 進入編輯迴圈 (鎖定 E)
     export __FAC_IO_STATE="E"
-    local current_draft_key="$original_key" 
     local loop_status="EDIT"
 
     while true; do
-        local selection=$(_factory_fzf_detail_view "$current_draft_key" "EDIT")
+        # working_key 會隨著編輯改變 (Key Drift)
+        local selection=$(_factory_fzf_detail_view "$working_key" "NEW") # 使用綠色樣式提示編輯中
         
         if [ -z "$selection" ]; then
             loop_status="CANCEL"
@@ -1127,68 +1175,67 @@ function _fac_safe_edit_protocol() {
         fi
 
         local router_out
-        router_out=$(_fac_edit_router "$selection" "$current_draft_key" "EDIT")
+        router_out=$(_fac_edit_router "$selection" "$working_key" "NEW")
         local router_code=$?
         
-        echo "$router_out" | grep -v "UPDATE_KEY"
-
         if [ $router_code -eq 1 ]; then
             loop_status="CONFIRM"
             break
         elif [ $router_code -eq 2 ]; then
+            # [Key Drift Fix] 捕捉改名後的 Key
             local new_k=$(echo "$router_out" | awk -F: '{print $2}')
-            if [ -n "$new_k" ]; then current_draft_key="$new_k"; fi
+            if [ -n "$new_k" ]; then working_key="$new_k"; fi
         fi
     done
 
-    # 4. 結算階段 (Commit or Rollback)
+    # 4. 結算階段 (Settlement)
+    unset __FAC_IO_STATE # 解鎖
+
     if [ "$loop_status" == "CONFIRM" ]; then
-        _bot_say "neural" "Committing Changes..."
+        _bot_say "neural" "Committing Transaction..."
         
-        # 讀取最終的 Command Name (這可能是新的名字)
-        _fac_neural_read "$current_draft_key"
-        local final_com_raw="$_VAL_COM"
-        local final_real_com=${final_com_raw%_DRAFT} # 去掉 DRAFT 後綴的真名
-        local final_key_check="$final_real_com"
-        if [ -n "$_VAL_COM2" ]; then final_key_check="$final_real_com '$_VAL_COM2'"; fi
-
-        # === [關鍵修復] 焦土覆蓋邏輯 ===
-        # 暫時解鎖，因為我們要刪除的是 Normal 狀態的舊指令
+        # A. 刪除 B (Backup)
+        # 必須刪除原本那個 Key 對應的 B
+        export __FAC_IO_STATE="B"
+        _fac_delete_node "$__FAC_ORIGIN_KEY"
         unset __FAC_IO_STATE
-        
-        # A. 刪除草稿的「本尊」 (Source)
-        _fac_delete_node "$original_key"
 
-        # B. [Fix] 如果改名後撞名，把「撞名對象」也刪除！
-        # 這解決了 "New command covering original command still fails" 的問題
-        if [ "$original_key" != "$final_key_check" ]; then
-             # 再次確認，刪除目標名稱的舊指令
-             _fac_delete_node "$final_key_check"
+        # B. 焦土戰略 (Scorched Earth)
+        # 如果改了名 (working_key != origin)，新名字可能跟現有的 P/S/N 衝突
+        # 我們必須檢查並刪除那個「擋路者」
+        if [ "$working_key" != "$__FAC_ORIGIN_KEY" ]; then
+             # 不鎖狀態，預設刪除 P, N, S, F (除了 E 以外的所有人)
+             _fac_delete_node "$working_key"
         fi
 
-        # === 寫入新節點 ===
-        # 鎖定 E，將草稿轉正
+        # C. 將 E 轉正為 S (Saved)
         export __FAC_IO_STATE="E"
-        
-        # C. 寫入狀態 "S" (Saved)
-        # 不管原本是 N 還是什麼，只要 Confirm 過，就是 S
-        _fac_neural_write "$current_draft_key" 7 "S"
-        
-        # D. 修正 Command Name (去掉 _DRAFT)
-        _fac_neural_write "$current_draft_key" 5 "$final_real_com"
-
+        _fac_neural_write "$working_key" 7 "S"
         unset __FAC_IO_STATE
         
         _fac_sort_optimization
         _fac_matrix_defrag
-        
-        _bot_say "success" "Node Saved (State: S)."
-        
+        _bot_say "success" "Changes Saved (State: S)."
+
     else
-        _bot_say "action" "Discarding Draft..."
+        # Rollback (Cancel)
+        _bot_say "action" "Rolling back..."
+        
+        # A. 刪除 E (Draft)
         export __FAC_IO_STATE="E"
-        _fac_delete_node "$current_draft_key"
+        _fac_delete_node "$working_key"
         unset __FAC_IO_STATE
+        
+        # B. 還原 B -> P/N/S/F
+        export __FAC_IO_STATE="B"
+        local restore_val="$__FAC_RESTORE_TYPE"
+        # 如果原本是 P，就還原為 P
+        if [ -z "$restore_val" ]; then restore_val="P"; fi
+        
+        _fac_neural_write "$__FAC_ORIGIN_KEY" 7 "$restore_val"
+        unset __FAC_IO_STATE
+        
+        _bot_say "action" "State Restored."
     fi
 }
 
@@ -1660,8 +1707,12 @@ function _fac_init() {
     _show_hud "factory"
     awk -F, -v OFS=, '
     {
-        s=$7; gsub(/^"|"$/, "", s); gsub(/\r| /, "", s)
-        if (s != "E") print $0
+        st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
+        if (st == "C" || st == "E") next
+        if (st == "B") {
+            $7 = "\"P\""
+        }
+        print $0
     }
     ' "$MUX_ROOT/app.csv.temp" > "$MUX_ROOT/app.csv.temp.tmp" && mv "$MUX_ROOT/app.csv.temp.tmp" "$MUX_ROOT/app.csv.temp"
     _system_unlock

@@ -602,70 +602,75 @@ function _factory_show_info() {
 function _factory_fzf_menu() {
     local prompt_msg="${1:-Select Target}"
     local mode="${2:-VIEW}"
-    
     local target_file="$MUX_ROOT/app.csv.temp"
-
+    
+    # 定義介面顏色
     local border_color="208"
-    local prompt_color="208"
-    local prompt_msg="Select Command"
-    local header_msg="DETIAL CONTROL"
+    local header_msg="NEURAL FORGE"
     
     case "$mode" in
-        "DEL")
-            border_color="196"
-            prompt_color="196"
-            header_msg="DELETE MODE ACTIVE"
-            ;;
-        "NEW")
-            prompt_color="46"
-            border_color="46"
-            ;;
-        *)
-            border_color="208"
-            ;;
+        "DEL") border_color="196"; header_msg="DELETE MODE" ;;
+        "NEW") border_color="46";  header_msg="CREATION MODE" ;;
+        *)     border_color="208"; header_msg="CONTROL DECK" ;;
     esac
 
     local list=$(awk -v FPAT='([^,]*)|("[^"]+")' '
         BEGIN {
+            C_RST="\033[0m"
             C_CMD="\033[1;37m"
             C_DESC="\033[1;30m"
-            C_RESET="\033[0m"
+            
+            # 狀態標籤定義
+            TAG_N="\033[1;36m[N]\033[0m "
+            TAG_E="\033[1;33m[E]\033[0m "
+            TAG_S="\033[1;32m[S]\033[0m "
+            TAG_F="\033[1;31m[F]\033[0m "
+            TAG_P="    "
         }
         
         !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
             gsub(/^"|"$/, "", $5); cmd = $5
             gsub(/^"|"$/, "", $6); sub_cmd = $6
             gsub(/^"|"$/, "", $8); desc = $8
+            gsub(/^"|"$/, "", $7); st = $7 
+
+            if (st == "B" || st == "C") next
+
+            prefix = TAG_P
+            if (st == "N") prefix = TAG_N
+            if (st == "E") prefix = TAG_E
+            if (st == "S") prefix = TAG_S
+            if (st == "F") prefix = TAG_F
+            if (st == "")  prefix = TAG_P 
 
             if (sub_cmd != "") {
                 display = cmd " \047" sub_cmd "\047"
             } else {
-                # Format: cmd
                 display = cmd
             }
 
-            printf " %s%-16s %s%s\n", C_CMD, display, C_DESC, desc
+            printf " %s%s%-16s %s%s\n", prefix, C_CMD, display, C_DESC, desc
         }
     ' "$target_file")
 
     local total=$(echo "$list" | grep -c "^ ")
 
     local selected=$(echo "$list" | fzf --ansi \
-        --height=10 \
+        --height=12 \
         --layout=reverse \
         --border-label=" :: $header_msg :: " \
         --border=bottom \
         --prompt=" :: $prompt_msg › " \
-        --header=" :: Enter to Select, Esc to Return ::" \
+        --header=" :: Nodes: [$total] ::" \
         --info=hidden \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:$prompt_color,pointer:red,marker:208,border:$border_color,header:240 \
+        --color=info:240,prompt:$border_color,pointer:red,marker:208,border:$border_color,header:240 \
         --bind="resize:clear-screen"
     )
 
     if [ -n "$selected" ]; then
-        echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//'
+        echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^ \[[A-Z]\] //' | sed 's/^    //' | sed 's/^[ \t]*//' | awk '{print $1, $2}' | sed 's/[ \t]*$//'
     fi
 }
 
