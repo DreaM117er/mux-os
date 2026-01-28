@@ -1837,7 +1837,7 @@ function _fac_launch_test() {
     local input_key="$1"
     local input_args="${*:2}"
 
-    # 讀取資料
+    # 1. 讀取資料
     if ! _fac_neural_read "$input_key"; then
         _bot_say "error" "Node not found in Sandbox."
         return 1
@@ -1849,17 +1849,17 @@ function _fac_launch_test() {
     local C_VAL="\033[1;37m"
     local C_SEP="\033[1;30m"
     local C_RST="\033[0m"
-    local C_SIM="\033[1;36m"
-
+    
+    # 顯示詳細資訊
+    # 共通欄位
     echo ""
     printf "${C_TYPE}[TYPE: %-3s]${C_RST}\n" "$_VAL_TYPE"
-    
     echo -e "${C_LBL}Command:${C_RST} ${C_VAL}$_VAL_COM $_VAL_COM2${C_RST}"
     echo -e "${C_LBL}UI     :${C_RST} ${C_VAL}$_VAL_UINAME${C_RST}"
     echo -e "${C_LBL}Detail :${C_RST} ${C_VAL}$_VAL_HUDNAME${C_RST}"
     echo -e "${C_SEP}---------------${C_RST}"
 
-    # 依照類型顯示詳細資訊
+    # TYPE 欄位
     case "$_VAL_TYPE" in
         "NA")
             echo -e "${C_LBL}PKG    :${C_RST} ${C_VAL}$_VAL_PKG${C_RST}"
@@ -1868,210 +1868,194 @@ function _fac_launch_test() {
         "NB")
             local intent_str="${_VAL_IHEAD}${_VAL_IBODY}"
             echo -e "${C_LBL}Intent :${C_RST} ${C_VAL}${intent_str:-N/A}${C_RST}"
-            
-            # ENGINE 有值就列出 ENGINE，否則列出 URI
             if [ -n "$_VAL_ENGINE" ]; then
                 echo -e "${C_LBL}ENGINE :${C_RST} ${C_VAL}$_VAL_ENGINE${C_RST}"
             else
                 echo -e "${C_LBL}URI    :${C_RST} ${C_VAL}$_VAL_URI${C_RST}"
             fi
             ;;
-        "SYS"|"sh")
+        "SYS")
             echo -e "${C_LBL}Script :${C_RST} ${C_VAL}$_VAL_PKG${C_RST}"
             ;;
     esac
 
-    # 動態旗標顯示 (有資料才顯示)
+    # 旗標顯示
     [ -n "$_VAL_CATE" ] && echo -e "${C_LBL}Cate   :${C_RST} ${C_VAL}$_VAL_CATE${C_RST}"
     [ -n "$_VAL_MIME" ] && echo -e "${C_LBL}Mime   :${C_RST} ${C_VAL}$_VAL_MIME${C_RST}"
     [ -n "$_VAL_FLAG" ] && echo -e "${C_LBL}Flag   :${C_RST} ${C_VAL}$_VAL_FLAG${C_RST}"
 
-    # EX 與 EXTRA 同排顯示
     local ex_str=""
     local extra_str=""
     [ -n "$_VAL_EX" ] && ex_str="${C_LBL}EX:${C_RST} ${C_VAL}$_VAL_EX${C_RST}  "
     [ -n "$_VAL_EXTRA" ] && extra_str="${C_LBL}EXTRA:${C_RST} ${C_VAL}$_VAL_EXTRA${C_RST}"
-    
-    if [ -n "$ex_str" ] || [ -n "$extra_str" ]; then
-        echo -e "${ex_str}${extra_str}"
-    fi
+    if [ -n "$ex_str" ] || [ -n "$extra_str" ]; then echo -e "${ex_str}${extra_str}"; fi
     echo ""
 
-    # 模擬發射
-    local base_intent_args=""
-    local final_uri=""
-    
-    if [[ "$_VAL_URI" == *"\$query"* ]]; then
-        # 舊式參數注入 ($query)
-        local safe_args="${input_args// /+}"
-        final_uri="${_VAL_URI//\$query/$safe_args}"
+    # 3. 智慧網址解析
+    local final_uri="$_VAL_URI"
+
+    # 如果有變數，先進行解析
+    if [[ "$_VAL_URI" == *"\$__GO_TARGET"* ]] || [[ "$_VAL_URI" == *"\$query"* ]]; then
         
-    elif [[ "$_VAL_URI" == *"\$__GO_TARGET"* ]]; then
-         # 智慧引擎連動
-         if [ -n "$_VAL_ENGINE" ]; then
-             # 1. 展開引擎變數 (例如把字串 "$SEARCH_GOOGLE" 變成網址)
-             local engine_base=$(eval echo "$_VAL_ENGINE")
-             
-             # 2. 準備測試參數 (如果使用者沒輸入參數，給一個預設值以便觀測 URL 結構)
-             local test_query="${input_args:-TEST_PAYLOAD}"
-             
-             # 3. 呼叫 Core 函數進行解析
+        # 準備解析參數
+        local engine_base=""
+        if [ -n "$_VAL_ENGINE" ]; then engine_base=$(eval echo "$_VAL_ENGINE"); fi
+        local test_query="${input_args:-TEST_PAYLOAD}"
+        
+        # 解析邏輯
+        if [[ "$_VAL_URI" == *"\$query"* ]]; then
+             local safe_args="${input_args// /+}"
+             final_uri="${_VAL_URI//\$query/$safe_args}"
+        
+        elif [[ "$_VAL_URI" == *"\$__GO_TARGET"* ]]; then
              if command -v _resolve_smart_url &> /dev/null; then
-                 # 呼叫 Core 進行解析，結果會存入全域變數 __GO_TARGET
+                 # 呼叫 Core
                  _resolve_smart_url "$engine_base" "$test_query"
                  final_uri="$__GO_TARGET"
              else
-                 # Fallback: 如果 Core 沒載入，手動模擬 (暴力拼接)
+                 # Fallback
                  local safe_q="${test_query// /+}"
                  final_uri="${engine_base}${safe_q}"
              fi
-         else
-             final_uri="$_VAL_URI (Missing Engine)"
-         fi
-    else
-        # 靜態 URI
-        final_uri="$_VAL_URI"
-    fi
-
-    # [Visual Feedback]
-    # 如果是動態生成的 URL，我們在螢幕上額外印出來，讓你看得更爽
-    if [[ "$_VAL_URI" == *"\$__GO_TARGET"* ]]; then
+        fi
+        
+        # 輸出網址串
         echo -e "${F_GRAY}    Resolving › $final_uri${F_RESET}"
+        echo -e "${C_SEP}---------------${C_RST}"
     fi
 
-    # Action
-    local intent_action="${_VAL_IHEAD}${_VAL_IBODY}"
-    if [ -n "$intent_action" ]; then base_intent_args="$base_intent_args -a \"$intent_action\""; fi
+    # 4. 選擇開火模式
+    local menu_opts=""
     
-    # Data / URI
-    if [ -n "$final_uri" ] && [[ "$final_uri" != *"Dynamic"* ]]; then 
-        base_intent_args="$base_intent_args -d \"$final_uri\""
-    fi
+    # 建構選單 (t, d, n, p, i, SSL)
+    menu_opts+="MODE_T\t\033[1;35m['t' mode]\033[0m Direct Launch ( -n PKG/TARGET )\n"
+    menu_opts+="MODE_D\t\033[1;32m['d' mode]\033[0m Standard AM ( -a -d -p -f... )\n"
+    menu_opts+="MODE_N\t\033[1;33m['n' mode]\033[0m Component Lock ( -a -d -n... )\n"
+    menu_opts+="MODE_P\t\033[1;34m['p' mode]\033[0m Package Lock ( -a -d -p... )\n"
+    menu_opts+="MODE_I\t\033[1;36m['i' mode]\033[0m Implicit Intent ( -a -d Only )\n"
     
-    # Mime
-    if [ -n "$_VAL_MIME" ]; then base_intent_args="$base_intent_args -t \"$_VAL_MIME\""; fi
-    
-    # Category
-    if [ -n "$_VAL_CATE" ]; then base_intent_args="$base_intent_args -c \"android.intent.category.$_VAL_CATE\""; fi
-    
-    # Flags / Extra (這些只影響 am start，對 resolve-activity 影響較小但可加入)
-    if [ -n "$_VAL_FLAG" ]; then base_intent_args="$base_intent_args -f $_VAL_FLAG"; fi
-    if [ -n "$_VAL_EX" ]; then base_intent_args="$base_intent_args $_VAL_EX"; fi
-    if [ -n "$_VAL_EXTRA" ]; then base_intent_args="$base_intent_args $_VAL_EXTRA"; fi
+    # SSL 隱藏接口
+    # nu_opts+="SSL\t\033[1;31m[SSL Shell]\033[0m System Direct Execute"
 
-    # 模擬發射器
-    echo -e "${C_SIM} :: SIMULATION PROTOCOL ENGAGED ::${C_RST}"
+    local fzf_sel=$(echo -e "$menu_opts" | fzf --ansi \
+        --height=9 \
+        --layout=reverse \
+        --border=bottom \
+        --border-label=" :: FIRE CONTROL :: " \
+        --header=" :: Enter to Select, Esc to Return :: " \
+        --prompt=" :: Fire Mode Detected › " \
+        --pointer="››" \
+        --delimiter="\t" \
+        --with-nth=2,3 \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+        --bind="resize:clear-screen"
+    )
+
+    if [ -z "$fzf_sel" ]; then return 0; fi
+    local fire_mode=$(echo "$fzf_sel" | awk '{print $1}')
     
-    local sim_cmd="cmd package resolve-activity --brief $base_intent_args"
-    
-    # 根據不同模式添加限制條件
-    local sim_p="$sim_cmd"
-    [ -n "$_VAL_PKG" ] && sim_p="$sim_cmd --package $_VAL_PKG" # 模擬 P 模式
-    
-    local sim_n=""
-    if [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
-        # 模擬 N 模式
-        : 
-    fi
+    echo -e "${F_WARN} :: EXECUTING SEQUENCE ($fire_mode) ::${F_RESET}"
 
-    local sim_result
-    # 模擬 'p' 模式
-    if [ -n "$_VAL_PKG" ]; then
-        echo -e "${F_GRAY}    Scanning via Package Constraint ('p' mode)...${F_RESET}"
-        sim_result=$(eval "$sim_p" 2>&1)
-    else
-        echo -e "${F_GRAY}    Scanning via Open Intent ('i' mode)...${F_RESET}"
-        sim_result=$(eval "$sim_cmd" 2>&1)
-    fi
-
-    # 分析模擬結果
-    if [[ "$sim_result" == *"No activity found"* ]]; then
-        echo -e "${F_ERR}    ›› [MISS] Simulation predicts FAILURE.${F_RESET}"
-        echo -e "${F_GRAY}       System cannot find a receiver for this Intent.${F_RESET}"
-    elif [[ "$sim_result" == *"Priority"* || "$sim_result" == *"ComponentInfo"* ]]; then
-        local hit_target=$(echo "$sim_result" | grep -o "ComponentInfo{.*}" | cut -d'/' -f1 | cut -d'{' -f2)
-        echo -e "${F_GRE}    ›› [HIT] Simulation predicts SUCCESS.${F_RESET}"
-        echo -e "${F_GRAY}       Locked Target: ${hit_target:-Unknown}${F_RESET}"
-    else
-        echo -e "${F_WARN}    ›› [UNK] Simulation result ambiguous.${F_RESET}"
-    fi
-    
-    echo -e "${C_SEP}---------------${C_RST}"
-
-    # 發射前確認
-    echo -ne "${F_WARN}    ›› EXECUTE LIVE FIRE? [Y/n]: ${F_RESET}"
-    read -n 1 -r confirm
-    echo ""
-    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-        echo -e "${F_GRAY}    ›› Test Aborted.${F_RESET}"
-        return 0
-    fi
-
-    echo -e "${F_WARN} :: LIVE FIRE SEQUENCE ::${F_RESET}"
-
-    local output
+    # 5. 根據開火模式組裝彈藥
+    local final_cmd=""
+    local output=""
     local success=0
 
-    # 1. 'p' Mode (Package Locked)
-    if [ -n "$_VAL_PKG" ]; then
-        local cmd_p="am start --user 0 $base_intent_args -p \"$_VAL_PKG\""
-        echo -e "${F_GRAY} :: Firing 'p' mode (Package Constraint)...${F_RESET}"
-        
-        output=$(eval "$cmd_p" 2>&1)
-        
-        if [[ "$output" != *"Error"* && "$output" != *"Activity not found"* && "$output" != *"unable to resolve"* ]]; then
-            success=1
-            echo -e "${F_GRE}    ›› IMPACT CONFIRMED ('p' mode).${F_RESET}"
-        else
-            echo -e "${F_ERR}    ›› 'p' mode failed.${F_RESET}"
-        fi
-    else
-        echo -e "${F_GRAY} :: 'p' mode skipped (No Package defined).${F_RESET}"
-    fi
+    local act="${_VAL_IHEAD}${_VAL_IBODY}"
+    local dat="$final_uri"
+    local pkg="$_VAL_PKG"
+    local tgt="$_VAL_TARGET"
+    local flg="$_VAL_FLAG"
+    local cat="$_VAL_CATE"
+    local mime="$_VAL_MIME"
+    local ex="$_VAL_EX"
+    local extra="$_VAL_EXTRA"
 
-    # 2. 'i' Mode (Pure Intent)
-    if [ "$success" -eq 0 ] && [ -n "$final_uri" ]; then
-        local cmd_i="am start --user 0 $base_intent_args"
-        echo -e "${F_GRAY} :: Firing 'i' mode (Open Intent)...${F_RESET}"
-        
-        output=$(eval "$cmd_i" 2>&1)
-        
-        if [[ "$output" != *"Error"* && "$output" != *"Activity not found"* && "$output" != *"unable to resolve"* ]]; then
-            success=1
-            echo -e "${F_GRE}    ›› IMPACT CONFIRMED ('i' mode).${F_RESET}"
-        else
-            echo -e "${F_ERR}    ›› 'i' mode failed.${F_RESET}"
-        fi
-    fi
+    case "$fire_mode" in
+        "MODE_T")
+            # 't' mode: Direct Launch (-n PKG/TARGET)
+            if [ -z "$pkg" ] || [ -z "$tgt" ]; then _bot_say "warn" "Missing PKG or TARGET."; return 1; fi
+            final_cmd="am start --user 0 -n \"$pkg/$tgt\""
+            ;;
 
-    # 3. 'n' Mode (Component Locked)
-    if [ "$success" -eq 0 ] && [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
-        local cmd_n="am start --user 0 $base_intent_args -n \"$_VAL_PKG/$_VAL_TARGET\""
-        echo -e "${F_GRAY} :: Firing 'n' mode (Explicit Component)...${F_RESET}"
-        
-        output=$(eval "$cmd_n" 2>&1)
-        
-        if [[ "$output" != *"Error"* && "$output" != *"Activity not found"* && "$output" != *"unable to resolve"* ]]; then
-            success=1
-            echo -e "${F_GRE}    ›› IMPACT CONFIRMED ('n' mode).${F_RESET}"
-        else
-             echo -e "${F_ERR}    ›› 'n' mode failed.${F_RESET}"
-        fi
-    fi
+        "MODE_D")
+            # 'd' mode: Standard AM (adpfc, ex+extra)
+            final_cmd="am start --user 0"
+            [ -n "$act" ] && final_cmd="$final_cmd -a \"$act\""
+            [ -n "$dat" ] && final_cmd="$final_cmd -d \"$dat\""
+            [ -n "$pkg" ] && final_cmd="$final_cmd -p \"$pkg\""
+            [ -n "$flg" ] && final_cmd="$final_cmd -f $flg"
+            [ -n "$cat" ] && final_cmd="$final_cmd -c \"android.intent.category.$cat\""
+            [ -n "$ex" ]  && final_cmd="$final_cmd $ex"
+            [ -n "$extra" ] && final_cmd="$final_cmd $extra"
+            ;;
 
-    # 最終報告
-    if [ "$success" -eq 0 ]; then
-        echo -e "\n${F_ERR} :: CRITICAL FAILURE :: All protocols exhausted.${F_RESET}"
-        # 彈藥詳細規格
-        echo -e "${F_GRAY}    Payload › $base_intent_args${F_RESET}"
-        echo -e "${F_GRAY}    Last Output › $output${F_RESET}"
+        "MODE_N")
+            # 'n' mode: Component Lock (apctdf, ex+extra)
+            if [ -z "$pkg" ] || [ -z "$tgt" ]; then _bot_say "warn" "Missing PKG or TARGET."; return 1; fi
+            final_cmd="am start --user 0"
+            [ -n "$act" ] && final_cmd="$final_cmd -a \"$act\""
+            [ -n "$pkg" ] && final_cmd="$final_cmd -n \"$pkg/$tgt\"" # Note: -n replaces -p
+            [ -n "$dat" ] && final_cmd="$final_cmd -d \"$dat\""
+            [ -n "$cat" ] && final_cmd="$final_cmd -c \"android.intent.category.$cat\""
+            [ -n "$mime" ] && final_cmd="$final_cmd -t \"$mime\""
+            [ -n "$flg" ] && final_cmd="$final_cmd -f $flg"
+            [ -n "$ex" ]  && final_cmd="$final_cmd $ex"
+            [ -n "$extra" ] && final_cmd="$final_cmd $extra"
+            ;;
+
+        "MODE_P")
+            # 'p' mode: Package Lock (adctf, ex+extra)
+            if [ -z "$pkg" ]; then _bot_say "warn" "Missing PKG."; return 1; fi
+            final_cmd="am start --user 0"
+            [ -n "$act" ] && final_cmd="$final_cmd -a \"$act\""
+            [ -n "$dat" ] && final_cmd="$final_cmd -d \"$dat\""
+            [ -n "$pkg" ] && final_cmd="$final_cmd -p \"$pkg\""
+            [ -n "$cat" ] && final_cmd="$final_cmd -c \"android.intent.category.$cat\""
+            [ -n "$mime" ] && final_cmd="$final_cmd -t \"$mime\""
+            [ -n "$flg" ] && final_cmd="$final_cmd -f $flg"
+            [ -n "$ex" ]  && final_cmd="$final_cmd $ex"
+            [ -n "$extra" ] && final_cmd="$final_cmd $extra"
+            ;;
+
+        "MODE_I")
+            # 'i' mode: Implicit Intent (andctf... without P/N)
+            final_cmd="am start --user 0"
+            [ -n "$act" ] && final_cmd="$final_cmd -a \"$act\""
+            [ -n "$dat" ] && final_cmd="$final_cmd -d \"$dat\""
+            [ -n "$cat" ] && final_cmd="$final_cmd -c \"android.intent.category.$cat\""
+            [ -n "$mime" ] && final_cmd="$final_cmd -t \"$mime\""
+            [ -n "$flg" ] && final_cmd="$final_cmd -f $flg"
+            [ -n "$ex" ]  && final_cmd="$final_cmd $ex"
+            [ -n "$extra" ] && final_cmd="$final_cmd $extra"
+            ;;
+
+        "SSL")
+            # SSL: System / Shell Direct
+            final_cmd="$pkg $input_args"
+            ;;
+    esac
+
+    # 6. 執行與輸出報告
+    if [ -n "$final_cmd" ]; then
+        echo -e "${F_GRAY}    Payload › $final_cmd${F_RESET}"
+        output=$(eval "$final_cmd" 2>&1)
         
-        # 診斷建議
-        if [[ "$output" == *"does not exist"* ]]; then
-             echo -e "${F_WARN}    Diagnosis: Package '$_VAL_PKG' seems missing.${F_RESET}"
+        if [[ "$output" == *"Error"* || "$output" == *"does not exist"* || "$output" == *"unable to resolve"* ]]; then
+             echo -e "\n${F_ERR} :: FIRE FAILED ::${F_RESET}"
+             echo -e "${F_GRAY}    Output: $output${F_RESET}"
+             return 1
+        else
+             echo -e "\n${F_GRE} :: FIRE SUCCESS ::${F_RESET}"
+             if [ "$fire_mode" == "SSL" ]; then
+                 echo -e "${F_GRAY}---------------${F_RESET}"
+                 echo -e "$output"
+                 echo -e "${F_GRAY}---------------${F_RESET}"
+             else
+                 echo -e "${F_GRAY}    ›› Target Impacted.${F_RESET}"
+             fi
+             return 0
         fi
-        return 1
-    else
-        return 0
     fi
 }
