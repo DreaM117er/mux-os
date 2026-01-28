@@ -112,7 +112,11 @@ function _fac_neural_write() {
     fi
 
     local safe_val="${new_val//\"/\"\"}"
-    safe_val="\"$safe_val\""
+
+    # 如果是空值，就讓它保持為空字串
+    if [ -n "$safe_val" ]; then
+        safe_val="\"$safe_val\""
+    fi
 
     awk -v FPAT='([^,]*)|("[^"]+")' -v OFS="," \
         -v tc="$t_com" -v ts="$t_sub" \
@@ -1203,7 +1207,7 @@ function _fac_safe_edit_protocol() {
 
         # [Action] 複製產生 E (Clone -> Edit)
         # 這裡實現了 C 的邏輯：複製一份，並直接標記為 E
-        local draft_row="$_VAL_CATNO,$_VAL_COMNO,\"$_VAL_CATNAME\",\"$_VAL_TYPE\",\"$_VAL_COM\",\"$_VAL_COM2\",\"E\",\"$_VAL_HUDNAME\",\"$_VAL_UINAME\",\"$_VAL_PKG\",\"$_VAL_TARGET\",\"$_VAL_IHEAD\",\"$_VAL_IBODY\",\"$_VAL_URI\",\"$_VAL_MIME\",\"$_VAL_CATE\",\"$_VAL_FLAG\",\"$_VAL_EX\",\"$_VAL_EXTRA\",\"$_VAL_ENGINE\""
+        local draft_row="$_VAL_CATNO,$_VAL_COMNO,${_VAL_CATNAME:+\"$_VAL_CATNAME\"},${_VAL_TYPE:+\"$_VAL_TYPE\"},${_VAL_COM:+\"$_VAL_COM\"},${_VAL_COM2:+\"$_VAL_COM2\"},\"E\",${_VAL_HUDNAME:+\"$_VAL_HUDNAME\"},${_VAL_UINAME:+\"$_VAL_UINAME\"},${_VAL_PKG:+\"$_VAL_PKG\"},${_VAL_TARGET:+\"$_VAL_TARGET\"},${_VAL_IHEAD:+\"$_VAL_IHEAD\"},${_VAL_IBODY:+\"$_VAL_IBODY\"},${_VAL_URI:+\"$_VAL_URI\"},${_VAL_MIME:+\"$_VAL_MIME\"},${_VAL_CATE:+\"$_VAL_CATE\"},${_VAL_FLAG:+\"$_VAL_FLAG\"},${_VAL_EX:+\"$_VAL_EX\"},${_VAL_EXTRA:+\"$_VAL_EXTRA\"},${_VAL_ENGINE:+\"$_VAL_ENGINE\"}"
         echo "$draft_row" >> "$target_file"
         
         # 記錄原始 Key 以便刪除 B
