@@ -573,7 +573,25 @@ function fac() {
 
         # : Load Neural (Test Command)
         "load"|"test") 
-            echo -e "${F_SUB} :: Command Need Build${F_RESET}"
+            local target_node="$2"
+            local test_args="${*:3}" # 捕捉剩下的參數作為測試輸入
+
+            # 1. 如果沒給目標，叫出選單讓你選
+            if [ -z "$target_node" ]; then
+                target_node=$(_factory_fzf_menu "Select Payload to Test")
+            fi
+
+            # 2. 確認有目標後，啟動發射台
+            if [ -n "$target_node" ]; then
+                # 呼叫我們剛剛定義的診斷型發射器
+                _fac_launch_test "$target_node" "$test_args"
+                
+                # 3. 戰術暫停 (Tactical Pause)
+                # 讓你有時間閱讀診斷報告，不會因為迴圈刷新而被清掉
+                echo ""
+                echo -ne "\033[1;30m    ›› Press [Enter] to return...\033[0m"
+                read
+            fi
             ;;
 
         # : Show Factory Info
@@ -1750,4 +1768,119 @@ function _factory_mask_apps() {
     done
 
     return 0
+}
+
+# 兵工廠測試發射台 - Factory Fire Control Test
+function _fac_launch_test() {
+    local input_key="$1"
+    local input_args="${*:2}" # 測試用的模擬參數
+
+    # 1. 讀取沙盒資料 (Sandbox Read)
+    # 使用 Factory 專用的讀取器，確保讀到的是剛修改過的資料
+    if ! _fac_neural_read "$input_key"; then
+        _bot_say "error" "Node not found in Sandbox."
+        return 1
+    fi
+
+    echo -e "${F_GRAY} :: LAUNCH DIAGNOSTIC START ::${F_RESET}"
+    echo -e "${F_GRAY}    Target :${F_RESET} [$_VAL_TYPE] $_VAL_COM $_VAL_COM2"
+    echo -e "${F_GRAY}    Package:${F_RESET} ${_VAL_PKG:-N/A}"
+    echo -e "${F_GRAY}    Intent :${F_RESET} ${_VAL_IHEAD:-N/A} ${_VAL_IBODY:-N/A}"
+
+    # 2. 完整性檢查 (Integrity Check - Override Mode)
+    # 在 Factory 裡，即使是 F 也要嘗試發射，但要給出警告
+    local integrity_flag=$(echo "$_VAL_COM3" | tr -d ' "')
+    if [ "$integrity_flag" == "F" ]; then
+        echo -e "${F_ERR}    [WARNING] Node marked as F (Broken). Forcing execution for debug...${F_RESET}"
+    elif [ "$integrity_flag" == "E" ]; then
+         echo -e "${F_WARN}    [NOTICE] Node is in Draft (E). Testing uncommitted changes...${F_RESET}"
+    fi
+
+    # 3. 預檢層 (Pre-flight Layer: pm path)
+    # 這是你在 Core 裡沒有，但測試時非常需要的「靜態檢查」
+    if [[ "$_VAL_TYPE" == "NA" || "$_VAL_TYPE" == "NB" ]]; then
+        if [ -n "$_VAL_PKG" ]; then
+            if ! pm path "$_VAL_PKG" > /dev/null 2>&1; then
+                echo -e "${F_ERR} :: PRE-FLIGHT FAIL :: Package [$_VAL_PKG] not installed.${F_RESET}"
+                echo -e "${F_GRAY}    Action: Check package name or install app.${F_RESET}"
+                # 在測試模式下，我們不 return，繼續嘗試執行 (也許是 monkey 或其他機制)
+            else
+                echo -e "${F_GRE} :: PRE-FLIGHT OK   :: Package found.${F_RESET}"
+            fi
+        fi
+    fi
+
+    # 4. 執行層 (Execution Layer with Feedback)
+    local final_cmd=""
+    local output=""
+
+    case "$_VAL_TYPE" in
+        "NA")
+            echo -ne "${F_WARN} :: IGNITING (Native App)... ${F_RESET}"
+            # 優先嘗試 Component (-n)
+            if [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
+                final_cmd="am start --user 0 -n \"$_VAL_PKG/$_VAL_TARGET\""
+                # 測試參數注入
+                if [ -n "$input_args" ]; then final_cmd="$final_cmd $input_args"; fi
+            else
+                # Fallback to Monkey (Launch Intent)
+                final_cmd="monkey -p $_VAL_PKG -c android.intent.category.LAUNCHER 1"
+            fi
+            ;;
+
+        "NB")
+            echo -ne "${F_WARN} :: IGNITING (Native Bridge)... ${F_RESET}"
+            
+            # 模擬參數注入 (如果 input_args 為空，使用預設值測試)
+            local test_args="${input_args:-TEST_PAYLOAD}"
+            
+            # 這裡我們復刻你的 p->i->n 邏輯，但加上 Log
+            local final_action="${_VAL_IHEAD}${_VAL_IBODY}"
+            local final_uri="$_VAL_URI"
+            
+            # 處理 $query 替換
+            if [[ "$final_uri" == *"\$query"* ]]; then
+                final_uri="${final_uri//\$query/$test_args}"
+            fi
+
+            # Mode P (Package Locked)
+            final_cmd="am start --user 0 -a \"$final_action\" -p \"$_VAL_PKG\" -d \"$final_uri\""
+            
+            # 這裡簡化參數拼裝，重點是看能不能跑
+            if [ -n "$_VAL_FLAG" ]; then final_cmd="$final_cmd -f $_VAL_FLAG"; fi
+            ;;
+            
+        "SYS")
+            echo -ne "${F_WARN} :: EXECUTING (System)... ${F_RESET}"
+            final_cmd="$_VAL_PKG $input_args"
+            ;;
+    esac
+
+    # 5. 點火與遙測 (Fire & Telemetry)
+    # 這裡我們不只是 eval，我們要把命令印出來給你看
+    echo ""
+    echo -e "${F_GRAY}    CMD > $final_cmd${F_RESET}"
+    
+    # 執行並捕捉輸出
+    output=$(eval "$final_cmd" 2>&1)
+    
+    # 6. 結果分析 (Result Analysis)
+    if [[ "$output" == *"Error"* || "$output" == *"Exception"* || "$output" == *"not found"* ]]; then
+        echo -e "\n${F_ERR} :: LAUNCH FAILED ::${F_RESET}"
+        echo -e "${F_SUB}    System returned error code.${F_RESET}"
+        echo -e "${F_GRAY}------------------------------------------------${F_RESET}"
+        echo -e "$output"
+        echo -e "${F_GRAY}------------------------------------------------${F_RESET}"
+        return 1
+    else
+        echo -e "\n${F_GRE} :: LAUNCH SUCCESSFUL ::${F_RESET}"
+        echo -e "${F_SUB}    Uplink established.${F_RESET}"
+        # 如果是 SYS，顯示輸出
+        if [ "$_VAL_TYPE" == "SYS" ]; then
+            echo -e "${F_GRAY}------------------------------------------------${F_RESET}"
+            echo -e "$output"
+            echo -e "${F_GRAY}------------------------------------------------${F_RESET}"
+        fi
+        return 0
+    fi
 }
