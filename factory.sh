@@ -2064,7 +2064,7 @@ function _fac_launch_test() {
         echo -e "\n${F_ERR} :: CRITICAL FAILURE :: All protocols exhausted.${F_RESET}"
         # 彈藥詳細規格
         echo -e "${F_GRAY}    Payload › $base_intent_args${F_RESET}"
-        echo -e "${F_GRAY}    Last Output › $output${F_RESET}
+        echo -e "${F_GRAY}    Last Output › $output${F_RESET}"
         
         # 診斷建議
         if [[ "$output" == *"does not exist"* ]]; then
