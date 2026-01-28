@@ -909,7 +909,7 @@ function _factory_fzf_detail_view() {
 
     case "$view_mode" in
         "NEW") header_text="CONFIRM CREATION"; border_color="46"; prompt_color="46" ;;
-        "EDIT") header_text="MODIFY PARAMETER"; border_color="208"; prompt_color="208" ;;
+        "EDIT") header_text="MODIFY PARAMETER"; border_color="46"; prompt_color="46" ;;
         "DEL") header_text="DELETE CATEGORY"; border_color="196"; prompt_color="196" ;;
     esac
 
@@ -977,7 +977,8 @@ function _factory_fzf_catedit_submenu() {
         "EDIT"|*)
             # 橘色
             header_text="MODIFY PARAMETER"
-            border_color="208" 
+            border_color="46"
+            prompt_color="46"
             ;;
     esac
     
