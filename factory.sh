@@ -352,26 +352,25 @@ function fac() {
         "add"|"new") 
             local view_state="NEW"
 
-            # 1. 呼叫類型選單
+            # 呼叫類型選單
             local type_sel=$(_factory_fzf_add_type_menu)
             
             if [[ -z "$type_sel" || "$type_sel" == "Cancel" || "$type_sel" == *"------"* ]]; then
                 return
             fi
 
-            # 2. 自動備份 (保留你的邏輯)
+            # 自動備份
             if command -v _factory_auto_backup &> /dev/null; then
                 _fac_maintenance
                 _factory_auto_backup
             fi
 
-            # 3. 計算 999 分類下的最大編號
+            # 計算編號
             local next_comno=$(awk -F, '$1==999 {gsub(/^"|"$/, "", $2); if(($2+0) > max) max=$2} END {print max+1}' "$MUX_ROOT/app.csv.temp")
-            
             if [ -z "$next_comno" ] || [ "$next_comno" -eq 1 ]; then next_comno=1; fi
             if ! [[ "$next_comno" =~ ^[0-9]+$ ]]; then next_comno=999; fi
 
-            # 4. 生成臨時節點名稱 (ND + Timestamp)
+            # 生成臨時指令
             local ts=$(date +%s)
             local temp_cmd_name="ND${ts}"
 
@@ -380,23 +379,20 @@ function fac() {
             local com3_flag="N"
             local new_row=""
             
-            # 5. 根據類型建構
+            # 指令模板
             case "$type_sel" in
                 "Command NA")
-                    # NA 模板: 預設 Type=NA, COM=TempName
-                    new_row="${target_cat},${next_comno},${target_catname},\"NA\",\"${temp_cmd_name}\",,\"${com3_flag}\",\"${temp_cmd_name}\",\"${temp_cmd_name}\",,,,,,,,,,,"
+                    new_row="${target_cat},${next_comno},${target_catname},\"NA\",\"${temp_cmd_name}\",,\"${com3_flag}\",\"Unknown\",\"Unknown\",,,,,,,,,,,"
                     ;;
                 "Command NB")
-                    # NB 模板: 預設 Type=NB, IHEAD=android.intent.action, IBODY=.VIEW, ENGINE=$SEARCH_GOOGLE
-                    new_row="${target_cat},${next_comno},${target_catname},\"NB\",\"${temp_cmd_name}\",,\"${com3_flag}\",\"${temp_cmd_name}\",\"${temp_cmd_name}\",,,\"android.intent.action\",\".VIEW\",\"$(echo '$__GO_TARGET')\",,,,,,\"$(echo '$SEARCH_GOOGLE')\""
+                    new_row="${target_cat},${next_comno},${target_catname},\"NB\",\"${temp_cmd_name}\",,\"${com3_flag}\",\"Unknown\",\"Unknown\",,,\"android.intent.action\",\".VIEW\",\"$(echo '$__GO_TARGET')\",,,,,,\"$(echo '$SEARCH_GOOGLE')\""
                     ;;
                 *) 
                     return ;;
             esac
 
-            # 6. 寫入與啟動編輯協議
+            # 寫入與啟動編輯協議
             if [ -n "$new_row" ]; then
-                # 確保換行 (防止資料黏連)
                 if [ -s "$MUX_ROOT/app.csv.temp" ] && [ "$(tail -c 1 "$MUX_ROOT/app.csv.temp")" != "" ]; then
                     echo "" >> "$MUX_ROOT/app.csv.temp"
                 fi
@@ -404,17 +400,25 @@ function fac() {
                 
                 _bot_say "action" "Initializing Construction Sequence..."
                 
-                # 進入編輯模式
-                _fac_safe_edit_protocol "${temp_cmd_name}"
+                # 啓動綠色選單
+                _fac_safe_edit_protocol "${temp_cmd_name}" "NEW"
                 
-                # 7. 清理邏輯
-                # 如果出來後還能讀到 NDxxx，代表使用者沒改名(放棄創建)，則刪除
-                if ! _fac_neural_read "${temp_cmd_name}" >/dev/null 2>&1; then
-                    : # 讀不到代表已經改名成功
+                # 清理暫存檔
+                if _fac_neural_read "${temp_cmd_name}" >/dev/null 2>&1; then
+                    local leftover_state=$(echo "$_VAL_COM3" | tr -d ' "')
+                    
+                    if [[ "$leftover_state" == "S" || "$leftover_state" == "P" ]]; then
+                        # 保留 S 標記
+                        _bot_say "success" "Node Created (Default Identity Kept)."
+                    else
+                        # 清除其他標記
+                        _bot_say "error" "Incomplete Transaction. Cleaning up..."
+                        unset __FAC_IO_STATE 
+                        _fac_delete_node "${temp_cmd_name}"
+                    fi
                 else
-                    _bot_say "action" "Creation Aborted / Unnamed. Cleaning up..."
-                    unset __FAC_IO_STATE 
-                    _fac_delete_node "${temp_cmd_name}"
+                    # 讀不到資料，跳出
+                    : 
                 fi
             fi
             ;;
@@ -495,9 +499,9 @@ function fac() {
                 local del_pkg="${_VAL_PKG:-N/A}"
                 local del_desc="${_VAL_HUDNAME:-N/A}"
                 
-                # [關鍵修正 1] 狀態檢查：禁止刪除正在編輯(E)或備份(B)的節點
+                # 狀態檢查：禁止刪除標記 B
                 local current_st=$(echo "$_VAL_COM3" | tr -d ' "')
-                if [[ "$current_st" == "B" || "$current_st" == "E" ]]; then
+                if [ "$current_st" == "B" ]; then
                     echo ""
                     _bot_say "error" "Operation Denied: Target is locked by active session (State: $current_st)."
                     sleep 1
@@ -551,7 +555,7 @@ function fac() {
                 
                 if [ -z "$action" ]; then continue; fi
 
-                # Branch A: 解散分類 (Delete Category)
+                # 解散分類 (Delete Category)
                 if [[ "$action" == *"Delete Category"* ]]; then
                     echo -e "\033[1;31m :: CRITICAL: Dissolving Category [$db_name] [$temp_id] \033[0m"
                     echo -e "\033[1;30m    All assets will be transferred to [Others] [999].\033[0m"
@@ -578,7 +582,7 @@ function fac() {
                         echo -e "${F_GRAY}    ›› Operation Aborted.${F_RESET}"
                     fi
 
-                # Branch B: 肅清指令 (Delete Command in...)
+                # 肅清指令 (Delete Command in...)
                 elif [[ "$action" == *"Delete Command"* ]]; then
                     while true; do
                         local raw_cmd=$(_factory_fzf_cmd_in_cat "$db_name" "DEL")
@@ -1178,120 +1182,140 @@ function _fac_matrix_defrag() {
 # 安全沙盒編輯協議 - Safe Edit Protocol
 function _fac_safe_edit_protocol() {
     local target_key="$1"
-    local target_file="$MUX_ROOT/app.csv.temp"
+    local init_mode="${2:-EDIT}"  # NEW or EDIT
 
-    # 1. 鎖定目標與狀態識別
-    unset __FAC_IO_STATE
-    if ! _fac_neural_read "$target_key"; then
-        _bot_say "error" "Target Node Not Found."
-        return 1
-    fi
+    # Phase 1: 鎖定與備份 (Lock & Backup)
+    _fac_neural_read "$target_key"
+    
+    # 記錄原始狀態，用於回滾
+    local origin_key="$target_key"
+    local restore_type="$_VAL_TYPE"
+    if [ "$init_mode" == "NEW" ]; then restore_type="N"; fi
 
-    local current_state="$_VAL_COM3"
-    # 若是舊資料空字串，視為 P
-    if [ -z "$current_state" ]; then current_state="P"; fi 
+    # [Action] 將本體轉為 B (Backup/Shadow)
+    # 這樣它在 FZF 中會暫時消失，但資料還在
+    _fac_neural_write "$target_key" 7 "B"
 
+    # Phase 2: 細胞分裂 (Mitosis / Cloning)
+    # 我們要複製 B 的資料產生 E (Edit / Working Copy)
+    # [FIX 1] 解決引號污染：只有當變數有值時才包引號，否則留空 (保持 ,, 格式)
+    
+    local draft_row="$_VAL_CATNO,$_VAL_COMNO,${_VAL_CATNAME:+\"$_VAL_CATNAME\"},${_VAL_TYPE:+\"$_VAL_TYPE\"},${_VAL_COM:+\"$_VAL_COM\"},${_VAL_COM2:+\"$_VAL_COM2\"},\"E\",${_VAL_HUDNAME:+\"$_VAL_HUDNAME\"},${_VAL_UINAME:+\"$_VAL_UINAME\"},${_VAL_PKG:+\"$_VAL_PKG\"},${_VAL_TARGET:+\"$_VAL_TARGET\"},${_VAL_IHEAD:+\"$_VAL_IHEAD\"},${_VAL_IBODY:+\"$_VAL_IBODY\"},${_VAL_URI:+\"$_VAL_URI\"},${_VAL_MIME:+\"$_VAL_MIME\"},${_VAL_CATE:+\"$_VAL_CATE\"},${_VAL_FLAG:+\"$_VAL_FLAG\"},${_VAL_EX:+\"$_VAL_EX\"},${_VAL_EXTRA:+\"$_VAL_EXTRA\"},${_VAL_ENGINE:+\"$_VAL_ENGINE\"}"
+
+    # 寫入 CSV (Append)
+    echo "$draft_row" >> "$MUX_ROOT/app.csv.temp"
+
+    # 設定工作指標 (Working Pointer)
     local working_key="$target_key"
-    local origin_type="$current_state"
-
-    # 2. 啟動交易 (Transaction Start)
-    if [ "$current_state" == "E" ]; then
-        _bot_say "warn" "Resuming Edit Session (State: E)..."
-    else
-        # 建立 B/E 交易對
-        _bot_say "action" "Initializing Transaction..."
-
-        # [Action] 將本尊轉為 B (Backup)
-        # 這裡鎖定本尊，不管它是 P, N, S, F，都暫時轉為 B 隱藏起來
-        _fac_neural_write "$target_key" 7 "B"
-
-        # [Action] 複製產生 E (Clone -> Edit)
-        # 這裡實現了 C 的邏輯：複製一份，並直接標記為 E
-        local draft_row="$_VAL_CATNO,$_VAL_COMNO,${_VAL_CATNAME:+\"$_VAL_CATNAME\"},${_VAL_TYPE:+\"$_VAL_TYPE\"},${_VAL_COM:+\"$_VAL_COM\"},${_VAL_COM2:+\"$_VAL_COM2\"},\"E\",${_VAL_HUDNAME:+\"$_VAL_HUDNAME\"},${_VAL_UINAME:+\"$_VAL_UINAME\"},${_VAL_PKG:+\"$_VAL_PKG\"},${_VAL_TARGET:+\"$_VAL_TARGET\"},${_VAL_IHEAD:+\"$_VAL_IHEAD\"},${_VAL_IBODY:+\"$_VAL_IBODY\"},${_VAL_URI:+\"$_VAL_URI\"},${_VAL_MIME:+\"$_VAL_MIME\"},${_VAL_CATE:+\"$_VAL_CATE\"},${_VAL_FLAG:+\"$_VAL_FLAG\"},${_VAL_EX:+\"$_VAL_EX\"},${_VAL_EXTRA:+\"$_VAL_EXTRA\"},${_VAL_ENGINE:+\"$_VAL_ENGINE\"}"
-        echo "$draft_row" >> "$target_file"
-        
-        # 記錄原始 Key 以便刪除 B
-        export __FAC_ORIGIN_KEY="$target_key"
-        # 記錄原始狀態以便 Rollback (如果是 N 轉 B，還原時要變回 N)
-        export __FAC_RESTORE_TYPE="$origin_type"
-    fi
-
-    # 3. 進入編輯迴圈 (鎖定 E)
+    
+    # 啟動全域編輯鎖 (防止外部腳本干擾)
     export __FAC_IO_STATE="E"
-    local loop_status="EDIT"
+
+
+    # Phase 3: 編輯迴圈 (Mutation Loop)
+    # [FIX 2] 狀態解耦：分開管理「視覺模式」與「操作信號」
+    local current_view_mode="$init_mode"  # 用來控制 FZF 顏色 (NEW/EDIT)
+    local loop_signal=0                   # 用來控制迴圈流向 (0=Cancel, 1=Confirm, 2=Update)
 
     while true; do
-        # working_key 會隨著編輯改變 (Key Drift)
-        local selection=$(_factory_fzf_detail_view "$working_key" "NEW") # 使用綠色樣式提示編輯中
+        # 3.1 安全檢查：確保指標還活著
+        if ! _fac_neural_read "$working_key"; then
+             _bot_say "error" "CRITICAL: Pointer Lost ($working_key). Aborting transaction."
+             loop_signal=0
+             break
+        fi
+
+        # 3.2 呼叫 UI 選擇器
+        local selection
+        selection=$(_factory_fzf_detail_view "$working_key" "$current_view_mode")
         
+        # 如果使用者在 FZF 按 ESC，selection 會是空的
         if [ -z "$selection" ]; then
-            loop_status="CANCEL"
+            loop_signal=0
             break
         fi
 
+        # 3.3 呼叫路由器 (Router) 並捕捉輸出
+        # 我們需要捕捉 stdout 來聽取 UPDATE_KEY 信號
         local router_out
-        router_out=$(_fac_edit_router "$selection" "$working_key" "NEW")
-        local router_code=$?
+        router_out=$(_fac_edit_router "$selection" "$working_key" "$current_view_mode")
+        loop_signal=$?  # 獲取回傳代碼 (0, 1, 2)
+
+        # 3.4 [FIX 3] 指標漂移修正 (Pointer Update)
+        # 檢查 Router 是否發出了改名通知
+        local new_key_candidate=$(echo "$router_out" | grep "UPDATE_KEY:" | cut -d':' -f2)
         
-        if [ $router_code -eq 1 ]; then
-            loop_status="CONFIRM"
+        if [ -n "$new_key_candidate" ]; then
+            # 更新工作指標，下一圈會用新鑰匙讀取
+            working_key="$new_key_candidate"
+        fi
+
+        # 3.5 視覺狀態流轉 (State Transition)
+        # 如果原本是 NEW 模式，但使用者修改了資料 (Signal 2)，則轉為 EDIT 模式 (變色)
+        # 注意：ui.sh 必須支援 NEW 和 EDIT 都有 Confirm 按鈕
+        if [ "$loop_signal" -eq 2 ] && [ "$current_view_mode" == "NEW" ]; then
+            current_view_mode="EDIT"
+        fi
+
+        # 3.6 迴圈決策
+        if [ "$loop_signal" -eq 1 ]; then
+            # Signal 1: CONFIRM -> 跳出迴圈，執行存檔
             break
-        elif [ $router_code -eq 2 ]; then
-            # [Key Drift Fix] 捕捉改名後的 Key
-            local new_k=$(echo "$router_out" | awk -F: '{print $2}')
-            if [ -n "$new_k" ]; then working_key="$new_k"; fi
+        elif [ "$loop_signal" -eq 2 ]; then
+            # Signal 2: UPDATE -> 繼續編輯 (已在 3.4 更新過 Key)
+            continue
+        elif [ "$loop_signal" -eq 0 ]; then
+            # Signal 0: CANCEL -> 跳出迴圈，執行回滾
+            break
         fi
     done
 
-    # 4. 結算階段 (Settlement)
-    unset __FAC_IO_STATE # 解鎖
 
-    if [ "$loop_status" == "CONFIRM" ]; then
-        _bot_say "neural" "Committing Transaction..."
+    # Phase 4: 結算階段 (Settlement)
+    
+    if [ "$loop_signal" -eq 1 ]; then
+        # === 提交 (COMMIT) ===
+        _bot_say "process" "Committing Transaction..."
         
-        # A. 刪除 B (Backup)
-        # 必須刪除原本那個 Key 對應的 B
+        # 1. 刪除原本的備份 B (Origin Key)
+        # 因為 E 即將轉正，舊的 B 必須死
+        # 使用 Origin Key 確保刪到正確的影子
         export __FAC_IO_STATE="B"
-        _fac_delete_node "$__FAC_ORIGIN_KEY"
-        unset __FAC_IO_STATE
-
-        # B. 焦土戰略 (Scorched Earth)
-        # 如果改了名 (working_key != origin)，新名字可能跟現有的 P/S/N 衝突
-        # 我們必須檢查並刪除那個「擋路者」
-        if [ "$working_key" != "$__FAC_ORIGIN_KEY" ]; then
-             # 不鎖狀態，預設刪除 P, N, S, F (除了 E 以外的所有人)
-             _fac_delete_node "$working_key"
-        fi
-
-        # C. 將 E 轉正為 S (Saved)
+        _fac_delete_node "$origin_key"
+        
+        # 2. 如果改過名字 (Working Key != Origin Key)
+        # 為了防止主鍵衝突，我們要確保沒有其他 P/N/S 佔用新名字
+        # (這裡簡化處理，因為 delete_node 會看狀態)
+        
+        # 3. 將當前的 E 轉正為 S (Save)
         export __FAC_IO_STATE="E"
         _fac_neural_write "$working_key" 7 "S"
-        unset __FAC_IO_STATE
         
-        _fac_sort_optimization
-        _fac_matrix_defrag
-        _bot_say "success" "Changes Saved (State: S)."
+        _bot_say "success" "Transaction Saved. Node is active."
 
     else
-        # Rollback (Cancel)
-        _bot_say "action" "Rolling back..."
+        # === 回滾 (ROLLBACK) ===
+        _bot_say "warn" "Transaction Cancelled. Rolling back..."
         
-        # A. 刪除 E (Draft)
+        # 1. 刪除當前的草稿 E (Working Key)
+        # 無論有無改名，刪掉當前手上這個 E
         export __FAC_IO_STATE="E"
         _fac_delete_node "$working_key"
-        unset __FAC_IO_STATE
         
-        # B. 還原 B -> P/N/S/F
-        export __FAC_IO_STATE="B"
-        local restore_val="$__FAC_RESTORE_TYPE"
-        # 如果原本是 P，就還原為 P
-        if [ -z "$restore_val" ]; then restore_val="P"; fi
-        
-        _fac_neural_write "$__FAC_ORIGIN_KEY" 7 "$restore_val"
-        unset __FAC_IO_STATE
-        
-        _bot_say "action" "State Restored."
+        # 2. 處置原始備份 B
+        if [ "$restore_type" == "N" ]; then
+            # 如果原身是 NEW (新增到一半放棄)，則刪除 B (等於什麼都沒發生)
+            export __FAC_IO_STATE="B"
+            _fac_delete_node "$origin_key"
+        else
+            # 如果原身是舊資料，將 B 還原為原狀態 (P/S/F)
+            export __FAC_IO_STATE="B"
+            _fac_neural_write "$origin_key" 7 "$restore_type"
+        fi
     fi
+
+    # 解除鎖定
+    unset __FAC_IO_STATE
 }
 
 # 原子寫入函數 - Atomic Node Updater
@@ -1548,7 +1572,7 @@ function _fac_edit_router() {
     case "$view_mode" in
         "NEW") header_text="CONFIRM CREATION"; border_color="46"; prompt_color="46" ;;
         "DEL") header_text="DELETE PARAMETER"; border_color="196"; prompt_color="196" ;;
-        "EDIT"|*) header_text="MODIFY PARAMETER :: "; border_color="208"; prompt_color="208" ;;
+        "EDIT"|*) header_text="MODIFY PARAMETER :: "; border_color="46"; prompt_color="46" ;;
     esac
     
     case "$room_id" in
@@ -1825,6 +1849,7 @@ function _fac_launch_test() {
     local C_VAL="\033[1;37m"
     local C_SEP="\033[1;30m"
     local C_RST="\033[0m"
+    local C_SIM="\033[1;36m"
 
     echo ""
     printf "${C_TYPE}[TYPE: %-3s]${C_RST}\n" "$_VAL_TYPE"
@@ -1873,72 +1898,180 @@ function _fac_launch_test() {
     echo ""
 
     # 模擬發射
-    local final_cmd=""
+    local base_intent_args=""
+    local final_uri=""
     
-    if [ "$_VAL_TYPE" == "NA" ] || [ "$_VAL_TYPE" == "NB" ]; then
+    if [[ "$_VAL_URI" == *"\$query"* ]]; then
+        # 舊式參數注入 ($query)
+        local safe_args="${input_args// /+}"
+        final_uri="${_VAL_URI//\$query/$safe_args}"
         
-        # 基礎指令
-        final_cmd="am start --user 0"
-        
-        # Intent Action
-        local final_action="${_VAL_IHEAD}${_VAL_IBODY}"
-        [ -n "$final_action" ] && final_cmd="$final_cmd -a \"$final_action\""
-        
-        # Package / Target (-n 優先於 -p)
-        if [ -n "$_VAL_PKG" ]; then
-            if [ -n "$_VAL_TARGET" ]; then
-                final_cmd="$final_cmd -n \"$_VAL_PKG/$_VAL_TARGET\""
-            else
-                final_cmd="$final_cmd -p \"$_VAL_PKG\""
-            fi
-        fi
-
-        # URI 處理 (支援參數注入)
-        local final_uri="$_VAL_URI"
-        if [ -n "$input_args" ]; then
-            final_uri="${final_uri//\$query/$input_args}"
-        fi
-        [ -n "$final_uri" ] && final_cmd="$final_cmd -d \"$final_uri\""
-
-        # 旗標與參數
-        [ -n "$_VAL_CATE" ]  && final_cmd="$final_cmd -c \"android.intent.category.$_VAL_CATE\""
-        [ -n "$_VAL_MIME" ]  && final_cmd="$final_cmd -t \"$_VAL_MIME\""
-        [ -n "$_VAL_FLAG" ]  && final_cmd="$final_cmd -f $_VAL_FLAG"
-        [ -n "$_VAL_EX" ]    && final_cmd="$final_cmd $_VAL_EX"
-        [ -n "$_VAL_EXTRA" ] && final_cmd="$final_cmd $_VAL_EXTRA"
-
-    elif [ "$_VAL_TYPE" == "SYS" ] || [ "$_VAL_TYPE" == "sh" ]; then
-        final_cmd="$_VAL_PKG $input_args"
+    elif [[ "$_VAL_URI" == *"\$__GO_TARGET"* ]]; then
+         # 智慧引擎連動
+         if [ -n "$_VAL_ENGINE" ]; then
+             # 1. 展開引擎變數 (例如把字串 "$SEARCH_GOOGLE" 變成網址)
+             local engine_base=$(eval echo "$_VAL_ENGINE")
+             
+             # 2. 準備測試參數 (如果使用者沒輸入參數，給一個預設值以便觀測 URL 結構)
+             local test_query="${input_args:-TEST_PAYLOAD}"
+             
+             # 3. 呼叫 Core 函數進行解析
+             if command -v _resolve_smart_url &> /dev/null; then
+                 # 呼叫 Core 進行解析，結果會存入全域變數 __GO_TARGET
+                 _resolve_smart_url "$engine_base" "$test_query"
+                 final_uri="$__GO_TARGET"
+             else
+                 # Fallback: 如果 Core 沒載入，手動模擬 (暴力拼接)
+                 local safe_q="${test_query// /+}"
+                 final_uri="${engine_base}${safe_q}"
+             fi
+         else
+             final_uri="$_VAL_URI (Missing Engine)"
+         fi
+    else
+        # 靜態 URI
+        final_uri="$_VAL_URI"
     fi
 
-    # 4. 點火與驗證
-    echo -e "${F_WARN} :: SLOT TEST RELOAD ::${F_RESET}"
-    echo -e "${F_GRAY}    FIRE › $final_cmd${F_RESET}"
-    
-    local output
-    output=$(eval "$final_cmd" 2>&1)
+    # [Visual Feedback]
+    # 如果是動態生成的 URL，我們在螢幕上額外印出來，讓你看得更爽
+    if [[ "$_VAL_URI" == *"\$__GO_TARGET"* ]]; then
+        echo -e "${F_GRAY}    Resolving › $final_uri${F_RESET}"
+    fi
 
-    # 5. 結果驗證器
-    if [[ "$output" == *"Error"* ]] || [[ "$output" == *"does not exist"* ]] || [[ "$output" == *"unable to resolve"* ]]; then
-        echo -e "\n${F_ERR} :: TEST FAILED ::${F_RESET}"
-        echo -e "${F_GRAY}---------------${F_RESET}"
-        echo -e "\033[0;31m$output\033[0m"
-        echo -e "${F_GRAY}---------------${F_RESET}"
+    # Action
+    local intent_action="${_VAL_IHEAD}${_VAL_IBODY}"
+    if [ -n "$intent_action" ]; then base_intent_args="$base_intent_args -a \"$intent_action\""; fi
+    
+    # Data / URI
+    if [ -n "$final_uri" ] && [[ "$final_uri" != *"Dynamic"* ]]; then 
+        base_intent_args="$base_intent_args -d \"$final_uri\""
+    fi
+    
+    # Mime
+    if [ -n "$_VAL_MIME" ]; then base_intent_args="$base_intent_args -t \"$_VAL_MIME\""; fi
+    
+    # Category
+    if [ -n "$_VAL_CATE" ]; then base_intent_args="$base_intent_args -c \"android.intent.category.$_VAL_CATE\""; fi
+    
+    # Flags / Extra (這些只影響 am start，對 resolve-activity 影響較小但可加入)
+    if [ -n "$_VAL_FLAG" ]; then base_intent_args="$base_intent_args -f $_VAL_FLAG"; fi
+    if [ -n "$_VAL_EX" ]; then base_intent_args="$base_intent_args $_VAL_EX"; fi
+    if [ -n "$_VAL_EXTRA" ]; then base_intent_args="$base_intent_args $_VAL_EXTRA"; fi
+
+    # 模擬發射器
+    echo -e "${C_SIM} :: SIMULATION PROTOCOL ENGAGED ::${C_RST}"
+    
+    local sim_cmd="cmd package resolve-activity --brief $base_intent_args"
+    
+    # 根據不同模式添加限制條件
+    local sim_p="$sim_cmd"
+    [ -n "$_VAL_PKG" ] && sim_p="$sim_cmd --package $_VAL_PKG" # 模擬 P 模式
+    
+    local sim_n=""
+    if [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
+        # 模擬 N 模式
+        : 
+    fi
+
+    local sim_result
+    # 模擬 'p' 模式
+    if [ -n "$_VAL_PKG" ]; then
+        echo -e "${F_GRAY}    Scanning via Package Constraint ('p' mode)...${F_RESET}"
+        sim_result=$(eval "$sim_p" 2>&1)
+    else
+        echo -e "${F_GRAY}    Scanning via Open Intent ('i' mode)...${F_RESET}"
+        sim_result=$(eval "$sim_cmd" 2>&1)
+    fi
+
+    # 分析模擬結果
+    if [[ "$sim_result" == *"No activity found"* ]]; then
+        echo -e "${F_ERR}    ›› [MISS] Simulation predicts FAILURE.${F_RESET}"
+        echo -e "${F_GRAY}       System cannot find a receiver for this Intent.${F_RESET}"
+    elif [[ "$sim_result" == *"Priority"* || "$sim_result" == *"ComponentInfo"* ]]; then
+        local hit_target=$(echo "$sim_result" | grep -o "ComponentInfo{.*}" | cut -d'/' -f1 | cut -d'{' -f2)
+        echo -e "${F_GRE}    ›› [HIT] Simulation predicts SUCCESS.${F_RESET}"
+        echo -e "${F_GRAY}       Locked Target: ${hit_target:-Unknown}${F_RESET}"
+    else
+        echo -e "${F_WARN}    ›› [UNK] Simulation result ambiguous.${F_RESET}"
+    fi
+    
+    echo -e "${C_SEP}---------------${C_RST}"
+
+    # 發射前確認
+    echo -ne "${F_WARN}    ›› EXECUTE LIVE FIRE? [Y/n]: ${F_RESET}"
+    read -n 1 -r confirm
+    echo ""
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+        echo -e "${F_GRAY}    ›› Test Aborted.${F_RESET}"
+        return 0
+    fi
+
+    echo -e "${F_WARN} :: LIVE FIRE SEQUENCE ::${F_RESET}"
+
+    local output
+    local success=0
+
+    # 1. 'p' Mode (Package Locked)
+    if [ -n "$_VAL_PKG" ]; then
+        local cmd_p="am start --user 0 $base_intent_args -p \"$_VAL_PKG\""
+        echo -e "${F_GRAY} :: Firing 'p' mode (Package Constraint)...${F_RESET}"
         
-        # 針對 Package Not Found 提供安裝建議
-        if [ -n "$_VAL_PKG" ] && [[ "$output" == *"does not exist"* || "$output" == *"not found"* ]]; then
-             echo -e "${F_WARN}    ›› Diagnosis: Package '$_VAL_PKG' is not installed on this device.${F_RESET}"
-             echo -e "${F_GRAY}    ›› Action: Please verify package name or install manually.${F_RESET}"
+        output=$(eval "$cmd_p" 2>&1)
+        
+        if [[ "$output" != *"Error"* && "$output" != *"Activity not found"* && "$output" != *"unable to resolve"* ]]; then
+            success=1
+            echo -e "${F_GRE}    ›› IMPACT CONFIRMED ('p' mode).${F_RESET}"
+        else
+            echo -e "${F_ERR}    ›› 'p' mode failed.${F_RESET}"
+        fi
+    else
+        echo -e "${F_GRAY} :: 'p' mode skipped (No Package defined).${F_RESET}"
+    fi
+
+    # 2. 'i' Mode (Pure Intent)
+    if [ "$success" -eq 0 ] && [ -n "$final_uri" ]; then
+        local cmd_i="am start --user 0 $base_intent_args"
+        echo -e "${F_GRAY} :: Firing 'i' mode (Open Intent)...${F_RESET}"
+        
+        output=$(eval "$cmd_i" 2>&1)
+        
+        if [[ "$output" != *"Error"* && "$output" != *"Activity not found"* && "$output" != *"unable to resolve"* ]]; then
+            success=1
+            echo -e "${F_GRE}    ›› IMPACT CONFIRMED ('i' mode).${F_RESET}"
+        else
+            echo -e "${F_ERR}    ›› 'i' mode failed.${F_RESET}"
+        fi
+    fi
+
+    # 3. 'n' Mode (Component Locked)
+    if [ "$success" -eq 0 ] && [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
+        local cmd_n="am start --user 0 $base_intent_args -n \"$_VAL_PKG/$_VAL_TARGET\""
+        echo -e "${F_GRAY} :: Firing 'n' mode (Explicit Component)...${F_RESET}"
+        
+        output=$(eval "$cmd_n" 2>&1)
+        
+        if [[ "$output" != *"Error"* && "$output" != *"Activity not found"* && "$output" != *"unable to resolve"* ]]; then
+            success=1
+            echo -e "${F_GRE}    ›› IMPACT CONFIRMED ('n' mode).${F_RESET}"
+        else
+             echo -e "${F_ERR}    ›› 'n' mode failed.${F_RESET}"
+        fi
+    fi
+
+    # 最終報告
+    if [ "$success" -eq 0 ]; then
+        echo -e "\n${F_ERR} :: CRITICAL FAILURE :: All protocols exhausted.${F_RESET}"
+        # 彈藥詳細規格
+        echo -e "${F_GRAY}    Payload › $base_intent_args${F_RESET}"
+        echo -e "${F_GRAY}    Last Output › $output${F_RESET}
+        
+        # 診斷建議
+        if [[ "$output" == *"does not exist"* ]]; then
+             echo -e "${F_WARN}    Diagnosis: Package '$_VAL_PKG' seems missing.${F_RESET}"
         fi
         return 1
     else
-        echo -e "\n${F_GRE} :: TEST SUCCESSFUL ::${F_RESET}"
-        # 如果是 SYS，顯示輸出結果
-        if [ "$_VAL_TYPE" == "SYS" ] || [ "$_VAL_TYPE" == "sh" ]; then
-             echo -e "${F_GRAY}---------------${F_RESET}"
-             echo -e "$output"
-             echo -e "${F_GRAY}---------------${F_RESET}"
-        fi
         return 0
     fi
 }
