@@ -379,15 +379,15 @@ function _mux_fuzzy_menu() {
         return 1
     fi
 
+    # 1. 產生清單 (AWK Logic)
     local cmd_list=$(
         {
             echo "0,0,Core,SYS,mux,,,Core Command Entry"
             cat "$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD" 2>/dev/null
         } | awk -v FPAT='([^,]*)|("[^"]+")' '
         BEGIN {
-            C_CMD="\x1b[1;37m"   # 白色
-            C_SUB="\x1b[1;36m"   # 青色
-            C_DESC="\x1b[1;30m"  # 灰色
+            C_CMD="\x1b[1;37m"
+            C_DESC="\x1b[1;30m"
             C_RST="\x1b[0m"
         }
         !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
@@ -397,14 +397,17 @@ function _mux_fuzzy_menu() {
 
             if (s != "") {
                 full_cmd = c " " s
-                printf " %s%-16s %s%s\n", C_CMD, full_cmd, C_DESC, d
             } else {
-                printf " %s%-16s %s%s\n", C_CMD, c, C_DESC, d
+                full_cmd = c
             }
+            
+            printf " %s%-18s %s%s\n", C_CMD, full_cmd, C_DESC, d
         }'
     )
 
-    # 2. FZF 選擇 (Enter 1)
+    local total_cmds=$(echo "$cmd_list" | grep -c "^ ")
+
+    # 2. FZF 選擇 (完全保留您的框架設定)
     local selected=$(echo "$cmd_list" | fzf --ansi \
         --height=10 \
         --layout=reverse \
@@ -418,11 +421,12 @@ function _mux_fuzzy_menu() {
         --bind="resize:clear-screen"
     )
 
+    # 3. 後處理 (Post-Processing)
     if [ -n "$selected" ]; then
-        local clean_sel=$(echo "$selected" | sed 's/\x1b\[[0-9;]*m//g')
-        local cmd_base=$(echo "$clean_sel" | awk '{print $1, $2}') 
+        local cmd_only=$(echo "$selected" | sed 's/\x1b\[1;30m.*//')
+        local clean_base=$(echo "$cmd_only" | sed 's/\x1b\[[0-9;]*m//g')
         
-        cmd_base=$(echo "$cmd_base" | sed 's/[ \t]*$//')
+        local cmd_base=$(echo "$clean_base" | sed 's/^[ \t]*//;s/[ \t]*$//')
 
         local prompt_text=$'\033[1;33m :: '$cmd_base$' \033[1;30m(Params?): \033[0m'
         read -e -p "$prompt_text" user_params < /dev/tty
