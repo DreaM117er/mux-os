@@ -381,7 +381,7 @@ function _mux_fuzzy_menu() {
 
     local cmd_list=$(
         {
-            echo "0,0,Core,SYS,mux,,,Core CLI"
+            echo "0,0,Core,SYS,mux,,,Core Command Entry"
             cat "$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD" 2>/dev/null
         } | awk -v FPAT='([^,]*)|("[^"]+")' '
         BEGIN {
@@ -406,11 +406,15 @@ function _mux_fuzzy_menu() {
 
     # 2. FZF 選擇 (Enter 1)
     local selected=$(echo "$cmd_list" | fzf --ansi \
-        --height=10 --layout=reverse --border=bottom \
-        --prompt=" :: Mux-OS › " \
-        --header=" :: Global Command Link :: " \
+        --height=10 \
+        --layout=reverse \
+        --border=bottom \
+        --prompt=" :: Neural Link › " \
+        --header=" :: Slot Capacity: [6/$total_cmds] :: " \
+        --info=hidden \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:yellow,prompt:cyan,pointer:red,marker:green,border:blue,header:240 \
         --bind="resize:clear-screen"
     )
 
