@@ -663,34 +663,34 @@ function fac() {
             local target_node=""
             local user_params=""
 
-            # Logic A: 無參數開啟 FZF (Visual Mode)
+            # Logic A: 無參數 -> 開啟 FZF (Visual Mode)
             if [ -z "$input_1" ]; then
                 target_node=$(_factory_fzf_menu "Select Payload to Test")
                 
-                # 選中目標後，進入參數輸入 (第二段 Enter)
+                # 選中目標後，進入參數輸入
                 if [ -n "$target_node" ]; then
-                    local display_name=$(echo "$target_node" | awk '{print $1}') 
-                    local prompt_text=$'\033[1;33m :: '$display_name$' \033[1;30m(Params?): \033[0m'
+                    local prompt_text=$'\033[1;33m :: '$target_node$' \033[1;30m(Params?): \033[0m'
                     read -e -p "$prompt_text" user_params < /dev/tty
                 fi
 
-            # Logic B: 有參數智慧判斷 (Bypass Mode)
+            # Logic B: 有參數 -> 智慧判斷 (Bypass Mode)
             else
-                if [ -n "$input_2" ] && _mux_check_composite_exists "$input_1" "$input_2"; then
-                    # Case 1: 複合指令
+                if [ -n "$input_2" ] && _fac_check_composite_exists "$input_1" "$input_2"; then
+                    # Case 1: 複合指令 (git status)
                     target_node="$input_1 '$input_2'"
                     user_params="${*:4}"
                     _bot_say "neural" "Identified Composite Node: [$target_node]"
                 else
-                    # Case 2: 單一指令 + 參數
+                    # Case 2: 單一指令 + 參數 (Command + Args)
                     target_node="$input_1"
                     user_params="${*:3}"
                 fi
             fi
 
-            # Execution
+            # 發射程序
             if [ -n "$target_node" ]; then
-                local clean_key=$(echo "$target_node" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+                local clean_key=$(echo "$target_node" | sed "s/$(printf '\033')\[[0-9;]*m//g" | sed 's/^[ \t]*//;s/[ \t]*$//')
+
                 _fac_launch_test "$clean_key" "$user_params"
                 
                 echo -ne "\033[1;30m    (Press 'Enter' to return...)\033[0m"
@@ -1888,6 +1888,30 @@ function _factory_mask_apps() {
     done
 
     return 0
+}
+
+# 複合鍵偵測器 - Private Logic
+function _fac_check_composite_exists() {
+    local c1="$1"
+    local c2="$2"
+    local csv_path="$MUX_ROOT/app.csv.temp"
+    if [ ! -f "$csv_path" ]; then csv_path="$MUX_ROOT/app.csv"; fi
+
+    if [ -z "$c1" ] || [ -z "$c2" ]; then return 1; fi
+    if [ ! -f "$csv_path" ]; then return 1; fi
+
+    awk -F, -v c1="$c1" -v c2="$c2" '
+    {
+        k1=$5; gsub(/^"|"$/, "", k1); gsub(/^[ \t]+|[ \t]+$/, "", k1)
+        k2=$6; gsub(/^"|"$/, "", k2); gsub(/^[ \t]+|[ \t]+$/, "", k2)
+        st=$7; gsub(/^"|"$/, "", st); gsub(/[ \t]/, "", st)
+        
+        if ((st=="P" || st=="S" || st=="E") && k1==c1 && k2==c2) {
+            exit 0 # Found
+        }
+    }
+    END { exit 1 } # Not Found
+    ' "$csv_path"
 }
 
 # 兵工廠測試發射台 - Factory Fire Control Test

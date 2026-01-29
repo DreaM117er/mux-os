@@ -379,15 +379,14 @@ function _mux_fuzzy_menu() {
         return 1
     fi
 
-    # 1. 產生清單 (AWK Logic)
     local cmd_list=$(
         {
             echo "0,0,Core,SYS,mux,,,Core Command Entry"
             cat "$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD" 2>/dev/null
         } | awk -v FPAT='([^,]*)|("[^"]+")' '
         BEGIN {
-            C_CMD="\x1b[1;37m"   # 白色
-            C_DESC="\x1b[1;30m"  # 灰色
+            C_CMD="\x1b[1;37m"
+            C_DESC="\x1b[1;30m"
             C_RST="\x1b[0m"
         }
         !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
@@ -401,15 +400,10 @@ function _mux_fuzzy_menu() {
                 full_cmd = c
             }
             
-            # [戰術修正]
-            # 在全指令(full_cmd)與描述(C_DESC)之間，插入一個 \t (Tab)
-            # 這道牆在 FZF 裡看起來像空白，但能讓我們精準切割
             printf " %s%-18s\t%s%s\n", C_CMD, full_cmd, C_DESC, d
         }'
     )
 
-    # 2. FZF 選擇
-    # 這裡加入 --tabstop=1 讓 Tab 在視覺上只佔一格 (或您喜歡的寬度)，保持排版緊湊
     local total_cmds=$(echo "$cmd_list" | grep -c "^ ")
     
     local selected=$(echo "$cmd_list" | fzf --ansi \
@@ -426,25 +420,14 @@ function _mux_fuzzy_menu() {
         --bind="resize:clear-screen"
     )
 
-    # 3. 後處理 (Post-Processing)
     if [ -n "$selected" ]; then
-        # [CRITICAL FIX] 物理切割術
-        # 1. awk -F'\t' '{print $1}' : 以 Tab 為界，只取第一段 (即白色指令部分)
-        #    這一步直接把後面的灰色描述全部丟掉，不管它寫什麼。
         local raw_part=$(echo "$selected" | awk -F'\t' '{print $1}')
-        
-        # 2. 清除剩餘的 ANSI 顏色代碼 (白色)
-        #    使用 printf 生成真實的 Escape 字符，確保 sed 能讀懂，解決 \x1b 失效問題
         local clean_base=$(echo "$raw_part" | sed "s/$(printf '\033')\[[0-9;]*m//g")
-        
-        # 3. 去除頭尾空白
         local cmd_base=$(echo "$clean_base" | sed 's/^[ \t]*//;s/[ \t]*$//')
 
-        # 4. 參數注入
         local prompt_text=$'\033[1;33m :: '$cmd_base$' \033[1;30m(Params?): \033[0m'
         read -e -p "$prompt_text" user_params < /dev/tty
         
-        # 5. 最終組裝與執行
         local final_cmd="$cmd_base"
         [ -n "$user_params" ] && final_cmd="$cmd_base $user_params"
         
@@ -453,7 +436,7 @@ function _mux_fuzzy_menu() {
         if [[ "$cmd_base" == "mux" ]]; then
              $final_cmd
         else
-             echo -e "\033[1;30m    Executing › $final_cmd\033[0m"
+             echo -e "\033[1;30m     ›› Executing: $final_cmd\033[0m"
              eval "$final_cmd"
         fi
     fi
@@ -631,7 +614,6 @@ function _factory_fzf_menu() {
             C_CMD="\033[1;37m"
             C_DESC="\033[1;30m"
             
-            # 狀態標籤定義 (Visual Identity)
             TAG_N="\033[1;36m[N]\033[0m " # Cyan   : New
             TAG_E="\033[1;33m[E]\033[0m " # Yellow : Edit
             TAG_S="\033[1;32m[S]\033[0m " # Green  : Saved
@@ -665,7 +647,7 @@ function _factory_fzf_menu() {
                 display = cmd
             }
 
-            printf " %s%s%-16s %s%s\n", prefix, C_CMD, display, C_DESC, desc
+            printf " %s%s%-16s\t%s%s\n", prefix, C_CMD, display, C_DESC, desc
         }
     ' "$target_file")
 
@@ -676,6 +658,7 @@ function _factory_fzf_menu() {
         --layout=reverse \
         --border-label=" :: $header_msg :: " \
         --border=bottom \
+        --tabstop=1 \
         --prompt=" :: $prompt_msg › " \
         --header=" :: Nodes: [$total] ::" \
         --info=hidden \
@@ -686,13 +669,10 @@ function _factory_fzf_menu() {
     )
 
     if [ -n "$selected" ]; then
-        echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*\[.\][ \t]*//' | awk '{
-            if ($2 ~ /^\047/) {
-                print $1 " " $2
-            } else {
-                print $1
-            }
-        }'
+        local raw_part=$(echo "$selected" | awk -F'\t' '{print $1}')
+        local clean_part=$(echo "$raw_part" | sed "s/$(printf '\033')\[[0-9;]*m//g")
+        local key_only=$(echo "$clean_part" | sed 's/^[ \t]*\[.\][ \t]*//')
+        echo "$key_only" | sed 's/^[ \t]*//;s/[ \t]*$//'
     fi
 }
 

@@ -724,32 +724,6 @@ function _mux_security_gate() {
     return 0
 }
 
-# 複合鍵偵測器 - Composite Key Detector
-function _mux_check_composite_exists() {
-    local c1="$1"
-    local c2="$2"
-    local csv_path="${MUX_ROOT:-$HOME/.mux-os}/app.csv.temp"
-
-    # 簡單防呆
-    if [ -z "$c1" ] || [ -z "$c2" ]; then return 1; fi
-
-    # 使用 AWK 快速掃描 (只看 P/S/E 狀態，忽略已刪除的)
-    awk -F, -v c1="$c1" -v c2="$c2" '
-    {
-        # 清洗欄位
-        k1=$5; gsub(/^"|"$/, "", k1); gsub(/^[ \t]+|[ \t]+$/, "", k1)
-        k2=$6; gsub(/^"|"$/, "", k2); gsub(/^[ \t]+|[ \t]+$/, "", k2)
-        st=$7; gsub(/^"|"$/, "", st); gsub(/[ \t]/, "", st)
-        
-        # 比對 (只比對有效節點)
-        if ((st=="P" || st=="S" || st=="E") && k1==c1 && k2==c2) {
-            exit 0 # Found
-        }
-    }
-    END { exit 1 } # Not Found
-    ' "$csv_path"
-}
-
 # 神經火控系統 - Neural Fire Control
 function _mux_neural_fire_control() {
     local input_signal="$1" # COM
