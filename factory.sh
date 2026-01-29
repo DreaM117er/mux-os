@@ -910,8 +910,6 @@ function _factory_deploy_sequence() {
     # 解析 QA 結果
     local qa_error=$(grep "QA_FAIL" "$stats_log")
     local stats_line=$(grep "STATS" "$stats_log")
-    local cnt_n=$(echo "$stats_line" | cut -d: -f2)
-    local cnt_s=$(echo "$stats_line" | cut -d: -f3)
 
     # 錯誤處理
     if [ -n "$qa_error" ]; then
@@ -925,16 +923,8 @@ function _factory_deploy_sequence() {
         mv "$qa_file" "$target_file"
         rm "$stats_log"
         echo -e "${F_GRE}    ›› QA Passed. State normalized to [P].${F_RESET}"
+        sleep 1.9
     fi
-
-    #戰報顯示
-    echo -e "${F_MAIN} :: SANDBOX SESSION REPORT ::${F_RESET}"
-    echo -e "    ${F_GRAY}Created (New)   :${F_RESET} \033[1;32m${cnt_n:-0}\033[0m"
-    echo -e "    ${F_GRAY}Modified (Saved):${F_RESET} \033[1;33m${cnt_s:-0}\033[0m"
-    echo ""
-    
-    echo -ne "${F_WARN} :: Press 'Enter' to Review Changes...${F_RESET}"
-    read
 
     # Phase 1: 差異比對與確認 (Diff & Confirm)
     clear
@@ -1468,61 +1458,6 @@ function _fac_delete_node() {
     }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
 }
 
-# 房間引導手冊 - Room Context Guide
-function _fac_room_guide() {
-    # 用法: _fac_room_guide "ROOM_ID"
-    local room_id="$1"
-    local guide_text=""
-    local example_text=""
-
-    case "$room_id" in
-        "ROOM_CMD")
-            guide_text="Enter the CLI trigger command."
-            example_text="Example: 'chrome', 'music', 'sys_info' (No spaces)"
-            ;;
-        "ROOM_HUD")
-            guide_text="Enter the Description shown in the menu."
-            example_text="Example: 'Google Chrome Browser'"
-            ;;
-        "ROOM_UI")
-            guide_text="Specify UI rendering mode."_fac_room_guide
-            example_text="Options: [Empty]=Default, 'fzf', 'cli', 'silent'"
-            ;;
-        "ROOM_PKG")
-            guide_text="Target Android Package Name."
-            example_text="Example: 'com.android.chrome'"
-            ;;
-        "ROOM_ACT")
-            guide_text="Target Activity Class (Optional)."
-            example_text="Example: 'com.google.android.apps.chrome.Main'"
-            ;;
-        "ROOM_CATE")
-            guide_text="Intent Category Suffix (Auto-prefixed)."
-            example_text="Example: 'BROWSABLE', 'DEFAULT', 'LAUNCHER'"
-            ;;
-        "ROOM_FLAG")
-            guide_text="Execution Flags."
-            example_text="Options: '--user 0', '--grant-read-uri-permission'"
-            ;;
-        "ROOM_INTENT")
-            guide_text="Intent Action Head & Body."
-            example_text="Format: 'android.intent.action.VIEW'"
-            ;;
-        "ROOM_URI")
-            guide_text="Target URI or Engine Variable."
-            example_text="Example: 'https://google.com' OR '\$SEARCH_ENGINE'"
-            ;;
-        *)
-            guide_text="Edit value for this parameter."
-            example_text="Input the new value directly."
-            ;;
-    esac
-
-    echo -e "${F_WARN} :: Guide :: ${guide_text}${F_RESET}"
-    echo -e "${F_GRAY} :: Format :: ${example_text}${F_RESET}"
-    echo -e ""
-}
-
 # 通用單欄位編輯器 - Generic Editor
 function _fac_generic_edit() {
     local target_key="$1"
@@ -1645,11 +1580,11 @@ function _fac_edit_router() {
                 _bot_say "factory" "Node ID: $current_cat_no:$_VAL_COMNO"
             fi
             ;;
+
         "ROOM_CMD")
-            _bot_say "action" "Edit Command Name (Main):"
+            guide_text="${F_GRAY} :: Guide   : Enter the CLI command.${F_RESET}\n"
             read -e -p "    › " -i "$_VAL_COM" new_com
-            
-            _bot_say "action" "Edit Sub Command (2nd):"
+            guide_text="${F_GRAY} :: Optional: Enter the SUB command.${F_RESET}\n"
             read -e -p "    › " -i "$_VAL_COM2" new_sub
             
             new_com=$(echo "$new_com" | sed 's/^[ \t]*//;s/[ \t]*$//')
@@ -1689,35 +1624,59 @@ function _fac_edit_router() {
                 return 0
             fi
             ;;
+
         "ROOM_HUD")
-            _fac_generic_edit "$target_key" 8 "Edit Description (HUD Name):"
+            guide_text="${F_GRAY} :: Guide   : Enter the Menu Description.${F_RESET}\n"
+            guide_text+="${F_GRAY} :: Format  : e.g. 'Google Chrome Browser'${F_RESET}"
+            _fac_generic_edit "$target_key" 8 "Edit Description (HUD Name):" "$guide_text"
             return 2
             ;;
-        "ROOM_CATE")
-            _fac_generic_edit "$target_key" 16 "Edit Category Type:"
-            return 2
-            ;;
+
         "ROOM_UI")
-            _fac_generic_edit "$target_key" 9 "Edit Display Name (Bot Label):"
+            guide_text="${F_GRAY} :: Guide   : UI Rendering Mode${F_RESET}\n"
+            guide_text+="${F_GRAY} :: Options : ${F_WARN}[Empty]${F_GRAY}=Default, ${F_WARN}fzf${F_GRAY}, ${F_WARN}silent${F_RESET}"
+            _fac_generic_edit "$target_key" 9 "Edit Display Name (Bot Label):" "$guide_text"
             return 2
             ;;
+            
         "ROOM_PKG")
-            _fac_generic_edit "$target_key" 10 "Edit Package Name (com.xxx.xxx):"
+            guide_text="${F_GRAY} :: Guide   : Target Android Package${F_RESET}\n"
+            guide_text+="${F_GRAY} :: Hint    : Use 'apklist' or 'ROOM_LOOKUP' to find packages.${F_RESET}"
+            _fac_generic_edit "$target_key" 10 "Edit Package Name (com.xxx.xxx):" "$guide_text"
             return 2
             ;;
+
         "ROOM_ACT")
-            _fac_generic_edit "$target_key" 11 "Edit Activity / Class Path:"
+            guide_text="${F_GRAY} :: Guide   : Target Activity Class (Optional)${F_RESET}\n"
+            guide_text+="${F_GRAY} :: Format  : com.package.name.MainActivity${F_RESET}"
+            _fac_generic_edit "$target_key" 11 "Edit Activity / Class Path:" "$guide_text"
             return 2
             ;;
+            
+        "ROOM_CATE")
+            guide_text="${F_GRAY} :: Guide   : Intent Category Suffix${F_RESET}\n"
+            guide_text+="${F_GRAY} :: Note    : System adds 'android.intent.category.' prefix.${F_RESET}\n"
+            guide_text+="${F_GRAY} :: Example : ${F_WARN}BROWSABLE${F_RESET}, ${F_WARN}DEFAULT${F_RESET}, ${F_WARN}LAUNCHER${F_RESET}"
+            _fac_generic_edit "$target_key" 16 "Edit Category Type:" "$guide_text"
+            return 2
+            ;;
+
         "ROOM_FLAG")
-            _fac_generic_edit "$target_key" 17 "Edit Execution Flags:"
+            guide_text="${F_GRAY} :: Guide   : Execution Flags (am start)${F_RESET}\n"
+            guide_text+="${F_GRAY} :: Example : ${F_WARN}--user 0${F_RESET}, ${F_WARN}--grant-read-uri-permission${F_RESET}"
+            _fac_generic_edit "$target_key" 17 "Edit Execution Flags:" "$guide_text"
             return 2
             ;;
+
         "ROOM_INTENT")
-            _fac_generic_edit "$target_key" 12 "Edit Intent Action (Head):"
-            _fac_generic_edit "$target_key" 13 "Edit Intent Data (Body):"
-            return 2
+            local g1="${F_GRAY} :: Guide   : Intent Action HEAD${F_RESET}\n${F_GRAY} :: Format  : android.intent.action${F_RESET}"
+            _fac_generic_edit "$target_key" 12 "Edit Intent Action (Head):" "$g1"
+            
+            local g2="${F_GRAY} :: Guide   : Intent Action BODY${F_RESET}\n${F_GRAY} :: Format  : '.VIEW', '.SEND', '.MAIN' ...${F_RESET}"
+            _fac_generic_edit "$target_key" 13 "Edit Intent Data (Body):" "$g2"
+            return 2i
             ;;
+
         "ROOM_URI")
             _fac_neural_read "$target_key"
             
@@ -1798,6 +1757,7 @@ function _fac_edit_router() {
                 fi
             done
             ;;
+
         "ROOM_LOOKUP")
             _bot_say "action" "Launching Reference Tool..."
             if command -v apklist &> /dev/null; then apklist; else echo "Module missing"; fi
@@ -1806,6 +1766,7 @@ function _fac_edit_router() {
             read
             return 2
             ;;
+
         "ROOM_CONFIRM")
             _fac_neural_read "$target_key"
             if [ -z "$_VAL_COM" ] || [ "$_VAL_COM" == "[Empty]" ]; then
@@ -1816,6 +1777,7 @@ function _fac_edit_router() {
                 return 1
             fi
             ;;
+
         *)
             ;;
     esac
@@ -1932,6 +1894,31 @@ function _fac_launch_test() {
     local C_SEP="\033[1;30m"
     local C_RST="\033[0m"
     local C_EMP="\033[1;30m[Empty]\033[0m"
+
+    # 準備注入的參數
+    local raw_query="${input_args}"
+    local safe_query="${input_args// /+}"
+
+    # 處理 Smart URL / Engine
+    if [[ "$_VAL_URI" == *"\$__GO_TARGET"* ]]; then
+        local engine_base=""
+        if [ -n "$_VAL_ENGINE" ]; then engine_base=$(eval echo "$_VAL_ENGINE"); fi
+        
+        if command -v _resolve_smart_url &> /dev/null; then
+             _resolve_smart_url "$engine_base" "$input_args"
+             _VAL_URI="$__GO_TARGET"
+        else
+             _VAL_URI="${engine_base}${safe_query}"
+        fi
+    fi
+
+    # 全域變數替換
+    _VAL_URI="${_VAL_URI//\$query/$safe_query}"
+    _VAL_EXTRA="${_VAL_EXTRA//\$query/$raw_query}"
+    _VAL_EX="${_VAL_EX//\$query/$raw_query}"
+    _VAL_PKG="${_VAL_PKG//\$query/$raw_query}"
+    _VAL_TARGET="${_VAL_TARGET//\$query/$raw_query}"
+    _VAL_FLAG="${_VAL_FLAG//\$query/$raw_query}"
     
     # 顯示詳細資訊
     # 共通欄位
