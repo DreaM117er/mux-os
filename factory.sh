@@ -657,23 +657,41 @@ function fac() {
 
         # : Load Neural (Test Command)
         "load"|"test") 
-            local target_node="$2"
-            local user_params="${*:3}" 
+            local input_1="$2"
+            local input_2="$3"
+            
+            # 最終變數
+            local target_node=""
+            local user_params=""
 
-            if [ -z "$target_node" ]; then
+            # 無參數邏輯
+            if [ -z "$input_1" ]; then
                 target_node=$(_factory_fzf_menu "Select Payload to Test")
-                
                 if [ -n "$target_node" ]; then
                     local display_name=$(echo "$target_node" | awk '{print $1}') 
-                    
                     local prompt_text=$'\033[1;33m :: '$display_name$' \033[1;30m(Params?): \033[0m'
                     read -e -p "$prompt_text" user_params < /dev/tty
                 fi
+            # 有參數邏輯
+            else
+                if [ -n "$input_2" ] && _mux_check_composite_exists "$input_1" "$input_2"; then
+                    # Case 1: 複合指令 (Sub-Command)
+                    target_node="$input_1 '$input_2'"
+                    user_params="${*:4}"
+                    
+                    _bot_say "neural" "Identified Composite Node: [$target_node]"
+                else
+                    # Case 2: 單一指令 + 參數 (Command + Args)
+                    target_node="$input_1"
+                    user_params="${*:3}"
+                fi
             fi
 
+            # 執行發射台
             if [ -n "$target_node" ]; then
-                _fac_launch_test "$target_node" "$user_params"
-                
+                local clean_key=$(echo "$target_node" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+                _fac_launch_test "$clean_key" "$user_params"
+                # 測試結束
                 echo -ne "\033[1;30m    (Press 'Enter' to return...)\033[0m"
                 read
             fi

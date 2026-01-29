@@ -453,6 +453,22 @@ function _mux_fuzzy_menu() {
         --bind="resize:clear-screen"
     )
 
+    if [ -n "$input_1" ]; then
+        local target_key=""
+        local target_args=""
+
+        if [ -n "$input_2" ] && _mux_check_composite_exists "$input_1" "$input_2"; then
+            target_key="$input_1 '$input_2'"
+            target_args="${*:3}"
+        else
+            target_key="$input_1"
+            target_args="${*:2}"
+        fi
+
+        _mux_neural_fire "$target_key" "$target_args"
+        return
+    fi
+
     if [ -n "$selected" ]; then
         echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^ \[[A-Z]\] //' | sed 's/^    //' | sed 's/^[ \t]*//' | awk '{print $1, $2}' | sed 's/[ \t]*$//'
     fi
