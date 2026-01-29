@@ -1428,6 +1428,7 @@ function _fac_generic_edit() {
     local target_key="$1"
     local col_idx="$2"
     local prompt_text="$3"
+    local guide_text="$4"
     
     # 1. 讀取最新狀態
     _fac_neural_read "$target_key"
@@ -1452,12 +1453,12 @@ function _fac_generic_edit() {
     esac
     
     _bot_say "action" "$prompt_text"
-    if command -v _fac_room_guide &> /dev/null; then
-        # 自動偵測 Room ID 太複雜，這裡暫時跳過，或你可以傳入 Room ID
-        echo -e "${F_GRAY}    Current: [ ${current_val:-Empty} ]${F_RESET}"
-    else
-        echo -e "${F_GRAY}    Current: [ ${current_val:-Empty} ]${F_RESET}"
+    
+    if [ -n "$guide_text" ]; then
+        echo -e "$guide_text"
     fi
+    
+    echo -e "${F_GRAY}    Current: [ ${current_val:-Empty} ]${F_RESET}"
     
     read -e -p "    › " -i "$current_val" input_val
     
@@ -1511,9 +1512,7 @@ function _fac_edit_router() {
     # Debug
     # echo "DEBUG: Router ID=[$room_id]" >&2
 
-    if command -v _fac_room_guide &> /dev/null; then
-        _fac_room_guide "$room_id"
-    fi
+    # [REMOVED] 舊的 _fac_room_guide 呼叫已移除，改由下方 case 內直接顯示
     
     local header_text="MODIFY PARAMETER"
     local border_color="208"
@@ -1525,6 +1524,9 @@ function _fac_edit_router() {
         "EDIT"|*) header_text="MODIFY PARAMETER :: "; border_color="46"; prompt_color="46" ;;
     esac
     
+    # 共同變數定義 (避免重複宣告)
+    local guide_text=""
+
     case "$room_id" in
         "ROOM_INFO")
             _fac_neural_read "$target_key"
@@ -1547,9 +1549,14 @@ function _fac_edit_router() {
             ;;
 
         "ROOM_CMD")
-            guide_text="${F_GRAY} :: Guide   : Enter the CLI command.${F_RESET}\n"
+            _bot_say "action" "Edit Command Identity:"
+            
+            # [FIX] 顯示 Guide Text
+            echo -e "${F_GRAY} :: Guide   : Enter the CLI command.${F_RESET}"
             read -e -p "    › " -i "$_VAL_COM" new_com
-            guide_text="${F_GRAY} :: Optional: Enter the SUB command.${F_RESET}\n"
+            
+            # [FIX] 顯示 Guide Text
+            echo -e "${F_GRAY} :: Optional: Enter the SUB command.${F_RESET}"
             read -e -p "    › " -i "$_VAL_COM2" new_sub
             
             new_com=$(echo "$new_com" | sed 's/^[ \t]*//;s/[ \t]*$//')
@@ -1639,10 +1646,11 @@ function _fac_edit_router() {
             
             local g2="${F_GRAY} :: Guide   : Intent Action BODY${F_RESET}\n${F_GRAY} :: Format  : '.VIEW', '.SEND', '.MAIN' ...${F_RESET}"
             _fac_generic_edit "$target_key" 13 "Edit Intent Data (Body):" "$g2"
-            return 2i
+            return 2
             ;;
 
         "ROOM_URI")
+            # URI 房間維持原樣，因為它有自己的 fzf 邏輯，不需要 generic_edit
             _fac_neural_read "$target_key"
             
             local edit_uri="$_VAL_URI"
