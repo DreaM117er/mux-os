@@ -425,8 +425,7 @@ function _mux_fuzzy_menu() {
         local clean_base=$(echo "$raw_part" | sed "s/$(printf '\033')\[[0-9;]*m//g")
         local cmd_base=$(echo "$clean_base" | sed 's/^[ \t]*//;s/[ \t]*$//')
 
-        echo -ne "\033[1;33m :: $cmd_base \033[1;30m(Params?): \033[0m"
-        read -e user_params < /dev/tty
+        read -e -p "$(echo -e "\033[1;33m :: $cmd_base \033[1;30m(Params?): \033[0m")" user_params < /dev/tty
         
         local final_cmd="$cmd_base"
         [ -n "$user_params" ] && final_cmd="$cmd_base $user_params"

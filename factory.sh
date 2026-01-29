@@ -672,8 +672,7 @@ function fac() {
                 
                 # 選中目標後，進入參數輸入
                 if [ -n "$target_node" ]; then
-                    echo -ne "\033[1;33m :: $target_node \033[1;30m(Params?): \033[0m"
-                    read -e user_params < /dev/tty
+                    read -e -p "$(echo -e "\033[1;33m :: $target_node \033[1;30m(Params?): \033[0m")" user_params < /dev/tty
                 fi
 
             # Logic B: 有參數 -> 智慧判斷 (Bypass Mode)
