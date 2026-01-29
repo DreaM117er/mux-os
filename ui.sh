@@ -374,6 +374,39 @@ function _show_menu_dashboard() {
 
 # 模糊指令選單介面 - Fuzzy Command Menu Interface
 function _mux_fuzzy_menu() {
+    local input_1="$1"
+    local input_2="$2"
+
+    if [ -n "$input_1" ]; then
+        local target_key=""
+        local target_args=""
+
+        # 呼叫 Core 大腦：判斷 $2 是子指令 (SubCmd) 還是參數 (Param)
+        # 使用 _mux_check_composite_exists
+        if [ -n "$input_2" ] && command -v _mux_check_composite_exists &> /dev/null && _mux_check_composite_exists "$input_1" "$input_2"; then
+            # 命中：它是複合指令 (e.g., git status)
+            target_key="$input_1 '$input_2'"
+            target_args="${*:3}" # 參數是從第3個開始
+        else
+            # 未命中：它是單一指令 + 參數 (e.g., edge qmk)
+            target_key="$input_1"
+            target_args="${*:2}" # 參數是從第2個開始 (含 input_2)
+        fi
+
+        # 執行發射 (如果有 _mux_neural_fire 就用它，沒有就 fallback)
+        if command -v _mux_neural_fire &> /dev/null; then
+             _mux_neural_fire "$target_key" "$target_args"
+        else
+             # Fallback: 簡單的 eval 執行 (針對舊版兼容)
+             # 注意：這裡無法完美處理 Key 帶引號的情況，建議確保 Core 有 _mux_neural_fire
+             eval "$target_key $target_args"
+        fi
+        return
+    fi
+
+    # 2. 互動選單模式 (Interactive Menu)
+
+    # 檢查 fzf 依賴
     if ! command -v fzf &> /dev/null; then
         echo -e "\n\033[1;31m :: Neural Search Module (fzf) is missing.\033[0m"
         echo -ne "\033[1;32m :: Install interactive interface? [Y/n]: \033[0m"
@@ -382,7 +415,6 @@ function _mux_fuzzy_menu() {
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
             echo "    ›› Installing fzf..."
             pkg install fzf -y
-            
             echo -e "\033[1;32m    ›› Module installed. Initializing Neural Link... ✅\033[0m"
             sleep 1
             _mux_fuzzy_menu
@@ -393,6 +425,7 @@ function _mux_fuzzy_menu() {
         fi
     fi
 
+    # 生成指令列表 (CSV Parsing) 參考了 factory 的讀取邏輯
     local cmd_list=$(
         {
             echo "0,1,Core,MUX,mux,,,Core Command Entry"
@@ -405,31 +438,25 @@ function _mux_fuzzy_menu() {
         }
         
         !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
-            
             cmd = ""; sub_cmd = ""; desc = ""
-
             gsub(/^"|"$/, "", $5); cmd = $5
-
-            if (NF >= 6) {
-                gsub(/^"|"$/, "", $6); sub_cmd = $6
-            }
-
-            if (NF >= 8) {
-                gsub(/^"|"$/, "", $8); desc = $8
-            }
+            if (NF >= 6) { gsub(/^"|"$/, "", $6); sub_cmd = $6 }
+            if (NF >= 8) { gsub(/^"|"$/, "", $8); desc = $8 }
             
+            # 組合顯示名稱 (Git Status vs Edge)
             if (sub_cmd != "") {
-                display_name = cmd " " sub_cmd ""
+                display_name = cmd " " sub_cmd
             } else {
                 display_name = cmd
             }
 
-            printf " %s%-12s %s%s\n", C_CMD, display_name, C_DESC, desc;
+            printf " %s%-14s %s%s\n", C_CMD, display_name, C_DESC, desc;
         }
     ')
 
     local total_cmds=$(echo "$cmd_list" | grep -c "^ ")
 
+    # 啟動 FZF
     local selected=$(echo "$cmd_list" | fzf --ansi \
         --height=10 \
         --layout=reverse \
@@ -443,15 +470,42 @@ function _mux_fuzzy_menu() {
         --bind="resize:clear-screen"
     )
 
+    # 3. 選單後執行邏輯 (Post-Selection Logic)
     if [ -n "$selected" ]; then
-        local cmd_to_run=$(echo "$selected" | awk '{print $1}')
-        local prompt_text=$'\033[1;33m :: '$cmd_to_run$' \033[1;30m(Params?): \033[0m'
+        
+        # 1. 移除顏色代碼
+        local clean_line=$(echo "$selected" | sed 's/\x1b\[[0-9;]*m//g')
+        
+        # 2. 提取前兩個單字 (因為可能是複合指令)
+        local w1=$(echo "$clean_line" | awk '{print $1}')
+        local w2=$(echo "$clean_line" | awk '{print $2}')
+        
+        local final_key=""
+        
+        # 3. 再次呼叫大腦確認：這是 edge 還是 git status？
+        if [ -n "$w2" ] && command -v _mux_check_composite_exists &> /dev/null && _mux_check_composite_exists "$w1" "$w2"; then
+             final_key="$w1 '$w2'"
+             # 顯示名稱用於提示 (Prompt)
+             local display_key="$w1 $w2"
+        else
+             final_key="$w1"
+             local display_key="$w1"
+        fi
+
+        # 4. 詢問參數
+        local prompt_text=$'\033[1;33m :: '$display_key$' \033[1;30m(Params?): \033[0m'
         read -e -p "$prompt_text" params < /dev/tty
         
-        local final_cmd="$cmd_to_run"
-        [ -n "$params" ] && final_cmd="$cmd_to_run $params"
-        history -s "$final_cmd"
-        eval "$final_cmd"
+        # 5. 執行
+        if command -v _mux_neural_fire &> /dev/null; then
+             _mux_neural_fire "$final_key" "$params"
+        else
+             # Fallback eval
+             local final_cmd="$final_key"
+             [ -n "$params" ] && final_cmd="$final_key $params"
+             history -s "$final_cmd"
+             eval "$final_cmd"
+        fi
     fi
 }
 
