@@ -380,46 +380,43 @@ function _mux_fuzzy_menu() {
     fi
 
     # 1. 產生清單 (AWK Logic)
-    # 這裡我們只負責「顯示」，確保 COM 和 COM2 拼在一起
     local cmd_list=$(
         {
             echo "0,0,Core,SYS,mux,,,Core Command Entry"
             cat "$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD" 2>/dev/null
         } | awk -v FPAT='([^,]*)|("[^"]+")' '
         BEGIN {
-            C_CMD="\x1b[1;37m"   # 白色 (指令本體)
-            C_DESC="\x1b[1;30m"  # 灰色 (描述) <--- [關鍵] 這是我們的切割點
+            C_CMD="\x1b[1;37m"   # 白色
+            C_DESC="\x1b[1;30m"  # 灰色
             C_RST="\x1b[0m"
         }
         !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
-            # 清洗資料
             c=$5; gsub(/^"|"$/, "", c);
             s=$6; gsub(/^"|"$/, "", s);
             d=$8; gsub(/^"|"$/, "", d);
 
-            # [顯示邏輯]
-            # 如果有子指令 (s)，就拼起來變成 "git status"
-            # 如果沒有，就保持 "edge"
             if (s != "") {
                 full_cmd = c " " s
             } else {
                 full_cmd = c
             }
             
-            # 排版輸出：指令是白色，描述是灰色
-            # %-18s 確保對齊，讓畫面整潔
-            printf " %s%-18s %s%s\n", C_CMD, full_cmd, C_DESC, d
+            # [戰術修正]
+            # 在全指令(full_cmd)與描述(C_DESC)之間，插入一個 \t (Tab)
+            # 這道牆在 FZF 裡看起來像空白，但能讓我們精準切割
+            printf " %s%-18s\t%s%s\n", C_CMD, full_cmd, C_DESC, d
         }'
     )
 
-    # 計算總數 (用於 Header)
+    # 2. FZF 選擇
+    # 這裡加入 --tabstop=1 讓 Tab 在視覺上只佔一格 (或您喜歡的寬度)，保持排版緊湊
     local total_cmds=$(echo "$cmd_list" | grep -c "^ ")
-
-    # 2. FZF 選擇 (完全保留您的 UI 設定)
+    
     local selected=$(echo "$cmd_list" | fzf --ansi \
         --height=10 \
         --layout=reverse \
         --border=bottom \
+        --tabstop=4 \
         --prompt=" :: Neural Link › " \
         --header=" :: Slot Capacity: [6/$total_cmds] :: " \
         --info=hidden \
@@ -431,34 +428,33 @@ function _mux_fuzzy_menu() {
 
     # 3. 後處理 (Post-Processing)
     if [ -n "$selected" ]; then
-        # [CRITICAL FIX] 顏色斷點切割術
-        # 1. sed 's/\x1b\[1;30m.*//' : 找到灰色代碼 (1;30m) 及其後面所有東西，全部刪除！
-        #    這會把 "edge          Microsoft Edge" 變成 "edge          "
-        # 2. sed 's/\x1b\[[0-9;]*m//g' : 清除剩餘的指令顏色 (白色)
+        # [CRITICAL FIX] 物理切割術
+        # 1. awk -F'\t' '{print $1}' : 以 Tab 為界，只取第一段 (即白色指令部分)
+        #    這一步直接把後面的灰色描述全部丟掉，不管它寫什麼。
+        local raw_part=$(echo "$selected" | awk -F'\t' '{print $1}')
         
-        local cmd_only=$(echo "$selected" | sed 's/\x1b\[1;30m.*//') 
-        local clean_base=$(echo "$cmd_only" | sed 's/\x1b\[[0-9;]*m//g')
+        # 2. 清除剩餘的 ANSI 顏色代碼 (白色)
+        #    使用 printf 生成真實的 Escape 字符，確保 sed 能讀懂，解決 \x1b 失效問題
+        local clean_base=$(echo "$raw_part" | sed "s/$(printf '\033')\[[0-9;]*m//g")
         
-        # 3. 去除頭尾多餘空白
-        #    現在 clean_base 就是純淨的 "edge" 或 "git status"
+        # 3. 去除頭尾空白
         local cmd_base=$(echo "$clean_base" | sed 's/^[ \t]*//;s/[ \t]*$//')
 
-        # 4. 參數注入 (雙扳機第二發)
+        # 4. 參數注入
         local prompt_text=$'\033[1;33m :: '$cmd_base$' \033[1;30m(Params?): \033[0m'
         read -e -p "$prompt_text" user_params < /dev/tty
         
-        # 5. 最終組裝
+        # 5. 最終組裝與執行
         local final_cmd="$cmd_base"
-        [ -n "$user_params" ] && final_cmd="$cmd_base"
+        [ -n "$user_params" ] && final_cmd="$cmd_base $user_params"
         
-        # 寫入歷史並執行
         history -s "$final_cmd"
         
         if [[ "$cmd_base" == "mux" ]]; then
-            $final_cmd
+             $final_cmd
         else
-            echo -e "\033[1;30m    Executing › $final_cmd\033[0m"
-            eval "$final_cmd"
+             echo -e "\033[1;30m    Executing › $final_cmd\033[0m"
+             eval "$final_cmd"
         fi
     fi
 }
