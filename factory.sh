@@ -74,13 +74,26 @@ function _fac_neural_read() {
     if [ -z "$raw_data" ]; then return 1; fi
 
     eval $(echo "$raw_data" | awk -v FPAT='([^,]*)|("[^"]+")' '{
-        fields[1]="_VAL_CATNO"; fields[2]="_VAL_COMNO"; fields[3]="_VAL_CATNAME"
-        fields[4]="_VAL_TYPE";  fields[5]="_VAL_COM";   fields[6]="_VAL_COM2"
-        fields[7]="_VAL_COM3";  fields[8]="_VAL_HUDNAME"; fields[9]="_VAL_UINAME"
-        fields[10]="_VAL_PKG";  fields[11]="_VAL_TARGET"; fields[12]="_VAL_IHEAD"
-        fields[13]="_VAL_IBODY"; fields[14]="_VAL_URI";   fields[15]="_VAL_MIME"
-        fields[16]="_VAL_CATE"; fields[17]="_VAL_FLAG";   fields[18]="_VAL_EX"
-        fields[19]="_VAL_EXTRA"; fields[20]="_VAL_ENGINE"
+        fields[1]="_VAL_CATNO"
+        fields[2]="_VAL_COMNO"
+        fields[3]="_VAL_CATNAME"
+        fields[4]="_VAL_TYPE"
+        fields[5]="_VAL_COM"
+        fields[6]="_VAL_COM2"
+        fields[7]="_VAL_COM3"
+        fields[8]="_VAL_HUDNAME"
+        fields[9]="_VAL_UINAME"
+        fields[10]="_VAL_PKG"
+        fields[11]="_VAL_TARGET"
+        fields[12]="_VAL_IHEAD"
+        fields[13]="_VAL_IBODY"
+        fields[14]="_VAL_URI"
+        fields[15]="_VAL_MIME"
+        fields[16]="_VAL_CATE"
+        fields[17]="_VAL_FLAG"
+        fields[18]="_VAL_EX"
+        fields[19]="_VAL_EXTRA"
+        fields[20]="_VAL_ENGINE"
 
         for (i=1; i<=20; i++) {
             val = $i
@@ -103,17 +116,20 @@ function _fac_neural_write() {
     local target_file="${4:-$MUX_ROOT/app.csv.temp}"
     local target_state="${__FAC_IO_STATE:-ANY}"
 
-    local t_com=$(echo "$target_key" | awk '{print $1}')
+    # 完整保留
+    local t_com="$target_key"
     local t_sub=""
     
+    # 處理 'SubCommand' 格式
     if [[ "$target_key" == *"'"* ]]; then
         t_com=$(echo "$target_key" | awk -F"'" '{print $1}' | sed 's/[ \t]*$//')
         t_sub=$(echo "$target_key" | awk -F"'" '{print $2}')
     fi
 
+    # 處理寫入值的引號轉義，但絕對保留內部所有符號
     local safe_val="${new_val//\"/\"\"}"
 
-    # 如果是空值，就讓它保持為空字串
+    # 包裹外層引號，忽略空值
     if [ -n "$safe_val" ]; then
         safe_val="\"$safe_val\""
     fi
@@ -123,23 +139,31 @@ function _fac_neural_write() {
         -v col="$col_idx" -v val="$safe_val" \
         -v tstate="$target_state" '
     {
-        c=$5; gsub(/^"|"$/, "", c); gsub(/\r| /, "", c)
-        s=$6; gsub(/^"|"$/, "", s); gsub(/\r| /, "", s)
+        # 1. 去除最外層引號
+        c=$5; gsub(/^"|"$/, "", c); gsub(/\r$/, "", c) 
+        s=$6; gsub(/^"|"$/, "", s); gsub(/\r$/, "", s) 
         st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
 
-        # Key 正規化
-        clean_key = tc; gsub(/ /, "", clean_key)
-        clean_sub = ts; gsub(/ /, "", clean_sub)
+        # 2. 去除頭尾空白
+        clean_key = tc; gsub(/^[ \t]+|[ \t]+$/, "", clean_key)
+        clean_sub = ts; gsub(/^[ \t]+|[ \t]+$/, "", clean_sub)
+        
+        # 處理COM
+        gsub(/^[ \t]+|[ \t]+$/, "", c)
 
         match_found = 0
         state_pass = 0
         
+        # 3. 狀態過濾
         if (tstate == "ANY") { 
+            # 非狀態 E 過濾
             if (st != "E") state_pass = 1 
         } else {
+            # 狀態 E 處理
             if (st == tstate) state_pass = 1
         }
 
+        # 4. 資料比對
         if (state_pass) {
             if (c == clean_key) {
                 if (clean_sub == "" && s == "") match_found = 1
@@ -147,6 +171,7 @@ function _fac_neural_write() {
             }
         }
 
+        # 5. 寫入
         if (match_found) {
             $col = val
         }
@@ -1852,44 +1877,43 @@ function _fac_launch_test() {
     
     # 顯示詳細資訊
     # 共通欄位
-    echo ""
-    printf "${C_TYPE}[TYPE: %-3s]${C_RST}\n" "$_VAL_TYPE"
-    echo -e "${C_LBL}Command:${C_RST} ${C_VAL}$_VAL_COM $_VAL_COM2${C_RST}"
-    echo -e "${C_LBL}UI     :${C_RST} ${C_VAL}$_VAL_UINAME${C_RST}"
-    echo -e "${C_LBL}Detail :${C_RST} ${C_VAL}$_VAL_HUDNAME${C_RST}"
-    echo -e "${C_SEP}---------------${C_RST}"
+    echo -e "${C_SEP}    ---------------${C_RST}"
+    printf "${C_TYPE}    [TYPE: %-3s]${C_RST}\n" "$_VAL_TYPE"
+    echo -e "${C_LBL}    Command:${C_RST} ${C_VAL}$_VAL_COM $_VAL_COM2${C_RST}"
+    echo -e "${C_LBL}    UI     :${C_RST} ${C_VAL}$_VAL_UINAME${C_RST}"
+    echo -e "${C_LBL}    Detail :${C_RST} ${C_VAL}$_VAL_HUDNAME${C_RST}"
+    echo -e "${C_SEP}    ---------------${C_RST}"
 
     # TYPE 欄位
     case "$_VAL_TYPE" in
         "NA")
-            echo -e "${C_LBL}PKG    :${C_RST} ${C_VAL}$_VAL_PKG${C_RST}"
-            [ -n "$_VAL_TARGET" ] && echo -e "${C_LBL}Target :${C_RST} ${C_VAL}$_VAL_TARGET${C_RST}"
+            echo -e "    ${C_LBL}PKG    :${C_RST} ${C_VAL}$_VAL_PKG${C_RST}"
+            [ -n "$_VAL_TARGET" ] && echo -e "    ${C_LBL}Target :${C_RST} ${C_VAL}$_VAL_TARGET${C_RST}"
             ;;
         "NB")
             local intent_str="${_VAL_IHEAD}${_VAL_IBODY}"
-            echo -e "${C_LBL}Intent :${C_RST} ${C_VAL}${intent_str:-N/A}${C_RST}"
+            echo -e "    ${C_LBL}Intent :${C_RST} ${C_VAL}${intent_str:-N/A}${C_RST}"
             if [ -n "$_VAL_ENGINE" ]; then
-                echo -e "${C_LBL}ENGINE :${C_RST} ${C_VAL}$_VAL_ENGINE${C_RST}"
+                echo -e "    ${C_LBL}ENGINE :${C_RST} ${C_VAL}$_VAL_ENGINE${C_RST}"
             else
-                echo -e "${C_LBL}URI    :${C_RST} ${C_VAL}$_VAL_URI${C_RST}"
+                echo -e "    ${C_LBL}URI    :${C_RST} ${C_VAL}$_VAL_URI${C_RST}"
             fi
             ;;
         "SYS")
-            echo -e "${C_LBL}Script :${C_RST} ${C_VAL}$_VAL_PKG${C_RST}"
+            echo -e "    ${C_LBL}Script :${C_RST} ${C_VAL}$_VAL_PKG${C_RST}"
             ;;
     esac
 
     # 旗標顯示
-    [ -n "$_VAL_CATE" ] && echo -e "${C_LBL}Cate   :${C_RST} ${C_VAL}$_VAL_CATE${C_RST}"
-    [ -n "$_VAL_MIME" ] && echo -e "${C_LBL}Mime   :${C_RST} ${C_VAL}$_VAL_MIME${C_RST}"
-    [ -n "$_VAL_FLAG" ] && echo -e "${C_LBL}Flag   :${C_RST} ${C_VAL}$_VAL_FLAG${C_RST}"
+    [ -n "$_VAL_CATE" ] && echo -e "    ${C_LBL}Cate   :${C_RST} ${C_VAL}$_VAL_CATE${C_RST}"
+    [ -n "$_VAL_MIME" ] && echo -e "    ${C_LBL}Mime   :${C_RST} ${C_VAL}$_VAL_MIME${C_RST}"
+    [ -n "$_VAL_FLAG" ] && echo -e "    ${C_LBL}Flag   :${C_RST} ${C_VAL}$_VAL_FLAG${C_RST}"
 
     local ex_str=""
     local extra_str=""
-    [ -n "$_VAL_EX" ] && ex_str="${C_LBL}EX:${C_RST} ${C_VAL}$_VAL_EX${C_RST}  "
-    [ -n "$_VAL_EXTRA" ] && extra_str="${C_LBL}EXTRA:${C_RST} ${C_VAL}$_VAL_EXTRA${C_RST}"
-    if [ -n "$ex_str" ] || [ -n "$extra_str" ]; then echo -e "${ex_str}${extra_str}"; fi
-    echo ""
+    [ -n "$_VAL_EX" ] && ex_str="    ${C_LBL}Extra  :${C_RST} ${C_VAL}$_VAL_EX${C_RST}"
+    [ -n "$_VAL_EXTRA" ] && extra_str="${C_VAL}$_VAL_EXTRA${C_RST}"
+    if [ -n "$ex_str" ] || [ -n "$extra_str" ]; then echo -e "${ex_str} ${extra_str}"; fi
 
     # 3. 智慧網址解析
     local final_uri="$_VAL_URI"
