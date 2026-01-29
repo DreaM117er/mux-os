@@ -544,10 +544,10 @@ function fac() {
                 echo -e ""
                 echo -ne "${F_ERR}    ›› CONFIRM DESTRUCTION [Y/n]: ${F_RESET}"
                 
-                read -n 1 -r conf
+                read -e -r conf
                 echo -e "" 
                 
-                if [[ "$conf" =~ ^[Yy]$ ]]; then
+                if [[ "$conf" == "y" || "$conf" == "Y" ]]; then
                     _bot_say "action" "Executing Deletion..."
 
                     unset __FAC_IO_STATE
@@ -632,7 +632,7 @@ function fac() {
                         echo -e "\033[1;31m :: WARNING :: NEUTRALIZING TARGET NODE ::\033[0m"
                         echo -e "\033[1;31m    Deleting Node [$clean_target] ($del_pkg)\033[0m"
                         echo -ne "\033[1;33m    ›› Confirm destruction? [Y/n]: \033[0m"
-                        read -r choice
+                        read -e -r choice
                         
                         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
                             if command -v _factory_auto_backup &> /dev/null; then _factory_auto_backup; fi
@@ -644,6 +644,9 @@ function fac() {
 
                             _fac_sort_optimization
                             _fac_matrix_defrag
+                        else
+                            echo -e "${F_GRAY}    ›› Operation Aborted.${F_RESET}"
+                            sleep 0.5
                         fi
                     done
                 fi
@@ -669,8 +672,8 @@ function fac() {
                 
                 # 選中目標後，進入參數輸入
                 if [ -n "$target_node" ]; then
-                    local prompt_text=$'\033[1;33m :: '$target_node$' \033[1;30m(Params?): \033[0m'
-                    read -e -p "$prompt_text" user_params < /dev/tty
+                    echo -ne "\033[1;33m :: $target_node \033[1;30m(Params?): \033[0m"
+                    read -e user_params < /dev/tty
                 fi
 
             # Logic B: 有參數 -> 智慧判斷 (Bypass Mode)
@@ -861,11 +864,10 @@ function _fac_rebak_wizard() {
 
 # 部署序列 (Deploy Sequence)
 function _factory_deploy_sequence() {
-    echo ""
     echo -ne "${F_WARN} :: Initiating Deployment Sequence...${F_RESET}"
     sleep 0.5
 
-    # Phase 0: 最終品管與統計 (Final QA & Stats & Migration)
+    # QA & Stats & Migration
     echo -e "\n${F_GRAY} :: Running Final Quality Assurance (QA)...${F_RESET}"
     
     local target_file="$MUX_ROOT/app.csv.temp"
@@ -879,25 +881,24 @@ function _factory_deploy_sequence() {
         {
             st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
             
-            # [CRITICAL] 攔截非法狀態
+            # 攔截非法狀態
             if (st == "E") { print "QA_FAIL:Active Draft (E)" > "/dev/stderr"; print $0; next }
             if (st == "B") { print "QA_FAIL:Stuck Backup (B)" > "/dev/stderr"; print $0; next }
             if (st == "F") { print "QA_FAIL:Broken Node (F)" > "/dev/stderr"; print $0; next }
             if (st == "C") { print "QA_FAIL:Glitch Node (C)" > "/dev/stderr"; print $0; next }
-
-            # [TRANSITION] 狀態轉正 (Graduation to P)
             
-            # 1. S (Saved) -> P
+            # 狀態轉換
+            # 1. S -> P
             if (st == "S") {
                 cs++
                 $7 = "\"P\""
             }
-            # 2. N (New) -> P
+            # 2. N -> P
             else if (st == "N") {
                 cn++
                 $7 = "\"P\""
             }
-            # 3. Empty (Old) -> P (自動遷移)
+            # 3. Empty (Old) -> P
             else if (st == "") {
                 $7 = "\"P\""
             }
@@ -975,7 +976,7 @@ function _factory_deploy_sequence() {
     fi
 
     # Phase 2: 執行部署 (Execution)
-    sleep 1.0
+    sleep 0.9
     
     local temp_file="$MUX_ROOT/app.csv.temp"
     local prod_file="$MUX_ROOT/app.csv"
@@ -988,12 +989,12 @@ function _factory_deploy_sequence() {
         fi
     else
          _bot_say "error" "Sandbox integrity failed."
-         sleep 1.9
+         sleep 1.4
          return 1
     fi
     
     echo -e "${F_GRE} :: DEPLOYMENT SUCCESSFUL ::${F_RESET}"
-    sleep 1.9
+    sleep 1.4
     
     if [ -f "$MUX_ROOT/gate.sh" ]; then
         source "$MUX_ROOT/gate.sh" "core"
@@ -1152,7 +1153,7 @@ function _fac_safe_merge() {
         }
     ' "$target_file" > "$temp_file"
 
-    # Phase 3: 部署 (Deploy)
+    # Deploy
     if [ -s "$temp_file" ]; then
         mv "$temp_file" "$target_file"
         echo -e "${F_GRE}    ›› Matrix Merged. Assets Transferred.${F_RESET}"
@@ -1219,50 +1220,38 @@ function _fac_matrix_defrag() {
 # 安全沙盒編輯協議 - Safe Edit Protocol
 function _fac_safe_edit_protocol() {
     local target_key="$1"
-    local init_mode="${2:-EDIT}"  # NEW or EDIT
+    local init_mode="${2:-EDIT}"
 
-    # Phase 1: 鎖定與備份 (Lock & Backup)
+    # 前置作業
     _fac_neural_read "$target_key"
     
-    # 記錄原始狀態，用於回滾
     local origin_key="$target_key"
     local restore_type="$_VAL_TYPE"
     if [ "$init_mode" == "NEW" ]; then restore_type="N"; fi
 
-    # [Action] 將本體轉為 B (Backup/Shadow)
-    # 這樣它在 FZF 中會暫時消失，但資料還在
     _fac_neural_write "$target_key" 7 "B"
 
-    # Phase 2: 細胞分裂 (Mitosis / Cloning)
-    # 我們要複製 B 的資料產生 E (Edit / Working Copy)
-    # [FIX 1] 解決引號污染：只有當變數有值時才包引號，否則留空 (保持 ,, 格式)
-    
+    # 引號處理
     local draft_row="$_VAL_CATNO,$_VAL_COMNO,${_VAL_CATNAME:+\"$_VAL_CATNAME\"},${_VAL_TYPE:+\"$_VAL_TYPE\"},${_VAL_COM:+\"$_VAL_COM\"},${_VAL_COM2:+\"$_VAL_COM2\"},\"E\",${_VAL_HUDNAME:+\"$_VAL_HUDNAME\"},${_VAL_UINAME:+\"$_VAL_UINAME\"},${_VAL_PKG:+\"$_VAL_PKG\"},${_VAL_TARGET:+\"$_VAL_TARGET\"},${_VAL_IHEAD:+\"$_VAL_IHEAD\"},${_VAL_IBODY:+\"$_VAL_IBODY\"},${_VAL_URI:+\"$_VAL_URI\"},${_VAL_MIME:+\"$_VAL_MIME\"},${_VAL_CATE:+\"$_VAL_CATE\"},${_VAL_FLAG:+\"$_VAL_FLAG\"},${_VAL_EX:+\"$_VAL_EX\"},${_VAL_EXTRA:+\"$_VAL_EXTRA\"},${_VAL_ENGINE:+\"$_VAL_ENGINE\"}"
-
-    # 寫入 CSV (Append)
-    echo "$draft_row" >> "$MUX_ROOT/app.csv.temp"
-
-    # 設定工作指標 (Working Pointer)
-    local working_key="$target_key"
     
-    # 啟動全域編輯鎖 (防止外部腳本干擾)
+    # 資料格式狀態
+    echo "$draft_row" >> "$MUX_ROOT/app.csv.temp"
+    local working_key="$target_key"
     export __FAC_IO_STATE="E"
 
-
-    # Phase 3: 編輯迴圈 (Mutation Loop)
-    # [FIX 2] 狀態解耦：分開管理「視覺模式」與「操作信號」
-    local current_view_mode="$init_mode"  # 用來控制 FZF 顏色 (NEW/EDIT)
-    local loop_signal=0                   # 用來控制迴圈流向 (0=Cancel, 1=Confirm, 2=Update)
+    # 編輯迴圈 (Mutation Loop)
+    local current_view_mode="$init_mode"
+    local loop_signal=0
 
     while true; do
-        # 3.1 安全檢查：確保指標還活著
+        # 安全檢查
         if ! _fac_neural_read "$working_key"; then
              _bot_say "error" "CRITICAL: Pointer Lost ($working_key). Aborting transaction."
              loop_signal=0
              break
         fi
 
-        # 3.2 呼叫 UI 選擇器
+        # UI 選擇器
         local selection
         selection=$(_factory_fzf_detail_view "$working_key" "$current_view_mode")
         
@@ -1272,80 +1261,57 @@ function _fac_safe_edit_protocol() {
             break
         fi
 
-        # 3.3 呼叫路由器 (Router) 並捕捉輸出
-        # 我們需要捕捉 stdout 來聽取 UPDATE_KEY 信號
+        # 呼叫路由器 (Router) 並捕捉輸出
         local router_out
         router_out=$(_fac_edit_router "$selection" "$working_key" "$current_view_mode")
-        loop_signal=$?  # 獲取回傳代碼 (0, 1, 2)
+        loop_signal=$?  # 選單狀態值
 
-        # 3.4 [FIX 3] 指標漂移修正 (Pointer Update)
-        # 檢查 Router 是否發出了改名通知
         local new_key_candidate=$(echo "$router_out" | grep "UPDATE_KEY:" | cut -d':' -f2)
         
         if [ -n "$new_key_candidate" ]; then
-            # 更新工作指標，下一圈會用新鑰匙讀取
+            # 更新鍵值狀態
             working_key="$new_key_candidate"
         fi
 
-        # 3.5 視覺狀態流轉 (State Transition)
-        # 如果原本是 NEW 模式，但使用者修改了資料 (Signal 2)，則轉為 EDIT 模式 (變色)
-        # 注意：ui.sh 必須支援 NEW 和 EDIT 都有 Confirm 按鈕
+        # 狀態轉化
         if [ "$loop_signal" -eq 2 ] && [ "$current_view_mode" == "NEW" ]; then
             current_view_mode="EDIT"
         fi
 
-        # 3.6 迴圈決策
         if [ "$loop_signal" -eq 1 ]; then
-            # Signal 1: CONFIRM -> 跳出迴圈，執行存檔
+            # Out to Confirm
             break
         elif [ "$loop_signal" -eq 2 ]; then
-            # Signal 2: UPDATE -> 繼續編輯 (已在 3.4 更新過 Key)
+            # Update to keep Edit
             continue
         elif [ "$loop_signal" -eq 0 ]; then
-            # Signal 0: CANCEL -> 跳出迴圈，執行回滾
+            # Out to Rollback
             break
         fi
     done
 
 
     # Phase 4: 結算階段 (Settlement)
-    
     if [ "$loop_signal" -eq 1 ]; then
-        # === 提交 (COMMIT) ===
+        # Commit
         _bot_say "action" "Committing Transaction..."
-        
-        # 1. 刪除原本的備份 B (Origin Key)
-        # 因為 E 即將轉正，舊的 B 必須死
-        # 使用 Origin Key 確保刪到正確的影子
+
         export __FAC_IO_STATE="B"
         _fac_delete_node "$origin_key"
         
-        # 2. 如果改過名字 (Working Key != Origin Key)
-        # 為了防止主鍵衝突，我們要確保沒有其他 P/N/S 佔用新名字
-        # (這裡簡化處理，因為 delete_node 會看狀態)
-        
-        # 3. 將當前的 E 轉正為 S (Save)
         export __FAC_IO_STATE="E"
         _fac_neural_write "$working_key" 7 "S"
-        
         _bot_say "success" "Transaction Saved. Node is active."
-
     else
-        # === 回滾 (ROLLBACK) ===
+        # Rollback
         _bot_say "warn" "Transaction Cancelled. Rolling back..."
-        
-        # 1. 刪除當前的草稿 E (Working Key)
-        # 無論有無改名，刪掉當前手上這個 E
         export __FAC_IO_STATE="E"
         _fac_delete_node "$working_key"
         
-        # 2. 處置原始備份 B
         if [ "$restore_type" == "N" ]; then
-            # 如果原身是 NEW (新增到一半放棄)，則刪除 B (等於什麼都沒發生)
             export __FAC_IO_STATE="B"
             _fac_delete_node "$origin_key"
         else
-            # 如果原身是舊資料，將 B 還原為原狀態 (P/S/F)
             export __FAC_IO_STATE="B"
             _fac_neural_write "$origin_key" 7 "$restore_type"
         fi
@@ -1355,7 +1321,7 @@ function _fac_safe_edit_protocol() {
     unset __FAC_IO_STATE
 }
 
-# 原子寫入函數 - Atomic Node Updater
+# 原子寫入函數 (Atomic Node Updater)
 function _fac_update_node() {
     # 用法: _fac_update_node "TARGET_KEY" "COL_INDEX" "NEW_VALUE"
     local target_key="$1"
@@ -1398,7 +1364,7 @@ function _fac_update_node() {
     }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
 }
 
-# 原子刪除函數 - Atomic Node Deleter
+# 原子刪除函數 (Atomic Node Deleter)
 function _fac_delete_node() {
     local target_key="$1"
     local target_file="$MUX_ROOT/app.csv.temp"
@@ -1458,7 +1424,7 @@ function _fac_delete_node() {
     }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
 }
 
-# 通用單欄位編輯器 - Generic Editor
+# 通用單欄位編輯器 (Generic Editor)
 function _fac_generic_edit() {
     local target_key="$1"
     local col_idx="$2"
@@ -1501,7 +1467,7 @@ function _fac_generic_edit() {
     _bot_say "success" "Parameter Updated."
 }
 
-# 分類名稱批量更新器 - Batch Category Renamer
+# 分類名稱批量更新器 (Batch Category Renamer)
 function _fac_update_category_name() {
     local target_id="$1"
     local new_name="$2"
@@ -1794,6 +1760,7 @@ function _fac_init() {
     _show_hud "factory"
     awk -F, -v OFS=, '
     {
+        # 處決狀態 B 跟 C ，將 B 轉 P
         st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
         if (st == "C" || st == "E") next
         if (st == "B") {
@@ -1852,7 +1819,7 @@ function _factory_mask_apps() {
     return 0
 }
 
-# 複合鍵偵測器 - Private Logic
+# 複合鍵偵測器 (Private Logic)
 function _fac_check_composite_exists() {
     local c1="$1"
     local c2="$2"
@@ -1876,7 +1843,7 @@ function _fac_check_composite_exists() {
     ' "$csv_path"
 }
 
-# 兵工廠測試發射台 - Factory Fire Control Test
+# 兵工廠測試發射台 (Factory Fire Control Test)
 function _fac_launch_test() {
     local input_key="$1"
     local input_args="${*:2}"
@@ -2006,10 +1973,11 @@ function _fac_launch_test() {
     menu_opts+="MODE_I\t\033[1;36m['i' mode]\033[0m Implicit Intent ( -a -d Only )\n"
     
     # SSL 隱藏接口
-    # nu_opts+="SSL\t\033[1;31m[SSL Shell]\033[0m System Direct Execute"
+    # menu_opts+="SSL\t\033[1;31m[MODE_S]\033[0m Special Mode"
 
     local fzf_sel=$(echo -e "$menu_opts" | fzf --ansi \
         --height=9 \
+        --info=hidden \
         --layout=reverse \
         --border=bottom \
         --border-label=" :: FIRE CONTROL :: " \
