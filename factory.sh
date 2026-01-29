@@ -126,8 +126,11 @@ function _fac_neural_write() {
         t_sub=$(echo "$target_key" | awk -F"'" '{print $2}')
     fi
 
+    # 安全處理反斜線資料格寫入
+    local safe_val="${new_val//\\/\\\\}"
+
     # 處理寫入值的引號轉義，但絕對保留內部所有符號
-    local safe_val="${new_val//\"/\"\"}"
+    safe_val="${safe_val//\"/\"\"}"
 
     # 包裹外層引號，忽略空值
     if [ -n "$safe_val" ]; then
@@ -254,7 +257,7 @@ function _factory_reset() {
     echo ""
 
     if [ "$confirm" == "CONFIRM" ]; then
-        _bot_say "loading" "Reversing time flow..."
+        _bot_say "action" "Reversing time flow..."
         
         if [ -n "$target_bak" ] && [ -f "$target_bak" ]; then
             cp "$target_bak" "$MUX_ROOT/app.csv.temp"
@@ -288,7 +291,7 @@ function _factory_reset() {
 function fac() {
     local cmd="$1"
     if [ "$__MUX_MODE" == "core" ]; then
-        _bot_say "fail" "Factory commands disabled during Core session."
+        _bot_say "error" "Factory commands disabled during Core session."
         return 1
     fi
 
@@ -1300,7 +1303,7 @@ function _fac_safe_edit_protocol() {
     
     if [ "$loop_signal" -eq 1 ]; then
         # === 提交 (COMMIT) ===
-        _bot_say "process" "Committing Transaction..."
+        _bot_say "action" "Committing Transaction..."
         
         # 1. 刪除原本的備份 B (Origin Key)
         # 因為 E 即將轉正，舊的 B 必須死
@@ -1474,6 +1477,10 @@ function _fac_room_guide() {
             guide_text="Target Activity Class (Optional)."
             example_text="Example: 'com.google.android.apps.chrome.Main'"
             ;;
+        "ROOM_CATE")
+            guide_text="Intent Category Suffix (Auto-prefixed)."
+            example_text="Example: 'BROWSABLE', 'DEFAULT', 'LAUNCHER'"
+            ;;
         "ROOM_FLAG")
             guide_text="Execution Flags."
             example_text="Options: '--user 0', '--grant-read-uri-permission'"
@@ -1487,14 +1494,13 @@ function _fac_room_guide() {
             example_text="Example: 'https://google.com' OR '\$SEARCH_ENGINE'"
             ;;
         *)
-            guide_text="Edit value for this field."
+            guide_text="Edit value for this parameter."
+            example_text="Input the new value directly."
             ;;
     esac
 
-    echo -e "${F_GRAY}    :: Guide   : ${guide_text}${F_RESET}"
-    if [ -n "$example_text" ]; then
-        echo -e "${F_GRAY}    :: Format  : ${example_text}${F_RESET}"
-    fi
+    echo -e "${F_WARN} :: Guide :: ${guide_text}${F_RESET}"
+    echo -e "${F_GRAY} :: Format :: ${example_text}${F_RESET}"
     echo -e ""
 }
 
@@ -1617,7 +1623,7 @@ function _fac_edit_router() {
                     return 2 
                 fi
             else
-                _bot_say "info" "Node ID: $current_cat_no:$_VAL_COMNO"
+                _bot_say "factory" "Node ID: $current_cat_no:$_VAL_COMNO"
             fi
             ;;
         "ROOM_CMD")
@@ -1666,25 +1672,32 @@ function _fac_edit_router() {
             ;;
         "ROOM_HUD")
             _fac_generic_edit "$target_key" 8 "Edit Description (HUD Name):"
+            return 2
             ;;
         "ROOM_CATE")
             _fac_generic_edit "$target_key" 16 "Edit Category Type:"
+            return 2
             ;;
         "ROOM_UI")
             _fac_generic_edit "$target_key" 9 "Edit Display Name (Bot Label):"
+            return 2
             ;;
         "ROOM_PKG")
             _fac_generic_edit "$target_key" 10 "Edit Package Name (com.xxx.xxx):"
+            return 2
             ;;
         "ROOM_ACT")
             _fac_generic_edit "$target_key" 11 "Edit Activity / Class Path:"
+            return 2
             ;;
         "ROOM_FLAG")
             _fac_generic_edit "$target_key" 17 "Edit Execution Flags:"
+            return 2
             ;;
         "ROOM_INTENT")
             _fac_generic_edit "$target_key" 12 "Edit Intent Action (Head):"
             _fac_generic_edit "$target_key" 13 "Edit Intent Data (Body):"
+            return 2
             ;;
         "ROOM_URI")
             _fac_neural_read "$target_key"
@@ -1772,12 +1785,13 @@ function _fac_edit_router() {
             echo -e ""
             echo -e "${F_GRAY}    (Press 'Enter' to return to Factory)${F_RESET}"
             read
+            return 2
             ;;
         "ROOM_CONFIRM")
             _fac_neural_read "$target_key"
             if [ -z "$_VAL_COM" ] || [ "$_VAL_COM" == "[Empty]" ]; then
                 _bot_say "error" "Command Name is required!"
-                return 0
+                return 2
             else
                 _bot_say "success" "Node Validated."
                 return 1
@@ -1874,33 +1888,35 @@ function _fac_launch_test() {
     local C_VAL="\033[1;37m"
     local C_SEP="\033[1;30m"
     local C_RST="\033[0m"
+    local C_EMP="\033[1;30m[Empty]\033[0m"
     
     # 顯示詳細資訊
     # 共通欄位
     echo -e "${C_SEP}    ---------------${C_RST}"
     printf "${C_TYPE}    [TYPE: %-3s]${C_RST}\n" "$_VAL_TYPE"
-    echo -e "${C_LBL}    Command:${C_RST} ${C_VAL}$_VAL_COM $_VAL_COM2${C_RST}"
-    echo -e "${C_LBL}    UI     :${C_RST} ${C_VAL}$_VAL_UINAME${C_RST}"
-    echo -e "${C_LBL}    Detail :${C_RST} ${C_VAL}$_VAL_HUDNAME${C_RST}"
+    echo -e "${C_LBL}    Command:${C_RST} ${C_VAL}$_VAL_COM ${_VAL_COM2:-$C_EMP}${C_RST}"
+    echo -e "${C_LBL}    UI     :${C_RST} ${C_VAL}${_VAL_UINAME:-$C_EMP}${C_RST}"
+    echo -e "${C_LBL}    Detail :${C_RST} ${C_VAL}${_VAL_HUDNAME:-$C_EMP}${C_RST}"
     echo -e "${C_SEP}    ---------------${C_RST}"
 
     # TYPE 欄位
     case "$_VAL_TYPE" in
         "NA")
-            echo -e "    ${C_LBL}PKG    :${C_RST} ${C_VAL}$_VAL_PKG${C_RST}"
-            [ -n "$_VAL_TARGET" ] && echo -e "    ${C_LBL}Target :${C_RST} ${C_VAL}$_VAL_TARGET${C_RST}"
+            echo -e "    ${C_LBL}Package:${C_RST} ${C_VAL}${_VAL_PKG:-$C_EMP}${C_RST}"
+            echo -e "    ${C_LBL}Target :${C_RST} ${C_VAL}${_VAL_TARGET:-$C_EMP}${C_RST}"
             ;;
-        "NB")
+        "NB"|"SYS")
             local intent_str="${_VAL_IHEAD}${_VAL_IBODY}"
-            echo -e "    ${C_LBL}Intent :${C_RST} ${C_VAL}${intent_str:-N/A}${C_RST}"
+            echo -e "    ${C_LBL}Intent :${C_RST} ${C_VAL}${intent_str:-$C_EMP}${C_RST}"
+            
             if [ -n "$_VAL_ENGINE" ]; then
-                echo -e "    ${C_LBL}ENGINE :${C_RST} ${C_VAL}$_VAL_ENGINE${C_RST}"
+                echo -e "    ${C_LBL}Engine :${C_RST} ${C_VAL}$_VAL_ENGINE${C_RST}"
             else
-                echo -e "    ${C_LBL}URI    :${C_RST} ${C_VAL}$_VAL_URI${C_RST}"
+                echo -e "    ${C_LBL}URI    :${C_RST} ${C_VAL}${_VAL_URI:-$C_EMP}${C_RST}"
             fi
-            ;;
-        "SYS")
-            echo -e "    ${C_LBL}Script :${C_RST} ${C_VAL}$_VAL_PKG${C_RST}"
+
+            [ -n "$_VAL_PKG" ] && echo -e "    ${C_LBL}Package:${C_RST} ${C_VAL}$_VAL_PKG${C_RST}"
+            [ -n "$_VAL_TARGET" ] && echo -e "    ${C_LBL}Target :${C_RST} ${C_VAL}$_VAL_TARGET${C_RST}"
             ;;
     esac
 
@@ -2018,7 +2034,7 @@ function _fac_launch_test() {
 
         "MODE_N")
             # 'n' mode: Component Lock (apctdf, ex+extra)
-            if [ -z "$pkg" ] || [ -z "$tgt" ]; then _bot_say "warn" "Missing PKG or TARGET."; return 1; fi
+            if [ -z "$pkg" ] || [ -z "$tgt" ]; then _bot_say "error" "Missing PKG or TARGET."; return 1; fi
             final_cmd="am start --user 0"
             [ -n "$act" ] && final_cmd="$final_cmd -a \"$act\""
             [ -n "$pkg" ] && final_cmd="$final_cmd -n \"$pkg/$tgt\"" # Note: -n replaces -p
@@ -2032,7 +2048,7 @@ function _fac_launch_test() {
 
         "MODE_P")
             # 'p' mode: Package Lock (adctf, ex+extra)
-            if [ -z "$pkg" ]; then _bot_say "warn" "Missing PKG."; return 1; fi
+            if [ -z "$pkg" ]; then _bot_say "error" "Missing PKG."; return 1; fi
             final_cmd="am start --user 0"
             [ -n "$act" ] && final_cmd="$final_cmd -a \"$act\""
             [ -n "$dat" ] && final_cmd="$final_cmd -d \"$dat\""

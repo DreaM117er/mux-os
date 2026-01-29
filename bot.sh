@@ -376,6 +376,34 @@ function _bot_factory_personality() {
             )
             ;;
 
+        "action")
+            color=$C_YELLOW
+            phrases=(
+                " Initiating write sequence..."
+                " Committing data to sector..."
+                " Forging new command node..."
+                " Writing to neural buffer..."
+                " Updating matrix definitions..."
+                " Encoding parameters..."
+                " Inscribing logic to core..."
+                " Processing write request..."
+            )
+            ;;
+
+        "warn")
+            color=$C_RED
+            phrases=(
+                " Structural integrity warning"
+                " Parameter mismatch detected"
+                " Caution: Syntax variance"
+                " Alert: Potential conflict in logic"
+                " Warning: Checksum verification advised"
+                " Notice: Anomalous input pattern"
+                " Critical: Check your parameters"
+                " System Alert: Unstable configuration"
+            )
+            ;;
+
         "error")
             color=$C_RED
             phrases=(
