@@ -380,34 +380,42 @@ function _mux_fuzzy_menu() {
     fi
 
     # 1. 產生清單 (AWK Logic)
+    # 這裡我們只負責「顯示」，確保 COM 和 COM2 拼在一起
     local cmd_list=$(
         {
             echo "0,0,Core,SYS,mux,,,Core Command Entry"
             cat "$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD" 2>/dev/null
         } | awk -v FPAT='([^,]*)|("[^"]+")' '
         BEGIN {
-            C_CMD="\x1b[1;37m"
-            C_DESC="\x1b[1;30m"
+            C_CMD="\x1b[1;37m"   # 白色 (指令本體)
+            C_DESC="\x1b[1;30m"  # 灰色 (描述) <--- [關鍵] 這是我們的切割點
             C_RST="\x1b[0m"
         }
         !/^#/ && NF >= 5 && $1 !~ /CATNO/ {
+            # 清洗資料
             c=$5; gsub(/^"|"$/, "", c);
             s=$6; gsub(/^"|"$/, "", s);
             d=$8; gsub(/^"|"$/, "", d);
 
+            # [顯示邏輯]
+            # 如果有子指令 (s)，就拼起來變成 "git status"
+            # 如果沒有，就保持 "edge"
             if (s != "") {
                 full_cmd = c " " s
             } else {
                 full_cmd = c
             }
             
+            # 排版輸出：指令是白色，描述是灰色
+            # %-18s 確保對齊，讓畫面整潔
             printf " %s%-18s %s%s\n", C_CMD, full_cmd, C_DESC, d
         }'
     )
 
+    # 計算總數 (用於 Header)
     local total_cmds=$(echo "$cmd_list" | grep -c "^ ")
 
-    # 2. FZF 選擇 (完全保留您的框架設定)
+    # 2. FZF 選擇 (完全保留您的 UI 設定)
     local selected=$(echo "$cmd_list" | fzf --ansi \
         --height=10 \
         --layout=reverse \
@@ -423,17 +431,27 @@ function _mux_fuzzy_menu() {
 
     # 3. 後處理 (Post-Processing)
     if [ -n "$selected" ]; then
-        local cmd_only=$(echo "$selected" | sed 's/\x1b\[1;30m.*//')
+        # [CRITICAL FIX] 顏色斷點切割術
+        # 1. sed 's/\x1b\[1;30m.*//' : 找到灰色代碼 (1;30m) 及其後面所有東西，全部刪除！
+        #    這會把 "edge          Microsoft Edge" 變成 "edge          "
+        # 2. sed 's/\x1b\[[0-9;]*m//g' : 清除剩餘的指令顏色 (白色)
+        
+        local cmd_only=$(echo "$selected" | sed 's/\x1b\[1;30m.*//') 
         local clean_base=$(echo "$cmd_only" | sed 's/\x1b\[[0-9;]*m//g')
         
+        # 3. 去除頭尾多餘空白
+        #    現在 clean_base 就是純淨的 "edge" 或 "git status"
         local cmd_base=$(echo "$clean_base" | sed 's/^[ \t]*//;s/[ \t]*$//')
 
+        # 4. 參數注入 (雙扳機第二發)
         local prompt_text=$'\033[1;33m :: '$cmd_base$' \033[1;30m(Params?): \033[0m'
         read -e -p "$prompt_text" user_params < /dev/tty
         
+        # 5. 最終組裝
         local final_cmd="$cmd_base"
         [ -n "$user_params" ] && final_cmd="$cmd_base $user_params"
         
+        # 寫入歷史並執行
         history -s "$final_cmd"
         
         if [[ "$cmd_base" == "mux" ]]; then
@@ -461,6 +479,7 @@ function _mux_uplink_sequence() {
     pkg install fzf -y > /dev/null 2>&1
 
     if command -v fzf &> /dev/null; then
+        echo -e ""
         echo -e "\033[1;35m :: SYNCHRONIZATION COMPLETE :: \033[0m"
         echo -e ""
         sleep 0.5
