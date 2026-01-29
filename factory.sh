@@ -1944,8 +1944,9 @@ function _fac_launch_test() {
         fi
         
         # 輸出網址串
+        echo -e "${C_SEP}    ---------------${C_RST}"
         echo -e "${F_GRAY}    Resolving › $final_uri${F_RESET}"
-        echo -e "${C_SEP}---------------${C_RST}"
+        echo -e "${C_SEP}    ---------------${C_RST}"
     fi
 
     # 4. 選擇開火模式
@@ -2068,14 +2069,14 @@ function _fac_launch_test() {
         
         if [[ "$output" == *"Error"* || "$output" == *"does not exist"* || "$output" == *"unable to resolve"* ]]; then
              echo -e "\n${F_ERR} :: FIRE FAILED ::${F_RESET}"
-             echo -e "${F_GRAY}    Output: $output${F_RESET}"
+             echo -e "${F_GRAY}    $output${F_RESET}"
              return 1
         else
              echo -e "\n${F_GRE} :: FIRE SUCCESS ::${F_RESET}"
              if [ "$fire_mode" == "SSL" ]; then
-                 echo -e "${F_GRAY}---------------${F_RESET}"
+                 echo -e "${F_GRAY}    ---------------${F_RESET}"
                  echo -e "$output"
-                 echo -e "${F_GRAY}---------------${F_RESET}"
+                 echo -e "${F_GRAY}    ---------------${F_RESET}"
              else
                  echo -e "${F_GRAY}    ›› Target Impacted.${F_RESET}"
              fi
