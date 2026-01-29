@@ -449,16 +449,16 @@ function _mux_fuzzy_menu() {
         
         # 5. 最終組裝
         local final_cmd="$cmd_base"
-        [ -n "$user_params" ] && final_cmd="$cmd_base $user_params"
+        [ -n "$user_params" ] && final_cmd="$cmd_base"
         
         # 寫入歷史並執行
         history -s "$final_cmd"
         
         if [[ "$cmd_base" == "mux" ]]; then
-             $final_cmd
+            $final_cmd
         else
-             echo -e "\033[1;30m    Executing › $final_cmd\033[0m"
-             eval "$final_cmd"
+            echo -e "\033[1;30m    Executing › $final_cmd\033[0m"
+            eval "$final_cmd"
         fi
     fi
 }
