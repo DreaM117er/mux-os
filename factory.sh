@@ -1676,6 +1676,9 @@ function _fac_edit_router() {
                 _fac_neural_write "$target_key" 2 "$next_com_no"
                 _fac_neural_write "$target_key" 3 "$sel_name"
 
+                _fac_sort_optimization
+                _fac_safe_merge
+
                 _bot_say "success" "Transfer Complete. Assigned ID: $next_com_no" >&2
                 return 2
             fi
