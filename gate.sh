@@ -88,7 +88,7 @@ while [ $CURRENT_PCT -le 100 ]; do
     if [ $CURRENT_PCT -gt 100 ]; then CURRENT_PCT=100; fi
 
     # 2. 動態擾動 (Jitter): 15ms ~ 35ms
-    JITTER=$(( 15 + RANDOM % 21 ))
+    JITTER=$(( 10 + RANDOM % 11 ))
     sleep "0.0$JITTER"
 done
 

@@ -1129,7 +1129,7 @@ function _ui_fake_gate() {
         current_pct=$(( current_pct + jump ))
         if [ $current_pct -gt 100 ]; then current_pct=100; fi
 
-        local jitter=$(( 15 + RANDOM % 21 ))
+        local jitter=$(( 10 + RANDOM % 11 ))
         sleep "0.0$jitter"
     done
 
