@@ -497,7 +497,7 @@ function fac() {
                         # 鎖定 999 不可改名
                         if [ "$cat_id" == "999" ]; then
                             _bot_say "error" "System Reserved: [999] Others." >&2
-                            echo -e "${F_GRAY}    >> The Void is immutable. You cannot rename it.${F_RESET}" >&2
+                            echo -e "${F_GRAY}    ›› The Void is immutable. You cannot rename it.${F_RESET}" >&2
                             continue
                         fi
 
