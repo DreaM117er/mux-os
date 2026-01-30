@@ -1129,7 +1129,8 @@ function _ui_fake_gate() {
         printf "%3d%%" "$pct"
         echo -ne "${C_TXT} :: MEM: ${hex_addr}${C_RESET}\033[K"
 
-        sleep 0.015
+        local jitter=$(( 10 + RANDOM % 11 ))
+        sleep "0.0$jitter"
     done
 
     tput cnorm
