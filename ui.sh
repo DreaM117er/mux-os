@@ -744,7 +744,7 @@ function _factory_fzf_cat_selector() {
     )
 
     if [ -n "$selected" ]; then
-        echo "$selected" | awk '{print $1}'
+        echo "$selected" | sed "s/$(printf '\033')\[[0-9;]*m//g" | awk '{print $1}'
     fi
 }
 

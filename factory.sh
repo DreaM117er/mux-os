@@ -1578,7 +1578,7 @@ function _fac_edit_router() {
                             exit 
                         }
                         
-                        if (sim > 0.70 && sim > best_sim) {
+                        if (sim > 0.82 && sim > best_sim) {
                             best_sim = sim
                             match_type = "SIMILAR"
                             target_name = name
