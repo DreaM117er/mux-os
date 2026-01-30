@@ -1520,43 +1520,18 @@ function _fac_edit_router() {
     # 路由分支 (Router Switch)
     case "$room_id" in
         "ROOM_INFO")
-            # 1. 讀取當前節點資訊
+            # 1. 讀取當前節點
             _fac_neural_read "$target_key"
             local current_cat_no="$_VAL_CATNO"
             local current_cat_name="$_VAL_CATNAME"
 
-            # 2. 掃描所有現存類別 (Unique List)
-            local cat_list=$(awk -F, '
-                NR>1 {
-                    id=$1; gsub(/^"|"$/, "", id); gsub(/^[ \t]+|[ \t]+$/, "", id)
-                    name=$3; gsub(/^"|"$/, "", name); gsub(/^[ \t]+|[ \t]+$/, "", name)
-                    if (id != "" && name != "") {
-                        print "[" id "] " name
-                    }
-                }
-            ' "$MUX_ROOT/app.csv.temp" | sort -u -k1.2,1.4n)
+            # 2. 呼叫分類選單
+            local sel_id=$(_factory_fzf_cat_selector "RELOCATE")
 
-            # 3. 組合 FZF 選單
-            local menu_options="${cat_list}\n\033[1;32m[+] Create New Category\033[0m"
-
-            local target_cat_sel=$(echo -e "$menu_options" | fzf --ansi \
-                --height=12 \
-                --layout=reverse \
-                --border-label=" :: RELOCATE NODE :: " \
-                --border=bottom \
-                --header=" :: Current: [$current_cat_no] $current_cat_name ::" \
-                --prompt=" :: Move to › " \
-                --info=hidden \
-                --pointer="››" \
-                --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-                --color=info:240,prompt:$prompt_color,pointer:red,marker:208,border:$border_color,header:240 \
-                --bind="resize:clear-screen"
-            )
-
-            if [ -z "$target_cat_sel" ]; then return 0; fi
+            if [ -z "$sel_id" ]; then return 0; fi
 
             # Branch A: 新增類別 (New Category)
-            if echo "$target_cat_sel" | grep -q "Create New Category"; then
+            if [ "$sel_id" == "[NEW]" ]; then
                 _bot_say "action" "Forging New Category..." >&2
                 echo -e "${F_GRAY} :: Guide   : Enter name for the new category.${F_RESET}" >&2
                 read -e -p "    › " new_cat_name
@@ -1568,11 +1543,13 @@ function _fac_edit_router() {
                     function min(a, b, c) {
                         m = a; if (b < m) m = b; if (c < m) m = c; return m
                     }
-                    # Levenshtein 算法封裝
                     function calc_dist(s1, s2) {
                         s1 = tolower(s1); s2 = tolower(s2);
                         n = length(s1); m = length(s2);
                         if (n == 0) return m; if (m == 0) return n;
+                        
+                        delete d
+                        
                         for (i=0; i<=n; i++) d[i,0] = i
                         for (j=0; j<=m; j++) d[0,j] = j
                         for (i=1; i<=n; i++) {
@@ -1587,20 +1564,18 @@ function _fac_edit_router() {
                     BEGIN { best_sim = 0; match_type = "OK"; target_id = ""; target_name = "" }
                     
                     NR>1 {
-                        # 讀取現有類別
                         id=$1; gsub(/^"|"$/, "", id);
                         name=$3; gsub(/^"|"$/, "", name);
                         
                         if (id == "" || name == "") next;
 
-                        # 計算相似度
                         dist = calc_dist(input, name)
                         maxlen = (length(input) > length(name)) ? length(input) : length(name)
                         sim = 1 - (dist / maxlen)
 
                         if (sim == 1.0) {
                             print "EXACT:" id ":" name
-                            exit # 找到完全匹配，直接結束
+                            exit 
                         }
                         
                         if (sim > 0.70 && sim > best_sim) {
@@ -1617,23 +1592,19 @@ function _fac_edit_router() {
                 ' "$MUX_ROOT/app.csv.temp")
 
                 # 判斷掃描結果
-                # Case 1: 100% 命中
                 if [[ "$scan_result" == EXACT* ]]; then
                     local exist_id=$(echo "$scan_result" | cut -d: -f2)
                     local exist_name=$(echo "$scan_result" | cut -d: -f3)
 
-                    # 吐槽
                     _bot_say "warn" "Detected existing category [$exist_id]. Routing..." >&2
                     echo -e "${F_GRAY}    ›› You typed that manually? We have a menu for a reason... 🙄${F_RESET}" >&2
 
-                    # 計算新 COMNO (Max+1)
                     local next_com_no=$(awk -F, -v target_cat="$exist_id" '
                         BEGIN { max=0 }
                         { id=$1; gsub(/^"|"$/, "", id); cn=$2; gsub(/^"|"$/, "", cn); 
                         if (id == target_cat && (cn+0) > max) max=cn+0 } END { print max+1 }
                     ' "$MUX_ROOT/app.csv.temp")
 
-                    # 原子寫入
                     _fac_neural_write "$target_key" 1 "$exist_id"
                     _fac_neural_write "$target_key" 2 "$next_com_no"
                     _fac_neural_write "$target_key" 3 "$exist_name"
@@ -1641,7 +1612,6 @@ function _fac_edit_router() {
                     _bot_say "success" "Auto-Relocated to [$exist_id]." >&2
                     return 2
 
-                # Case 2: >70% 相似 (可能是手殘) -> 報錯攔截
                 elif [[ "$scan_result" == SIMILAR* ]]; then
                     local similar_name=$(echo "$scan_result" | cut -d: -f2)
                     _bot_say "error" "Input '$new_cat_name' is too similar to existing '$similar_name'." >&2
@@ -1649,21 +1619,18 @@ function _fac_edit_router() {
                     return 0
                 fi
 
-                # Case 3: OK (全新類別) -> 正常創建
-                # 計算下一個 CATNO (Max + 1)
                 local next_cat_no=$(awk -F, '
+                    BEGIN { max=0 }
                     NR>1 {
                         id=$1; gsub(/^"|"$/, "", id)
                         if ((id+0) > max && (id+0) != 999) max=id+0 
                     } 
                     END { 
-                        if (max == 0) print 1; else print max+1 
+                        val = (max == 0) ? 1 : max+1
+                        printf "%03d", val 
                     }
                 ' "$MUX_ROOT/app.csv.temp")
                 
-                if [ ${#next_cat_no} -eq 1 ]; then next_cat_no="00$next_cat_no"; fi
-                if [ ${#next_cat_no} -eq 2 ]; then next_cat_no="0$next_cat_no"; fi
-
                 _bot_say "action" "Moving Node to New Sector [$next_cat_no] $new_cat_name..." >&2
                 
                 # 原子寫入
@@ -1676,9 +1643,14 @@ function _fac_edit_router() {
 
             # Branch B: 移動到現有類別 (Existing Category)
             else
-                local sel_id=$(echo "$target_cat_sel" | awk -F']' '{print $1}' | sed 's/\[//')
-                local sel_name=$(echo "$target_cat_sel" | awk -F']' '{$1=""; print $0}' | sed 's/^[ \t]*//')
-                
+                local sel_name=$(awk -F, -v tid="$sel_id" '
+                    NR>1 {
+                        id=$1; gsub(/^"|"$/, "", id); 
+                        name=$3; gsub(/^"|"$/, "", name);
+                        if (id+0 == tid+0) { print name; exit }
+                    }
+                ' "$MUX_ROOT/app.csv.temp")
+
                 if [ "$sel_id" == "$current_cat_no" ]; then
                     _bot_say "warn" "Node is already in this category." >&2
                     return 0
@@ -1686,14 +1658,12 @@ function _fac_edit_router() {
 
                 _bot_say "action" "Relocating Node to [$sel_id] $sel_name..." >&2
 
-                # 計算目標類別中最大的 COMNO，然後 +1
+                # 計算 COMNO (Max+1)
                 local next_com_no=$(awk -F, -v target_cat="$sel_id" '
                     BEGIN { max=0 }
                     {
-                        # 去除引號
                         id=$1; gsub(/^"|"$/, "", id)
                         cn=$2; gsub(/^"|"$/, "", cn)
-                        
                         if (id == target_cat) {
                             if ((cn+0) > max) max=cn+0
                         }
@@ -1702,9 +1672,9 @@ function _fac_edit_router() {
                 ' "$MUX_ROOT/app.csv.temp")
 
                 # 原子寫入
-                _fac_neural_write "$target_key" 1 "$sel_id"      # CATNO
-                _fac_neural_write "$target_key" 2 "$next_com_no" # COMNO Max+1
-                _fac_neural_write "$target_key" 3 "$sel_name"    # CATNAME
+                _fac_neural_write "$target_key" 1 "$sel_id"
+                _fac_neural_write "$target_key" 2 "$next_com_no"
+                _fac_neural_write "$target_key" 3 "$sel_name"
 
                 _bot_say "success" "Transfer Complete. Assigned ID: $next_com_no" >&2
                 return 2

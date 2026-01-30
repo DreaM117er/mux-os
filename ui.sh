@@ -693,11 +693,18 @@ function _factory_fzf_cat_selector() {
             header_msg="DELETE CATEGORY MODE"
             prompt_msg="Choose"
             ;;
+        "RELOCATE")
+            border_color="46" 
+            prompt_color="46"
+            header_msg="RELOCATE NODE"
+            prompt_msg="Move to"
+            ;;
         *)
             border_color="208"
             ;;
     esac
 
+    # 1. 生成標準列表 (Sorted)
     local cat_list=$(awk -v FPAT='([^,]*)|("[^"]+")' '
         BEGIN {
             C_ID="\033[1;33m" 
@@ -713,8 +720,17 @@ function _factory_fzf_cat_selector() {
         }
     ' "$target_file" | sort -n)
 
-    local selected=$(echo "$cat_list" | awk -F'|' '{printf " \033[1;33m%03d  \033[1;37m%s\n", $1, $2}' | fzf --ansi \
-        --height=10 \
+    # 2. 格式化列表 (Formatted)
+    local formatted_list=$(echo "$cat_list" | awk -F'|' '{printf " \033[1;33m%03d  \033[1;37m%s\n", $1, $2}')
+
+    # 3. 根據模式新增選項
+    if [ "$mode" == "RELOCATE" ]; then
+        formatted_list="${formatted_list}\n \033[1;32m[NEW]  \033[1;37m[Create New Category]"
+    fi
+
+    # 4. FZF 渲染
+    local selected=$(echo -e "$formatted_list" | fzf --ansi \
+        --height=12 \
         --layout=reverse \
         --border-label=" :: $header_msg :: " \
         --border=bottom \
