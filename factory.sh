@@ -1414,12 +1414,12 @@ function _fac_generic_edit() {
     local target_key="$1"
     local col_idx="$2"
     local prompt_text="$3"
-    local guide_text="$4"
+    local guide_text="$4" # 接收參數
     
     # 1. 讀取最新狀態
     _fac_neural_read "$target_key"
     
-    # 2. 映射欄位索引到變數 (為了顯示 Default Value)
+    # 2. 映射欄位 (省略中間 case，與原代碼一致)
     local current_val=""
     case "$col_idx" in
         8) current_val="$_VAL_HUDNAME" ;;
@@ -1438,19 +1438,19 @@ function _fac_generic_edit() {
         *) current_val="" ;;
     esac
     
-    _bot_say "action" "$prompt_text"
+    _bot_say "action" "$prompt_text" >&2
     
     if [ -n "$guide_text" ]; then
-        echo -e "$guide_text"
+        echo -e "$guide_text" >&2
     fi
     
-    echo -e "${F_GRAY}    Current: [ ${current_val:-Empty} ]${F_RESET}"
-    
+    # 3. 使用者輸入
+    echo -e "${F_GRAY}    Current: [ ${current_val:-Empty} ]${F_RESET}" >&2
     read -e -p "    › " -i "$current_val" input_val
     
     # 4. 原子寫入
     _fac_neural_write "$target_key" "$col_idx" "$input_val"
-    _bot_say "success" "Parameter Updated."
+    _bot_say "success" "Parameter Updated." >&2
 }
 
 # 分類名稱批量更新器 (Batch Category Renamer)
@@ -1559,8 +1559,8 @@ function _fac_edit_router() {
                 if [ -z "$choice" ]; then return 0; fi
 
                 if echo "$choice" | grep -q " COM"; then
-                    _bot_say "action" "Edit Command (Trigger):"
-                    echo -e "${F_GRAY} :: Guide   : The main CLI command (e.g., 'chrome').${F_RESET}"
+                    _bot_say "action" "Edit Command (Trigger):" >&2
+                    echo -e "${F_GRAY} :: Guide   : The main CLI command (e.g., 'chrome').${F_RESET}" >&2
                     
                     read -e -p "    › " -i "$_VAL_COM" new_com
                     new_com=$(echo "$new_com" | sed 's/^[ \t]*//;s/[ \t]*$//')
@@ -1573,12 +1573,11 @@ function _fac_edit_router() {
                         else
                             current_track_key="$new_com"
                         fi
-                        _bot_say "success" "Identity Updated."
+                        _bot_say "success" "Identity Updated." >&2
                     fi
-
                 elif echo "$choice" | grep -q " SUB"; then
-                    _bot_say "action" "Edit Sub-Command (Optional):"
-                    echo -e "${F_GRAY} :: Guide   : The secondary trigger (e.g., 'incognito').${F_RESET}"
+                    _bot_say "action" "Edit Sub-Command (Optional):" >&2
+                    echo -e "${F_GRAY} :: Guide   : The secondary trigger (e.g., 'incognito').${F_RESET}" >&2
                     
                     read -e -p "    › " -i "$_VAL_COM2" new_sub
                     new_sub=$(echo "$new_sub" | sed 's/^[ \t]*//;s/[ \t]*$//')
@@ -1591,72 +1590,72 @@ function _fac_edit_router() {
                         else
                             current_track_key="$cur_com"
                         fi
-                        _bot_say "success" "Sub-Command Updated."
+                        _bot_say "success" "Sub-Command Updated." >&2
                     fi
                 
                 elif echo "$choice" | grep -q "Confirm"; then
-                    echo "UPDATE_KEY:$current_track_key"
+                    echo "UPDATE_KEY: $current_track_key"
                     return 2
                 fi
             done
             ;;
 
         "ROOM_HUD")
-            echo -e "${F_GRAY} :: Guide   : Enter the Menu Description.${F_RESET}"
-            echo -e "${F_GRAY} :: Format  : e.g. 'Google Chrome Browser'${F_RESET}"
+            echo -e "${F_GRAY} :: Guide   : Enter the Menu Description.${F_RESET}" >&2
+            echo -e "${F_GRAY} :: Format  : e.g. 'Google Chrome Browser'${F_RESET}" >&2
             
             _fac_generic_edit "$target_key" 8 "Edit Description (HUD Name):"
             return 2
             ;;
 
         "ROOM_UI")
-            echo -e "${F_GRAY} :: Guide   : UI Rendering Mode${F_RESET}"
-            echo -e "${F_GRAY} :: Options : ${F_WARN}[Empty]${F_GRAY}=Default, ${F_WARN}fzf${F_GRAY}, ${F_WARN}silent${F_RESET}"
+            echo -e "${F_GRAY} :: Guide   : UI Rendering Mode${F_RESET}" >&2
+            echo -e "${F_GRAY} :: Options : ${F_WARN}[Empty]${F_GRAY}=Default, ${F_WARN}fzf${F_GRAY}, ${F_WARN}silent${F_RESET}" >&2
             
             _fac_generic_edit "$target_key" 9 "Edit Display Name (Bot Label):"
             return 2
             ;;
             
         "ROOM_PKG")
-            echo -e "${F_GRAY} :: Guide   : Target Android Package${F_RESET}"
-            echo -e "${F_GRAY} :: Hint    : Use 'apklist' or 'ROOM_LOOKUP' to find packages.${F_RESET}"
+            echo -e "${F_GRAY} :: Guide   : Target Android Package${F_RESET}" >&2
+            echo -e "${F_GRAY} :: Hint    : Use 'apklist' or 'ROOM_LOOKUP' to find packages.${F_RESET}" >&2
             
             _fac_generic_edit "$target_key" 10 "Edit Package Name (com.xxx.xxx):"
             return 2
             ;;
 
         "ROOM_ACT")
-            echo -e "${F_GRAY} :: Guide   : Target Activity Class (Optional)${F_RESET}"
-            echo -e "${F_GRAY} :: Format  : com.package.name.MainActivity${F_RESET}"
+            echo -e "${F_GRAY} :: Guide   : Target Activity Class (Optional)${F_RESET}" >&2
+            echo -e "${F_GRAY} :: Format  : com.package.name.MainActivity${F_RESET}" >&2
             
             _fac_generic_edit "$target_key" 11 "Edit Activity / Class Path:"
             return 2
             ;;
             
         "ROOM_CATE")
-            echo -e "${F_GRAY} :: Guide   : Intent Category Suffix${F_RESET}"
-            echo -e "${F_GRAY} :: Note    : System adds 'android.intent.category.' prefix.${F_RESET}"
-            echo -e "${F_GRAY} :: Example : ${F_WARN}BROWSABLE${F_RESET}, ${F_WARN}DEFAULT${F_RESET}, ${F_WARN}LAUNCHER${F_RESET}"
+            echo -e "${F_GRAY} :: Guide   : Intent Category Suffix${F_RESET}" >&2
+            echo -e "${F_GRAY} :: Note    : System adds 'android.intent.category.' prefix.${F_RESET}" >&2
+            echo -e "${F_GRAY} :: Example : ${F_WARN}BROWSABLE${F_RESET}, ${F_WARN}DEFAULT${F_RESET}, ${F_WARN}LAUNCHER${F_RESET}" >&2
             
             _fac_generic_edit "$target_key" 16 "Edit Category Type:"
             return 2
             ;;
 
         "ROOM_FLAG")
-            echo -e "${F_GRAY} :: Guide   : Execution Flags (am start)${F_RESET}"
-            echo -e "${F_GRAY} :: Example : ${F_WARN}--user 0${F_RESET}, ${F_WARN}--grant-read-uri-permission${F_RESET}"
+            echo -e "${F_GRAY} :: Guide   : Execution Flags (am start)${F_RESET}" >&2
+            echo -e "${F_GRAY} :: Example : ${F_WARN}--user 0${F_RESET}, ${F_WARN}--grant-read-uri-permission${F_RESET}" >&2
             
             _fac_generic_edit "$target_key" 17 "Edit Execution Flags:"
             return 2
             ;;
 
         "ROOM_INTENT")
-            echo -e "${F_GRAY} :: Guide   : Intent Action HEAD${F_RESET}"
-            echo -e "${F_GRAY} :: Format  : android.intent.action${F_RESET}"
+            echo -e "${F_GRAY} :: Guide   : Intent Action HEAD${F_RESET}" >&2
+            echo -e "${F_GRAY} :: Format  : android.intent.action${F_RESET}" >&2
             _fac_generic_edit "$target_key" 12 "Edit Intent Action (Head):"
             
-            echo -e "${F_GRAY} :: Guide   : Intent Action BODY${F_RESET}"
-            echo -e "${F_GRAY} :: Format  : '.VIEW', '.SEND', '.MAIN' ...${F_RESET}"
+            echo -e "${F_GRAY} :: Guide   : Intent Action BODY${F_RESET}" >&2
+            echo -e "${F_GRAY} :: Format  : '.VIEW', '.SEND', '.MAIN' ...${F_RESET}" >&2
             _fac_generic_edit "$target_key" 13 "Edit Intent Data (Body):"
             return 2
             ;;
@@ -1754,10 +1753,10 @@ function _fac_edit_router() {
             ;;
 
         "ROOM_LOOKUP")
-            _bot_say "action" "Launching Reference Tool..."
-            if command -v apklist &> /dev/null; then apklist; else echo "Module missing"; fi
-            echo -e ""
-            echo -e "${F_GRAY}    (Press 'Enter' to return to Factory)${F_RESET}"
+            _bot_say "action" "Launching Reference Tool..." >&2
+            if command -v apklist &> /dev/null; then apklist >&2; else echo "Module missing" >&2; fi
+            echo -e "" >&2
+            echo -e "${F_GRAY}    (Press 'Enter' to return to Factory)${F_RESET}" >&2
             read
             return 2
             ;;
@@ -1765,10 +1764,10 @@ function _fac_edit_router() {
         "ROOM_CONFIRM")
             _fac_neural_read "$target_key"
             if [ -z "$_VAL_COM" ] || [ "$_VAL_COM" == "[Empty]" ]; then
-                _bot_say "error" "Command Name is required!"
+                _bot_say "error" "Command Name is required!" >&2
                 return 2
             else
-                _bot_say "success" "Node Validated."
+                _bot_say "success" "Node Validated." >&2
                 return 1
             fi
             ;;
