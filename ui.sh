@@ -899,27 +899,44 @@ function _factory_fzf_detail_view() {
     report+=" ${C_LBL}UI     :${C_VAL} ${d_ui} ${S}ROOM_UI\n"
     report+="${C_LBL}${SEP}${C_RST}\n"
 
-    # Type Specific Section
-    if [ "$_VAL_TYPE" == "NB" ]; then
-        report+=" ${C_LBL}Intent :${C_VAL} ${_VAL_IHEAD}${_VAL_IBODY}${S}ROOM_INTENT\n"
-        report+=" ${C_LBL}URI    :${C_VAL} ${final_uri} ${S}ROOM_URI\n"
-        report+=" ${C_LBL}Cate   :${C_VAL} ${_VAL_CATE:-[Empty]} ${S}ROOM_CATE\n"
-        report+=" ${C_LBL}Mime   :${C_VAL} ${_VAL_MIME:-[Empty]} ${S}ROOM_MIME\n"
-        report+=" ${C_LBL}Extra  :${C_VAL} ${_VAL_EX:-[Empty]} ${_VAL_EXTRA} ${S}ROOM_EXTRA\n"
-        report+=" ${C_LBL}Package:${C_VAL} ${d_pkg} ${S}ROOM_PKG\n"
-        report+=" ${C_LBL}Target :${C_VAL} ${d_act} ${S}ROOM_ACT\n"
-    else
-        # Default / NA / SYS
-        report+=" ${C_LBL}Package:${C_VAL} ${d_pkg} ${S}ROOM_PKG\n"
-        report+=" ${C_LBL}Target :${C_VAL} ${d_act} ${S}ROOM_ACT\n"
-        report+=" ${C_LBL}Flag   :${C_VAL} ${_VAL_FLAG:-[Empty]} ${S}ROOM_FLAG\n"
-    fi
-
-    # Footer Actions
     if [[ "$view_mode" == "NEW" || "$view_mode" == "EDIT" ]]; then
-        report+="${C_LBL}${SEP}${C_RST}\n"
-        report+="\033[1;36m[Lookup] 'apklist'\033[0m${S}ROOM_LOOKUP\n"
-        report+="\033[1;32m[Confirm]\033[0m${S}ROOM_CONFIRM"
+        # NEW & EDIT Mode Section
+        if [ "$_VAL_TYPE" == "NB" ]; then
+            report+=" ${C_LBL}Intent :${C_VAL} ${_VAL_IHEAD}${_VAL_IBODY}${S}ROOM_INTENT\n"
+            report+=" ${C_LBL}URI    :${C_VAL} ${final_uri} ${S}ROOM_URI\n"
+            report+=" ${C_LBL}Cate   :${C_VAL} ${_VAL_CATE:-[Empty]} ${S}ROOM_CATE\n"
+            report+=" ${C_LBL}Mime   :${C_VAL} ${_VAL_MIME:-[Empty]} ${S}ROOM_MIME\n"
+            report+=" ${C_LBL}Extra  :${C_VAL} ${_VAL_EX:-[Empty]} ${_VAL_EXTRA} ${S}ROOM_EXTRA\n"
+            report+=" ${C_LBL}Package:${C_VAL} ${d_pkg} ${S}ROOM_PKG\n"
+            report+=" ${C_LBL}Target :${C_VAL} ${d_act} ${S}ROOM_ACT\n"
+            report+="${C_LBL}${SEP}${C_RST}\n"
+            report+="\033[1;36m[Lookup] 'apklist'\033[0m${S}ROOM_LOOKUP\n"
+            report+="\033[1;32m[Confirm]\033[0m${S}ROOM_CONFIRM"
+        else
+        # Default / NA / SYS
+            report+=" ${C_LBL}Package:${C_VAL} ${d_pkg} ${S}ROOM_PKG\n"
+            report+=" ${C_LBL}Target :${C_VAL} ${d_act} ${S}ROOM_ACT\n"
+            report+=" ${C_LBL}Flag   :${C_VAL} ${_VAL_FLAG:-[Empty]} ${S}ROOM_FLAG\n"
+            report+="${C_LBL}${SEP}${C_RST}\n"
+            report+="\033[1;36m[Lookup] 'apklist'\033[0m${S}ROOM_LOOKUP\n"
+            report+="\033[1;32m[Confirm]\033[0m${S}ROOM_CONFIRM"
+        fi
+    else
+        # VIEW Mode Section
+        if [ "$_VAL_TYPE" == "NB" ]; then
+            report+=" ${C_LBL}Intent :${C_VAL} ${_VAL_IHEAD}${_VAL_IBODY}${S}ROOM_INTENT\n"
+            report+=" ${C_LBL}URI    :${C_VAL} ${final_uri} ${S}ROOM_URI\n"
+            report+=" ${C_LBL}Cate   :${C_VAL} ${_VAL_CATE:-[Empty]} ${S}ROOM_CATE\n"
+            report+=" ${C_LBL}Mime   :${C_VAL} ${_VAL_MIME:-[Empty]} ${S}ROOM_MIME\n"
+            report+=" ${C_LBL}Extra  :${C_VAL} ${_VAL_EX:-[Empty]} ${_VAL_EXTRA} ${S}ROOM_EXTRA\n"
+            report+=" ${C_LBL}Package:${C_VAL} ${d_pkg} ${S}ROOM_PKG\n"
+            report+=" ${C_LBL}Target :${C_VAL} ${d_act} ${S}ROOM_ACT"
+        else
+        # Default / NA / SYS
+            report+=" ${C_LBL}Package:${C_VAL} ${d_pkg} ${S}ROOM_PKG\n"
+            report+=" ${C_LBL}Target :${C_VAL} ${d_act} ${S}ROOM_ACT\n"
+            report+=" ${C_LBL}Flag   :${C_VAL} ${_VAL_FLAG:-[Empty]} ${S}ROOM_FLAG"
+        fi
     fi
 
     # 5. 輸出給 FZF
