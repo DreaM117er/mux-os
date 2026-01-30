@@ -132,9 +132,14 @@ function _fac_neural_write() {
     # 處理寫入值的引號轉義，但絕對保留內部所有符號
     safe_val="${safe_val//\"/\"\"}"
 
-    # 包裹外層引號，忽略空值
-    if [ -n "$safe_val" ]; then
-        safe_val="\"$safe_val\""
+    if [[ "$col_idx" == "1" || "$col_idx" == "2" ]]; then
+        # 純數值，不動作
+        :
+    else
+        # 文字包裹外層引號，忽略空值
+        if [ -n "$safe_val" ]; then
+            safe_val="\"$safe_val\""
+        fi
     fi
 
     awk -v FPAT='([^,]*)|("[^"]+")' -v OFS="," \
