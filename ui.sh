@@ -744,7 +744,11 @@ function _factory_fzf_cat_selector() {
     )
 
     if [ -n "$selected" ]; then
-        echo "$selected" | sed "s/$(printf '\033')\[[0-9;]*m//g" | awk '{print $1}'
+        if echo "$selected" | grep -q "Create New Category"; then
+            echo "NEW_SIGNAL"
+        else
+            echo "$selected" | sed "s/$(printf '\033')\[[0-9;]*m//g" | awk '{print $1}'
+        fi
     fi
 }
 
