@@ -1534,14 +1534,14 @@ function _fac_edit_router() {
                 local disp_sub="${_VAL_COM2:-[Empty]}"
                 
                 local menu_list=$(
-                    echo -e " COM     \t$disp_com"
-                    echo -e " SUB     \t$disp_sub"
+                    echo -e " COMMAND \t$disp_com"
+                    echo -e " SUBCOM  \t$disp_sub"
                     echo -e "\033[1;30m----------\033[0m"
                     echo -e "\033[1;32m[Confirm]\033[0m"
                 )
 
                 local choice=$(echo -e "$menu_list" | fzf --ansi \
-                    --height=9 \
+                    --height=8 \
                     --layout=reverse \
                     --border-label=" :: EDIT IDENTITY :: " \
                     --border=bottom \
@@ -1688,7 +1688,7 @@ function _fac_edit_router() {
                 )
 
                 local choice=$(echo -e "$menu_list" | fzf --ansi \
-                    --height=9 \
+                    --height=8 \
                     --layout=reverse \
                     --border-label=" :: URI & ENGINE LINK :: " \
                     --border=bottom \
