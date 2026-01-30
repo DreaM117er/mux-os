@@ -1060,7 +1060,7 @@ function _fac_maintenance() {
 
     if [ -s "$temp_file" ]; then
         mv "$temp_file" "$target_file"
-        echo -e "${F_GRE}    ›› Neural Nodes Verified (Zero Trust Scan Completed).${F_RESET}"
+        echo -e "${F_GRE}    ›› Neural Nodes Verified.${F_RESET}"
     else
         rm "$temp_file"
         echo -e "${F_ERR}    ›› Maintenance Failed: Output empty.${F_RESET}"
