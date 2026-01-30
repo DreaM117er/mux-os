@@ -1719,9 +1719,19 @@ function _fac_edit_router() {
                     else
                          edit_uri=""
                     fi
-
                 elif echo "$choice" | grep -q "ENGINE"; then
-                    local sel_eng=$(echo -e "$engine_list" | fzf --height=8 --layout=reverse --header=":: Select Search Engine ::")
+                    local sel_eng=$(echo -e "$engine_list" | fzf --ansi \
+                    --height=8 \
+                    --layout=reverse \
+                    --border-label=" :: SELECT SEARCH ENGINE :: " \
+                    --border=bottom \
+                    --header=":: Select Search Engine ::" \
+                    --info=hidden \
+                    --pointer="››" \
+                    --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                    --color=info:240,prompt:$prompt_color,pointer:red,marker:208,border:$border_color,header:240
+                    )
+
                     if [ -n "$sel_eng" ]; then
                         if [ "$sel_eng" == "[Empty]" ]; then
                             edit_engine=""
