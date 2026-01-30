@@ -725,7 +725,7 @@ function _factory_fzf_cat_selector() {
 
     # 3. 根據模式新增選項
     if [ "$mode" == "RELOCATE" ]; then
-        formatted_list="${formatted_list}\n \033[1;32m[NEW]  \033[1;37m[Create New Category]"
+        formatted_list="${formatted_list}\n \033[1;32m[+]  \033[1;37mCreate New Category"
     fi
 
     # 4. FZF 渲染

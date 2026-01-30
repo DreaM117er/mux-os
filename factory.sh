@@ -1531,7 +1531,7 @@ function _fac_edit_router() {
             if [ -z "$sel_id" ]; then return 0; fi
 
             # Branch A: 新增類別 (New Category)
-            if [ "$sel_id" == "[NEW]" ]; then
+            if [ "$sel_id" == "[+]" ]; then
                 _bot_say "action" "Forging New Category..." >&2
                 echo -e "${F_GRAY} :: Guide   : Enter name for the new category.${F_RESET}" >&2
                 read -e -p "    › " new_cat_name
