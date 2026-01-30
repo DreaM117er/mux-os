@@ -1608,6 +1608,9 @@ function _fac_edit_router() {
                     _fac_neural_write "$target_key" 1 "$exist_id"
                     _fac_neural_write "$target_key" 2 "$next_com_no"
                     _fac_neural_write "$target_key" 3 "$exist_name"
+
+                    _fac_sort_optimization
+                    _fac_matrix_defrag
                     
                     _bot_say "success" "Auto-Relocated to [$exist_id]." >&2
                     return 2
@@ -1636,7 +1639,10 @@ function _fac_edit_router() {
                 # 原子寫入
                 _fac_neural_write "$target_key" 1 "$next_cat_no"  
                 _fac_neural_write "$target_key" 2 "1"             
-                _fac_neural_write "$target_key" 3 "$new_cat_name" 
+                _fac_neural_write "$target_key" 3 "$new_cat_name"
+
+                _fac_sort_optimization
+                _fac_matrix_defrag
                 
                 _bot_say "success" "Node Relocated." >&2
                 return 2
@@ -1677,7 +1683,7 @@ function _fac_edit_router() {
                 _fac_neural_write "$target_key" 3 "$sel_name"
 
                 _fac_sort_optimization
-                _fac_safe_merge
+                _fac_matrix_defrag
 
                 _bot_say "success" "Transfer Complete. Assigned ID: $next_com_no" >&2
                 return 2
