@@ -476,11 +476,12 @@ function fac() {
             local view_state="EDIT"
 
             while true; do
-                local raw_cat=$(_factory_fzf_cat_selector)
+                local raw_cat=$(_factory_fzf_cat_selector "EDIT")
                 if [ -z "$raw_cat" ]; then break; fi
                 
                 local temp_id=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
 
+                # 重新讀取 ID
                 local db_data=$(awk -F, -v tid="$temp_id" 'NR>1 {gsub(/^"|"$/, "", $1); if($1==tid){gsub(/^"|"$/, "", $3); print $1 "|" $3; exit}}' "$MUX_ROOT/app.csv.temp")
                 local cat_id=$(echo "$db_data" | awk -F'|' '{print $1}')
                 local cat_name=$(echo "$db_data" | awk -F'|' '{print $2}')
@@ -490,15 +491,25 @@ function fac() {
                     local action=$(_factory_fzf_catedit_submenu "$cat_id" "$cat_name" "EDIT")
                     if [ -z "$action" ]; then break; fi
 
+                    # Branch 1: 修改名稱 (Rename)
                     if echo "$action" | grep -q "Edit Name" ; then
+                        
+                        # 鎖定 999 不可改名
+                        if [ "$cat_id" == "999" ]; then
+                            _bot_say "error" "System Reserved: [999] Others." >&2
+                            echo -e "${F_GRAY}    >> The Void is immutable. You cannot rename it.${F_RESET}" >&2
+                            continue
+                        fi
+
                         _bot_say "action" "Rename Category [$cat_name]:"
                         read -e -p "    › " -i "$cat_name" new_cat_name
                         
                         if [ -n "$new_cat_name" ] && [ "$new_cat_name" != "$cat_name" ]; then
                             _fac_update_category_name "$cat_id" "$new_cat_name"
-                            cat_name="$new_cat_name"
+                            cat_name="$new_cat_name" # 更新變數顯示
                         fi
                         
+                    # Branch 2: 修改內部指令 (Edit Content) 
                     elif echo "$action" | grep -q "Edit Command in" ; then
                         while true; do
                             local raw_cmd=$(_factory_fzf_cmd_in_cat "$cat_name")
@@ -583,11 +594,12 @@ function fac() {
                 
                 if [ -z "$action" ]; then continue; fi
 
-                # 解散分類 (Delete Category)
+                # Branch 1: 解散分類 (Dissolve Category) 
                 if [[ "$action" == *"Delete Category"* ]]; then
                     echo -e "\033[1;31m :: CRITICAL: Dissolving Category [$db_name] [$temp_id] \033[0m"
                     echo -e "\033[1;30m    All assets will be transferred to [Others] [999].\033[0m"
                     
+                    # 禁止解散 999
                     if [ "$temp_id" == "999" ]; then
                          _bot_say "error" "Cannot dissolve the [Others] singularity."
                          continue
@@ -597,8 +609,9 @@ function fac() {
                     read -r confirm
                     if [ "$confirm" == "CONFIRM" ]; then
                         if command -v _factory_auto_backup &> /dev/null; then _factory_auto_backup; fi
-                        
+                        _bot_say "action" "Migrating assets to Void..."
                         _fac_safe_merge "999" "$temp_id"
+                        
                         awk -F, -v tid="$temp_id" -v OFS=, '$1 != tid {print $0}' "$MUX_ROOT/app.csv.temp" > "$MUX_ROOT/app.csv.temp.tmp" && mv "$MUX_ROOT/app.csv.temp.tmp" "$MUX_ROOT/app.csv.temp"
                         
                         _bot_say "success" "Category Dissolved."
@@ -610,7 +623,7 @@ function fac() {
                         echo -e "${F_GRAY}    ›› Operation Aborted.${F_RESET}"
                     fi
 
-                # 肅清指令 (Delete Command in...)
+                # Branch 2: 肅清指令 (Neutralize Command) 
                 elif [[ "$action" == *"Delete Command"* ]]; then
                     while true; do
                         local raw_cmd=$(_factory_fzf_cmd_in_cat "$db_name" "DEL")
@@ -621,6 +634,7 @@ function fac() {
                         _fac_neural_read "$clean_target"
                         local del_pkg="${_VAL_PKG:-N/A}"
                         
+                        # 狀態鎖定檢查
                         local current_st=$(echo "$_VAL_COM3" | tr -d ' "')
                         if [[ "$current_st" == "B" || "$current_st" == "E" ]]; then
                             echo ""
@@ -1119,6 +1133,7 @@ function _fac_safe_merge() {
             }
         }
         END {
+            gsub(/"/, "\\\"", name) 
             printf "local TARGET_NAME=\"%s\"\n", name
             printf "local START_SEQ=%d\n", max
         }
@@ -1505,13 +1520,12 @@ function _fac_edit_router() {
     # 路由分支 (Router Switch)
     case "$room_id" in
         "ROOM_INFO")
-            # 1. 讀取當前節點資訊 (為了顯示當前位置)
+            # 1. 讀取當前節點資訊
             _fac_neural_read "$target_key"
             local current_cat_no="$_VAL_CATNO"
             local current_cat_name="$_VAL_CATNAME"
 
             # 2. 掃描所有現存類別 (Unique List)
-            # 格式: [001] CategoryName
             local cat_list=$(awk -F, '
                 NR>1 {
                     id=$1; gsub(/^"|"$/, "", id); gsub(/^[ \t]+|[ \t]+$/, "", id)
@@ -1522,10 +1536,9 @@ function _fac_edit_router() {
                 }
             ' "$MUX_ROOT/app.csv.temp" | sort -u -k1.2,1.4n)
 
-            # 3. 組合 FZF 選單 (加入綠色新增選項)
+            # 3. 組合 FZF 選單
             local menu_options="${cat_list}\n\033[1;32m[+] Create New Category\033[0m"
 
-            # 4. 顯示 FZF
             local target_cat_sel=$(echo -e "$menu_options" | fzf --ansi \
                 --height=12 \
                 --layout=reverse \
@@ -1540,19 +1553,103 @@ function _fac_edit_router() {
                 --bind="resize:clear-screen"
             )
 
-            # 5. 處理選擇結果
-            if [ -z "$target_cat_sel" ]; then return 0; fi # ESC 返回
+            if [ -z "$target_cat_sel" ]; then return 0; fi
 
-            # Branch A: 新增類別
+            # Branch A: 新增類別 (New Category)
             if echo "$target_cat_sel" | grep -q "Create New Category"; then
                 _bot_say "action" "Forging New Category..." >&2
-                
-                # 輸入新名稱
                 echo -e "${F_GRAY} :: Guide   : Enter name for the new category.${F_RESET}" >&2
                 read -e -p "    › " new_cat_name
                 
                 if [ -z "$new_cat_name" ]; then return 0; fi
 
+                # 全域相似度掃描
+                local scan_result=$(awk -F, -v input="$new_cat_name" '
+                    function min(a, b, c) {
+                        m = a; if (b < m) m = b; if (c < m) m = c; return m
+                    }
+                    # Levenshtein 算法封裝
+                    function calc_dist(s1, s2) {
+                        s1 = tolower(s1); s2 = tolower(s2);
+                        n = length(s1); m = length(s2);
+                        if (n == 0) return m; if (m == 0) return n;
+                        for (i=0; i<=n; i++) d[i,0] = i
+                        for (j=0; j<=m; j++) d[0,j] = j
+                        for (i=1; i<=n; i++) {
+                            for (j=1; j<=m; j++) {
+                                cost = (substr(s1,i,1) == substr(s2,j,1)) ? 0 : 1
+                                d[i,j] = min(d[i-1,j]+1, d[i,j-1]+1, d[i-1,j-1]+cost)
+                            }
+                        }
+                        return d[n,m]
+                    }
+
+                    BEGIN { best_sim = 0; match_type = "OK"; target_id = ""; target_name = "" }
+                    
+                    NR>1 {
+                        # 讀取現有類別
+                        id=$1; gsub(/^"|"$/, "", id);
+                        name=$3; gsub(/^"|"$/, "", name);
+                        
+                        if (id == "" || name == "") next;
+
+                        # 計算相似度
+                        dist = calc_dist(input, name)
+                        maxlen = (length(input) > length(name)) ? length(input) : length(name)
+                        sim = 1 - (dist / maxlen)
+
+                        if (sim == 1.0) {
+                            print "EXACT:" id ":" name
+                            exit # 找到完全匹配，直接結束
+                        }
+                        
+                        if (sim > 0.70 && sim > best_sim) {
+                            best_sim = sim
+                            match_type = "SIMILAR"
+                            target_name = name
+                        }
+                    }
+                    
+                    END {
+                        if (match_type == "SIMILAR") print "SIMILAR:" target_name
+                        else print "OK"
+                    }
+                ' "$MUX_ROOT/app.csv.temp")
+
+                # 判斷掃描結果
+                # Case 1: 100% 命中
+                if [[ "$scan_result" == EXACT* ]]; then
+                    local exist_id=$(echo "$scan_result" | cut -d: -f2)
+                    local exist_name=$(echo "$scan_result" | cut -d: -f3)
+
+                    # 吐槽
+                    _bot_say "warn" "Detected existing category [$exist_id]. Routing..." >&2
+                    echo -e "${F_GRAY}    ›› You typed that manually? We have a menu for a reason... 🙄${F_RESET}" >&2
+
+                    # 計算新 COMNO (Max+1)
+                    local next_com_no=$(awk -F, -v target_cat="$exist_id" '
+                        BEGIN { max=0 }
+                        { id=$1; gsub(/^"|"$/, "", id); cn=$2; gsub(/^"|"$/, "", cn); 
+                        if (id == target_cat && (cn+0) > max) max=cn+0 } END { print max+1 }
+                    ' "$MUX_ROOT/app.csv.temp")
+
+                    # 原子寫入
+                    _fac_neural_write "$target_key" 1 "$exist_id"
+                    _fac_neural_write "$target_key" 2 "$next_com_no"
+                    _fac_neural_write "$target_key" 3 "$exist_name"
+                    
+                    _bot_say "success" "Auto-Relocated to [$exist_id]." >&2
+                    return 2
+
+                # Case 2: >70% 相似 (可能是手殘) -> 報錯攔截
+                elif [[ "$scan_result" == SIMILAR* ]]; then
+                    local similar_name=$(echo "$scan_result" | cut -d: -f2)
+                    _bot_say "error" "Input '$new_cat_name' is too similar to existing '$similar_name'." >&2
+                    echo -e "${F_GRAY}    ›› Similarity › 70%. Did you make a typo? Request Denied.${F_RESET}" >&2
+                    return 0
+                fi
+
+                # Case 3: OK (全新類別) -> 正常創建
                 # 計算下一個 CATNO (Max + 1)
                 local next_cat_no=$(awk -F, '
                     NR>1 {
@@ -1564,22 +1661,21 @@ function _fac_edit_router() {
                     }
                 ' "$MUX_ROOT/app.csv.temp")
                 
-                # 確保是 3 位數格式 (Optional, 但為了美觀)
                 if [ ${#next_cat_no} -eq 1 ]; then next_cat_no="00$next_cat_no"; fi
                 if [ ${#next_cat_no} -eq 2 ]; then next_cat_no="0$next_cat_no"; fi
 
                 _bot_say "action" "Moving Node to New Sector [$next_cat_no] $new_cat_name..." >&2
                 
-                # 原子寫入 (Col 1: CATNO, Col 3: CATNAME)
-                _fac_neural_write "$target_key" 1 "$next_cat_no"
-                _fac_neural_write "$target_key" 3 "$new_cat_name"
+                # 原子寫入
+                _fac_neural_write "$target_key" 1 "$next_cat_no"  
+                _fac_neural_write "$target_key" 2 "1"             
+                _fac_neural_write "$target_key" 3 "$new_cat_name" 
                 
                 _bot_say "success" "Node Relocated." >&2
                 return 2
 
-            # Branch B: 移動到現有類別
+            # Branch B: 移動到現有類別 (Existing Category)
             else
-                # 解析選擇: "[001] Google" -> id="001", name="Google"
                 local sel_id=$(echo "$target_cat_sel" | awk -F']' '{print $1}' | sed 's/\[//')
                 local sel_name=$(echo "$target_cat_sel" | awk -F']' '{$1=""; print $0}' | sed 's/^[ \t]*//')
                 
@@ -1590,11 +1686,27 @@ function _fac_edit_router() {
 
                 _bot_say "action" "Relocating Node to [$sel_id] $sel_name..." >&2
 
-                # 原子寫入
-                _fac_neural_write "$target_key" 1 "$sel_id"
-                _fac_neural_write "$target_key" 3 "$sel_name"
+                # 計算目標類別中最大的 COMNO，然後 +1
+                local next_com_no=$(awk -F, -v target_cat="$sel_id" '
+                    BEGIN { max=0 }
+                    {
+                        # 去除引號
+                        id=$1; gsub(/^"|"$/, "", id)
+                        cn=$2; gsub(/^"|"$/, "", cn)
+                        
+                        if (id == target_cat) {
+                            if ((cn+0) > max) max=cn+0
+                        }
+                    }
+                    END { print max+1 }
+                ' "$MUX_ROOT/app.csv.temp")
 
-                _bot_say "success" "Transfer Complete." >&2
+                # 原子寫入
+                _fac_neural_write "$target_key" 1 "$sel_id"      # CATNO
+                _fac_neural_write "$target_key" 2 "$next_com_no" # COMNO Max+1
+                _fac_neural_write "$target_key" 3 "$sel_name"    # CATNAME
+
+                _bot_say "success" "Transfer Complete. Assigned ID: $next_com_no" >&2
                 return 2
             fi
             ;;
