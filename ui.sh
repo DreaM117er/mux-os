@@ -1103,31 +1103,31 @@ function _ui_fake_gate() {
 
     local hex_addr="0x0000"
 
-    for i in $(seq 1 "$bar_len"); do
-        local pct=$(( i * 100 / bar_len ))
+    while [ $current_pct -le 100 ]; do
+        local filled_len=$(( (current_pct * bar_len) / 100 ))
         
         tput cup $center_row $bar_start_col
         echo -ne "${C_TXT}[${C_RESET}"
         
-        if [ "$i" -gt 0 ]; then
-            printf "${theme_color}%.0s#${C_RESET}" $(seq 1 "$i")
+        if [ "$filled_len" -gt 0 ]; then
+            printf "${theme_color}%.0s#${C_RESET}" $(seq 1 "$filled_len")
         fi
         
-        local remain=$(( bar_len - i ))
+        local remain=$(( bar_len - filled_len ))
         if [ "$remain" -gt 0 ]; then
-            printf "%.0s " $(seq 1 "$remain")
+             printf "%.0s " $(seq 1 "$remain")
         fi
+        
         echo -ne "${C_TXT}]${C_RESET}"
-
-        tput cup $((center_row + 2)) $stats_start_col
         
-        if [ $((i % 2)) -eq 0 ]; then
-            hex_addr=$(printf "0x%04X" $((RANDOM%65535)))
-        fi
-        
-        echo -ne "${C_TXT}:: ${theme_color}"
-        printf "%3d%%" "$pct"
+        hex_addr=$(printf "0x%04X" $((RANDOM % 65535)))
         echo -ne "${C_TXT} :: MEM: ${hex_addr}${C_RESET}\033[K"
+        
+        if [ $current_pct -ge 100 ]; then break; fi
+
+        local jump=$(( 1 + RANDOM % 4 ))
+        current_pct=$(( current_pct + jump ))
+        if [ $current_pct -gt 100 ]; then current_pct=100; fi
 
         local jitter=$(( 15 + RANDOM % 21 ))
         sleep "0.0$jitter"
