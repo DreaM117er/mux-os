@@ -1545,7 +1545,6 @@ function _fac_edit_router() {
                     --layout=reverse \
                     --border-label=" :: EDIT IDENTITY :: " \
                     --border=bottom \
-                    --header-first \
                     --header=" :: Changing COM updates the Node ID ::" \
                     --prompt=" :: Setting › " \
                     --info=hidden \
@@ -1693,7 +1692,6 @@ function _fac_edit_router() {
                     --layout=reverse \
                     --border-label=" :: URI & ENGINE LINK :: " \
                     --border=bottom \
-                    --header-first \
                     --header=" :: Static URI overrides Engine ::" \
                     --prompt=" :: Setting › " \
                     --info=hidden \
@@ -1723,7 +1721,7 @@ function _fac_edit_router() {
                     fi
                 elif echo "$choice" | grep -q "ENGINE"; then
                     local sel_eng=$(echo -e "$engine_list" | fzf --ansi \
-                    --height=11 \
+                    --height=10 \
                     --layout=reverse \
                     --border-label=" :: SELECT SEARCH ENGINE :: " \
                     --border=bottom \

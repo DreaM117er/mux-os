@@ -899,7 +899,7 @@ function _factory_fzf_detail_view() {
     if [[ "$view_mode" == "NEW" || "$view_mode" == "EDIT" ]]; then
         report+="${C_LBL}${SEP}${C_RST}\n"
         report+="\033[1;36m[Lookup] 'apklist'\033[0m${S}ROOM_LOOKUP\n"
-        report+="\033[1;32m[Confirm]\033[0m${S}ROOM_CONFIRM\n"
+        report+="\033[1;32m[Confirm]\033[0m${S}ROOM_CONFIRM"
     fi
 
     # 5. 輸出給 FZF
