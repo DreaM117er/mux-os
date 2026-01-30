@@ -50,7 +50,7 @@ for i in $(seq 1 "$BAR_LEN"); do
     tput cup $((CENTER_ROW + 2)) $STATS_START_COL
     if [ $((i % 2)) -eq 0 ]; then HEX_ADDR=$(printf "0x%04X" $((RANDOM%65535))); fi
     echo -ne "${C_TXT}:: ${THEME_COLOR}"; printf "%3d%%" "$PCT"; echo -ne "${C_TXT} :: MEM: ${HEX_ADDR}${C_RESET}\033[K"
-    local jitter=$(( 10 + RANDOM % 11 ))
+    local jitter=$(( 15 + RANDOM % 21 ))
     sleep "0.0$jitter"
 done
 

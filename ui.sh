@@ -1129,7 +1129,7 @@ function _ui_fake_gate() {
         printf "%3d%%" "$pct"
         echo -ne "${C_TXT} :: MEM: ${hex_addr}${C_RESET}\033[K"
 
-        local jitter=$(( 10 + RANDOM % 11 ))
+        local jitter=$(( 15 + RANDOM % 21 ))
         sleep "0.0$jitter"
     done
 
