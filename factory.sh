@@ -1505,22 +1505,97 @@ function _fac_edit_router() {
     # 路由分支 (Router Switch)
     case "$room_id" in
         "ROOM_INFO")
+            # 1. 讀取當前節點資訊 (為了顯示當前位置)
             _fac_neural_read "$target_key"
             local current_cat_no="$_VAL_CATNO"
             local current_cat_name="$_VAL_CATNAME"
-            
-            if echo "$raw_selection" | grep -q "$current_cat_name"; then
-                _bot_say "action" "Edit Category Name:"
-                echo -e "${F_GRAY}    Target: [$current_cat_no] $current_cat_name${F_RESET}"
+
+            # 2. 掃描所有現存類別 (Unique List)
+            # 格式: [001] CategoryName
+            local cat_list=$(awk -F, '
+                NR>1 {
+                    id=$1; gsub(/^"|"$/, "", id); gsub(/^[ \t]+|[ \t]+$/, "", id)
+                    name=$3; gsub(/^"|"$/, "", name); gsub(/^[ \t]+|[ \t]+$/, "", name)
+                    if (id != "" && name != "") {
+                        print "[" id "] " name
+                    }
+                }
+            ' "$MUX_ROOT/app.csv.temp" | sort -u -k1.2,1.4n)
+
+            # 3. 組合 FZF 選單 (加入綠色新增選項)
+            local menu_options="${cat_list}\n\033[1;32m[+] Create New Category\033[0m"
+
+            # 4. 顯示 FZF
+            local target_cat_sel=$(echo -e "$menu_options" | fzf --ansi \
+                --height=12 \
+                --layout=reverse \
+                --border-label=" :: RELOCATE NODE :: " \
+                --border=bottom \
+                --header=" :: Current: [$current_cat_no] $current_cat_name ::" \
+                --prompt=" :: Move to › " \
+                --info=hidden \
+                --pointer="››" \
+                --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                --color=info:240,prompt:$prompt_color,pointer:red,marker:208,border:$border_color,header:240 \
+                --bind="resize:clear-screen"
+            )
+
+            # 5. 處理選擇結果
+            if [ -z "$target_cat_sel" ]; then return 0; fi # ESC 返回
+
+            # Branch A: 新增類別
+            if echo "$target_cat_sel" | grep -q "Create New Category"; then
+                _bot_say "action" "Forging New Category..." >&2
                 
-                read -e -p "    › " -i "$current_cat_name" input_val
+                # 輸入新名稱
+                echo -e "${F_GRAY} :: Guide   : Enter name for the new category.${F_RESET}" >&2
+                read -e -p "    › " new_cat_name
                 
-                if [ -n "$input_val" ] && [ "$input_val" != "$current_cat_name" ]; then
-                    _fac_update_category_name "$current_cat_no" "$input_val"
-                    return 2 
-                fi
+                if [ -z "$new_cat_name" ]; then return 0; fi
+
+                # 計算下一個 CATNO (Max + 1)
+                local next_cat_no=$(awk -F, '
+                    NR>1 {
+                        id=$1; gsub(/^"|"$/, "", id)
+                        if ((id+0) > max && (id+0) != 999) max=id+0 
+                    } 
+                    END { 
+                        if (max == 0) print 1; else print max+1 
+                    }
+                ' "$MUX_ROOT/app.csv.temp")
+                
+                # 確保是 3 位數格式 (Optional, 但為了美觀)
+                if [ ${#next_cat_no} -eq 1 ]; then next_cat_no="00$next_cat_no"; fi
+                if [ ${#next_cat_no} -eq 2 ]; then next_cat_no="0$next_cat_no"; fi
+
+                _bot_say "action" "Moving Node to New Sector [$next_cat_no] $new_cat_name..." >&2
+                
+                # 原子寫入 (Col 1: CATNO, Col 3: CATNAME)
+                _fac_neural_write "$target_key" 1 "$next_cat_no"
+                _fac_neural_write "$target_key" 3 "$new_cat_name"
+                
+                _bot_say "success" "Node Relocated." >&2
+                return 2
+
+            # Branch B: 移動到現有類別
             else
-                _bot_say "factory" "Node ID: $current_cat_no:$_VAL_COMNO"
+                # 解析選擇: "[001] Google" -> id="001", name="Google"
+                local sel_id=$(echo "$target_cat_sel" | awk -F']' '{print $1}' | sed 's/\[//')
+                local sel_name=$(echo "$target_cat_sel" | awk -F']' '{$1=""; print $0}' | sed 's/^[ \t]*//')
+                
+                if [ "$sel_id" == "$current_cat_no" ]; then
+                    _bot_say "warn" "Node is already in this category." >&2
+                    return 0
+                fi
+
+                _bot_say "action" "Relocating Node to [$sel_id] $sel_name..." >&2
+
+                # 原子寫入
+                _fac_neural_write "$target_key" 1 "$sel_id"
+                _fac_neural_write "$target_key" 3 "$sel_name"
+
+                _bot_say "success" "Transfer Complete." >&2
+                return 2
             fi
             ;;
 
