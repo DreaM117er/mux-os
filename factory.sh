@@ -1541,7 +1541,7 @@ function _fac_edit_router() {
                 )
 
                 local choice=$(echo -e "$menu_list" | fzf --ansi \
-                    --height=8 \
+                    --height=9 \
                     --layout=reverse \
                     --border-label=" :: EDIT IDENTITY :: " \
                     --border=bottom \
@@ -1553,7 +1553,8 @@ function _fac_edit_router() {
                     --delimiter="\t" \
                     --with-nth=1,2 \
                     --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-                    --color=info:240,prompt:$prompt_color,pointer:red,marker:208,border:$border_color,header:240
+                    --color=info:240,prompt:$prompt_color,pointer:red,marker:208,border:$border_color,header:240 \
+                    --bind="resize:clear-screen"
                 )
 
                 if [ -z "$choice" ]; then return 0; fi
@@ -1688,7 +1689,7 @@ function _fac_edit_router() {
                 )
 
                 local choice=$(echo -e "$menu_list" | fzf --ansi \
-                    --height=8 \
+                    --height=9 \
                     --layout=reverse \
                     --border-label=" :: URI & ENGINE LINK :: " \
                     --border=bottom \
@@ -1700,7 +1701,8 @@ function _fac_edit_router() {
                     --delimiter="\t" \
                     --with-nth=1,2 \
                     --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-                    --color=info:240,prompt:$prompt_color,pointer:red,marker:208,border:$border_color,header:240
+                    --color=info:240,prompt:$prompt_color,pointer:red,marker:208,border:$border_color,header:240 \
+                    --bind="resize:clear-screen"
                 )
 
                 if [ -z "$choice" ]; then return 0; fi
@@ -1721,7 +1723,7 @@ function _fac_edit_router() {
                     fi
                 elif echo "$choice" | grep -q "ENGINE"; then
                     local sel_eng=$(echo -e "$engine_list" | fzf --ansi \
-                    --height=8 \
+                    --height=11 \
                     --layout=reverse \
                     --border-label=" :: SELECT SEARCH ENGINE :: " \
                     --border=bottom \
@@ -1729,7 +1731,8 @@ function _fac_edit_router() {
                     --info=hidden \
                     --pointer="››" \
                     --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-                    --color=info:240,prompt:$prompt_color,pointer:red,marker:208,border:$border_color,header:240
+                    --color=info:240,prompt:$prompt_color,pointer:red,marker:208,border:$border_color,header:240 \
+                    --bind="resize:clear-screen"
                     )
 
                     if [ -n "$sel_eng" ]; then
