@@ -1532,6 +1532,8 @@ function _fac_edit_router() {
 
             if [ -z "$sel_id" ]; then return 0; fi
 
+            sel_id=$(echo "$sel_id" | sed "s/$(printf '\033')\[[0-9;]*m//g")
+
             # Branch A: 新增類別 (New Category)
             if [ "$sel_id" == "[+]" ]; then
                 _bot_say "action" "Forging New Category..." >&2
