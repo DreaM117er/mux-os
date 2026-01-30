@@ -1368,9 +1368,6 @@ function _fac_delete_node() {
     local target_key="$1"
     local target_file="$MUX_ROOT/app.csv.temp"
     
-    # 讀取全域權限鎖 (由 _fac_safe_edit_protocol 設定)
-    # 如果為空，代表是使用者手動操作 -> 開啟保護模式
-    # 如果有值 (e.g. "B", "E")，代表是系統操作 -> 精準獵殺模式
     local auth_state="${__FAC_IO_STATE:-User}" 
 
     local t_com=$(echo "$target_key" | awk '{print $1}')
@@ -1383,41 +1380,30 @@ function _fac_delete_node() {
         -v tc="$t_com" -v ts="$t_sub" \
         -v mode="$auth_state" '
     {
-        # 欄位正規化
         c=$5; gsub(/^"|"$/, "", c); gsub(/\r| /, "", c)
         s=$6; gsub(/^"|"$/, "", s); gsub(/\r| /, "", s)
         st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
         
-        # 1. 比對目標 Key (COM + COM2)
         match_found = 0
         if (c == tc) {
             if (ts == "" && s == "") match_found = 1
             if (ts != "" && s == ts) match_found = 1
         }
 
-        # 2. 刪除決策邏輯
         if (match_found) {
             if (mode == "User") {
-                # [User Mode] 保護機制
-                # 絕對禁止刪除 B (備份), E (編輯中), C (複製中)
                 if (st == "B" || st == "E" || st == "C") {
-                    # 這是受保護的節點，保留它 (Print)
                     print $0
                 } else {
-                    # 允許刪除 P, N, S, F (Skip print = Delete)
+                    # 保護模式下，非 B/E/C 狀態不刪除
                 }
             } else {
-                # [System Mode] 精準獵殺
-                # 只刪除指定的狀態 (例如 Commit 時只刪 B)
                 if (st == mode) {
-                    # 狀態吻合，執行刪除 (Skip print)
                 } else {
-                    # 狀態不符，保留 (Print)
                     print $0
                 }
             }
         } else {
-            # 非目標節點，原樣保留
             print $0
         }
     }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
@@ -1498,22 +1484,14 @@ function _fac_edit_router() {
     local target_key="$2"
     local view_mode="${3:-EDIT}"
 
-    # 1. Plan A: 嘗試標準 Tab 切割 (最精準)
     local room_id=$(echo "$raw_selection" | awk -F'\t' '{print $2}')
 
-    # 2. Plan B: 如果 Plan A 失敗 (空值)，啟動特徵掃描
     if [ -z "$room_id" ]; then
         room_id=$(echo "$raw_selection" | grep -o "ROOM_[A-Z_]*")
     fi
 
-    # 3. 最後淨化 (Sanitization)
     room_id=$(echo "$room_id" | tr -d '[:space:]')
 
-    # Debug
-    # echo "DEBUG: Router ID=[$room_id]" >&2
-
-    # [REMOVED] 舊的 _fac_room_guide 呼叫已移除，改由下方 case 內直接顯示
-    
     local header_text="MODIFY PARAMETER"
     local border_color="208"
     local prompt_color="208"
@@ -1524,9 +1502,7 @@ function _fac_edit_router() {
         "EDIT"|*) header_text="MODIFY PARAMETER :: "; border_color="46"; prompt_color="46" ;;
     esac
     
-    # 共同變數定義 (避免重複宣告)
-    local guide_text=""
-
+    # 路由分支 (Router Switch)
     case "$room_id" in
         "ROOM_INFO")
             _fac_neural_read "$target_key"
@@ -1549,108 +1525,143 @@ function _fac_edit_router() {
             ;;
 
         "ROOM_CMD")
-            _bot_say "action" "Edit Command Identity:"
-            
-            # [FIX] 顯示 Guide Text
-            echo -e "${F_GRAY} :: Guide   : Enter the CLI command.${F_RESET}"
-            read -e -p "    › " -i "$_VAL_COM" new_com
-            
-            # [FIX] 顯示 Guide Text
-            echo -e "${F_GRAY} :: Optional: Enter the SUB command.${F_RESET}"
-            read -e -p "    › " -i "$_VAL_COM2" new_sub
-            
-            new_com=$(echo "$new_com" | sed 's/^[ \t]*//;s/[ \t]*$//')
-            new_sub=$(echo "$new_sub" | sed 's/^[ \t]*//;s/[ \t]*$//')
-
-            if [ -z "$new_com" ]; then return 0; fi
-
             local current_track_key="$target_key"
-            local key_changed=0
+            
+            while true; do
+                _fac_neural_read "$current_track_key"
+                
+                local disp_com="${_VAL_COM}"
+                local disp_sub="${_VAL_COM2:-[Empty]}"
+                
+                local menu_list=$(
+                    echo -e " COM     \t$disp_com"
+                    echo -e " SUB     \t$disp_sub"
+                    echo -e "\033[1;30m----------\033[0m"
+                    echo -e "\033[1;32m[Confirm]\033[0m"
+                )
 
-            if [ "$new_com" != "$_VAL_COM" ]; then
-                _fac_neural_write "$current_track_key" 5 "$new_com"
-                if [ -n "$_VAL_COM2" ]; then
-                    current_track_key="$new_com '$_VAL_COM2'"
-                else
-                    current_track_key="$new_com"
+                local choice=$(echo -e "$menu_list" | fzf --ansi \
+                    --height=8 \
+                    --layout=reverse \
+                    --border-label=" :: EDIT IDENTITY :: " \
+                    --border=bottom \
+                    --header-first \
+                    --header=" :: Changing COM updates the Node ID ::" \
+                    --prompt=" :: Setting › " \
+                    --info=hidden \
+                    --pointer="››" \
+                    --delimiter="\t" \
+                    --with-nth=1,2 \
+                    --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                    --color=info:240,prompt:$prompt_color,pointer:red,marker:208,border:$border_color,header:240
+                )
+
+                if [ -z "$choice" ]; then return 0; fi
+
+                if echo "$choice" | grep -q " COM"; then
+                    _bot_say "action" "Edit Command (Trigger):"
+                    echo -e "${F_GRAY} :: Guide   : The main CLI command (e.g., 'chrome').${F_RESET}"
+                    
+                    read -e -p "    › " -i "$_VAL_COM" new_com
+                    new_com=$(echo "$new_com" | sed 's/^[ \t]*//;s/[ \t]*$//')
+                    
+                    if [ -n "$new_com" ] && [ "$new_com" != "$_VAL_COM" ]; then
+                        _fac_neural_write "$current_track_key" 5 "$new_com"
+                        local old_sub="${_VAL_COM2}"
+                        if [ -n "$old_sub" ]; then
+                            current_track_key="$new_com '$old_sub'"
+                        else
+                            current_track_key="$new_com"
+                        fi
+                        _bot_say "success" "Identity Updated."
+                    fi
+
+                elif echo "$choice" | grep -q " SUB"; then
+                    _bot_say "action" "Edit Sub-Command (Optional):"
+                    echo -e "${F_GRAY} :: Guide   : The secondary trigger (e.g., 'incognito').${F_RESET}"
+                    
+                    read -e -p "    › " -i "$_VAL_COM2" new_sub
+                    new_sub=$(echo "$new_sub" | sed 's/^[ \t]*//;s/[ \t]*$//')
+                    
+                    if [ "$new_sub" != "$_VAL_COM2" ]; then
+                        _fac_neural_write "$current_track_key" 6 "$new_sub"
+                        local cur_com="${_VAL_COM}"
+                        if [ -n "$new_sub" ]; then
+                            current_track_key="$cur_com '$new_sub'"
+                        else
+                            current_track_key="$cur_com"
+                        fi
+                        _bot_say "success" "Sub-Command Updated."
+                    fi
+                
+                elif echo "$choice" | grep -q "Confirm"; then
+                    echo "UPDATE_KEY:$current_track_key"
+                    return 2
                 fi
-                key_changed=1
-            fi
-
-            if [ "$new_sub" != "$_VAL_COM2" ]; then
-                _fac_neural_write "$current_track_key" 6 "$new_sub"
-                local final_com="${new_com:-$_VAL_COM}"
-                if [ -n "$new_sub" ]; then
-                    current_track_key="$final_com '$new_sub'"
-                else
-                    current_track_key="$final_com"
-                fi
-                key_changed=1
-            fi
-
-            if [ "$key_changed" -eq 1 ]; then
-                _bot_say "action" "Identity Updated. Tracking new key..."
-                echo "UPDATE_KEY:$current_track_key"
-                return 2
-            else
-                return 0
-            fi
+            done
             ;;
 
         "ROOM_HUD")
-            guide_text="${F_GRAY} :: Guide   : Enter the Menu Description.${F_RESET}\n"
-            guide_text+="${F_GRAY} :: Format  : e.g. 'Google Chrome Browser'${F_RESET}"
-            _fac_generic_edit "$target_key" 8 "Edit Description (HUD Name):" "$guide_text"
+            echo -e "${F_GRAY} :: Guide   : Enter the Menu Description.${F_RESET}"
+            echo -e "${F_GRAY} :: Format  : e.g. 'Google Chrome Browser'${F_RESET}"
+            
+            _fac_generic_edit "$target_key" 8 "Edit Description (HUD Name):"
             return 2
             ;;
 
         "ROOM_UI")
-            guide_text="${F_GRAY} :: Guide   : UI Rendering Mode${F_RESET}\n"
-            guide_text+="${F_GRAY} :: Options : ${F_WARN}[Empty]${F_GRAY}=Default, ${F_WARN}fzf${F_GRAY}, ${F_WARN}silent${F_RESET}"
-            _fac_generic_edit "$target_key" 9 "Edit Display Name (Bot Label):" "$guide_text"
+            echo -e "${F_GRAY} :: Guide   : UI Rendering Mode${F_RESET}"
+            echo -e "${F_GRAY} :: Options : ${F_WARN}[Empty]${F_GRAY}=Default, ${F_WARN}fzf${F_GRAY}, ${F_WARN}silent${F_RESET}"
+            
+            _fac_generic_edit "$target_key" 9 "Edit Display Name (Bot Label):"
             return 2
             ;;
             
         "ROOM_PKG")
-            guide_text="${F_GRAY} :: Guide   : Target Android Package${F_RESET}\n"
-            guide_text+="${F_GRAY} :: Hint    : Use 'apklist' or 'ROOM_LOOKUP' to find packages.${F_RESET}"
-            _fac_generic_edit "$target_key" 10 "Edit Package Name (com.xxx.xxx):" "$guide_text"
+            echo -e "${F_GRAY} :: Guide   : Target Android Package${F_RESET}"
+            echo -e "${F_GRAY} :: Hint    : Use 'apklist' or 'ROOM_LOOKUP' to find packages.${F_RESET}"
+            
+            _fac_generic_edit "$target_key" 10 "Edit Package Name (com.xxx.xxx):"
             return 2
             ;;
 
         "ROOM_ACT")
-            guide_text="${F_GRAY} :: Guide   : Target Activity Class (Optional)${F_RESET}\n"
-            guide_text+="${F_GRAY} :: Format  : com.package.name.MainActivity${F_RESET}"
-            _fac_generic_edit "$target_key" 11 "Edit Activity / Class Path:" "$guide_text"
+            echo -e "${F_GRAY} :: Guide   : Target Activity Class (Optional)${F_RESET}"
+            echo -e "${F_GRAY} :: Format  : com.package.name.MainActivity${F_RESET}"
+            
+            _fac_generic_edit "$target_key" 11 "Edit Activity / Class Path:"
             return 2
             ;;
             
         "ROOM_CATE")
-            guide_text="${F_GRAY} :: Guide   : Intent Category Suffix${F_RESET}\n"
-            guide_text+="${F_GRAY} :: Note    : System adds 'android.intent.category.' prefix.${F_RESET}\n"
-            guide_text+="${F_GRAY} :: Example : ${F_WARN}BROWSABLE${F_RESET}, ${F_WARN}DEFAULT${F_RESET}, ${F_WARN}LAUNCHER${F_RESET}"
-            _fac_generic_edit "$target_key" 16 "Edit Category Type:" "$guide_text"
+            echo -e "${F_GRAY} :: Guide   : Intent Category Suffix${F_RESET}"
+            echo -e "${F_GRAY} :: Note    : System adds 'android.intent.category.' prefix.${F_RESET}"
+            echo -e "${F_GRAY} :: Example : ${F_WARN}BROWSABLE${F_RESET}, ${F_WARN}DEFAULT${F_RESET}, ${F_WARN}LAUNCHER${F_RESET}"
+            
+            _fac_generic_edit "$target_key" 16 "Edit Category Type:"
             return 2
             ;;
 
         "ROOM_FLAG")
-            guide_text="${F_GRAY} :: Guide   : Execution Flags (am start)${F_RESET}\n"
-            guide_text+="${F_GRAY} :: Example : ${F_WARN}--user 0${F_RESET}, ${F_WARN}--grant-read-uri-permission${F_RESET}"
-            _fac_generic_edit "$target_key" 17 "Edit Execution Flags:" "$guide_text"
+            echo -e "${F_GRAY} :: Guide   : Execution Flags (am start)${F_RESET}"
+            echo -e "${F_GRAY} :: Example : ${F_WARN}--user 0${F_RESET}, ${F_WARN}--grant-read-uri-permission${F_RESET}"
+            
+            _fac_generic_edit "$target_key" 17 "Edit Execution Flags:"
             return 2
             ;;
 
         "ROOM_INTENT")
-            local g1="${F_GRAY} :: Guide   : Intent Action HEAD${F_RESET}\n${F_GRAY} :: Format  : android.intent.action${F_RESET}"
-            _fac_generic_edit "$target_key" 12 "Edit Intent Action (Head):" "$g1"
+            echo -e "${F_GRAY} :: Guide   : Intent Action HEAD${F_RESET}"
+            echo -e "${F_GRAY} :: Format  : android.intent.action${F_RESET}"
+            _fac_generic_edit "$target_key" 12 "Edit Intent Action (Head):"
             
-            local g2="${F_GRAY} :: Guide   : Intent Action BODY${F_RESET}\n${F_GRAY} :: Format  : '.VIEW', '.SEND', '.MAIN' ...${F_RESET}"
-            _fac_generic_edit "$target_key" 13 "Edit Intent Data (Body):" "$g2"
+            echo -e "${F_GRAY} :: Guide   : Intent Action BODY${F_RESET}"
+            echo -e "${F_GRAY} :: Format  : '.VIEW', '.SEND', '.MAIN' ...${F_RESET}"
+            _fac_generic_edit "$target_key" 13 "Edit Intent Data (Body):"
             return 2
             ;;
 
         "ROOM_URI")
-            # URI 房間維持原樣，因為它有自己的 fzf 邏輯，不需要 generic_edit
             _fac_neural_read "$target_key"
             
             local edit_uri="$_VAL_URI"

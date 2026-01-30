@@ -881,7 +881,7 @@ function _factory_fzf_detail_view() {
 
     # Type Specific Section
     if [ "$_VAL_TYPE" == "NB" ]; then
-        report+=" ${C_LBL}Intent :${C_VAL} ${_VAL_IHEAD} ${_VAL_IBODY}${S}ROOM_INTENT\n"
+        report+=" ${C_LBL}Intent :${C_VAL} ${_VAL_IHEAD}${_VAL_IBODY}${S}ROOM_INTENT\n"
         report+=" ${C_LBL}URI    :${C_VAL} ${final_uri} ${S}ROOM_URI\n"
         report+=" ${C_LBL}Cate   :${C_VAL} ${_VAL_CATE:-[Empty]} ${S}ROOM_CATE\n"
         report+=" ${C_LBL}Mime   :${C_VAL} ${_VAL_MIME:-[Empty]} ${S}ROOM_MIME\n"
