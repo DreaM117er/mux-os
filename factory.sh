@@ -1029,60 +1029,70 @@ function _fac_maintenance() {
     local target_file="$MUX_ROOT/app.csv.temp"
     local temp_file="${target_file}.chk"
 
+    # 1. 確保目標存在
     if [ ! -f "$target_file" ]; then return; fi
 
-    awk -F, -v OFS=, '
-        NR==1 { print; next }
+    # 2. 啟動 AWK 引擎 (使用 FPAT 模式解決逗號問題)
+    awk -v FPAT='([^,]*)|("[^"]+")' -v OFS=, '
+        NR==1 { print; next } # 標題行直接通過
         
         {
-            # 讀取欄位
-            catname=$3;   gsub(/^"|"$/, "", catname)
-            type=$4;      gsub(/^"|"$/, "", type)
-            st=$7;        gsub(/^"|"$/, "", st); gsub(/\r| /, "", st) # COM3 State
-            pkg=$10;      gsub(/^"|"$/, "", pkg)
-            tgt=$11;      gsub(/^"|"$/, "", tgt)
-            ihead=$12;    gsub(/^"|"$/, "", ihead)
-            ibody=$13;    gsub(/^"|"$/, "", ibody)
-            uri=$14;      gsub(/^"|"$/, "", uri)
+            # 移除引號以進行邏輯判斷
+            type=$4; gsub(/^"|"$/, "", type)
+            st=$7;   gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
+            pkg=$10; gsub(/^"|"$/, "", pkg)
+            tgt=$11; gsub(/^"|"$/, "", tgt)
+            ihead=$12; gsub(/^"|"$/, "", ihead)
+            ibody=$13; gsub(/^"|"$/, "", ibody)
+            uri=$14;   gsub(/^"|"$/, "", uri)
 
-            if (st == "E" || st == "B" || st == "C") {
+            # 直接放行狀態 E/B/C/N
+            if (st == "E" || st == "B" || st == "C" || st == "N") {
                 print $0
                 next
             }
             
+            # 開始驗證有效性
             valid = 0
             
-            # 驗證規則
             if (type == "NA") {
+                # NA 類型需要 PKG 和 TARGET
                 if (pkg != "" && tgt != "") valid = 1
             }
             else if (type == "NB") {
+                # NB 類型需要 Intent 或 PKG 或 URI
                 if ((ihead != "" && ibody != "") || pkg != "" || uri != "") valid = 1
             }
-            else if (type == "SYS" || type == "SSL" || type == "sh") {
+            else if (type == "SYS" || type == "SSL") {
+                # 系統指令通常視為有效
                 valid = 1
             }
+            
+            # 如果 Type 是空的，視為無效
             if (type == "") valid = 0
             
-            if (valid == 0) {
-                # 結構損壞 / 外部篡改，轉 F
-                $7 = "\"F\""
-            } 
-            else {
-                # 結構完整，將指令改爲 P
+            if (valid == 1) {
+                # 驗證通過，且狀態為空或 P/F，強制蓋上合格章 "P"
                 $7 = "\"P\""
+            } else {
+                # 驗證失敗標記為 "F"
+                $7 = "\"F\""
             }
             
             print $0
         }
     ' "$target_file" > "$temp_file"
 
+    # 3. 安全寫入檢查 (Safety Net)
+    # 只有當 temp_file 有內容且大小大於 0 時才覆蓋
     if [ -s "$temp_file" ]; then
         mv "$temp_file" "$target_file"
-        echo -e "${F_GRE}    ›› Neural Nodes Verified.${F_RESET}"
+        echo -e "${F_GRE}    ›› Neural Nodes Verified & Patched.${F_RESET}"
     else
-        rm "$temp_file"
-        echo -e "${F_ERR}    ›› Maintenance Failed: Output empty.${F_RESET}"
+        # 如果發生截斷事故，刪除壞檔，保留原檔，並報警
+        rm -f "$temp_file"
+        echo -e "${F_ERR} :: CRITICAL ERROR :: Maintenance output empty! Aborting overwrite.${F_RESET}"
+        echo -e "${F_GRAY}    (Your original data has been protected)${F_RESET}"
     fi
 }
 
