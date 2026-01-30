@@ -83,12 +83,12 @@ while [ $CURRENT_PCT -le 100 ]; do
     # --- [關鍵物理特性] ---
     
     # 1. 隨機躍進 (Chunking): 每次增加 1% ~ 4%
-    JUMP=$(( 1 + RANDOM % 4 ))
+    JUMP=$(( 1 + RANDOM % 5 ))
     CURRENT_PCT=$(( CURRENT_PCT + JUMP ))
     if [ $CURRENT_PCT -gt 100 ]; then CURRENT_PCT=100; fi
 
     # 2. 動態擾動 (Jitter): 15ms ~ 35ms
-    JITTER=$(( 10 + RANDOM % 11 ))
+    JITTER=$(( 15 + RANDOM % 11 ))
     sleep "0.0$JITTER"
 done
 
