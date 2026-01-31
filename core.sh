@@ -655,7 +655,7 @@ function _mux_update_system() {
 # 神經連結部署協議
 function _neural_link_deploy() {
     if [ -z "$(git config user.name)" ]; then
-         _bot_say "error" "Identity missing. Config git user.name first."
+         _bot_say "error" "Identity missing. Run 'git config --global user.name \"YourName\"' first."
          return 1
     fi
     echo -e "${F_MAIN} :: NEURAL LINK DEPLOYMENT PROTOCOL ::${F_RESET}"
@@ -667,7 +667,13 @@ function _neural_link_deploy() {
     git add .
     git commit -m "Neural Link Deploy $(date '+%Y-%m-%d %H:%M')"
     git push
-    if [ $? -eq 0 ]; then _bot_say "success" "Deployment Successful."; else _bot_say "error" "Uplink destabilized."; fi
+    if [ $? -eq 0 ]; then 
+        _bot_say "success" "Deployment Successful."
+        # 清理臨時變數
+        unset GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL GIT_COMMITTER_NAME GIT_COMMITTER_EMAIL
+    else 
+        _bot_say "error" "Uplink destabilized."
+    fi
 }
 
 # 系統完整性掃描器

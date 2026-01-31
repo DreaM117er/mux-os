@@ -2274,7 +2274,7 @@ function _fac_launch_test() {
             ;;
 
         "SSL")
-            # SSL: System / Shell Direct
+            # SSL: System Special Launch (Custom Payload)
             final_cmd="$pkg $input_args"
             ;;
     esac
