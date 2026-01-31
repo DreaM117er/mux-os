@@ -32,9 +32,12 @@ for mod in "${MODULES[@]}"; do
 done
 
 # 讀取門禁卡
-MUX_MODE="DEF"
-MUX_STATUS="LOCKED"
-if [ -f "$MUX_ROOT/.mux_state" ]; then source "$MUX_ROOT/.mux_state"; fi
+if [ -f "$MUX_ROOT/.mux_state" ]; then
+    source "$MUX_ROOT/.mux_state"
+else
+    MUX_MODE="MUX"
+    MUX_STATUS="DEFAULT"
+fi
 
 case "$MUX_MODE" in
     "FAC")
@@ -634,12 +637,7 @@ function _core_eject_sequence() {
 function _mux_reload_kernel() {
     _system_lock
     unset MUX_INITIALIZED
-    
-    if [ -f "$MUX_ROOT/gate.sh" ]; then
-        source "$MUX_ROOT/gate.sh" "core"
-    else
-        source "$MUX_ROOT/core.sh"
-    fi
+    exec bash
 }
 
 # 強制同步系統狀態

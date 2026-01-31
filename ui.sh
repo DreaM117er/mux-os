@@ -1069,27 +1069,27 @@ function _ui_fake_gate() {
     local theme_text=""
     
     if [ "$target_system" == "factory" ]; then
-        theme_color="\033[1;38;5;208m" # Orange
+        theme_color="\033[1;38;5;208m"
         theme_text="NEURAL FORGE"
     else
-        theme_color="\033[1;36m"       # Blue
+        theme_color="\033[1;36m"
         theme_text="SYSTEM CORE"
     fi
 
     local C_TXT="\033[1;30m"
     local C_RESET="\033[0m"
 
+    # 安全網
     tput civis
     stty -echo
-    
     trap 'tput cnorm; stty echo; echo -e "${C_RESET}";' EXIT INT TERM
 
     clear
     local rows=$(tput lines)
     local cols=$(tput cols)
-    
     local bar_len=$(( cols * 45 / 100 ))
     if [ "$bar_len" -lt 15 ]; then bar_len=15; fi
+
     local center_row=$(( rows / 2 ))
     local bar_start_col=$(( (cols - bar_len - 2) / 2 ))
     local title_start_col=$(( (cols - 25) / 2 ))
@@ -1100,7 +1100,8 @@ function _ui_fake_gate() {
     local current_pct=0
     local trap_triggered="false"
 
-    while [ $current_pct -le 100 ]; do
+    while true; do
+        # 繪圖
         local filled_len=$(( (current_pct * bar_len) / 100 ))
         local remain=$(( bar_len - filled_len ))
 
@@ -1114,10 +1115,12 @@ function _ui_fake_gate() {
         tput cup $((center_row + 2)) $(( (cols - 20) / 2 ))
         echo -ne "${C_TXT}:: ${theme_color}${current_pct}%${C_TXT} :: MEM: ${hex_val}${C_RESET}\033[K"
 
+        # 檢查結束點 (最重要的修復)
         if [ "$current_pct" -ge 100 ]; then
             break
         fi
 
+        # 陷阱邏輯
         if [ "$current_pct" -ge 98 ] && [ "$trap_triggered" == "false" ]; then
             current_pct=99
             trap_triggered="true"
@@ -1125,20 +1128,18 @@ function _ui_fake_gate() {
             continue
         fi
 
-        local step=$(( (RANDOM % 4) + 1 ))
+        # 增量
+        local step=$(( (RANDOM % 5) + 1 ))
         current_pct=$(( current_pct + step ))
-
-        if [ "$current_pct" -gt 98 ] && [ "$trap_triggered" == "false" ]; then
-            current_pct=98
-        fi
         
-        if [ "$current_pct" -gt 100 ]; then
-            current_pct=100
-        fi
+        # 邊界保護
+        if [ "$current_pct" -gt 98 ] && [ "$trap_triggered" == "false" ]; then current_pct=98; fi
+        if [ "$current_pct" -gt 100 ]; then current_pct=100; fi
 
-        sleep 0.015
+        sleep 0.02
     done
 
+    # 清理
     trap - EXIT INT TERM
     tput cnorm
     stty echo
