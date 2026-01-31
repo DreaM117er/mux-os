@@ -291,8 +291,6 @@ EOF
 
 # 主程式初始化 (Main Initialization)
 function _mux_init() {
-    if [ "$MUX_INITIALIZED" = "true" ]; then return; fi
-    
     _system_lock
     _safe_ui_calc
     clear
@@ -1055,11 +1053,13 @@ function command_not_found_handle() {
 
 # 啟動系統初始化
 if [ -z "$MUX_INITIALIZED" ]; then
-    export MUX_INITIALIZED=true
-
     if command -v _mux_boot_sequence &> /dev/null; then
         _mux_boot_sequence
-    else
-        if command -v _mux_init &> /dev/null; then _mux_init; fi
+    fi
+
+    if [ "$MUX_STATUS" == "LOGIN" ]; then
+        if command -v _mux_init &> /dev/null; then 
+            _mux_init
+        fi
     fi
 fi
