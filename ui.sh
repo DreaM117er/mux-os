@@ -1136,7 +1136,7 @@ function _ui_fake_gate() {
 
         if [ $CURRENT_PCT -ge 100 ]; then break; fi
     
-        JUMP=$(( 1 + RANDOM % 4 ))
+        JUMP=$(( 1 + RANDOM % 5 ))
         NEXT_VAL=$(( CURRENT_PCT + JUMP ))
 
         if [ $NEXT_VAL -ge 100 ]; then
