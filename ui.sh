@@ -911,7 +911,7 @@ function _factory_fzf_detail_view() {
             report+=" ${C_LBL}Target :${C_VAL} ${d_act} ${S}ROOM_ACT\n"
             report+="${C_LBL}${SEP}${C_RST}\n"
             report+="\033[1;36m[Lookup] 'apklist'\033[0m ${S}ROOM_LOOKUP\n"
-            report+="\033[1;32m[Confirm]\033[0m$ {S}ROOM_CONFIRM"
+            report+="\033[1;32m[Confirm]\033[0m ${S}ROOM_CONFIRM"
         else
         # Default / NA / SYS
             report+=" ${C_LBL}Package:${C_VAL} ${d_pkg} ${S}ROOM_PKG\n"
@@ -919,7 +919,7 @@ function _factory_fzf_detail_view() {
             report+=" ${C_LBL}Flag   :${C_VAL} ${_VAL_FLAG:-[Empty]} ${S}ROOM_FLAG\n"
             report+="${C_LBL}${SEP}${C_RST}\n"
             report+="\033[1;36m[Lookup] 'apklist'\033[0m ${S}ROOM_LOOKUP\n"
-            report+="\033[1;32m[Confirm]\033[0m$ {S}ROOM_CONFIRM"
+            report+="\033[1;32m[Confirm]\033[0m ${S}ROOM_CONFIRM"
         fi
     else
         # VIEW Mode Section
