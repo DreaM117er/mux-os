@@ -1150,8 +1150,7 @@ function _ui_fake_gate() {
             CURRENT_PCT=$NEXT_VAL
         fi
 
-        JITTER=$(( 15 + RANDOM % 11 ))
-        sleep "0.0$JITTER"
+        sleep 0.015
     done
 
     tput cnorm
