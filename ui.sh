@@ -1103,34 +1103,55 @@ function _ui_fake_gate() {
 
     local hex_addr="0x0000"
 
-    while [ $current_pct -le 100 ]; do
-        local filled_len=$(( (current_pct * bar_len) / 100 ))
-        
-        tput cup $center_row $bar_start_col
+    CURRENT_PCT=0
+    TRAP_ACTIVE="false"
+
+    while [ $CURRENT_PCT -le 100 ]; do
+        FILLED_LEN=$(( (CURRENT_PCT * BAR_LEN) / 100 ))
+
+        tput cup $CENTER_ROW $BAR_START_COL
         echo -ne "${C_TXT}[${C_RESET}"
-        
-        if [ "$filled_len" -gt 0 ]; then
-            printf "${theme_color}%.0s#${C_RESET}" $(seq 1 "$filled_len")
+    
+        if [ "$FILLED_LEN" -gt 0 ]; then 
+            printf "${THEME_COLOR}%.0s#${C_RESET}" $(seq 1 "$FILLED_LEN")
         fi
-        
-        local remain=$(( bar_len - filled_len ))
-        if [ "$remain" -gt 0 ]; then
-             printf "%.0s " $(seq 1 "$remain")
+    
+        REMAIN=$(( BAR_LEN - FILLED_LEN ))
+        if [ "$REMAIN" -gt 0 ]; then 
+            printf "%.0s " $(seq 1 "$REMAIN")
         fi
-        
+    
         echo -ne "${C_TXT}]${C_RESET}"
-        
-        hex_addr=$(printf "0x%04X" $((RANDOM % 65535)))
-        echo -ne "${C_TXT} :: MEM: ${hex_addr}${C_RESET}\033[K"
-        
-        if [ $current_pct -ge 100 ]; then break; fi
 
-        local jump=$(( 1 + RANDOM % 5 ))
-        current_pct=$(( current_pct + jump ))
-        if [ $current_pct -gt 100 ]; then current_pct=100; fi
+        tput cup $((CENTER_ROW + 2)) $STATS_START_COL
+        HEX_ADDR=$(printf "0x%04X" $((RANDOM%65535)))
+        echo -ne "${C_TXT}:: ${THEME_COLOR}"; printf "%3d%%" "$CURRENT_PCT"; echo -ne "${C_TXT} :: MEM: ${HEX_ADDR}${C_RESET}\033[K"
 
-        local jitter=$(( 15 + RANDOM % 11 ))
-        sleep "0.0$jitter"
+        if [ "$CURRENT_PCT" -eq 99 ] && [ "$TRAP_ACTIVE" == "true" ]; then
+            sleep 2
+            TRAP_ACTIVE="false"
+            CURRENT_PCT=100
+            continue
+        fi
+
+        if [ $CURRENT_PCT -ge 100 ]; then break; fi
+    
+        JUMP=$(( 1 + RANDOM % 4 ))
+        NEXT_VAL=$(( CURRENT_PCT + JUMP ))
+
+        if [ $NEXT_VAL -ge 100 ]; then
+            if [ $(( RANDOM % 50 )) -eq 0 ]; then
+                CURRENT_PCT=99
+                TRAP_ACTIVE="true"
+            else
+                CURRENT_PCT=100
+            fi
+        else
+            CURRENT_PCT=$NEXT_VAL
+        fi
+
+        JITTER=$(( 15 + RANDOM % 11 ))
+        sleep "0.0$JITTER"
     done
 
     tput cnorm
