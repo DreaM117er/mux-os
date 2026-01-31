@@ -51,7 +51,7 @@ function _exit_protocol() {
     echo ""
     echo -e "${C_GRAY}    ›› Operations complete. Returning to Core...${C_RESET}"
     sleep 0.5
-    exit 0
+    exec bash
 }
 
 # 身份重置協議
@@ -169,11 +169,14 @@ function _install_protocol() {
     sed -i "\#source $MUX_ROOT/core.sh#d" "$RC_FILE"
     sed -i '/_mux_boot_sequence/d' "$RC_FILE"
     
-    echo "" >> "$RC_FILE"
-    echo "# === Mux-OS Auto-Loader ===" >> "$RC_FILE"
-    echo "if [ -f \"$MUX_ROOT/core.sh\" ]; then" >> "$RC_FILE"
-    echo "    source \"$MUX_ROOT/core.sh\"" >> "$RC_FILE"
-    echo "fi" >> "$RC_FILE"
+    if ! grep -q "source $MUX_ROOT/core.sh" "$RC_FILE"; then
+        echo "" >> "$RC_FILE"
+        echo "# Mux-OS Core Uplink" >> "$RC_FILE"
+        echo "if [ -f \"$MUX_ROOT/core.sh\" ]; then source \"$MUX_ROOT/core.sh\"; fi" >> "$RC_FILE"
+        echo "    ›› Neural uplink established in .bashrc"
+    else
+        echo "    ›› Neural uplink already active."
+    fi
     
     echo "    ›› Bootloader injected into $RC_FILE (v7.1.0 structure)"
 
@@ -188,18 +191,12 @@ function _install_protocol() {
     echo -e "${C_GREEN} :: System Ready. Returning to Core...${C_RESET}"
     sleep 1
     
-    if [ -f "$MUX_ROOT/gate.sh" ]; then
-        chmod +x "$MUX_ROOT/gate.sh"
-    fi
+    cat > "$MUX_ROOT/.mux_state" <<EOF
+MUX_MODE="MUX"
+MUX_STATUS="LOCKED"
+EOF
 
-    if [ "$__MUX_CORE_ACTIVE" == "true" ]; then
-        exit 0
-    else
-        echo ""
-        echo -e "${C_GREEN} :: Mux-OS setup ready. Please restart Termux to engage.${C_RESET}"
-        echo -e "${C_GRAY}    (Type 'exit' or swipe away this session)${C_RESET}"
-        exit 0
-    fi
+    exec bash
 }
 
 # 卸載協議
