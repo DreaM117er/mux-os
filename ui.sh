@@ -11,7 +11,7 @@ function _draw_logo() {
     local color_primary=""
     local color_sub=""
     local label=""
-    local cols=$(tput cols)
+    local cols=$(tput cols 2>/dev/null || echo 80)
 
 case "$mode" in
         "factory")
@@ -46,15 +46,13 @@ case "$mode" in
     esac
 
     echo -e "${color_primary}"
-    cat << "EOF"
-  __  __                  ___  ____  
- |  \/  |_   ___  __     / _ \/ ___| 
- | |\/| | | | \ \/ /____| | | \___ \ 
- | |  | | |_| |>  <_____| |_| |___) |
- |_|  |_|\__,_/_/\_\     \___/|____/ 
-EOF
-    echo -e "\033[0m"
-    echo -e " ${color_sub}${label}\033[0m"
+    echo "  __  __                  ___  ____  "
+    echo " |  \/  |_   ___  __     / _ \/ ___| "
+    echo " | |\/| | | | \ \/ /____| | | \___ \ "
+    echo " | |  | | |_| |>  <_____| |_| |___) |"
+    echo " |_|  |_|\__,_/_/\_\     \___/|____/ "
+    echo -e "${C_RESET}"
+    echo -e " ${color_sub}${label}${C_RESET}"
     echo ""
 }
 
@@ -1064,96 +1062,75 @@ function _factory_fzf_add_type_menu() {
     echo "$selected"
 }
 
-# 偽・星門 - UI Mask / Fake Gate
+# 星門 - UI Mask / Fake Gate
 function _ui_fake_gate() {
     local target_system="${1:-core}"
     local theme_color=""
     local theme_text=""
-    local icon=""
     
     if [ "$target_system" == "factory" ]; then
-        theme_color="\033[1;38;5;208m"
+        theme_color="\033[1;38;5;208m" # Orange
         theme_text="NEURAL FORGE"
-        icon=""
     else
-        theme_color="\033[1;36m"
+        theme_color="\033[1;36m"       # Blue
         theme_text="SYSTEM CORE"
-        icon=""
     fi
 
     local C_TXT="\033[1;30m"
     local C_RESET="\033[0m"
 
-    stty -echo
     tput civis
-    clear
+    stty -echo
+    
+    trap 'tput cnorm; stty echo; echo -e "${C_RESET}";' EXIT INT TERM
 
+    clear
     local rows=$(tput lines)
     local cols=$(tput cols)
+    
     local bar_len=$(( cols * 45 / 100 ))
     if [ "$bar_len" -lt 15 ]; then bar_len=15; fi
-
     local center_row=$(( rows / 2 ))
     local bar_start_col=$(( (cols - bar_len - 2) / 2 ))
-    local stats_start_col=$(( (cols - 24) / 2 ))
     local title_start_col=$(( (cols - 25) / 2 ))
 
     tput cup $((center_row - 2)) $title_start_col
-    echo -e "${C_TXT}:: GATE ${theme_color}${theme_text} ${icon}${C_TXT}::${C_RESET}"
+    echo -e "${C_TXT}:: GATE ${theme_color}${theme_text} ${C_TXT}::${C_RESET}"
 
-    local hex_addr="0x0000"
+    local current_pct=0
+    local trap_triggered="false"
 
-    CURRENT_PCT=0
-    TRAP_ACTIVE="false"
+    while [ $current_pct -le 100 ]; do
+        local filled_len=$(( (current_pct * bar_len) / 100 ))
+        local remain=$(( bar_len - filled_len ))
 
-    while [ $CURRENT_PCT -le 100 ]; do
-        FILLED_LEN=$(( (CURRENT_PCT * BAR_LEN) / 100 ))
-
-        tput cup $CENTER_ROW $BAR_START_COL
+        tput cup $center_row $bar_start_col
         echo -ne "${C_TXT}[${C_RESET}"
-    
-        if [ "$FILLED_LEN" -gt 0 ]; then 
-            printf "${THEME_COLOR}%.0s#${C_RESET}" $(seq 1 "$FILLED_LEN")
-        fi
-    
-        REMAIN=$(( BAR_LEN - FILLED_LEN ))
-        if [ "$REMAIN" -gt 0 ]; then 
-            printf "%.0s " $(seq 1 "$REMAIN")
-        fi
-    
+        if [ "$filled_len" -gt 0 ]; then printf "${theme_color}%.0s#${C_RESET}" $(seq 1 "$filled_len"); fi
+        if [ "$remain" -gt 0 ]; then printf "%.0s " $(seq 1 "$remain"); fi
         echo -ne "${C_TXT}]${C_RESET}"
 
-        tput cup $((CENTER_ROW + 2)) $STATS_START_COL
-        HEX_ADDR=$(printf "0x%04X" $((RANDOM%65535)))
-        echo -ne "${C_TXT}:: ${THEME_COLOR}"; printf "%3d%%" "$CURRENT_PCT"; echo -ne "${C_TXT} :: MEM: ${HEX_ADDR}${C_RESET}\033[K"
+        local hex_val=$(printf "0x%04X" $((RANDOM%65535)))
+        tput cup $((center_row + 2)) $(( (cols - 20) / 2 ))
+        echo -ne "${C_TXT}:: ${theme_color}${current_pct}%${C_TXT} :: MEM: ${hex_val}${C_RESET}"
 
-        if [ "$CURRENT_PCT" -eq 99 ] && [ "$TRAP_ACTIVE" == "true" ]; then
+        if [ "$current_pct" -eq 99 ] && [ "$trap_triggered" == "false" ]; then
+            trap_triggered="true"
             sleep 2
-            TRAP_ACTIVE="false"
-            CURRENT_PCT=100
-            continue
         fi
 
-        if [ $CURRENT_PCT -ge 100 ]; then break; fi
-    
-        JUMP=$(( 1 + RANDOM % 5 ))
-        NEXT_VAL=$(( CURRENT_PCT + JUMP ))
-
-        if [ $NEXT_VAL -ge 100 ]; then
-            if [ $(( RANDOM % 50 )) -eq 0 ]; then
-                CURRENT_PCT=99
-                TRAP_ACTIVE="true"
-            else
-                CURRENT_PCT=100
-            fi
-        else
-            CURRENT_PCT=$NEXT_VAL
+        ((current_pct+=2))
+        if [ "$current_pct" -gt 100 ]; then current_pct=100; fi
+        
+        if [ "$current_pct" -eq 100 ] && [ "$trap_triggered" == "true" ]; then
+            break
         fi
-
-        sleep 0.015
+        
+        sleep 0.01
     done
 
+    trap - EXIT INT TERM
     tput cnorm
-    stty sane
+    stty echo
     clear
 }
