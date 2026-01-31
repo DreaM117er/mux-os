@@ -269,24 +269,7 @@ function _mux_launch_validator() {
 
 # 啟動序列邏輯 (Boot Sequence)
 function _mux_boot_sequence() {
-    if [ "$MUX_STATUS" == "LOGIN" ]; then
-        echo ":: System Active."
-        return 0
-    fi
-    
-    if command -v _ui_fake_gate &> /dev/null; then
-        _ui_fake_gate "core"
-    else
-        echo ":: System Initializing..."
-        sleep 1
-    fi
-
-    cat > "$MUX_ROOT/.mux_state" <<EOF
-MUX_MODE="MUX"
-MUX_STATUS="LOGIN"
-EOF
-
-    exec bash
+    return 0
 }
 
 # 主程式初始化 (Main Initialization)
@@ -351,6 +334,11 @@ function mux() {
     fi
 
     case "$cmd" in
+        # : Login Sequence
+        "login")
+            _mux_pre_login
+            ;;
+
         # : Open Command Dashboard
         "menu")
             if command -v fzf &> /dev/null; then
@@ -486,6 +474,58 @@ function mux() {
             echo -e "\033[1;33m :: Unknown Directive: '$cmd'.\033[0m"
             ;;
     esac
+}
+
+function _mux_pre_login() {
+    local F_GRAY="\033[1;30m"
+    local F_BLE="\033[1;36m"
+    local F_RESET="\033[0m"
+    local F_GRE="\033[1;32m"
+    local F_SUB="\033[1;37m"
+    local F_RED="\033[1;31m"
+
+    if [ "$MUX_STATUS" != "DEFAULT" ]; then
+        echo -e "${F_BLE} :: System already active, Commander.${F_RESET}"
+        return 1
+    fi
+
+    echo ""
+    echo -e "${F_GRAY} :: SECURITY CHECKPOINT ::${F_RESET}"
+    
+    # 2. 身份比對 (仿照 _core_pre_factory_auth)
+    echo -ne "${F_SUB} :: Commander ID: ${F_RESET}" 
+    read input_id
+
+    local identity_valid=0
+    if [ -f "$MUX_ROOT/.mux_identity" ]; then
+        local REAL_ID=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2)
+        # 簡單比對 ID，或者如果是 Unknown (開發模式) 則放行
+        if [ "$input_id" == "$REAL_ID" ]; then
+            identity_valid=1
+        fi
+    else
+        # 如果沒有身份檔，視為初次使用或特殊情況，暫時放行
+        identity_valid=1
+    fi
+
+    if [ "$identity_valid" -ne 1 ]; then
+        echo -e "${F_RED} :: ACCESS DENIED :: Identity Mismatch.${F_RESET}"
+        return 1
+    fi
+
+    # 3. 驗證通過
+    echo ""
+    echo -e "${F_GRE} :: ACCESS GRANTED :: ${F_RESET}"
+    sleep 0.5
+    
+    # 4. 寫入 LOGIN 狀態
+    cat > "$MUX_ROOT/.mux_state" <<EOF
+MUX_MODE="MUX"
+MUX_STATUS="LOGIN"
+EOF
+
+    # 5. 重啟進入藍色世界
+    exec bash
 }
 
 # 工廠前置驗證協議 (Pre-Flight Auth)
@@ -635,6 +675,7 @@ function _core_eject_sequence() {
 function _mux_reload_kernel() {
     _system_lock
     unset MUX_INITIALIZED
+    _ui_fake_gate "core"
     exec bash
 }
 

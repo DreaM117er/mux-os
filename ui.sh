@@ -1099,6 +1099,11 @@ function _ui_fake_gate() {
 
     local current_pct=0
     local trap_triggered="false"
+    
+    local should_trap="false"
+    if [ $((RANDOM % 100)) -ge 98 ]; then
+        should_trap="true"
+    fi
 
     while true; do
         # 繪圖
@@ -1115,28 +1120,25 @@ function _ui_fake_gate() {
         tput cup $((center_row + 2)) $(( (cols - 20) / 2 ))
         echo -ne "${C_TXT}:: ${theme_color}${current_pct}%${C_TXT} :: MEM: ${hex_val}${C_RESET}\033[K"
 
-        # 檢查結束點 (最重要的修復)
-        if [ "$current_pct" -ge 100 ]; then
-            break
-        fi
+        if [ "$current_pct" -ge 100 ]; then break; fi
 
-        # 陷阱邏輯
-        if [ "$current_pct" -ge 98 ] && [ "$trap_triggered" == "false" ]; then
+        if [ "$should_trap" == "true" ] && [ "$current_pct" -ge 98 ] && [ "$trap_triggered" == "false" ]; then
             current_pct=99
             trap_triggered="true"
             sleep 2
             continue
         fi
 
-        # 增量
-        local step=$(( (RANDOM % 5) + 1 ))
+        local step=$(( (RANDOM % 4) + 1 ))
         current_pct=$(( current_pct + step ))
         
-        # 邊界保護
-        if [ "$current_pct" -gt 98 ] && [ "$trap_triggered" == "false" ]; then current_pct=98; fi
+        if [ "$should_trap" == "true" ] && [ "$current_pct" -gt 98 ] && [ "$trap_triggered" == "false" ]; then
+            current_pct=98
+        fi
+        
         if [ "$current_pct" -gt 100 ]; then current_pct=100; fi
 
-        sleep 0.02
+        sleep 0.015
     done
 
     # 清理
