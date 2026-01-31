@@ -1931,7 +1931,7 @@ function _fac_edit_router() {
         "ROOM_LOOKUP")
             _bot_say "action" "Launching Reference Tool..." >&2
             if command -v apklist &> /dev/null; then
-                apklist >&2
+                apklist
             else
                 echo "Module missing" >&2
             fi
