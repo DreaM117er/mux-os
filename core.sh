@@ -669,8 +669,6 @@ function _neural_link_deploy() {
     git push
     if [ $? -eq 0 ]; then 
         _bot_say "success" "Deployment Successful."
-        # 清理臨時變數
-        unset GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL GIT_COMMITTER_NAME GIT_COMMITTER_EMAIL
     else 
         _bot_say "error" "Uplink destabilized."
     fi
