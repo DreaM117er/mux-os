@@ -1930,7 +1930,12 @@ function _fac_edit_router() {
 
         "ROOM_LOOKUP")
             _bot_say "action" "Launching Reference Tool..." >&2
-            if command -v apklist &> /dev/null; then apklist >&2; else echo "Module missing" >&2; fi
+            if command -v apklist &> /dev/null; then
+                apklist >&2
+            else
+                echo "Module missing" >&2
+            fi
+
             echo -e "" >&2
             echo -e "${F_GRAY}    (Press 'Enter' to return to Factory)${F_RESET}" >&2
             read
