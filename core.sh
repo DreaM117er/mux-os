@@ -271,12 +271,6 @@ function _mux_boot_sequence() {
         return 0
     fi
     
-    echo ""
-    echo -ne "\033[1;30m :: PRESS ENTER TO INITIALIZE SYSTEM ::\033[0m"
-    
-    # 靜默等待輸入 (您可以改成 read -s -p "Password: " 如果需要密碼)
-    read -s _input 
-    
     if command -v _ui_fake_gate &> /dev/null; then
         _ui_fake_gate "core"
     else
@@ -302,7 +296,7 @@ function _mux_init() {
     _draw_logo "core"
     
     if command -v _system_check &> /dev/null; then
-        _system_check
+        _system_check # 這個函式需要改動
     fi
     
     if command -v _show_hud &> /dev/null; then

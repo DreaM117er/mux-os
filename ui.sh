@@ -1112,21 +1112,31 @@ function _ui_fake_gate() {
 
         local hex_val=$(printf "0x%04X" $((RANDOM%65535)))
         tput cup $((center_row + 2)) $(( (cols - 20) / 2 ))
-        echo -ne "${C_TXT}:: ${theme_color}${current_pct}%${C_TXT} :: MEM: ${hex_val}${C_RESET}"
+        echo -ne "${C_TXT}:: ${theme_color}${current_pct}%${C_TXT} :: MEM: ${hex_val}${C_RESET}\033[K"
 
-        if [ "$current_pct" -eq 99 ] && [ "$trap_triggered" == "false" ]; then
-            trap_triggered="true"
-            sleep 2
-        fi
-
-        ((current_pct+=2))
-        if [ "$current_pct" -gt 100 ]; then current_pct=100; fi
-        
-        if [ "$current_pct" -eq 100 ] && [ "$trap_triggered" == "true" ]; then
+        if [ "$current_pct" -ge 100 ]; then
             break
         fi
+
+        if [ "$current_pct" -ge 98 ] && [ "$trap_triggered" == "false" ]; then
+            current_pct=99
+            trap_triggered="true"
+            sleep 2
+            continue
+        fi
+
+        local step=$(( (RANDOM % 4) + 1 ))
+        current_pct=$(( current_pct + step ))
+
+        if [ "$current_pct" -gt 98 ] && [ "$trap_triggered" == "false" ]; then
+            current_pct=98
+        fi
         
-        sleep 0.01
+        if [ "$current_pct" -gt 100 ]; then
+            current_pct=100
+        fi
+
+        sleep 0.015
     done
 
     trap - EXIT INT TERM
