@@ -5,6 +5,7 @@ vendor.csv
 
 # :: Identity Matrix (DO NOT REMOVE)
 .mux_identity
+.mux_state
 
 # :: System Backups
 bak/

@@ -31,6 +31,51 @@ for mod in "${MODULES[@]}"; do
     if [ -f "$mod" ]; then source "$mod"; fi
 done
 
+# 讀取門禁卡
+MUX_MODE="DEF"
+MUX_STATUS="LOCKED"
+if [ -f "$MUX_ROOT/.mux_state" ]; then source "$MUX_ROOT/.mux_state"; fi
+
+case "$MUX_MODE" in
+    "FAC")
+        if [ -f "$MUX_ROOT/factory.sh" ]; then
+            source "$MUX_ROOT/factory.sh"
+            return 0 2>/dev/null || exit 0
+        fi
+        ;;
+        
+    "MUX")
+        if [ "$MUX_STATUS" == "LOGIN" ]; then
+            export PS1="\[\033[1;36m\]Mux\[\033[0m\] \w › "
+        else
+            export PS1="\[\033[1;30m\]Mux\[\033[0m\] \w › "
+            
+            if [ -z "$__MUX_GRAY_INIT" ]; then
+                clear
+                if command -v _draw_logo &> /dev/null; then
+                    _draw_logo "gray"
+                else
+                    echo ":: SYSTEM STANDBY ::"
+                fi
+                export __MUX_GRAY_INIT=true
+            fi
+        fi
+        
+        export PROMPT_COMMAND="tput sgr0; echo -ne '\033[0m'"
+        ;;
+        
+    *)
+        if command -v _ui_fake_gate &> /dev/null; then _ui_fake_gate "core"; fi
+        
+        cat > "$MUX_ROOT/.mux_state" <<EOF
+MUX_MODE="MUX"
+MUX_STATUS="LOGIN"
+EOF
+
+        exec bash
+        ;;
+esac
+
 if command -v _init_identity &> /dev/null; then _init_identity; fi
 
 [ ! -d "$HOME/storage" ] && { termux-setup-storage; sleep 1; }
@@ -221,29 +266,30 @@ function _mux_launch_validator() {
 
 # 啟動序列邏輯 (Boot Sequence)
 function _mux_boot_sequence() {
-    if [ "$MUX_INITIALIZED" = "true" ]; then return; fi
+    if [ "$MUX_STATUS" == "LOGIN" ]; then
+        echo ":: System Active."
+        return 0
+    fi
     
-    local TARGET_MODE=""
-    if [ -f "$MUX_ROOT/.mux_state" ]; then
-        TARGET_MODE=$(cat "$MUX_ROOT/.mux_state")
+    echo ""
+    echo -ne "\033[1;30m :: PRESS ENTER TO INITIALIZE SYSTEM ::\033[0m"
+    
+    # 靜默等待輸入 (您可以改成 read -s -p "Password: " 如果需要密碼)
+    read -s _input 
+    
+    if command -v _ui_fake_gate &> /dev/null; then
+        _ui_fake_gate "core"
+    else
+        echo ":: System Initializing..."
+        sleep 1
     fi
 
-    if [ "$TARGET_MODE" == "factory" ]; then
-        if [ -f "$MUX_ROOT/factory.sh" ]; then
-            export __MUX_MODE="factory"
-            source "$MUX_ROOT/factory.sh"
-            
-            if command -v _factory_system_boot &> /dev/null; then
-                _factory_system_boot 
-            fi
-        else
-            echo "core" > "$MUX_ROOT/.mux_state"
-            _mux_init
-        fi
-    else
-        if [ -f "$MUX_ROOT/.mux_state" ]; then echo "core" > "$MUX_ROOT/.mux_state"; fi
-        _mux_init
-    fi
+    cat > "$MUX_ROOT/.mux_state" <<EOF
+MUX_MODE="MUX"
+MUX_STATUS="LOGIN"
+EOF
+
+    exec bash
 }
 
 # 主程式初始化 (Main Initialization)
@@ -537,16 +583,20 @@ function _core_pre_factory_auth() {
     local steps=("Injecting Logic..." "Desynchronizing Core..." "Loading Arsenal..." "Entering Factory...")
     for step in "${steps[@]}"; do
         echo -e "${F_GRAY}    ›› $step${F_RESET}"
-        sleep 0.4
+        sleep 0.2
     done
     sleep 0.5
     
-    if [ -f "$MUX_ROOT/gate.sh" ]; then
-        source "$MUX_ROOT/gate.sh" "factory"
-    else
-        _bot_say "error" "Gate Mechanism Not Found."
-        return 1
+    if command -v _ui_fake_gate &> /dev/null; then
+        _ui_fake_gate "factory"
     fi
+
+    cat > "$MUX_ROOT/.mux_state" <<EOF
+MUX_MODE="FAC"
+MUX_STATUS="LOGIN"
+EOF
+
+    exec bash
 }
 
 # 彈射序列 (The Ejection - Core Simulation)
@@ -1011,14 +1061,13 @@ function command_not_found_handle() {
     return 127
 }
 
-export PS1="\[\033[1;36m\]Mux\[\033[0m\] \w › "
-export PROMPT_COMMAND="tput sgr0; echo -ne '\033[0m'"
-
 # 啟動系統初始化
 if [ -z "$MUX_INITIALIZED" ]; then
+    export MUX_INITIALIZED=true
+
     if command -v _mux_boot_sequence &> /dev/null; then
         _mux_boot_sequence
     else
-        _mux_init
+        if command -v _mux_init &> /dev/null; then _mux_init; fi
     fi
 fi

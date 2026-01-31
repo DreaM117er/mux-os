@@ -1014,12 +1014,16 @@ function _factory_deploy_sequence() {
     echo -e "${F_GRE} :: DEPLOYMENT SUCCESSFUL ::${F_RESET}"
     sleep 1.4
     
-    if [ -f "$MUX_ROOT/gate.sh" ]; then
-        source "$MUX_ROOT/gate.sh" "core"
-    else
-        echo "core" > "$MUX_ROOT/.mux_state"
-        source "$MUX_ROOT/core.sh"
+    if command -v _ui_fake_gate &> /dev/null; then
+        _ui_fake_gate "core"
     fi
+
+    cat > "$MUX_ROOT/.mux_state" <<EOF
+MUX_MODE="MUX"
+MUX_STATUS="LOGIN"
+EOF
+
+    exec bash
 }
 
 # 機體維護工具 (Mechanism Maintenance)
