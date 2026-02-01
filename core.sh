@@ -751,7 +751,7 @@ function _mux_force_reset() {
         _bot_say "success" "Timeline restored."
         _system_unlock
         sleep 1
-        return 0
+        _mux_reload_kernel
     else
         echo -e "\033[1;30m    ›› Reset canceled.\033[0m"
         _system_unlock
