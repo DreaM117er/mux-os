@@ -1090,11 +1090,11 @@ function _ui_fake_gate() {
             ;;
         "default")
             theme_color="\033[1;37m"
-            theme_text="COMMANDER"
+            theme_text="TO COMMANDER"
             ;;
         *)
             theme_color="\033[1;36m"
-            theme_text="GATE SYSTEM"
+            theme_text="SYSTEM CORE"
             ;;
     esac
 
