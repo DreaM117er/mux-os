@@ -1123,7 +1123,7 @@ function _ui_fake_gate() {
     local title_start_col=$(( (cols - 25) / 2 ))
 
     # 繪製標題
-    tput cup $((center_row - 2)) $title_start_col
+    tput cup $((center_row + 2)) $title_start_col
     echo -e "${C_TXT}:: GATE ${theme_color}${theme_text} ${C_TXT}::${C_RESET}"
 
     local current_pct=0
