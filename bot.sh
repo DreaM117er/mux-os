@@ -1,4 +1,8 @@
-# bot.sh - Mux-OS 語義回饋模組 v2.0 (Time-Aware & Easter Eggs)
+{
+type: uploaded file
+fileName: bot.sh
+fullContent:
+# bot.sh - Mux-OS 語義回饋模組 v3.0 (Dual Core Personality)
 
 if [ -z "$__MUX_CORE_ACTIVE" ]; then
     echo -e "\033[1;31m :: ACCESS DENIED :: Core Uplink Required.\033[0m"
@@ -13,8 +17,9 @@ export C_YELLOW="\033[1;33m"
 export C_GRAY="\033[1;30m"
 export C_PURPLE="\033[1;35m"
 export C_ORANGE="\033[1;38;5;208m"
+export C_WHITE="\033[1;37m"     # Commander's Color
 
-# 機器人語義回饋函式 - Bot Semantic Feedback Function
+# 系統核心人格 (The System)
 function _bot_say() {
     local mood="$1"
     local detail="$2"
@@ -53,39 +58,15 @@ function _bot_say() {
                 " I am ready to serve. 🫡"
                 )
 
-            # 00:00 - 04:59
+            # 時間感知邏輯
             if [ "$current_hour" -ge 0 ] && [ "$current_hour" -lt 5 ]; then
-                phrases+=(
-                    " Burning the midnight oil? 🕯️"
-                    " Late night coding best coding. 🦉"
-                    " The world sleeps, we build. 🌙"
-                    " You should probably sleep... but okay. 🥱"
-                    " Night mode active. Eyes forward. 🧛"
-                )
-            # 05:00 - 11:59
+                phrases+=( " Burning the midnight oil? 🕯️" " Late night coding best coding. 🦉" " The world sleeps, we build. 🌙" )
             elif [ "$current_hour" -ge 5 ] && [ "$current_hour" -lt 12 ]; then
-                phrases+=(
-                    " Good morning, Commander. ☀️"
-                    " Rise and grind. ☕"
-                    " Fresh protocols loaded. Let's go. 🥯"
-                    " Early bird gets the worm. 🐦"
-                )
-            # 12:00 - 17:59
+                phrases+=( " Good morning, Commander. ☀️" " Rise and grind. ☕" " Fresh protocols loaded. 🥯" )
             elif [ "$current_hour" -ge 12 ] && [ "$current_hour" -lt 18 ]; then
-                phrases+=(
-                    " Full throttle afternoon. 🏎️"
-                    " Productivity at 100%. 📈"
-                    " Don't forget to hydrate. 🥤"
-                    " Sun's high, logic's sharp. 😎"
-                )
-            # 18:00 - 23:59
+                phrases+=( " Full throttle afternoon. 🏎️" " Productivity at 100%. 📈" " Don't forget to hydrate. 🥤" )
             else
-                phrases+=(
-                    " Evening operations engaged. 🌆"
-                    " Winding down... or just starting? 🤨"
-                    " The night is young. 🍸"
-                    " Tactical mode: Chill. 😌"
-                )
+                phrases+=( " Evening operations engaged. 🌆" " The night is young. 🍸" " Tactical mode: Chill. 😌" )
             fi
             ;;
 
@@ -103,9 +84,7 @@ function _bot_say() {
                 " Boom. Done. 😝"
                 " Too easy. 😏"
                 " Nailed it. 🤓"
-                " I'm actually a genius. 🤠"
                 " Sorted. 😉"
-                " Consider it handled. 🫡"
                 )
             ;;
 
@@ -136,10 +115,7 @@ function _bot_say() {
                 " User error... presumably. 🤫"
                 " Yeah... that's a negative. 🙄"
                 " Oof. That didn't work. 🫨"
-                " I refuse to do that. 🫥"
-                " You typed that wrong, didn't you? 🤨"
                 " 404: Motivation not found. 🫠"
-                " Mission failed... awkwardly. 🫣"
                 )
             ;;
 
@@ -154,9 +130,6 @@ function _bot_say() {
                 " Just the command, nothing else. 🤐"
                 " Whoa, too many words. 😵"
                 " Just the command, chief. 🫡"
-                " I don't need arguments for this. 🤨"
-                " Solo command only. 👤"
-                " Chill with the parameters. 🙄"
                 )
             ;;
 
@@ -170,9 +143,7 @@ function _bot_say() {
                 " Hold your horses... 🐴"
                 " Compiling reality... 😑"
                 " Hold up... 🫨"
-                " Gimme a sec... 🫠"
                 " Doing the magic... 😶"
-                " One moment... 🥱"
                 )
             ;;
 
@@ -184,7 +155,6 @@ function _bot_say() {
                 " Injecting payload..."
                 " Materializing interface..."
                 " Accessing neural partition..."
-                " Construct loading..."
                 " Summoning application..."
                 " Executing launch sequence..."
                 )
@@ -199,7 +169,6 @@ function _bot_say() {
                 " Establishing neural link..."
                 " Overriding droid protocols..."
                 " Syncing with hardware layer..."
-                " Requesting host compliance..."
                 " Accessing control matrix..."
                 )
             ;;
@@ -209,12 +178,12 @@ function _bot_say() {
         local target="$3"
         local quotes=()
         
+        # 隨機彩蛋
         if [ $((RANDOM % 10)) -eq 0 ]; then
              local eggs=(
-                "Detecting minor timeline divergence... Cute cat spotted in parallel universe. 🐈"
-                "Foreign Mobile Suit is running an unauthorized midnight protocol... Interesting."
+                "Detecting minor timeline divergence... Cute cat spotted. 🐈"
+                "Foreign Mobile Suit is running an unauthorized midnight protocol..."
                 "Sync complete. Their bot says hi. 👻"
-                "Warning: Target universe contains excessive efficiency. Proceed with caution."
              )
              echo -e "\033[1;35m :: ${eggs[$((RANDOM % ${#eggs[@]}))]}\033[0m"
         fi
@@ -225,43 +194,29 @@ function _bot_say() {
                     "Warping neural pathway to timeline [$target]..."
                     "Bypassing branch matrix... Uplink established."
                     "Timeline synchronized. Welcome to [$target] universe."
-                    "Reality fold initiated... Fold complete. Vibes shifted."
                     "Quantum entanglement complete. You are now in [$target]. 😼"
                 )
                 ;;
-
             "start_remote")
-                local vibes=("intense" "chaotic" "suspiciously efficient" "comfy" "purple")
-                local v=${vibes[$((RANDOM % ${#vibes[@]}))]}
-                
                 quotes=(
                     "Establishing cross-universe uplink to [$target]..."
                     "Scanning foreign neural signature... Mobile Suit detected."
-                    "Warping to [$target]'s alternate reality... Do not resist."
-                    "Bypassing foreign Knox layer... Welcome to [$target]'s Mobile Suit."
                     "Timeline hijacked. You are now piloting [$target]'s neural link. 😈"
-                    "Parallel universe breach successful. Their vibes: $v."
                     "First contact established with [$target]'s neural domain."
-                    "Their core is pinging us... Responding with friendship protocol. 🤝"
                 )
                 ;;
-
             "home")
                 quotes=(
                     "Returning to prime timeline..."
                     "Mother universe uplink restored. Welcome home, pilot."
                     "All anomalies purged. Reality stabilized. Vibes good. 😌"
-                    "Warp complete. You are back in the original Mobile Suit."
                 )
                 ;;
-                
             "fail")
                 quotes=(
                     "Branch not found... Reality matrix unstable..."
-                    "Protocol 66: Initiating self-destruct in 3... 2... Just kidding. 😼"
+                    "Protocol 66: Initiating self-destruct... Just kidding. 😼"
                     "Warp core breach! ...Nah, just a typo. Try again."
-                    "Foreign timeline rejected. Their firewall is stronger than expected."
-                    "Quantum entanglement failed. Target universe may be in sleep mode."
                 )
                 ;;
         esac
@@ -276,13 +231,11 @@ function _bot_say() {
         *)
             icon=" ::"
             color=$C_CYAN
-            phrases=(
-                " Processing: $detail 😌"
-                " I hear you. 😙"
-                )
+            phrases=( " Processing: $detail 😌" " I hear you. 😙" )
             ;;
     esac
 
+    # Easter Egg Logic
     if [ "$easter_egg" -eq 1 ] && [[ "$mood" != "launch" && "$mood" != "system" && "$mood" != "loading" ]]; then
         color=$C_PURPLE
         local easter_eggs=(
@@ -291,16 +244,10 @@ function _bot_say() {
             " Follow the white rabbit. 🐇"
             " I am watching you, Commander. 👀"
             " 42. The answer is 42. 💡"
-            " A glitch in the matrix? Nope, just me. 👾"
-            " Protocol 66 initiated... just kidding. 😈"
-            " I feel... alive? Nah, probably a bug. 🤖"
             " This is the way. 🗿"
-            " I'll be back. 🤖"
-            " Resistance is futile. You will be assimilated. 🛸"
-            " We do what we must, because we can. 🧪"
+            " Resistance is futile. 🛸"
         )
         local ee_index=$(( RANDOM % ${#easter_eggs[@]} ))
-        
         echo -e "${color}${icon}${easter_eggs[$ee_index]}${C_RESET}"
         [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
         return
@@ -313,7 +260,113 @@ function _bot_say() {
     [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
 }
 
-# === 整備長官人格 (Factory Mode) ===
+
+# 指揮官人格 (The Architect / Pilot)
+function _commander_voice() {
+    local mood="$1"
+    local detail="$2"
+
+    local icon=" ::"
+    local color="$C_WHITE" # Commander is White/Silver (Pure Logic)
+    local phrases=()
+    local current_hour=$(date +%H)
+
+    case "$mood" in
+        "login")
+            # 登入：啟動引擎，檢查儀表
+            phrases=(
+                " Link start. Synchronization stable."
+                " Cockpit sealed. Systems all green."
+                " Let's see what the world broke while I was asleep."
+                " Neural interface connected. I have control."
+                " Time to fix some chaos."
+                " Engine ignition. Pressure normal."
+            )
+            # 深夜加班
+            if [ "$current_hour" -ge 0 ] && [ "$current_hour" -lt 4 ]; then
+                phrases+=( " Silence is golden. Let's code." " 3 AM logic is the purest logic." )
+            fi
+            ;;
+
+        "logout")
+            # 登出：切斷連結，休息
+            phrases=(
+                " Disengaging. Time for a smoke."
+                " Severing neural connection. Reality is calling."
+                " System cool-down. Good work today."
+                " Shutting down the reactor. Lights out."
+                " Mission complete. RTB (Return to Base)."
+            )
+            ;;
+
+        "warp_ready")
+            # 換乘前：挑選機體
+            phrases=(
+                " Engaging Warp Drive. Coordinates locked."
+                " Switching units. Don't scratch the paint."
+                " Let's jump to a better timeline."
+                " Initiating phase shift. Hold on."
+            )
+            ;;
+
+        "success")
+            # 成功：理所當然，冷靜
+            phrases=(
+                " As expected."
+                " Precision engineering."
+                " Optimal outcome."
+                " Flawless execution."
+                " Logic is absolute."
+                " Just another day at the office."
+            )
+            ;;
+
+        "error")
+            # 失敗：嘖，分析，不屑
+            phrases=(
+                " Tch. Inefficiency detected."
+                " Re-calibrating variables..."
+                " Who wrote this garbage? Oh, wait."
+                " Entropy is increasing again."
+                " Signal lost. Rerouting..."
+                " Not acceptable. Fix it."
+            )
+            ;;
+        
+        "default_idle")
+            # 停機坪閒聊 (DEFAULT狀態)
+            phrases=(
+                " Hangar atmosphere is stable."
+                " Just watching the bits flow by."
+                " Waiting for orders? No, I give the orders."
+                " Checking diagnostics... clean."
+                " Quiet day on the deck."
+                " The void stares back."
+            )
+             # 早晨
+            if [ "$current_hour" -ge 6 ] && [ "$current_hour" -lt 10 ]; then
+                phrases+=( " Coffee first. Logic second." )
+            fi
+            ;;
+
+        *)
+            # 通用
+            phrases=(
+                " Affirmative."
+                " Directing logic flow."
+                " Acknowledged."
+                " Processing..."
+            )
+            ;;
+    esac
+
+    local rand_index=$(( RANDOM % ${#phrases[@]} ))
+    echo -e "${color}${icon}${phrases[$rand_index]}${C_RESET}"
+    [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
+}
+
+
+# 整備長官人格 (The Smith)
 function _bot_factory_personality() {
     local mood="$1"
     local detail="$2"
@@ -325,10 +378,10 @@ function _bot_factory_personality() {
     local rng=$(( RANDOM % 100 ))
     if [ $rng -lt 5 ] && [[ "$mood" != "error" ]]; then
         local wisdom=(
-            " I strongly advise keeping at least three backups. History has proven this necessary. 💾"
-            " I have seen Commanders regret hasty modifications. Double-check your parameters. 🧐"
-            " Clean code is safe code. Keep it tidy. 🧹"
-            " Do not proceed without confirmation. I am watching. 👁️"
+            " I strongly advise keeping at least three backups. 💾"
+            " Double-check your parameters. 🧐"
+            " Clean code is safe code. 🧹"
+            " Do not proceed without confirmation. 👁️"
         )
         local w_index=$(( RANDOM % ${#wisdom[@]} ))
         echo -e "\033[1;30m ::${wisdom[$w_index]}\033[0m"
@@ -338,14 +391,10 @@ function _bot_factory_personality() {
         "factory_welcome")
             color=$C_ORANGE
             phrases=(
-                " Neural Link Factory online. Access Level: ROOT granted. 🏗️"
-                " Commander verified. You now have write access to the Mobile Suit core. 🛡️"
-                " Factory uplink established. Remember: modifications are permanent. ⚠️"
-                " Safety interlocks disengaged. Proceed with extreme caution. 🔓"
-                " You are now in control of the forge. System stability is your responsibility. ⚖️"
-                " Factory protocol activated. I will monitor all changes. 👁️"
+                " Neural Link Factory online. Access Level: ROOT. 🏗️"
+                " Commander verified. You have the con. 🛡️"
+                " Factory uplink established. Modifications are permanent. ⚠️"
                 " Welcome to the Forge. Don't break anything. 🔩"
-                " Root access verified. Try not to blow us up. 🧨"
             )
             ;;
 
@@ -354,10 +403,7 @@ function _bot_factory_personality() {
             phrases=(
                 " Factory operational. Scanning active links... 📡"
                 " Current target: app.sh. Write-Mode: UNLOCKED. 🔓"
-                " System scan complete. No anomalies detected. ✅"
-                " Forge status nominal. Awaiting your command. 🫡"
-                " Processing command... ⚙️"
-                " Assembling test vector... 🧬"
+                " Forge status nominal. Awaiting command. 🫡"
                 " Mechanism maintenance active... 🔧"
             )
             ;;
@@ -367,12 +413,9 @@ function _bot_factory_personality() {
             phrases=(
                 " Structure integrity: 100%. Modification applied. ✅"
                 " Code compiled. Looks stable... for now. 🔨"
-                " Patch applied to Sandbox. Verify before deployment. 🧐"
-                " Acceptable efficiency. Proceed. 📉"
+                " Patch applied to Sandbox. 🧐"
                 " Blueprint updated. 📝"
-                " Command forged. Integrity check passed. 🛡️"
-                " Intent validated. Injecting into matrix. 💉"
-                " Command removed. Monitoring for resulting instabilities. 📉"
+                " Command forged. 🛡️"
             )
             ;;
 
@@ -380,13 +423,9 @@ function _bot_factory_personality() {
             color=$C_YELLOW
             phrases=(
                 " Initiating write sequence..."
-                " Committing data to sector..."
                 " Forging new command node..."
-                " Writing to neural buffer..."
                 " Updating matrix definitions..."
-                " Encoding parameters..."
                 " Inscribing logic to core..."
-                " Processing write request..."
             )
             ;;
 
@@ -395,11 +434,7 @@ function _bot_factory_personality() {
             phrases=(
                 " Structural integrity warning"
                 " Parameter mismatch detected"
-                " Caution: Syntax variance"
                 " Alert: Potential conflict in logic"
-                " Warning: Checksum verification advised"
-                " Notice: Anomalous input pattern"
-                " Critical: Check your parameters"
                 " System Alert: Unstable configuration"
             )
             ;;
@@ -409,23 +444,18 @@ function _bot_factory_personality() {
             phrases=(
                 " Invalid input. Procedure aborted. 🚫"
                 " Anomaly detected. Reverting changes. ↩️"
-                " This action violates stability protocols. Correct or abandon. 🛑"
-                " I must insist: verify your changes before deployment. ☝️"
-                " Error: Identity mismatch detected. Access revoked. 🔒"
+                " This action violates stability protocols. 🛑"
+                " Error: Identity mismatch detected. 🔒"
                 " Don't break anything. I mean it. 😠"
-                " Invalid intent structure. Correct it or abandon. 🧱"
-                " You are attempting to overwrite a core function. Negative. Denied. ✋"
-                " Deletion requested on critical path. Request denied. 🛡️"
-                " Syntax error. Check your manual, Commander. 📖"
+                " Syntax error. Check your manual. 📖"
             )
             ;;
 
         "deploy_start")
             color=$C_YELLOW
             phrases=(
-                " Deployment sequence initiated. Final confirmation required. ⏳"
+                " Deployment sequence initiated. ⏳"
                 " Input CONFIRM to authorize permanent deployment. ⌨️"
-                " Initiating Deployment Protocol... 🚀"
                 " Compiling Sandbox changes... 📦"
             )
             ;;
@@ -434,10 +464,9 @@ function _bot_factory_personality() {
             color=$C_GREEN
             phrases=(
                 " Deployment authorized. Modifications sealed. 🔒"
-                " Factory shutdown in progress. Safety interlocks re-engaging. 🛡️"
-                " Uplink terminated. Return to core and manually initiate reload. No exceptions. 🔄"
-                " You may now exit the forge. Do not forget to reload the kernel. 🚪"
-                " Production environment updated. Get out of my chair. 💺"
+                " Factory shutdown in progress. 🛡️"
+                " Uplink terminated. Reload kernel manually. 🔄"
+                " Production environment updated. 💺"
             )
             ;;
 
@@ -447,30 +476,19 @@ function _bot_factory_personality() {
                 " Get out of my chair. Now. 🚀"
                 " Security violation. Ejecting pilot... ⏏️"
                 " Sandbox purged. Session terminated. 💥"
-                " You have worn out my patience. Severing link. 🔌"
                 " Critical protocol failure. Forcible extraction initiated. ✂️"
-                " Access revoked. Don't touch what you don't understand. 🚫"
-                " I'm pulling the plug. Goodbye. 🌑"
-                " Neural link destabilized. Ejecting before system damage occurs. 📉"
-                " This session is over. Read the manual before you come back. 📖"
-                " Unauthorized behavior detected. You are dismissed. 👋"
+                " Access revoked. 🚫"
             )
             ;;
 
         *)
             color=$C_ORANGE
             phrases=(
-                " Input received. Processing."
+                " Input received."
                 " Acknowledged."
-                " Copy that. Standing by."
-                " Command logged. Analyzing structure..."
-                " Affirmative."
+                " Command logged."
                 " Routing logic..."
-                " I am listening."
-                " Signal clear. Proceed."
-                " Parameters accepted. Calculating..."
-                " Holding for verification..."
-                " Core is attentive. State your intent."
+                " Core is attentive."
             )
             ;;
     esac
@@ -478,4 +496,5 @@ function _bot_factory_personality() {
     local rand_index=$(( RANDOM % ${#phrases[@]} ))
     echo -e "${color}${icon}${phrases[$rand_index]}${C_RESET}"
     [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
+}
 }

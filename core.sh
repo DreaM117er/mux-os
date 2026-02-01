@@ -935,6 +935,10 @@ function _mux_security_gate() {
 
 # 神經火控系統 - Neural Fire Control
 function _mux_neural_fire_control() {
+    if [ "$MUX_STATUS" != "LOGIN" ]; then
+        return 127
+    fi
+
     local input_signal="$1" # COM
     local input_sub="$2" # COM2 (Candidate)
     local input_args="${*:2}" # All args starting from $2
@@ -1212,6 +1216,11 @@ function command_not_found_handle() {
     local cmd="$1"
     shift
     ! _mux_security_gate "$cmd" "$@" && return 0
+
+    if [ "$MUX_STATUS" != "LOGIN" ]; then
+        return 127
+    fi
+
     _mux_neural_fire_control "$cmd" "$@" && return 0
     return 127
 }
