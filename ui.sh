@@ -162,7 +162,6 @@ function _show_hud() {
 # 顯示系統資訊詳情 - Display System Info Details
 function _mux_show_info() {
     clear
-    _draw_logo
     
     local C_WHITE="\033[1;37m"
     local C_GRAY="\033[1;30m"
@@ -172,8 +171,10 @@ function _mux_show_info() {
 
     if [ "$MUX_STATUS" == "LOGIN" ]; then
         C_MAIN="\033[1;36m"
+        _draw_logo "core"
     else
         C_MAIN="\033[1;30m"
+        _draw_logo "gray"
     fi
 
     echo -e " ${C_MAIN}:: SYSTEM MANIFEST ::${C_RESET}"
