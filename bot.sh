@@ -56,13 +56,29 @@ function _bot_say() {
 
             # 時間感知邏輯
             if [ "$current_hour" -ge 0 ] && [ "$current_hour" -lt 5 ]; then
-                phrases+=( " Burning the midnight oil? 🕯️" " Late night coding best coding. 🦉" " The world sleeps, we build. 🌙" )
+                phrases+=(
+                    " Burning the midnight oil? 🕯️"
+                    " Late night coding best coding. 🦉"
+                    " The world sleeps, we build. 🌙"
+                    )
             elif [ "$current_hour" -ge 5 ] && [ "$current_hour" -lt 12 ]; then
-                phrases+=( " Good morning, Commander. ☀️" " Rise and grind. ☕" " Fresh protocols loaded. 🥯" )
+                phrases+=(
+                    " Good morning, Commander. ☀️"
+                    " Rise and grind. ☕"
+                    " Fresh protocols loaded. 🥯"
+                    )
             elif [ "$current_hour" -ge 12 ] && [ "$current_hour" -lt 18 ]; then
-                phrases+=( " Full throttle afternoon. 🏎️" " Productivity at 100%. 📈" " Don't forget to hydrate. 🥤" )
+                phrases+=(
+                    " Full throttle afternoon. 🏎️"
+                    " Productivity at 100%. 📈"
+                    " Don't forget to hydrate. 🥤"
+                    )
             else
-                phrases+=( " Evening operations engaged. 🌆" " The night is young. 🍸" " Tactical mode: Chill. 😌" )
+                phrases+=(
+                    " Evening operations engaged. 🌆"
+                    " The night is young. 🍸"
+                    " Tactical mode: Chill. 😌"
+                    )
             fi
             ;;
 
@@ -174,45 +190,57 @@ function _bot_say() {
         local target="$3"
         local quotes=()
         
-        # 隨機彩蛋
+        # 隨機彩蛋 (格納庫廣播 / 機械故障)
         if [ $((RANDOM % 10)) -eq 0 ]; then
              local eggs=(
-                "Detecting minor timeline divergence... Cute cat spotted. 🐈"
-                "Foreign Mobile Suit is running an unauthorized midnight protocol..."
-                "Sync complete. Their bot says hi. 👻"
+                "Maintenance Log #404: Who left a cat in the cockpit? 🐈"
+                "Scanning hangar... Unauthorized paint job detected on Unit 02."
+                "Sync complete. The mechanic left a note: 'Good luck'. 🔧"
+                "Warning: Coffee stain detected on control panel. Cleaning..."
              )
              echo -e "\033[1;35m :: ${eggs[$((RANDOM % ${#eggs[@]}))]}\033[0m"
         fi
 
         case "$state" in
             "start_local")
+                # 切換到本地分支 (換乘機體)
                 quotes=(
-                    "Warping neural pathway to timeline [$target]..."
-                    "Bypassing branch matrix... Uplink established."
-                    "Timeline synchronized. Welcome to [$target] universe."
-                    "Quantum entanglement complete. You are now in [$target]. 😼"
+                    "Transferring neural link to Unit [$target]..."
+                    "Hangar hatch open. Boarding Unit [$target]..."
+                    "Drive System engaged. Target frame: [$target]."
+                    "Cockpit sealed. Initializing [$target] OS. Systems Green. 🟢"
+                    "Neural synchronization complete. You have control of [$target]. 🤖"
                 )
                 ;;
+
             "start_remote")
+                # 切換到遠端分支 (試駕別人的機體)
                 quotes=(
-                    "Establishing cross-universe uplink to [$target]..."
-                    "Scanning foreign neural signature... Mobile Suit detected."
-                    "Timeline hijacked. You are now piloting [$target]'s neural link. 😈"
-                    "First contact established with [$target]'s neural domain."
+                    "Hijacking uplink to [$target]'s Unit..."
+                    "Scanning foreign MS signature... Access granted."
+                    "You are now piloting [$target]'s custom frame. Don't crash it. 😈"
+                    "Remote Neural Link established. Syncing with [$target]'s logic."
+                    "Bypassing bio-metric lock... Welcome to [$target]'s machine."
                 )
                 ;;
+
             "home")
+                # 切回 main/master (返回專用機)
                 quotes=(
-                    "Returning to prime timeline..."
-                    "Mother universe uplink restored. Welcome home, pilot."
-                    "All anomalies purged. Reality stabilized. Vibes good. 😌"
+                    "Returning to Prime Unit..."
+                    "Main System restoring. Welcome home, Pilot."
+                    "All systems normalized. Back in the main seat. Vibes good. 😌"
+                    "Drive cycle complete. Prime Unit active."
                 )
                 ;;
+                
             "fail")
+                # 切換失敗 (找不到分支)
                 quotes=(
-                    "Branch not found... Reality matrix unstable..."
-                    "Protocol 66: Initiating self-destruct... Just kidding. 😼"
-                    "Warp core breach! ...Nah, just a typo. Try again."
+                    "Unit not found in Hangar... Did you scrap it?"
+                    "Ignition failed! ...Just a typo. Try again. 🔧"
+                    "Drive System stalled. Target frame identification failed."
+                    "Cannot board target. Permission denied or unit missing."
                 )
                 ;;
         esac
@@ -280,7 +308,9 @@ function _commander_voice() {
             )
             # 深夜加班
             if [ "$current_hour" -ge 0 ] && [ "$current_hour" -lt 4 ]; then
-                phrases+=( " Silence is golden. Let's code." " 3 AM logic is the purest logic." )
+                phrases+=(
+                    " Silence is golden. Let's code."
+                    " 3 AM logic is the purest logic." )
             fi
             ;;
 
