@@ -468,6 +468,8 @@ function mux() {
 
         # : Reload System Kernel
         "reload")
+            _voice_dispatch "system" "Reloading Kernel Sequence..."
+            sleep 0.5
             _mux_reload_kernel
             ;;
 
@@ -516,6 +518,7 @@ function mux() {
             elif [[ "$target_branch" != *"$(whoami)"* ]]; then 
                 warp_type="start_remote"
             fi
+            _voice_dispatch "warp_ready" "" "cmd"
             _bot_say "warp" "$warp_type" "$target_branch"
             
             # 3. 執行換乘 (Checkout)
@@ -840,7 +843,7 @@ function _mux_reload_kernel() {
 # 強制同步系統狀態
 function _mux_force_reset() {
     _system_lock
-    _bot_say "system" "Protocol Override: Force Syncing Timeline..."
+    _voice_dispatch "system" "Protocol Override: Force Syncing Timeline..." "cmd"
     echo -e "\033[1;31m :: WARNING: Obliterating all local modifications.\033[0m"
     echo ""
     _system_unlock
@@ -902,7 +905,7 @@ function _neural_link_deploy() {
     echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO ENGAGE UPLINK: ${F_RESET}"
     read confirm
     if [ "$confirm" != "CONFIRM" ]; then return 1; fi
-    _bot_say "system" "Engaging Neural Uplink..."
+    _voice_dispatch "system" "Engaging Neural Uplink..."
     cd "$MUX_ROOT" || return 1
     git add .
     git commit -m "Neural Link Deploy $(date '+%Y-%m-%d %H:%M')"

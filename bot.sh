@@ -53,32 +53,10 @@ function _bot_say() {
                 " Back online. Let's rock. 😆"
                 " I am ready to serve. 🫡"
                 )
-
-            # 時間感知邏輯
-            if [ "$current_hour" -ge 0 ] && [ "$current_hour" -lt 5 ]; then
-                phrases+=(
-                    " Burning the midnight oil? 🕯️"
-                    " Late night coding best coding. 🦉"
-                    " The world sleeps, we build. 🌙"
-                    )
+             if [ "$current_hour" -ge 0 ] && [ "$current_hour" -lt 5 ]; then
+                phrases+=( " Burning the midnight oil? 🕯️" " The world sleeps, we build. 🌙" )
             elif [ "$current_hour" -ge 5 ] && [ "$current_hour" -lt 12 ]; then
-                phrases+=(
-                    " Good morning, Commander. ☀️"
-                    " Rise and grind. ☕"
-                    " Fresh protocols loaded. 🥯"
-                    )
-            elif [ "$current_hour" -ge 12 ] && [ "$current_hour" -lt 18 ]; then
-                phrases+=(
-                    " Full throttle afternoon. 🏎️"
-                    " Productivity at 100%. 📈"
-                    " Don't forget to hydrate. 🥤"
-                    )
-            else
-                phrases+=(
-                    " Evening operations engaged. 🌆"
-                    " The night is young. 🍸"
-                    " Tactical mode: Chill. 😌"
-                    )
+                phrases+=( " Good morning, Commander. ☀️" " Fresh protocols loaded. 🥯" )
             fi
             ;;
 
@@ -91,7 +69,6 @@ function _bot_say() {
                 " Consider it done. 🥳"
                 " Operation successful. 🤩"
                 " That was easy. 😁"
-                " I have arranged the bits as requested. 😉"
                 " Smooth as silk. 😋"
                 " Boom. Done. 😝"
                 " Too easy. 😏"
@@ -109,7 +86,6 @@ function _bot_say() {
                 " Handshaking with the Grid... 😊"
                 " Accessing Global Network... 🙂‍↕️"
                 " Broadcasting intent... 🤓"
-                " Opening digital gateway... 😉"
                 " Uplink established. 🤗"
                 )
             ;;
@@ -141,7 +117,6 @@ function _bot_say() {
                 " Arguments are irrelevant here. 😦"
                 " Just the command, nothing else. 🤐"
                 " Whoa, too many words. 😵"
-                " Just the command, chief. 🫡"
                 )
             ;;
 
@@ -154,7 +129,6 @@ function _bot_say() {
                 " Calculating probabilities... 🧐"
                 " Hold your horses... 🐴"
                 " Compiling reality... 😑"
-                " Hold up... 🫨"
                 " Doing the magic... 😶"
                 )
             ;;
@@ -190,7 +164,6 @@ function _bot_say() {
         local target="$3"
         local quotes=()
         
-        # 隨機彩蛋 (格納庫廣播 / 機械故障)
         if [ $((RANDOM % 10)) -eq 0 ]; then
              local eggs=(
                 "Maintenance Log #404: Who left a cat in the cockpit? 🐈"
@@ -203,7 +176,6 @@ function _bot_say() {
 
         case "$state" in
             "start_local")
-                # 切換到本地分支 (換乘機體)
                 quotes=(
                     "Transferring neural link to Unit [$target]..."
                     "Hangar hatch open. Boarding Unit [$target]..."
@@ -212,9 +184,7 @@ function _bot_say() {
                     "Neural synchronization complete. You have control of [$target]. 🤖"
                 )
                 ;;
-
             "start_remote")
-                # 切換到遠端分支 (試駕別人的機體)
                 quotes=(
                     "Hijacking uplink to [$target]'s Unit..."
                     "Scanning foreign MS signature... Access granted."
@@ -223,9 +193,7 @@ function _bot_say() {
                     "Bypassing bio-metric lock... Welcome to [$target]'s machine."
                 )
                 ;;
-
             "home")
-                # 切回 main/master (返回專用機)
                 quotes=(
                     "Returning to Prime Unit..."
                     "Main System restoring. Welcome home, Pilot."
@@ -233,9 +201,7 @@ function _bot_say() {
                     "Drive cycle complete. Prime Unit active."
                 )
                 ;;
-                
             "fail")
-                # 切換失敗 (找不到分支)
                 quotes=(
                     "Unit not found in Hangar... Did you scrap it?"
                     "Ignition failed! ...Just a typo. Try again. 🔧"
@@ -259,7 +225,6 @@ function _bot_say() {
             ;;
     esac
 
-    # Easter Egg Logic
     if [ "$easter_egg" -eq 1 ] && [[ "$mood" != "launch" && "$mood" != "system" && "$mood" != "loading" ]]; then
         color=$C_PURPLE
         local easter_eggs=(
@@ -296,8 +261,39 @@ function _commander_voice() {
     local current_hour=$(date +%H)
 
     case "$mood" in
+        "hello")
+            phrases=(
+                " I am here. Systems functional."
+                " Standing by. What's the mission?"
+                " Link stable. Awaiting orders."
+                " Cockpit active. Let's work."
+                " The code isn't going to write itself."
+                " I was just optimizing the kernel. What do you need?"
+            )
+            ;;
+
+        "system"|"loading")
+            phrases=(
+                " Accessing core functions..."
+                " Overriding safety protocols..."
+                " Direct interface engaged..."
+                " Calibrating..."
+                " Reading logic gates..."
+                " Give me a second."
+            )
+            ;;
+
+        "action")
+            phrases=(
+                " Executing."
+                " On it."
+                " Deploying logic."
+                " Compiling..."
+                " Running sequence."
+            )
+            ;;
+
         "login")
-            # 登入：啟動引擎，檢查儀表
             phrases=(
                 " Link start. Synchronization stable."
                 " Cockpit sealed. Systems all green."
@@ -306,16 +302,12 @@ function _commander_voice() {
                 " Time to fix some chaos."
                 " Engine ignition. Pressure normal."
             )
-            # 深夜加班
             if [ "$current_hour" -ge 0 ] && [ "$current_hour" -lt 4 ]; then
-                phrases+=(
-                    " Silence is golden. Let's code."
-                    " 3 AM logic is the purest logic." )
+                phrases+=( " Silence is golden. Let's code." " 3 AM logic is the purest logic." )
             fi
             ;;
 
         "logout")
-            # 登出：切斷連結，休息
             phrases=(
                 " Disengaging. Time for a smoke."
                 " Severing neural connection. Reality is calling."
@@ -326,7 +318,6 @@ function _commander_voice() {
             ;;
 
         "warp_ready")
-            # 換乘前：挑選機體
             phrases=(
                 " Engaging Warp Drive. Coordinates locked."
                 " Switching units. Don't scratch the paint."
@@ -336,7 +327,6 @@ function _commander_voice() {
             ;;
 
         "success")
-            # 成功：理所當然，冷靜
             phrases=(
                 " As expected."
                 " Precision engineering."
@@ -348,7 +338,6 @@ function _commander_voice() {
             ;;
 
         "error")
-            # 失敗：嘖，分析，不屑
             phrases=(
                 " Tch. Inefficiency detected."
                 " Re-calibrating variables..."
@@ -360,7 +349,6 @@ function _commander_voice() {
             ;;
         
         "default_idle")
-            # 停機坪閒聊 (DEFAULT狀態)
             phrases=(
                 " Hangar atmosphere is stable."
                 " Just watching the bits flow by."
@@ -369,19 +357,18 @@ function _commander_voice() {
                 " Quiet day on the deck."
                 " The void stares back."
             )
-             # 早晨
             if [ "$current_hour" -ge 6 ] && [ "$current_hour" -lt 10 ]; then
                 phrases+=( " Coffee first. Logic second." )
             fi
             ;;
 
         *)
-            # 通用
             phrases=(
                 " Affirmative."
                 " Directing logic flow."
                 " Acknowledged."
                 " Processing..."
+                " I have control."
             )
             ;;
     esac
