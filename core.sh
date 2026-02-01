@@ -595,7 +595,6 @@ function _mux_pre_login() {
     _system_lock
     echo -e "${F_GRAY}    ›› Verifying Hash Signature...${F_RESET}"
     sleep 0.6
-    echo ""
     
     local identity_valid=0
     if [ -f "$MUX_ROOT/.mux_identity" ]; then
@@ -609,6 +608,7 @@ function _mux_pre_login() {
 
     if [ "$identity_valid" -ne 1 ]; then
         sleep 0.5
+        echo ""
         echo -e "${F_RED} :: ACCESS DENIED :: Identity Mismatch.${F_RESET}"
         sleep 0.5
         _system_unlock
@@ -616,6 +616,7 @@ function _mux_pre_login() {
     fi
 
     sleep 0.4
+    echo ""
     echo -e "${F_GRE} :: IDENTITY CONFIRMED :: ${F_RESET}"
     sleep 0.6
     echo ""
