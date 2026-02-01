@@ -538,17 +538,21 @@ function _mux_pre_login() {
     _draw_logo "gray" # 確保Logo在視覺中心
 
     _system_lock
-    echo -e "${F_GRAY} :: SECURITY CHECKPOINT :: INITIALIZING BIOMETRIC SCAN...${F_RESET}"
-    sleep 0.8
+    echo -e "${F_WARN} :: SECURITY CHECKPOINT ::${F_RESET}"
+    
+    sleep 0.2
+    echo -e "${F_GRAY}    ›› Initializing Biometeric Scan...${F_RESET}"
     echo ""
+    sleep 0.6
     _system_unlock
     
-    echo -ne "${F_SUB} :: COMMANDER IDENTITY: ${F_RESET}" 
+    echo -ne "${F_SUB} :: Commander Identity: ${F_RESET}" 
     read input_id
 
     _system_lock
     echo -e "${F_GRAY}    ›› Verifying Hash Signature...${F_RESET}"
     sleep 0.6
+    echo ""
     
     local identity_valid=0
     if [ -f "$MUX_ROOT/.mux_identity" ]; then
@@ -570,12 +574,16 @@ function _mux_pre_login() {
 
     sleep 0.4
     echo -e "${F_GRE} :: IDENTITY CONFIRMED :: ${F_RESET}"
+    echo ""
     sleep 0.6
     echo -e "${F_WARN} :: UNLOCKING NEURAL INTERFACE... ${F_RESET}"
+    echo ""
     sleep 0.8
     echo -e "${F_GRAY}    ›› Mount Point: /dev/mux_core${F_RESET}"
+    echo ""
     sleep 0.2
     echo -e "${F_GRAY}    ›› Link Status: Stable${F_RESET}"
+    echo ""
     sleep 0.5
     
     # 寫入 LOGIN 狀態
@@ -623,6 +631,7 @@ function _mux_set_logout() {
     done
     
     sleep 0.6
+    echo ""
     echo -e "${C_WARN} :: SYSTEM OFFLINE :: See you space cowboy.${C_RESET}"
     
     cat > "$MUX_ROOT/.mux_state" <<EOF
@@ -810,6 +819,7 @@ function _mux_force_reset() {
         local branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
         git reset --hard "origin/$branch"
         chmod +x "$BASE_DIR/"*.sh
+        echo ""
         _bot_say "success" "Timeline restored."
         _system_unlock
         sleep 1
