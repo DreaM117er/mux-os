@@ -193,7 +193,7 @@ function _install_protocol() {
     
     cat > "$MUX_ROOT/.mux_state" <<EOF
 MUX_MODE="MUX"
-MUX_STATUS="LOCKED"
+MUX_STATUS="DEFAULT"
 EOF
 
     exec bash

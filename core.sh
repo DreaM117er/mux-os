@@ -322,6 +322,17 @@ function mux() {
         return 1
     fi
 
+    if [ "$MUX_STATUS" != "LOGIN" ]; then
+        case "$cmd" in
+            "login"|"help"|"status"|"sts"|"info"|"omenu"|"warpto"|"wrp2")
+                ;;
+            *)
+                # 這裡我要接新的語音邏輯，先不要動
+                return 1
+                ;;
+        esac
+    fi
+
     if [ -z "$cmd" ]; then
         _bot_say "hello"
         return
@@ -386,7 +397,7 @@ function mux() {
             ;;
         
         # : Neural Link Deploy
-        "nldeploy")
+        "deploy")
             _neural_link_deploy
             ;;
 
