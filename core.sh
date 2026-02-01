@@ -262,6 +262,7 @@ function _mux_boot_sequence() {
     if [ "$MUX_STATUS" == "LOGIN" ]; then
         return 0
     else
+        clear
         _draw_logo "gray"
     fi
 }
