@@ -62,7 +62,7 @@ case "$MUX_MODE" in
         
         cat > "$MUX_ROOT/.mux_state" <<EOF
 MUX_MODE="MUX"
-MUX_STATUS="LOGIN"
+MUX_STATUS="DEFAULT"
 EOF
 
         exec bash
