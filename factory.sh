@@ -950,7 +950,7 @@ function _factory_deploy_sequence() {
     _draw_logo "gray"
     
     echo -e "${F_MAIN} :: MANIFEST CHANGES (Sandbox vs Production) ::${F_RESET}"
-    echo ""
+    echo ""請依序按照我的方式掃描幾個函數，
     
     if command -v diff &> /dev/null; then
         diff -U 0 "$MUX_ROOT/app.csv" "$MUX_ROOT/app.csv.temp" | \
@@ -1020,7 +1020,7 @@ function _factory_deploy_sequence() {
 
     cat > "$MUX_ROOT/.mux_state" <<EOF
 MUX_MODE="MUX"
-MUX_STATUS="LOGIN"
+MUX_STATUS="DEFAULT"
 EOF
 
     exec bash
