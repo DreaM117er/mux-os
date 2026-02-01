@@ -1109,13 +1109,20 @@ function _ui_fake_gate() {
     clear
     local rows=$(tput lines)
     local cols=$(tput cols)
+    
+    # 計算進度條長度
     local bar_len=$(( cols * 45 / 100 ))
     if [ "$bar_len" -lt 15 ]; then bar_len=15; fi
 
     local center_row=$(( rows / 2 ))
+    
+    # 進度條起始位置
     local bar_start_col=$(( (cols - bar_len - 2) / 2 ))
+    
+    # 標題置中計算
     local title_start_col=$(( (cols - 25) / 2 ))
 
+    # 繪製標題
     tput cup $((center_row - 2)) $title_start_col
     echo -e "${C_TXT}:: GATE ${theme_color}${theme_text} ${C_TXT}::${C_RESET}"
 
@@ -1128,7 +1135,7 @@ function _ui_fake_gate() {
     fi
 
     while true; do
-        # 繪圖
+        # 繪圖：進度條
         local filled_len=$(( (current_pct * bar_len) / 100 ))
         local remain=$(( bar_len - filled_len ))
 
@@ -1139,11 +1146,13 @@ function _ui_fake_gate() {
         echo -ne "${C_TXT}]${C_RESET}"
 
         local hex_val=$(printf "0x%04X" $((RANDOM%65535)))
-        tput cup $((center_row + 2)) $(( (cols - 20) / 2 ))
+        
+        tput cup $((center_row + 2)) $bar_start_col
         printf "${C_TXT}:: ${theme_color}%3s%%${C_TXT} :: MEM: ${hex_val}${C_RESET}\033[K" "$current_pct"
 
         if [ "$current_pct" -ge 100 ]; then break; fi
 
+        # 陷阱卡邏輯 (卡頓特效)
         if [ "$should_trap" == "true" ] && [ "$current_pct" -ge 98 ] && [ "$trap_triggered" == "false" ]; then
             current_pct=99
             trap_triggered="true"
