@@ -209,19 +209,19 @@ function _mux_show_info() {
 
 # 動態Help Core選單檢測 - Dynamic Help Core Detection
 function _mux_dynamic_help_core() {
-    local C_TITLE="\033[1;30m"
+    local C_CMD=""
     
     if [ "$MUX_STATUS" == "LOGIN" ]; then
-        C_TITLE="\033[1;36m"
+        C_CMD="\033[1;36m" 
     else
-        C_TITLE="\033[1;30m"
+        C_CMD="\033[1;37m" 
     fi
 
     local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "Unknown")
 
     echo -e "\033[1;35m :: Mux-OS Core v$MUX_VERSION Protocols :: @$current_branch :: \033[0m"
     
-    awk '
+    awk -v cmd_color="$C_CMD" '
     /function mux\(\) \{/ { inside_mux=1; next }
     /^}/ { inside_mux=0 }
 
@@ -234,7 +234,8 @@ function _mux_dynamic_help_core() {
             if ($0 ~ /"/) {
                 split($0, parts, "\"");
                 cmd_name = parts[2];
-                printf "    ${C_TITLE}%-10s\033[0m%s\n", cmd_name, desc;
+                
+                printf "    %s%-10s\033[0m%s\n", cmd_color, cmd_name, desc;
             }
         }
     }
