@@ -15,9 +15,7 @@ export C_PURPLE="\033[1;35m"
 export C_ORANGE="\033[1;38;5;208m"
 export C_WHITE="\033[1;37m"     # Commander's Color
 
-# -----------------------------------------------------------
-# [Bot] 系統核心人格 (The System)
-# -----------------------------------------------------------
+# 系統核心人格 (The System)
 function _bot_say() {
     local mood="$1"
     local detail="$2"
@@ -258,15 +256,14 @@ function _bot_say() {
     [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
 }
 
-# -----------------------------------------------------------
-# [Commander] 指揮官人格 (The Architect / Pilot)
-# -----------------------------------------------------------
+
+# 指揮官人格 (The Architect / Pilot)
 function _commander_voice() {
     local mood="$1"
     local detail="$2"
 
     local icon=" ::"
-    local color="$C_WHITE" # Commander is White/Silver (Pure Logic)
+    local color="$C_WHITE"
     local phrases=()
     local current_hour=$(date +%H)
 
@@ -364,9 +361,7 @@ function _commander_voice() {
     [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
 }
 
-# -----------------------------------------------------------
-# [Factory] 整備長官人格 (The Smith)
-# -----------------------------------------------------------
+# 整備長官人格 (The Smith)
 function _bot_factory_personality() {
     local mood="$1"
     local detail="$2"

@@ -311,6 +311,36 @@ function _safe_ui_calc() {
     content_limit=$(( width > 10 ? width - 10 : 2 ))
 }
 
+# 雙人共舞 (Voice Dispatcher)
+function _voice_dispatch() {
+    local mood="$1"
+    local detail="$2"
+    local force_role="$3"
+
+    # 如果有強制指定角色
+    if [ "$force_role" == "bot" ]; then
+        _bot_say "$mood" "$detail"
+        return
+    elif [ "$force_role" == "cmd" ]; then
+        if command -v _commander_voice &> /dev/null; then
+             _commander_voice "$mood" "$detail"
+        else
+             _bot_say "$mood" "$detail" # Fallback
+        fi
+        return
+    fi
+
+    # 隨機分配
+    if [ $((RANDOM % 2)) -eq 0 ]; then
+        _bot_say "$mood" "$detail"
+    else
+        if command -v _commander_voice &> /dev/null; then
+            _commander_voice "$mood" "$detail"
+        else
+            _bot_say "$mood" "$detail"
+        fi
+    fi
+}
 
 # Mux-OS 指令入口 - Core Command Entry
 # === Mux ===
@@ -329,14 +359,19 @@ function mux() {
                 # 放行
                 ;;
             *)
-                # 這裡我要接新的語音邏輯，先不要動
+                # 指揮官語音插入
+                if [ $((RANDOM % 3)) -eq 0 ]; then
+                     if command -v _commander_voice &> /dev/null; then
+                        _commander_voice "default_idle"
+                     fi
+                fi
                 return 1
                 ;;
         esac
     fi
 
     if [ -z "$cmd" ]; then
-        _bot_say "hello"
+        _voice_dispatch "hello"
         return
     fi
 
