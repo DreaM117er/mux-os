@@ -27,6 +27,11 @@ F_GRE="\033[1;32m"
 # 神經資料讀取器 - Neural Data Reader
 # 用法: _fac_neural_read "chrome" 或 _fac_neural_read "chrome 'incognito'"
 function _fac_neural_read() {
+    unset _VAL_CATNO _VAL_COMNO _VAL_CATNAME _VAL_TYPE _VAL_COM \
+          _VAL_COM2 _VAL_COM3 _VAL_HUDNAME _VAL_UINAME _VAL_PKG \
+          _VAL_TARGET _VAL_IHEAD _VAL_IBODY _VAL_URI _VAL_MIME \
+          _VAL_CATE _VAL_FLAG _VAL_EX _VAL_EXTRA _VAL_ENGINE
+
     local target_key="$1"
     local target_file="${2:-$MUX_ROOT/app.csv.temp}"
     local target_state="${__FAC_IO_STATE:-ANY}" 
@@ -882,6 +887,7 @@ function _fac_rebak_wizard() {
 
 # 部署序列 (Deploy Sequence)
 function _factory_deploy_sequence() {
+    unset __FAC_IO_STATE
     echo -ne "${F_WARN} :: Initiating Deployment Sequence...${F_RESET}"
     sleep 0.5
 

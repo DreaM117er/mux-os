@@ -75,6 +75,11 @@ if command -v _init_identity &> /dev/null; then _init_identity; fi
 
 # 神經資料解析器
 function _mux_neural_data() {
+    unset _VAL_CATNO _VAL_COMNO _VAL_CATNAME _VAL_TYPE _VAL_COM \
+          _VAL_COM2 _VAL_COM3 _VAL_HUDNAME _VAL_UINAME _VAL_PKG \
+          _VAL_TARGET _VAL_IHEAD _VAL_IBODY _VAL_URI _VAL_MIME \
+          _VAL_CATE _VAL_FLAG _VAL_EX _VAL_EXTRA _VAL_ENGINE
+
     local target_com="$1"
     local target_sub="$2"
     local raw_data=""
