@@ -325,7 +325,7 @@ function mux() {
     if [ "$MUX_STATUS" != "LOGIN" ]; then
         case "$cmd" in
             "login"|"setup"|"help"|"status"|"sts"|"info"|"reload"|"reset"|"tofac"|"factory")
-                # 登錄後放行
+                # 放行
                 ;;
             *)
                 # 這裡我要接新的語音邏輯，先不要動
@@ -343,6 +343,11 @@ function mux() {
         # : Login Sequence
         "login")
             _mux_pre_login
+            ;;
+
+        # : Logout Sequence
+        "logout")
+            _mux_set_logout
             ;;
 
         # : Open Command Dashboard
@@ -531,6 +536,42 @@ MUX_STATUS="LOGIN"
 EOF
 
     # 5. 重啟進入藍色世界
+    exec bash
+}
+
+# 登出系統 - Commander Logout
+function _mux_set_logout() {
+    local C_WARN="\033[1;33m"
+    local C_ERR="\033[1;31m"
+    local C_RESET="\033[0m"
+    local C_GRAY="\033[1;30m"
+
+    echo ""
+    echo -e "${C_WARN} :: WARNING: NEURAL DISCONNECT SEQUENCE ::${C_RESET}"
+    echo -e "${C_GRAY}    This will terminate your current session.${C_RESET}"
+    echo ""
+    echo -ne "${C_ERR} :: TYPE 'CONFIRM' TO DISENGAGE: ${C_RESET}"
+    read confirm
+
+    if [ "$confirm" != "CONFIRM" ]; then
+        echo ""
+        _bot_say "error" "Disconnection aborted. Neural Link stable."
+        return 1
+    fi
+
+    echo ""
+    _bot_say "success" "Terminating Neural Link... See you space cowboy."
+    sleep 0.8
+    
+    cat > "$MUX_ROOT/.mux_state" <<EOF
+MUX_MODE="MUX"
+MUX_STATUS="DEFAULT"
+EOF
+
+    if command -v _ui_fake_gate &> /dev/null; then
+        _ui_fake_gate "default"
+    fi
+
     exec bash
 }
 
