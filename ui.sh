@@ -214,7 +214,7 @@ function _mux_dynamic_help_core() {
     if [ "$MUX_STATUS" == "LOGIN" ]; then
         C_CMD="\033[1;36m" 
     else
-        C_CMD="\033[1;37m" 
+        C_CMD="\033[1;30m" 
     fi
 
     local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "Unknown")
