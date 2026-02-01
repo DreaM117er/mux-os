@@ -1140,7 +1140,7 @@ function _ui_fake_gate() {
 
         local hex_val=$(printf "0x%04X" $((RANDOM%65535)))
         tput cup $((center_row + 2)) $(( (cols - 20) / 2 ))
-        echo -ne "${C_TXT}:: ${theme_color}${current_pct}%${C_TXT} :: MEM: ${hex_val}${C_RESET}\033[K"
+        printf "${C_TXT}:: ${theme_color}%3s%%${C_TXT} :: MEM: ${hex_val}${C_RESET}\033[K" "$current_pct"
 
         if [ "$current_pct" -ge 100 ]; then break; fi
 
