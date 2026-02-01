@@ -676,7 +676,16 @@ function _core_eject_sequence() {
 function _mux_reload_kernel() {
     _system_lock
     unset MUX_INITIALIZED
-    _ui_fake_gate "core"
+    
+    local gate_theme="core"
+    if [ "$MUX_STATUS" == "DEFAULT" ]; then
+        gate_theme="default"
+    fi
+    
+    if command -v _ui_fake_gate &> /dev/null; then
+        _ui_fake_gate "$gate_theme"
+    fi
+    
     exec bash
 }
 
