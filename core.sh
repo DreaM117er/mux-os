@@ -324,7 +324,8 @@ function mux() {
 
     if [ "$MUX_STATUS" != "LOGIN" ]; then
         case "$cmd" in
-            "login"|"help"|"status"|"sts"|"info"|"omenu"|"warpto"|"wrp2")
+            "login"|"help"|"status"|"sts"|"info"|"reload"|"reset"|"tofac"|"factory")
+                # 登錄後放行
                 ;;
             *)
                 # 這裡我要接新的語音邏輯，先不要動
