@@ -204,7 +204,11 @@ function _mux_show_info() {
         fi
     else
         echo ""
-        _bot_say "system" "Returning to command line..."
+        if [ "$MUX_STATUS" == "LOGIN" ]; then
+            _voice_dispatch "system"
+        else
+            _commander_voice "system"
+        fi
     fi
 }
 
