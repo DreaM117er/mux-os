@@ -542,10 +542,10 @@ function _mux_pre_login() {
     
     sleep 0.2
     echo -e "${F_GRAY}    ›› Initializing Biometeric Scan...${F_RESET}"
-    echo ""
     sleep 0.6
     _system_unlock
-    
+
+    echo ""
     echo -ne "${F_SUB} :: Commander Identity: ${F_RESET}" 
     read input_id
 
@@ -574,16 +574,13 @@ function _mux_pre_login() {
 
     sleep 0.4
     echo -e "${F_GRE} :: IDENTITY CONFIRMED :: ${F_RESET}"
-    echo ""
     sleep 0.6
-    echo -e "${F_WARN} :: UNLOCKING NEURAL INTERFACE... ${F_RESET}"
     echo ""
+    echo -e "${F_WARN} :: UNLOCKING NEURAL INTERFACE... ${F_RESET}"
     sleep 0.8
     echo -e "${F_GRAY}    ›› Mount Point: /dev/mux_core${F_RESET}"
-    echo ""
     sleep 0.2
     echo -e "${F_GRAY}    ›› Link Status: Stable${F_RESET}"
-    echo ""
     sleep 0.5
     
     # 寫入 LOGIN 狀態
@@ -592,6 +589,7 @@ MUX_MODE="MUX"
 MUX_STATUS="LOGIN"
 EOF
 
+    echo ""
     echo -e "${F_GRE} :: WELCOME BACK, COMMANDER. :: ${F_RESET}"
     sleep 1.2
     
@@ -658,6 +656,7 @@ function _core_pre_factory_auth() {
     
     _system_lock
     echo -e "${F_ORG} :: SECURITY CHECKPOINT ::${F_RESET}"
+    sleep 0.2
     echo -e "${F_GRAY}    ›› Identity Verification Required.${F_RESET}"
     sleep 0.4
     echo ""
