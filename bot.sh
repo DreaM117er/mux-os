@@ -1,7 +1,3 @@
-{
-type: uploaded file
-fileName: bot.sh
-fullContent:
 # bot.sh - Mux-OS 語義回饋模組 v3.0 (Dual Core Personality)
 
 if [ -z "$__MUX_CORE_ACTIVE" ]; then
@@ -19,7 +15,9 @@ export C_PURPLE="\033[1;35m"
 export C_ORANGE="\033[1;38;5;208m"
 export C_WHITE="\033[1;37m"     # Commander's Color
 
-# 系統核心人格 (The System)
+# -----------------------------------------------------------
+# [Bot] 系統核心人格 (The System)
+# -----------------------------------------------------------
 function _bot_say() {
     local mood="$1"
     local detail="$2"
@@ -260,8 +258,9 @@ function _bot_say() {
     [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
 }
 
-
-# 指揮官人格 (The Architect / Pilot)
+# -----------------------------------------------------------
+# [Commander] 指揮官人格 (The Architect / Pilot)
+# -----------------------------------------------------------
 function _commander_voice() {
     local mood="$1"
     local detail="$2"
@@ -365,8 +364,9 @@ function _commander_voice() {
     [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
 }
 
-
-# 整備長官人格 (The Smith)
+# -----------------------------------------------------------
+# [Factory] 整備長官人格 (The Smith)
+# -----------------------------------------------------------
 function _bot_factory_personality() {
     local mood="$1"
     local detail="$2"
@@ -496,5 +496,4 @@ function _bot_factory_personality() {
     local rand_index=$(( RANDOM % ${#phrases[@]} ))
     echo -e "${color}${icon}${phrases[$rand_index]}${C_RESET}"
     [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
-}
 }
