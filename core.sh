@@ -52,16 +52,6 @@ case "$MUX_MODE" in
             export PS1="\[\033[1;36m\]Mux\[\033[0m\] \w › "
         else
             export PS1="\[\033[1;30m\]Mux\[\033[0m\] \w › "
-            
-            if [ -z "$__MUX_GRAY_INIT" ]; then
-                clear
-                if command -v _draw_logo &> /dev/null; then
-                    _draw_logo "gray"
-                else
-                    echo ":: SYSTEM STANDBY ::"
-                fi
-                export __MUX_GRAY_INIT=true
-            fi
         fi
         
         export PROMPT_COMMAND="tput sgr0; echo -ne '\033[0m'"
@@ -269,8 +259,11 @@ function _mux_launch_validator() {
 
 # 啟動序列邏輯 (Boot Sequence)
 function _mux_boot_sequence() {
-    _draw_logo "gray"
-    return 0
+    if [ "$MUX_STATUS" == "LOGIN" ]; then
+        return 0
+    else
+        _draw_logo "gray"
+    fi
 }
 
 # 主程式初始化 (Main Initialization)
