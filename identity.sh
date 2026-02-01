@@ -44,6 +44,7 @@ function _register_commander_interactive() {
 
     echo ""
     echo -e "\033[1;35m :: Encoding Identity...\033[0m"
+    echo ""
     sleep 1
     
     echo "MUX_ID=$input_id" > "$IDENTITY_FILE"

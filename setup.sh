@@ -51,7 +51,7 @@ function _exit_protocol() {
     echo ""
     echo -e "${C_GRAY}    ›› Operations complete. Returning to Core...${C_RESET}"
     sleep 0.5
-    exit 0
+    exec bash
 }
 
 # 身份重置協議
@@ -142,7 +142,7 @@ function _install_protocol() {
     echo "    ›› Calibrating Vendor Ecosystem..."
     BRAND=$(getprop ro.product.brand | tr '[:upper:]' '[:lower:]' | xargs)
     PLUGIN_DIR="$MUX_ROOT/plugins"
-    VENDOR_TARGET="$MUX_ROOT/vendor.sh"
+    VENDOR_TARGET="$MUX_ROOT/vendor.csv"
     
     if [ ! -d "$PLUGIN_DIR" ]; then mkdir -p "$PLUGIN_DIR"; fi
 
@@ -153,15 +153,15 @@ function _install_protocol() {
         *)              BRAND="${BRAND:-unknown}" ;;
     esac
 
-    TARGET_PLUGIN="$PLUGIN_DIR/$BRAND.sh"
+    TARGET_PLUGIN="$PLUGIN_DIR/$BRAND.csv"
     if [ -f "$TARGET_PLUGIN" ]; then
         cp "$TARGET_PLUGIN" "$VENDOR_TARGET"
         echo "    ›› Vendor Identity: $BRAND (Module Loaded)"
     else
-        echo "# vendor.sh - Generic" > "$VENDOR_TARGET"
-        echo "    ›› Vendor Identity: Generic"
+        echo '"CATNO","COMNO","CATNAME","TYPE","COM","COM2","COM3","HUDNAME","UINAME","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE","FLAG","EX","EXTRA","ENGINE"' > "$VENDOR_TARGET"
+        echo "    ›› Vendor Identity: Generic (Standard Protocol)"
     fi
-    chmod +x "$VENDOR_TARGET"
+    chmod 644 "$VENDOR_TARGET"
 
     echo "    ›› Installing Bootloader..."
 
@@ -169,13 +169,16 @@ function _install_protocol() {
     sed -i "\#source $MUX_ROOT/core.sh#d" "$RC_FILE"
     sed -i '/_mux_boot_sequence/d' "$RC_FILE"
     
-    echo "" >> "$RC_FILE"
-    echo "# === Mux-OS Auto-Loader ===" >> "$RC_FILE"
-    echo "if [ -f \"$MUX_ROOT/core.sh\" ]; then" >> "$RC_FILE"
-    echo "    source \"$MUX_ROOT/core.sh\"" >> "$RC_FILE"
-    echo "    _mux_boot_sequence" >> "$RC_FILE"
-    echo "fi" >> "$RC_FILE"
-    echo "    ›› Bootloader injected into $RC_FILE (v5.0.1 structure)"
+    if ! grep -q "source $MUX_ROOT/core.sh" "$RC_FILE"; then
+        echo "" >> "$RC_FILE"
+        echo "# Mux-OS Core Uplink" >> "$RC_FILE"
+        echo "if [ -f \"$MUX_ROOT/core.sh\" ]; then source \"$MUX_ROOT/core.sh\"; fi" >> "$RC_FILE"
+        echo "    ›› Neural uplink established in .bashrc"
+    else
+        echo "    ›› Neural uplink already active."
+    fi
+    
+    echo "    ›› Bootloader injected into $RC_FILE (v7.1.0 structure)"
 
     if [ ! -f "$MUX_ROOT/.mux_identity" ]; then
         echo ""
@@ -185,19 +188,15 @@ function _install_protocol() {
     fi
 
     echo ""
-    echo -e "${C_GREEN} :: System Ready. Re-engaging Terminal...${C_RESET}"
+    echo -e "${C_GREEN} :: System Ready. Returning to Core...${C_RESET}"
     sleep 1
     
-    if [ -f "$MUX_ROOT/gate.sh" ]; then
-        chmod +x "$MUX_ROOT/gate.sh"
-        exec "$MUX_ROOT/gate.sh" "core"
-    else
-        if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
-            exit 0
-        else
-            exec bash
-        fi
-    fi
+    cat > "$MUX_ROOT/.mux_state" <<EOF
+MUX_MODE="MUX"
+MUX_STATUS="DEFAULT"
+EOF
+
+    exec bash
 }
 
 # 卸載協議

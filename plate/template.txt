@@ -1,5 +1,0 @@
-# : [NAME]
-function [FUNC]() {
-    _require_no_args "$@" || return 1
-    _launch_android_app "[NAME]" "[PKG_ID]" "[PKG_ACT]"
-}
