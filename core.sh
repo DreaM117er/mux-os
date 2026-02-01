@@ -324,7 +324,7 @@ function mux() {
 
     if [ "$MUX_STATUS" != "LOGIN" ]; then
         case "$cmd" in
-            "login"|"help"|"status"|"sts"|"info"|"reload"|"reset"|"tofac"|"factory")
+            "login"|"setup"|"help"|"status"|"sts"|"info"|"reload"|"reset"|"tofac"|"factory")
                 # 登錄後放行
                 ;;
             *)
