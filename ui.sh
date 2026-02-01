@@ -164,25 +164,31 @@ function _mux_show_info() {
     clear
     _draw_logo
     
-    local C_CYAN="\033[1;36m"
     local C_WHITE="\033[1;37m"
     local C_GRAY="\033[1;30m"
     local C_RESET="\033[0m"
     local C_GREEN="\033[1;32m"
+    local C_MAIN="\033[1;30m"
 
-    echo -e " ${C_CYAN}:: SYSTEM MANIFEST ::${C_RESET}"
+    if [ "$MUX_STATUS" == "LOGIN" ]; then
+        C_MAIN="\033[1;36m"
+    else
+        C_MAIN="\033[1;30m"
+    fi
+
+    echo -e " ${C_MAIN}:: SYSTEM MANIFEST ::${C_RESET}"
     echo ""
     echo -e "  ${C_GRAY}PROJECT    :${C_RESET} ${C_WHITE}Mux-OS (Terminal Environment)${C_RESET}"
     echo -e "  ${C_GRAY}VERSION    :${C_RESET} ${C_GREEN}v$MUX_VERSION${C_RESET}"
-    echo -e "  ${C_GRAY}CODENAME   :${C_RESET} ${C_CYAN}Neural Link${C_RESET}"
+    echo -e "  ${C_GRAY}CODENAME   :${C_RESET} ${C_MAIN}Neural Link${C_RESET}"
     echo -e "  ${C_GRAY}ARCHITECT  :${C_RESET} ${C_WHITE}Commander${C_RESET}" 
     echo -e "  ${C_GRAY}BASE SYS   :${C_RESET} ${C_WHITE}Android $(getprop ro.build.version.release) / Linux $(uname -r | cut -d- -f1)${C_RESET}"
     echo ""
-    echo -e " ${C_CYAN}:: PHILOSOPHY ::${C_RESET}"
+    echo -e " ${C_MAIN}:: PHILOSOPHY ::${C_RESET}"
     echo -e "  ${C_GRAY}\"Logic in mind, Hardware in hand.\"${C_RESET}"
     echo -e "  ${C_GRAY}Designed for efficiency, built for control.${C_RESET}"
     echo ""
-    echo -e " ${C_CYAN}:: SOURCE CONTROL ::${C_RESET}"
+    echo -e " ${C_MAIN}:: SOURCE CONTROL ::${C_RESET}"
     echo -e "  ${C_GRAY}Repo       :${C_RESET} ${C_WHITE}$MUX_REPO${C_RESET}"
     echo ""
     
@@ -203,6 +209,14 @@ function _mux_show_info() {
 
 # 動態Help Core選單檢測 - Dynamic Help Core Detection
 function _mux_dynamic_help_core() {
+    local C_TITLE="\033[1;30m"
+    
+    if [ "$MUX_STATUS" == "LOGIN" ]; then
+        C_TITLE="\033[1;36m"
+    else
+        C_TITLE="\033[1;30m"
+    fi
+
     local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "Unknown")
 
     echo -e "\033[1;35m :: Mux-OS Core v$MUX_VERSION Protocols :: @$current_branch :: \033[0m"
@@ -220,7 +234,7 @@ function _mux_dynamic_help_core() {
             if ($0 ~ /"/) {
                 split($0, parts, "\"");
                 cmd_name = parts[2];
-                printf "    \033[1;36m%-10s\033[0m%s\n", cmd_name, desc;
+                printf "    ${C_TITLE}%-10s\033[0m%s\n", cmd_name, desc;
             }
         }
     }
@@ -1068,13 +1082,20 @@ function _ui_fake_gate() {
     local theme_color=""
     local theme_text=""
     
-    if [ "$target_system" == "factory" ]; then
-        theme_color="\033[1;38;5;208m"
-        theme_text="NEURAL FORGE"
-    else
-        theme_color="\033[1;36m"
-        theme_text="SYSTEM CORE"
-    fi
+    case "$target_system" in
+        "factory")
+            theme_color="\033[1;38;5;208m"
+            theme_text="NEURAL FORGE"
+            ;;
+        "default")
+            theme_color="\033[1;37m"
+            theme_text="COMMANDER"
+            ;;
+        *)
+            theme_color="\033[1;36m"
+            theme_text="GATE SYSTEM"
+            ;;
+    esac
 
     local C_TXT="\033[1;30m"
     local C_RESET="\033[0m"

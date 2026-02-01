@@ -269,6 +269,7 @@ function _mux_launch_validator() {
 
 # 啟動序列邏輯 (Boot Sequence)
 function _mux_boot_sequence() {
+    _draw_logo "gray"
     return 0
 }
 
