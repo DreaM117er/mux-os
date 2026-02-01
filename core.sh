@@ -569,11 +569,7 @@ MUX_MODE="MUX"
 MUX_STATUS="DEFAULT"
 EOF
 
-    if command -v _ui_fake_gate &> /dev/null; then
-        _ui_fake_gate "default"
-    fi
-
-    exec bash
+    _mux_reload_kernel
 }
 
 # 工廠前置驗證協議 (Pre-Flight Auth)
