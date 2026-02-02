@@ -43,6 +43,13 @@ case "$MUX_MODE" in
     "FAC")
         if [ -f "$MUX_ROOT/factory.sh" ]; then
             source "$MUX_ROOT/factory.sh"
+            
+            if command -v _factory_system_boot &> /dev/null; then
+                _factory_system_boot
+            else
+                echo -e "\033[1;31m :: FATAL :: Factory Bootloader Missing.\033[0m"
+            fi
+            
             return 0 2>/dev/null || exit 0
         fi
         ;;
