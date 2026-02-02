@@ -46,8 +46,10 @@ case "$MUX_MODE" in
             
             if command -v _factory_system_boot &> /dev/null; then
                 _factory_system_boot
+            elif command -v _fac_init &> /dev/null; then
+                _fac_init
             else
-                echo -e "\033[1;31m :: FATAL :: Factory Bootloader Missing.\033[0m"
+                echo -e "\033[1;31m :: FATAL :: Factory Core Not Found.\033[0m"
             fi
             
             return 0 2>/dev/null || exit 0
