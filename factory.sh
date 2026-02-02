@@ -194,7 +194,7 @@ function _fac_neural_write() {
 
 # 兵工廠系統啟動 (Factory System Boot)
 function _factory_system_boot() {
-    export __MUX_MODE="factory"
+    MUX_MODE="FAC"
     export PS1="\[\033[1;38;5;208m\]Fac\[\033[0m\] \w › "
 
     local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
@@ -301,7 +301,7 @@ function _factory_reset() {
 # : Factory Command Entry
 function fac() {
     local cmd="$1"
-    if [ "$__MUX_MODE" != "factory" ]; then
+    if [ "$MUX_MODE" != "FAC" ]; then
         _bot_say "error" "Factory commands disabled during Core session."
         return 1
     fi

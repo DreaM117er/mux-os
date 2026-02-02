@@ -61,7 +61,6 @@ case "$MUX_MODE" in
     "FAC")
         if [ -f "$MUX_ROOT/factory.sh" ]; then
             source "$MUX_ROOT/factory.sh"
-            
             if command -v _factory_system_boot &> /dev/null; then
                 _factory_system_boot
             elif command -v _fac_init &> /dev/null; then
@@ -362,7 +361,7 @@ function _voice_dispatch() {
 # : Core Command Entry
 function mux() {
     local cmd="$1"
-    if [ "$__MUX_MODE" == "factory" ]; then
+    if [ "$MUX_MODE" == "FAC" ]; then
         _bot_say "error" "Core commands disabled during Factory session."
         return 1
     fi
@@ -996,7 +995,7 @@ function _mux_neural_fire_control() {
     local input_sub="$2" # COM2 (Candidate)
     local input_args="${*:2}" # All args starting from $2
 
-    if [ "$__MUX_MODE" == "factory" ]; then
+    if [ "$MUX_MODE" == "FAC" ]; then
         if command -v _factory_mask_apps &> /dev/null; then
             _factory_mask_apps "$input_signal" "$input_sub" || return 127
         fi

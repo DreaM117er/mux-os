@@ -286,7 +286,7 @@ function _show_menu_dashboard() {
     local C_WARN="\033[1;31m"
     local C_RST="\033[0m"
 
-    if [ "$__MUX_MODE" == "factory" ]; then
+    if [ "$MUX_MODE" == "FAC" ]; then
         title_text=":: Factory Sandbox Manifest ::"
         C_TITLE="\033[1;35m"
         C_CAT="\033[1;31m"

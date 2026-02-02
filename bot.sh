@@ -20,7 +20,7 @@ function _bot_say() {
     local mood="$1"
     local detail="$2"
 
-    if [ "$__MUX_MODE" == "factory" ]; then
+    if [ "$MUX_MODE" == "FAC" ]; then
         _bot_factory_personality "$mood" "$detail"
         return
     fi
