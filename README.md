@@ -1,18 +1,18 @@
 <table>
   <tr>
     <td width="50%">
-      <img src="pic/logo.png" width="100%" alt="System Identity">
+      <img src="pic/default.png" width="100%" alt="System Identity">
     </td>
     <td width="50%">
-      <img src="pic/startup.png" width="100%" alt="Boot Sequence">
+      <img src="pic/login.png" width="100%" alt="Boot Sequence">
     </td>
   </tr>
   <tr>
     <td width="50%">
-      <img src="pic/reset.png" width="100%" alt="System Reset">
+      <img src="pic/core.png" width="100%" alt="Neural Forge">
     </td>
     <td width="50%">
-      <video src="pic/warp.mp4" controls="controls" width="100%"></video>
+      <img src="pic/factory.png" width="100%" alt="Neural Forge">
     </td>
   </tr>
 </table>
@@ -21,10 +21,11 @@
 
 ![Bash](https://img.shields.io/badge/Language-Bash-4EAA25?style=flat-square&logo=gnu-bash&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Termux-black?style=flat-square)
-![Root](https://img.shields.io/badge/Root-Not%20Required-success?style=flat-square)
-![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
+![Architecture](https://img.shields.io/badge/Architecture-State%20Machine-blue?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-orange?style=flat-square)
 
 > *The Android Neural Link / A Personal Cyberdeck Environment*
+> *"Logic in mind, Hardware in hand."*
 
 ```bash
 
@@ -34,155 +35,122 @@
  | |  | | |_| |>  <_____| |_| |___) |
  |_|  |_|\__,_/_/\_\     \___/|____/ 
 
- :: Target: Android/Termux :: Multiverse Edition ::
+ :: Target: Android/Termux :: v7.0.0 Dual Core ::
  :: Architect: @DreaM117er :: 
 
 
- :: 01. Mission Briefing ::
-    ›› 這不是一個普通的 "Shell" 腳本，這是一場關於 AI 與人類共存的實驗...
-    ›› Commander (指揮官)：你負責操作屬於自己的 "Mobile Suit"。
-    ›› System AI：系統會跟你對話、輔助操作、導向目的地。
-    # 前提是你必須建造屬於自己的 神經連結系統 (Neural Link)，才能發揮機體的完整功能。
-    ›› Multiverse (多重宇宙)：在你的宇宙裡，你扮演你自己。
-    # 可透過 "跳躍 (Warp)" 來到別人的宇宙，體驗其他指揮官的配置，獲取靈感後再回歸你的時間線。
+ :: 01. System Manifest (Mission Briefing) ::
+    ›› 這不僅僅是一個 Shell 腳本，這是一個架構在 Android 核心之上的「作業系統」。
+    ›› Commander (指揮官)：你是機體的靈魂。
+    ›› Mobile Suit (機體)：Mux-OS 是你的外骨骼，Termux 是你的動力爐。
+    ›› Neural Link (神經連結)：透過自定義的指令集，將你的意圖轉化為系統的物理動作。
+    ›› Hangar (格納庫)：停放著屬於不同指揮官的機體 (Branch)，隨時準備換乘。
 
 
- :: 02. Loading Sequence ::
-    ›› 確認機體核心 Mux-OS Core v4.0.0 ... [ONLINE]
-    ›› 辨識機體代號... [TARGET_LOCKED]
+ :: 02. Core Architecture (State Machine) ::
+    # v7.0.0 引入了絕對的「物理狀態機」，確保系統邏輯的穩定性。
 
-    # WARNING: 機體不需超頻 (ROOT)，功能可正常使用。
+    [STATE: DEFAULT] :: The Hangar (灰色介面)
+    ›› 狀態：指揮官位於機體外部 (停機坪)。
+    ›› 權限：火控系統鎖定 (Fire Control Locked)。無法執行 App 相關指令。
+    ›› 功能：允許執行系統維護、機體換乘 (Drive)、進入兵工廠 (Factory)。
 
-  - ›› 確認神經連結系統 Default... [OFFLINE]
-  + ›› 確認多重宇宙跳躍系統... [WARNING]
+    [STATE: LOGIN]   :: The Cockpit (彩色介面)
+    ›› 狀態：指揮官已登入，神經連結同步率 100%。
+    ›› 權限：火控系統解鎖 (Weapons Free)。所有自定義指令 (Neural Nodes) 上線。
+    ›› 功能：執行日常任務、應用程式呼叫、網路作戰。
 
-    # WARNING: 多重宇宙跳躍系統受限，神經連結系統需啓動...
-    # (提示: 請執行 mux link 安裝連結系統)
-
-    ›› 啓動機體 AI 系統... [ONL..E]
-
-    # WARNING: 本系統內建 AI 可能會產生隨機的嘲諷與幽默感。這是 Feature，不是 Bug。
-    # (本系統 BOT 分別由 Gemini 及 Grok 來產生隨機語句) 
+    [STATE: FACTORY] :: The Forge (橘色介面)
+    ›› 狀態：系統底層寫入模式。
+    ›› 權限：ROOT 級別邏輯修改。
+    ›› 功能：創造、修改、刪除神經節點 (指令)。
 
 
- :: 03. Deployment ::
-    ›› 將 Mux-OS 核心注入你的終端機。複製以下指令序列並執行：
+ :: 03. Deployment (Injection) ::
+    ›› 將 Mux-OS 核心注入你的終端機。
 
 # ----------------------------------------
-# 準備基礎環境 (Set Environment)
+# 準備基礎環境
 pkg install git ; pkg upgrade
 cd ~
 
-# 下載機體藍圖 (Clone Repository)
+# 下載機體藍圖
 git clone https://github.com/DreaM117er/mux-os.git
 
-# 進入格納庫
+# 進入格納庫並執行初始化
 cd mux-os
-
-# 執行初始化協議 (Inject Core Code)
 bash setup.sh
 # ----------------------------------------
 
-    ›› 最後請按照 setup.sh 裡的指示做安裝。
+
+ :: 04. Tactical Command List ::
+    # 核心操作指令 (Core Commands)
+
+    [Session Control]
+    ›› mux login    : 身份驗證，進入駕駛艙 (Unlock Fire Control)。
+    ›› mux logout   : 斷開連結，返回停機坪 (System Cooldown)。
+    ›› mux reload   : 重載系統內核 (Kernel Reload)。
+    ›› mux reset    : 強制重置時間線 (Git Reset Hard)，修復一切異常。
+
+    [Hangar Operations]
+    ›› mux driveto  : [Drive System] 啓動機體換乘系統，切換至其他分支 (Branch)。
+    ›› mux factory  : [Neural Forge] 進入兵工廠，修改系統邏輯。
+    
+    [System Info]
+    ›› mux status   : 顯示當前機體狀態與版本。
+    ›› mux info     : 顯示詳細系統清單。
+    ›› mux help     : 動態列出所有可用指令。
+
+    [Communication]
+    ›› mux          : 喚醒語音系統 (隨機觸發 Bot 回報或指揮官自語)。
 
 
- :: 04. Basic Command ::
-# 基礎操作指令爲 mux 。
-    ›› mux help:    動態列出所有的 mux 指令。
-    ›› mux menu:    列出連結表單。
-                    # 或是神經連結表單 (fzf)。
-    ›› mux link:    安裝神經連結系統。
-                    # 執行 fzf 選單安裝。
-    ›› mux status:  顯示當前機體狀態。
-    ›› mux info:    顯示系統版本號及詳細資訊。
-    ›› mux update:  針對 app.sh 的版本更新。
-    ›› mux reload:  重啓系統界面。
-    ›› mux reset:   重置系統。
-                    # 自動執行 git reset、git pull 指令來回朔系統。
-    ›› mux setup: 安裝、修復、卸載系統。
+ :: 05. The Neural Forge (Factory Mode) ::
+    # v7.0.0 最大的變革：你不再需要手寫代碼。
+    # "Factory" 是一個內建的 IDE，允許你在終端機內直接鍛造新的指令。
+
+    1. 進入工廠：
+       在停機坪 (DEFAULT) 輸入 `fac` 或 `mux factory`。
+
+    2. 創造指令 (Forging)：
+       輸入 `fac new`，系統會引導你設定：
+       - Command Name (指令名)
+       - Package Name (App 包名，支援 `apklist` 查詢)
+       - Parameters (啟動參數)
+
+    3. 測試與部署 (Test & Deploy)：
+       - `fac test [cmd]`: 在沙盒環境下測試指令是否正常。
+       - `fac deploy`: 將修改永久寫入核心 (`app.csv`) 並覆蓋生產環境。
+
+    # 警告：Factory 模式下的修改是物理級別的寫入。請謹慎操作。
 
 
- :: 05-1. Customization (fork & branch) ::
-     ›› 請進入 "Repository" 主頁： "https://github.com/DreaM117er/mux-os" 。
-     ›› 點擊 "fork" ，然後輸入你的 "Caommander ID"。
-     ›› 再使用 "git clone" 把你 "fork" 出去的 Mux-OS 資料導入到你的本地資料夾進行修改。
-     ›› Mux-OS 內執行 "mux warpto" 就可以看到你跟其他人的多重宇宙了。
+ :: 06. Hangar & Drive System ::
+    # 這裡沒有平行宇宙，只有一個巨大的格納庫。
+    # 每一位指揮官的配置 (Fork/Branch) 都是一台獨立的機體。
+
+    ›› 執行 `mux driveto` (或 `drive2`)。
+    ›› 掃描格納庫 (GitHub Branches)。
+    ›› 選擇你要駕駛的機體 (Unit)。
+    ›› 系統自動執行 `git checkout` 並重載核心，讓你瞬間獲得該機體的能力。
+    
+    # Note: 換乘機體前，必須先執行 `mux logout` 離開當前駕駛艙。
 
 
- :: 05-2. Customization (Basic Command) ::
-    ›› 首先執行 "apklist" 查找你要呼叫的應用程式 ("app")，然後查看 "APK_name" 及 "AM" 資訊。
-    ›› 針對 "app.sh"，請複製下方的模板：
-
-# ----------------------------------------
-# === Menu 綠色功能大標題 ===
-
-# : Menu 功能註解
-function command_name() {
-    _require_no_args "$@" || return 1
-    _launch_android_app "app_name" "填入APK_name資訊" "填入AM資訊"
-}
-# ----------------------------------------
-
-    ›› 將模板複製到 "app.sh" 裡面進行分類，儲存後使用：
-
-# ----------------------------------------
-# 加入已修改資訊及註解：
-git add .
-git commit -m "修改的內容細節"
-
-# 執行上傳
-git push
-# ----------------------------------------
-
-    ›› 最後在 Mux-OS 內進行 "mux reset" 即可將指令導出直接啓用。
+ :: 07. Architect's Log ::
+    ›› "定義狀態，設置旗標，建立標準 SOP。"
+    # 這是 Mux-OS v7.0.0 的核心哲學。我們不再讓代碼隨意遊走，而是將其關進了狀態機的籠子裡。
+    
+    ›› "防火牆 (Firewall) 不是為了防禦駭客，是為了防禦熵 (Entropy)。"
+    # 透過 `exec bash` 的進程置換技術，我們確保了每次狀態切換都是絕對純淨的。
+    
+    ›› "Logic in mind, Hardware in hand."
+    # 這是我的世界，我的規則。
+    
+    ›› "End of Line, Commander."
 
 
- :: 05-3. Customization (Plugins Order) ::
-# Mux-OS 需要大家的協助幫助，導入各家不同廠牌的原生應用程式，例如： sony.sh、htc.sh 等等。
-# 貢獻方式基本跟 05-2 點（Customization Basic Command）一樣，只不過是導入到 plugins 資料夾內。
-    ›› 首先執行 "apklist" 查找你要呼叫的應用程式 ("app")，然後查看 "APK_name" 及 "AM" 資訊。
-    ›› 在 "plugins" 資料夾內新增一個 "target_device.sh"，請複製下方的模板：
-
-# ----------------------------------------
-# target_device.sh 品牌手機全家桶
-
-# === Menu 綠色功能大標題 ===
-
-# : Menu 功能註解
-function command_name() {
-    _require_no_args "$@" || return 1
-    _launch_android_app "app_name" "填入APK_name資訊" "填入AM資訊"
-}
-# ----------------------------------------
-
-    ›› 完工以後，請將檔案 "push" 上來並發送 "Pull Request"。
-    # 一旦確認檔案沒問題，該手機原生應用程式 ("app") 將成爲為 Mux-OS 生態系的一部分。
-
-
- :: 06. Multiverse Warp Drive ::
-    # 多重宇宙移轉系統: 需要先安裝神經連結系統才能執行。
-    ›› 在另一個宇宙端的 Commander，將 "fork" 到本地的資料上傳之後，執行 "mux warpto"。
-    ›› 表單會列出可以跳轉的 "Commander ID"，選擇其中一位，然後 "Enter" 確認。
-    ›› 系統會自動執行跳轉，跳轉完畢之後操作 "mux reset" 重置系統。
-    ›› 重置完畢執行 "mux status" 查看是否跳轉成功。
-
-
- :: 07. Message form Architect ::
-    ›› "Logic in mind, Hardware in hand. I can't change the world, so I make my own world."
-    # 別人是被環境所操控，我反而覺得我要控制環境，因此我打造了一個屬於自己的環境 (Mux-OS)。
-    ›› "我發現 Termux 是一個被 Android 限制住的沙盒 (Sandbox)。"
-    ›› "我發現了指令 (command) 可以代替函數 (function)。"
-    # 因此我使用了最簡潔、直覺的指令，來呼叫APP及特定功能。
-    ›› "我發現了 Android 核心底層的意圖 (Intert)。"
-    # 然後我架構了它、開發屬於我的機體，然後我想讓這套機體能無限拓展。
-    ›› "有生有死、一來一往、非黑即白、陰陽輪轉。"
-    # 然後我架構了一個能殺死自己的腳本，怎麼來就怎麼走。
-    ›› "你說是不是，Commander？"
-
-
- :: 08. Message the END ::
-    ›› 邏輯架構： @DreaM117er。
-    ›› 執行者： Gemini Pro (核心架構)、Grok (調皮鬼)。
-    ›› 未來可能會加入的理工男： Claude AI。
-
-```
+ :: 08. Credits ::
+    ›› 邏輯架構： @DreaM117er (The Architect)
+    ›› 核心演算： Gemini 2.0 Flash (Core Logic & State Machine)
+    ›› 創意協作： Grok (Flavor Text & Easter Eggs)
