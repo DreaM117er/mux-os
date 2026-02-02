@@ -161,7 +161,7 @@ function _bot_say() {
                 "Sync complete. The mechanic left a note: 'Good luck'. 🔧"
                 "Warning: Coffee stain detected on control panel. Cleaning..."
              )
-             echo -e "${C_PURPLE} :: ${eggs[$((RANDOM % ${#eggs[@]}))]}\033[0m"
+             echo -e "${C_PURPLE} :: ${eggs[$((RANDOM % ${#eggs[@]}))]}${C_RESET}"
         fi
 
         case "$state" in
@@ -203,7 +203,7 @@ function _bot_say() {
 
         if [ ${#quotes[@]} -gt 0 ]; then
             local msg="${quotes[$((RANDOM % ${#quotes[@]}))]}"
-            echo -e "\033[1;34m    ›› $msg\033[0m"
+            echo -e "${C_BLUE}    ›› $msg${C_RESET}"
         fi
         return
         ;;
@@ -236,7 +236,7 @@ function _bot_say() {
     local selected_phrase="${phrases[$rand_index]}"
 
     echo -e "${color}${icon}${selected_phrase}${C_RESET}"
-    [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
+    [ -n "$detail" ] && echo -e "   ${C_BLACK} ›› ${detail}${C_RESET}"
 }
 
 
@@ -365,7 +365,7 @@ function _commander_voice() {
 
     local rand_index=$(( RANDOM % ${#phrases[@]} ))
     echo -e "${color}${icon}${phrases[$rand_index]}${C_RESET}"
-    [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
+    [ -n "$detail" ] && echo -e "   ${C_BLACK} ›› ${detail}${C_RESET}"
 }
 
 # 整備長官人格 (The Smith)
@@ -386,7 +386,7 @@ function _bot_factory_personality() {
             " Do not proceed without confirmation. 👁️"
         )
         local w_index=$(( RANDOM % ${#wisdom[@]} ))
-        echo -e "\033[1;30m ::${wisdom[$w_index]}\033[0m"
+        echo -e "\033[1;30m ::${wisdom[$w_index]}${C_RESET}"
     fi
 
     case "$mood" in
@@ -497,5 +497,5 @@ function _bot_factory_personality() {
 
     local rand_index=$(( RANDOM % ${#phrases[@]} ))
     echo -e "${color}${icon}${phrases[$rand_index]}${C_RESET}"
-    [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
+    [ -n "$detail" ] && echo -e "   ${C_BLACK} ›› ${detail}${C_RESET}"
 }
