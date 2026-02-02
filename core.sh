@@ -902,7 +902,7 @@ function _core_pre_factory_auth() {
     _draw_logo "gray"
     
     _system_lock
-    echo -e "${F_ORG} :: SECURITY CHECKPOINT ::${C_RESET}"
+    echo -e "${C_ORANGE} :: SECURITY CHECKPOINT ::${C_RESET}"
     sleep 0.2
     echo -e "${THEME_DESC}    ›› Identity Verification Required.${C_RESET}"
     sleep 0.4
