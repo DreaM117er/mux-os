@@ -367,11 +367,19 @@ function mux() {
     fi
     
     if [ -z "$cmd" ]; then
-        _voice_dispatch "hello"
+        if [ "$MUX_STATUS" == "LOGIN" ]; then
+            _voice_dispatch "hello"
+        else
+            if [ $((RANDOM % 3)) -eq 0 ]; then
+                 if command -v _commander_voice &> /dev/null; then
+                    _commander_voice "default_idle"
+                 fi
+            fi
+        fi
         return
     fi
 
-    if [ "$MUX_STATUS" != "LOGIN" ]; then
+    if [ "$MUX_STATUS" != "LOGIN"]; then
         case "$cmd" in
             "login"|"setup"|"help"|"status"|"sts"|"info"|"reload"|"reset"|"tofac"|"factory"|"driveto")
                 # 放行
