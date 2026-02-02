@@ -1056,7 +1056,7 @@ function mux() {
 
     if [ "$MUX_STATUS" != "LOGIN" ]; then
         case "$cmd" in
-            "login"|"setup"|"help"|"status"|"sts"|"info"|"reload"|"reset"|"tofac"|"factory"|"driveto")
+            "login"|"setup"|"help"|"status"|"sts"|"info"|"reload"|"reset"|"driveto"|"update"|"drive2")
                 # 放行
                 ;;
             *)
