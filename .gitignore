@@ -1,18 +1,12 @@
 # .gitignore - Mux-OS Stealth Layer
 
-# Ignore automatic vendor file to prevent accidental commits
-vendor.csv
-
 # :: Identity Matrix (DO NOT REMOVE)
 .mux_identity
-.mux_state
 
 # :: System Backups
 bak/
 *.bak
 *.tmp
-*.atb
-*.chk
 
 # :: User Specific Cache
 .DS_Store

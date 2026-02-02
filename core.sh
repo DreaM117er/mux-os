@@ -39,10 +39,37 @@ else
     MUX_STATUS="DEFAULT"
 fi
 
+# 系統輸入鎖定與解鎖
+function _system_lock() {
+    if [ -t 0 ]; then stty -echo; fi
+}
+
+function _system_unlock() {
+    if [ -t 0 ]; then stty echo; fi
+}
+
+# 無參數檢測輔助函式
+function _require_no_args() {
+    if [ -n "$1" ]; then
+        _bot_say "no_args" "Unexpected input: $*"
+        return 1
+    fi
+    return 0
+}
+
 case "$MUX_MODE" in
     "FAC")
         if [ -f "$MUX_ROOT/factory.sh" ]; then
             source "$MUX_ROOT/factory.sh"
+            
+            if command -v _factory_system_boot &> /dev/null; then
+                _factory_system_boot
+            elif command -v _fac_init &> /dev/null; then
+                _fac_init
+            else
+                echo -e "\033[1;31m :: FATAL :: Factory Core Not Found.\033[0m"
+            fi
+
             return 0 2>/dev/null || exit 0
         fi
         ;;
@@ -290,24 +317,6 @@ function _mux_init() {
     export MUX_INITIALIZED="true"
     _system_unlock
     _bot_say "hello"
-}
-
-# 無參數檢測輔助函式
-function _require_no_args() {
-    if [ -n "$1" ]; then
-        _bot_say "no_args" "Unexpected input: $*"
-        return 1
-    fi
-    return 0
-}
-
-# 系統輸入鎖定與解鎖
-function _system_lock() {
-    if [ -t 0 ]; then stty -echo; fi
-}
-
-function _system_unlock() {
-    if [ -t 0 ]; then stty echo; fi
 }
 
 # 安全介面寬度計算

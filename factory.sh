@@ -195,6 +195,7 @@ function _fac_neural_write() {
 # 兵工廠系統啟動 (Factory System Boot)
 function _factory_system_boot() {
     export __MUX_MODE="factory"
+    export PS1="\[\033[1;38;5;208m\]Fac\[\033[0m\] \w › "
 
     local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
     if [ ! -d "$bak_dir" ]; then mkdir -p "$bak_dir"; fi
