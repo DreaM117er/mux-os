@@ -366,6 +366,11 @@ function mux() {
         _bot_say "error" "Core commands disabled during Factory session."
         return 1
     fi
+    
+    if [ -z "$cmd" ]; then
+        _voice_dispatch "hello"
+        return
+    fi
 
     if [ "$MUX_STATUS" != "LOGIN" ]; then
         case "$cmd" in
@@ -382,11 +387,6 @@ function mux() {
                 return 1
                 ;;
         esac
-    fi
-
-    if [ -z "$cmd" ]; then
-        _voice_dispatch "hello"
-        return
     fi
 
     case "$cmd" in

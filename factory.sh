@@ -301,7 +301,7 @@ function _factory_reset() {
 # : Factory Command Entry
 function fac() {
     local cmd="$1"
-    if [ "$__MUX_MODE" == "core" ]; then
+    if [ "$__MUX_MODE" != "factory" ]; then
         _bot_say "error" "Factory commands disabled during Core session."
         return 1
     fi
