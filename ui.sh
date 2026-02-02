@@ -1042,7 +1042,7 @@ function _ui_fake_gate() {
             theme_text="TO COMMANDER"
             ;;
         *)
-            theme_color="$C_BLUE"
+            theme_color="$C_CYAN"
             theme_text="SYSTEM CORE"
             ;;
     esac
