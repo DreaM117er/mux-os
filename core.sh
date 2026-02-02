@@ -850,7 +850,7 @@ MUX_STATUS="LOGIN"
 EOF
 
     echo ""
-    echo -e "${THEME_OK} :: WELCOME BACK, COMMANDER. :: ${C_RESET}"
+    echo -e "${THEME_OK} :: WELCOME BACK, COMMANDER :: ${C_RESET}"
     sleep 1.2
     
     exec bash
@@ -1280,7 +1280,7 @@ case "$MUX_MODE" in
     "FAC")
         if [ -f "$MUX_ROOT/factory.sh" ]; then
             THEME_MAIN="$C_ORANGE"
-            
+
             source "$MUX_ROOT/factory.sh"
 
             if command -v _factory_system_boot &> /dev/null; then
