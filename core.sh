@@ -35,6 +35,27 @@ for mod in "${MODULES[@]}"; do
     if [ -f "$mod" ]; then source "$mod"; fi
 done
 
+# 顏色定義 (Color Definitions)
+export C_RESET="\033[0m"
+export C_BLACK="\033[1;30m"
+export C_RED="\033[1;31m"
+export C_GREEN="\033[1;32m"
+export C_YELLOW="\033[1;33m"
+export C_BLUE="\033[1;34m"
+export C_PURPLE="\033[1;35m"
+export C_CYAN="\033[1;36m"
+export C_WHITE="\033[1;37m"
+export C_ORANGE="\033[1;38;5;208m"
+
+# 主題色彩定義 (Theme Colors)
+export THEME_MAIN="$C_CYAN"      # 主色調 (Core:藍 / Fac:橘)
+export THEME_SUB="$C_WHITE"      # 次要文字
+export THEME_DESC="$C_BLACK"     # 註解/灰色文字
+export THEME_WARN="$C_YELLOW"    # 警告
+export THEME_ERR="$C_RED"        # 錯誤
+export THEME_OK="$C_GREEN"       # 成功
+export THEME_TXT="$C_WHITE"      # 一般內文
+
 # 瀏覽器網址搜尋引擎
 export SEARCH_GOOGLE="https://www.google.com/search?q="
 export SEARCH_BING="https://www.bing.com/search?q="
@@ -151,10 +172,10 @@ function _mux_reload_kernel() {
 function _mux_force_reset() {
     _system_lock
     _voice_dispatch "system" "Protocol Override: Force Syncing Timeline..." "cmd"
-    echo -e "\033[1;31m :: WARNING: Obliterating all local modifications.\033[0m"
+    echo -e "${C_RED} :: WARNING: Obliterating all local modifications.${C_RESET}"
     echo ""
     _system_unlock
-    echo -ne "\033[1;32m :: Confirm system restore? [Y/n]: \033[0m"
+    echo -ne "${C_GREEN} :: Confirm system restore? [Y/n]: ${C_RESET}"
     read choice
     if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
         _system_lock
@@ -169,7 +190,7 @@ function _mux_force_reset() {
         sleep 1
         _mux_reload_kernel
     else
-        echo -e "\033[1;30m    ›› Reset canceled.\033[0m"
+        echo -e "${C_BLACK}    ›› Reset canceled.${C_RESET}"
         _system_unlock
         return 1
     fi
@@ -178,7 +199,7 @@ function _mux_force_reset() {
 # 系統更新檢測與執行
 function _mux_update_system() {
     _system_lock
-    echo -e "\033[1;33m :: Checking for updates...\033[0m"
+    echo -e "${C_YELLOW} :: Checking for updates...${C_RESET}"
     cd "$BASE_DIR" || return
     git fetch origin
     local LOCAL=$(git rev-parse HEAD)
@@ -188,10 +209,10 @@ function _mux_update_system() {
         echo "    ›› System is up-to-date (v$MUX_VERSION). ✅"
         _system_unlock
     else
-        echo -e "\033[1;33m :: New version available!\033[0m"
+        echo -e "${C_YELLOW} :: New version available!${C_RESET}"
         echo ""
         _system_unlock
-        echo -ne "\033[1;32m :: Update Mux-OS now? [Y/n]: \033[0m"
+        echo -ne "${C_GREEN} :: Update Mux-OS now? [Y/n]: ${C_RESET}"
         read choice
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
             _system_lock
@@ -213,8 +234,8 @@ function _neural_link_deploy() {
          _bot_say "error" "Identity missing. Run 'git config --global user.name \"YourName\"' first."
          return 1
     fi
-    echo -e "${F_MAIN} :: NEURAL LINK DEPLOYMENT PROTOCOL ::${F_RESET}"
-    echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO ENGAGE UPLINK: ${F_RESET}"
+    echo -e "${THEME_MAIN} :: NEURAL LINK DEPLOYMENT PROTOCOL ::${C_RESET}"
+    echo -ne "${THEME_ERR} :: TYPE 'CONFIRM' TO ENGAGE UPLINK: ${C_RESET}"
     read confirm
     if [ "$confirm" != "CONFIRM" ]; then return 1; fi
     _voice_dispatch "system" "Engaging Neural Uplink..."
@@ -237,16 +258,16 @@ function _mux_uplink_sequence() {
 
     _bot_say "system" "Initializing Neural Bridge Protocol..."
     sleep 0.5
-    echo -e "\033[1;33m :: Scanning local synaptic ports...\033[0m"
+    echo -e "${C_YELLOW} :: Scanning local synaptic ports...${C_RESET}"
     sleep 0.8
-    echo -e "\033[1;36m :: Constructing interface matrix (fzf)...\033[0m"
+    echo -e "${C_CYAN} :: Constructing interface matrix (fzf)...${C_RESET}"
     sleep 0.5
 
     pkg install fzf -y > /dev/null 2>&1
 
     if command -v fzf &> /dev/null; then
         echo -e ""
-        echo -e "\033[1;35m :: SYNCHRONIZATION COMPLETE :: \033[0m"
+        echo -e "\033[1;35m :: SYNCHRONIZATION COMPLETE :: ${C_RESET}"
         echo -e ""
         sleep 0.5
         _bot_say "neural" "Welcome to the Grid, Commander."
@@ -423,14 +444,14 @@ function _mux_launch_validator() {
         _bot_say "error" "Launch Failed: Target package not found or intent unresolved."
         echo -e "    ›› Target: $pkg"
         echo ""
-        echo -ne "\033[1;32m :: Install from Google Play? [Y/n]: \033[0m"
+        echo -ne "${C_GREEN} :: Install from Google Play? [Y/n]: ${C_RESET}"
         read choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
             _bot_say "loading" "Redirecting to Store..."
             am start -a android.intent.action.VIEW -d "market://details?id=$pkg" >/dev/null 2>&1
         else
-            echo -e "\033[1;30m    ›› Canceled.\033[0m"
+            echo -e "${C_BLACK}    ›› Canceled.${C_RESET}"
             return 1
         fi
         return 1
@@ -466,7 +487,7 @@ function _mux_security_gate() {
             _bot_say "error" "AM Command Restricted: Unstable or Dev-only directive detected."
             # 顯示被攔截的具體關鍵字
             local blocked=$(echo "$all_args" | grep -oE "$forbidden_sigs" | head -n 1)
-            echo -e "\033[1;30m    ›› Blocked payload: '$blocked'\033[0m"
+            echo -e "${C_BLACK}    ›› Blocked payload: '$blocked'${C_RESET}"
             return 1
         fi
     fi
@@ -510,16 +531,16 @@ function _mux_neural_fire_control() {
     if [ "$integrity_flag" == "F" ]; then
         echo ""
         _bot_say "error" "NEURAL LINK SEVERED :: Integrity Failure (Code: F)"
-        echo -e "\033[1;30m ›› Diagnosis: Critical parameter missing or malformed.\033[0m"
-        echo -e "\033[1;30m ›› Protocol : Execution blocked by Safety Override.\033[0m"
-        echo -e "\033[1;30m ›› Action : Use 'factory' to repair this node.\033[0m"
+        echo -e "${C_BLACK} ›› Diagnosis: Critical parameter missing or malformed.${C_RESET}"
+        echo -e "${C_BLACK} ›› Protocol : Execution blocked by Safety Override.${C_RESET}"
+        echo -e "${C_BLACK} ›› Action : Use 'factory' to repair this node.${C_RESET}"
         echo ""
         return 127
     elif [ "$integrity_flag" == "W" ]; then
         echo ""
         _bot_say "warn" "NEURAL LINK UNSTABLE :: Parameter Anomaly (Code: W)"
-        echo -e "\033[1;30m ›› Diagnosis: Non-critical structure mismatch detected.\033[0m"
-        echo -e "\033[1;30m ›› Protocol : Bypassing safety lock... Executing with caution.\033[0m"
+        echo -e "${C_BLACK} ›› Diagnosis: Non-critical structure mismatch detected.${C_RESET}"
+        echo -e "${C_BLACK} ›› Protocol : Bypassing safety lock... Executing with caution.${C_RESET}"
         sleep 0.8
     fi
 
@@ -767,16 +788,8 @@ function pm() {
 
 # 登入系統 - Commander Login
 function _mux_pre_login() {
-    local F_GRAY="\033[1;30m"
-    local F_BLE="\033[1;36m"
-    local F_RESET="\033[0m"
-    local F_GRE="\033[1;32m"
-    local F_SUB="\033[1;37m"
-    local F_RED="\033[1;31m"
-    local F_WARN="\033[1;33m"
-
     if [ "$MUX_STATUS" != "DEFAULT" ]; then
-        echo -e "${F_BLE} :: System already active, Commander.${F_RESET}"
+        echo -e "${F_BLE} :: System already active, Commander.${C_RESET}"
         return 1
     fi
 
@@ -784,19 +797,19 @@ function _mux_pre_login() {
     _draw_logo "gray" # 確保Logo在視覺中心
 
     _system_lock
-    echo -e "${F_WARN} :: SECURITY CHECKPOINT ::${F_RESET}"
+    echo -e "${THEME_WARN} :: SECURITY CHECKPOINT ::${C_RESET}"
     
     sleep 0.2
-    echo -e "${F_GRAY}    ›› Initializing Biometeric Scan...${F_RESET}"
+    echo -e "${THEME_DESC}    ›› Initializing Biometeric Scan...${C_RESET}"
     sleep 0.6
     _system_unlock
 
     echo ""
-    echo -ne "${F_SUB} :: Commander Identity: ${F_RESET}" 
+    echo -ne "${THEME_SUB} :: Commander Identity: ${C_RESET}" 
     read input_id
 
     _system_lock
-    echo -e "${F_GRAY}    ›› Verifying Hash Signature...${F_RESET}"
+    echo -e "${THEME_DESC}    ›› Verifying Hash Signature...${C_RESET}"
     sleep 0.6
     
     local identity_valid=0
@@ -812,7 +825,7 @@ function _mux_pre_login() {
     if [ "$identity_valid" -ne 1 ]; then
         sleep 0.5
         echo ""
-        echo -e "${F_RED} :: ACCESS DENIED :: Identity Mismatch.${F_RESET}"
+        echo -e "${THEME_ERR} :: ACCESS DENIED :: Identity Mismatch.${C_RESET}"
         sleep 0.5
         _system_unlock
         return 1
@@ -820,14 +833,14 @@ function _mux_pre_login() {
 
     sleep 0.4
     echo ""
-    echo -e "${F_GRE} :: IDENTITY CONFIRMED :: ${F_RESET}"
+    echo -e "${THEME_OK} :: IDENTITY CONFIRMED :: ${C_RESET}"
     sleep 0.6
     echo ""
-    echo -e "${F_WARN} :: UNLOCKING NEURAL INTERFACE... ${F_RESET}"
+    echo -e "${THEME_WARN} :: UNLOCKING NEURAL INTERFACE... ${C_RESET}"
     sleep 0.8
-    echo -e "${F_GRAY}    ›› Mount Point: /dev/mux_core${F_RESET}"
+    echo -e "${THEME_DESC}    ›› Mount Point: /dev/mux_core${C_RESET}"
     sleep 0.2
-    echo -e "${F_GRAY}    ›› Link Status: Stable${F_RESET}"
+    echo -e "${THEME_DESC}    ›› Link Status: Stable${C_RESET}"
     sleep 0.5
     
     # 寫入 LOGIN 狀態
@@ -837,7 +850,7 @@ MUX_STATUS="LOGIN"
 EOF
 
     echo ""
-    echo -e "${F_GRE} :: WELCOME BACK, COMMANDER. :: ${F_RESET}"
+    echo -e "${THEME_OK} :: WELCOME BACK, COMMANDER. :: ${C_RESET}"
     sleep 1.2
     
     exec bash
@@ -845,16 +858,11 @@ EOF
 
 # 登出系統 - Commander Logout
 function _mux_set_logout() {
-    local C_WARN="\033[1;33m"
-    local C_ERR="\033[1;31m"
-    local C_RESET="\033[0m"
-    local C_GRAY="\033[1;30m"
-
     echo ""
-    echo -e "${C_WARN} :: WARNING: NEURAL DISCONNECT SEQUENCE ::${C_RESET}"
-    echo -e "${C_GRAY}    This will terminate your current session and seal the cockpit.${C_RESET}"
+    echo -e "${THEME_WARN} :: WARNING: NEURAL DISCONNECT SEQUENCE ::${C_RESET}"
+    echo -e "${THEME_DESC}    This will terminate your current session and seal the cockpit.${C_RESET}"
     echo ""
-    echo -ne "${C_ERR} :: TYPE 'CONFIRM' TO DISENGAGE: ${C_RESET}"
+    echo -ne "${THEME_ERR} :: TYPE 'CONFIRM' TO DISENGAGE: ${C_RESET}"
     read confirm
 
     if [ "$confirm" != "CONFIRM" ]; then
@@ -871,13 +879,13 @@ function _mux_set_logout() {
     local shutdown_steps=("Disengaging Motor Functions..." "Unmounting Virtual Drives..." "Saving Memory Stack..." "Sealing Cockpit Hatch...")
     
     for step in "${shutdown_steps[@]}"; do
-        echo -e "${C_GRAY}    ›› $step${F_RESET}"
+        echo -e "${THEME_DESC}    ›› $step${C_RESET}"
         sleep 0.6
     done
     
     sleep 0.6
     echo ""
-    echo -e "${C_WARN} :: SYSTEM OFFLINE :: See you space cowboy.${C_RESET}"
+    echo -e "${THEME_WARN} :: SYSTEM OFFLINE :: See you space cowboy.${C_RESET}"
     
     cat > "$MUX_ROOT/.mux_state" <<EOF
 MUX_MODE="MUX"
@@ -890,26 +898,18 @@ EOF
 
 # 工廠前置驗證協議 (Pre-Flight Auth)
 function _core_pre_factory_auth() {
-    local F_GRAY="\033[1;30m"
-    local F_RED="\033[1;31m"
-    local F_WARN="\033[1;33m"
-    local F_RESET="\033[0m"
-    local F_GRE="\033[1;32m"
-    local F_SUB="\033[1;37m"
-    local F_ORG="\033[1;38;5;208m"
-
     clear
     _draw_logo "gray"
     
     _system_lock
-    echo -e "${F_ORG} :: SECURITY CHECKPOINT ::${F_RESET}"
+    echo -e "${F_ORG} :: SECURITY CHECKPOINT ::${C_RESET}"
     sleep 0.2
-    echo -e "${F_GRAY}    ›› Identity Verification Required.${F_RESET}"
+    echo -e "${THEME_DESC}    ›› Identity Verification Required.${C_RESET}"
     sleep 0.4
     echo ""
     
     _system_unlock
-    echo -ne "${F_SUB} :: Commander ID: ${F_RESET}" 
+    echo -ne "${THEME_SUB} :: Commander ID: ${C_RESET}" 
     read input_id
 
     local identity_valid=0
@@ -922,7 +922,7 @@ function _core_pre_factory_auth() {
         identity_valid=1
     fi
 
-    echo -ne "${F_WARN} :: CONFIRM IDENTITY (Type 'CONFIRM'): ${F_RESET}"
+    echo -ne "${THEME_WARN} :: CONFIRM IDENTITY (Type 'CONFIRM'): ${C_RESET}"
     read confirm
     
     if [ "$confirm" != "CONFIRM" ]; then
@@ -937,37 +937,37 @@ function _core_pre_factory_auth() {
 
     echo ""
     _system_lock
-    echo -e "${F_GRAY} :: Verifying Neural Signature... ${F_RESET}"
+    echo -e "${THEME_DESC} :: Verifying Neural Signature... ${C_RESET}"
     sleep 0.8
     echo ""
-    echo -e "${F_GRE} :: ACCESS GRANTED :: ${F_RESET}"
+    echo -e "${THEME_OK} :: ACCESS GRANTED :: ${C_RESET}"
     sleep 0.5
     echo ""
-    echo -e "${F_GRAY} :: Scanning Combat Equipment... ${F_RESET}"
+    echo -e "${THEME_DESC} :: Scanning Combat Equipment... ${C_RESET}"
     sleep 1
     echo ""
     if ! command -v fzf &> /dev/null; then
-        echo -e "\n${F_RED} :: EQUIPMENT MISSING :: ${F_RESET}"
+        echo -e "\n${THEME_ERR} :: EQUIPMENT MISSING :: ${C_RESET}"
         echo ""
         sleep 0.5
         _core_eject_sequence "Neural Link (fzf) Required."
         return 1
     else
-        echo -e "\r${F_GRE} :: EQUIPMENT CONFIRM :: ${F_RESET}"
+        echo -e "\r${THEME_OK} :: EQUIPMENT CONFIRM :: ${C_RESET}"
         sleep 0.5
     fi
 
     echo ""
-    echo -e "${F_RED} :: WARNING: FACTORY PROTOCOL :: ${F_RESET}"
-    echo -e "${F_GRAY}    1. Modifications are permanent.${F_RESET}"
-    echo -e "${F_GRAY}    2. Sandbox Environment Active (.temp).${F_RESET}"
-    echo -e "${F_GRAY}    3. Core 'mux' commands are ${F_RED}LOCKED${F_RESET}.${F_RESET}"
-    echo -e "${F_GRAY}    4. App launches are ${F_RED}LOCKED${F_RESET}.${F_RESET}"
-    echo -e "${F_GRAY}    5. You are responsible for system stability.${F_RESET}"
+    echo -e "${THEME_ERR} :: WARNING: FACTORY PROTOCOL :: ${C_RESET}"
+    echo -e "${THEME_DESC}    1. Modifications are permanent.${C_RESET}"
+    echo -e "${THEME_DESC}    2. Sandbox Environment Active (.temp).${C_RESET}"
+    echo -e "${THEME_DESC}    3. Core 'mux' commands are ${THEME_ERR}LOCKED${C_RESET}.${C_RESET}"
+    echo -e "${THEME_DESC}    4. App launches are ${THEME_ERR}LOCKED${C_RESET}.${C_RESET}"
+    echo -e "${THEME_DESC}    5. You are responsible for system stability.${C_RESET}"
     echo ""
     
     _system_unlock
-    echo -ne "${F_WARN} :: Proceed? [Y/n]: ${F_RESET}"
+    echo -ne "${THEME_WARN} :: Proceed? [Y/n]: ${C_RESET}"
     read choice
     
     if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
@@ -978,7 +978,7 @@ function _core_pre_factory_auth() {
     _system_lock
     local steps=("Injecting Logic..." "Desynchronizing Core..." "Loading Arsenal..." "Entering Factory...")
     for step in "${steps[@]}"; do
-        echo -e "${F_GRAY}    ›› $step${F_RESET}"
+        echo -e "${THEME_DESC}    ›› $step${C_RESET}"
         sleep 0.2
     done
     sleep 0.5
@@ -998,24 +998,21 @@ EOF
 # 彈射序列 (The Ejection - Core Simulation)
 function _core_eject_sequence() {
     local reason="$1"
-    local F_ERR="\033[1;31m"
-    local F_RESET="\033[0m"
-    local F_GRAY="\033[1;30m"
-    
+   
     _system_lock
     echo ""
-    echo -e "${F_ERR} :: ACCESS DENIED :: ${reason}${F_RESET}"
+    echo -e "${THEME_ERR} :: ACCESS DENIED :: ${reason}${C_RESET}"
     sleep 0.8
     echo ""
-    echo -e "${F_ERR} :: Initiating Eviction Protocol...${F_RESET}"
+    echo -e "${THEME_ERR} :: Initiating Eviction Protocol...${C_RESET}"
     sleep 0.4
-    echo -e "${F_ERR} :: Locking Cockpit...${F_RESET}"
+    echo -e "${THEME_ERR} :: Locking Cockpit...${C_RESET}"
     sleep 0.6
-    echo -e "${F_ERR} :: Auto-Eject System Activated.${F_RESET}"
+    echo -e "${THEME_ERR} :: Auto-Eject System Activated.${C_RESET}"
     sleep 1
     
     for i in {3..1}; do
-        echo -e "${F_GRAY}    ›› Ejection in $i...${F_RESET}"
+        echo -e "${THEME_DESC}    ›› Ejection in $i...${C_RESET}"
         sleep 0.99
     done
 
@@ -1106,14 +1103,14 @@ function mux() {
         # : Install Dependencies
         "link")
             if command -v fzf &> /dev/null; then
-                echo -e "\n\033[1;32m :: Neural Link (fzf) Status: \033[1;37mONLINE\033[0m ✅"
+                echo -e "\n${C_GREEN} :: Neural Link (fzf) Status: ${C_WHITE}ONLINE${C_RESET} ✅"
                 _bot_say "success" "Link is stable, Commander."
                 return
             fi
             echo -e ""
-            echo -e "\033[1;33m :: Initialize Neural Link Protocol? \033[0m"
+            echo -e "${C_YELLOW} :: Initialize Neural Link Protocol? ${C_RESET}"
             echo -e ""
-            echo -ne "\033[1;32m :: Authorize construction? [Y/n]: \033[0m"
+            echo -ne "${C_GREEN} :: Authorize construction? [Y/n]: ${C_RESET}"
             read choice
             if [[ "$choice" == "y" || "$choice" == "Y" || "$choice" == "" ]]; then
                 if command -v _mux_uplink_sequence &> /dev/null; then
@@ -1131,10 +1128,10 @@ function mux() {
             if [ "$current_branch" == "main" ]; then
                     export MUX_ID="Unknown (main)"
             fi
-            echo -e "\033[1;34m :: Mux-OS System Status \033[0m"
-            echo -e "\033[1;37m    ›› Core Protocol :\033[0m \033[1;33mv$MUX_VERSION\033[0m"
-            echo -e "\033[1;37m    ›› Current Meta  :\033[0m \033[1;35m$current_branch\033[0m"
-            echo -e "\033[1;37m    ›› Last Uplink   :\033[0m \033[0;36m$last_commit\033[0m"
+            echo -e "${C_BLUE} :: Mux-OS System Status ${C_RESET}"
+            echo -e "${C_WHITE}    ›› Core Protocol :${C_RESET} ${C_YELLOW}v$MUX_VERSION${C_RESET}"
+            echo -e "${C_WHITE}    ›› Current Meta  :${C_RESET} ${C_PURPLE}$current_branch${C_RESET}"
+            echo -e "${C_WHITE}    ›› Last Uplink   :${C_RESET} \033[0;36m$last_commit${C_RESET}"
             ;;
         
         # : Neural Link Deploy
@@ -1184,13 +1181,13 @@ function mux() {
         "driveto"|"drive2")
             if [ "$MUX_STATUS" == "LOGIN" ]; then
                  _bot_say "error" "Interlock Active: Cockpit is sealed."
-                 echo -e "\033[1;30m    ›› Protocol Violation: Cannot switch unit while piloted.\033[0m"
-                 echo -e "\033[1;30m    ›› Action Required : Execute 'mux logout' to disengage.\033[0m"
+                 echo -e "${C_BLACK}    ›› Protocol Violation: Cannot switch unit while piloted.${C_RESET}"
+                 echo -e "${C_BLACK}    ›› Action Required : Execute 'mux logout' to disengage.${C_RESET}"
                  return 1
             fi
 
             # 2. 掃描機體 (Branch Selection)
-            echo -e "\033[1;36m :: Scanning Multiverse Coordinates (Hangar Walk)...\033[0m"
+            echo -e "${C_CYAN} :: Scanning Multiverse Coordinates (Hangar Walk)...${C_RESET}"
             git fetch --all >/dev/null 2>&1
             
             # FZF 選單
@@ -1229,7 +1226,7 @@ function mux() {
             
             # 4. 系統重載 (Reload)
             if [ $? -eq 0 ]; then
-                echo -e "\033[1;33m :: Initializing New Unit Core...\033[0m"
+                echo -e "${C_YELLOW} :: Initializing New Unit Core...${C_RESET}"
                 sleep 1.0
                 
                 # 賦予新機體執行權限
@@ -1252,7 +1249,7 @@ function mux() {
 
         *)
             if command -v "$cmd" &> /dev/null; then "$cmd" "${@:2}"; return; fi
-            echo -e "\033[1;33m :: Unknown Directive: '$cmd'.\033[0m"
+            echo -e "${C_YELLOW} :: Unknown Directive: '$cmd'.${C_RESET}"
             ;;
     esac
 }
@@ -1296,12 +1293,14 @@ case "$MUX_MODE" in
     "FAC")
         if [ -f "$MUX_ROOT/factory.sh" ]; then
             source "$MUX_ROOT/factory.sh"
+            THEME_MAIN="$C_ORANGE"
+
             if command -v _factory_system_boot &> /dev/null; then
                 _factory_system_boot
             elif command -v _fac_init &> /dev/null; then
                 _fac_init
             else
-                echo -e "\033[1;31m :: FATAL :: Factory Core Not Found.\033[0m"
+                echo -e "${C_RED} :: FATAL :: Factory Core Not Found.${C_RESET}"
             fi
 
             return 0 2>/dev/null || exit 0
@@ -1309,6 +1308,8 @@ case "$MUX_MODE" in
         ;;
         
     "MUX")
+        THEME_MAIN="$C_CYAN"
+
         if [ "$MUX_STATUS" == "LOGIN" ]; then
             export PS1="\[\033[1;36m\]Mux\[\033[0m\] \w › "
         else

@@ -5,16 +5,6 @@ if [ -z "$__MUX_CORE_ACTIVE" ]; then
     return 1 2>/dev/null || exit 1
 fi
 
-export C_RESET="\033[0m"
-export C_CYAN="\033[1;36m"
-export C_GREEN="\033[1;32m"
-export C_RED="\033[1;31m"
-export C_YELLOW="\033[1;33m"
-export C_GRAY="\033[1;30m"
-export C_PURPLE="\033[1;35m"
-export C_ORANGE="\033[1;38;5;208m"
-export C_WHITE="\033[1;37m"     # Commander's Color
-
 # 系統核心人格 (The System)
 function _bot_say() {
     local mood="$1"
@@ -171,7 +161,7 @@ function _bot_say() {
                 "Sync complete. The mechanic left a note: 'Good luck'. 🔧"
                 "Warning: Coffee stain detected on control panel. Cleaning..."
              )
-             echo -e "\033[1;35m :: ${eggs[$((RANDOM % ${#eggs[@]}))]}\033[0m"
+             echo -e "${C_PURPLE} :: ${eggs[$((RANDOM % ${#eggs[@]}))]}\033[0m"
         fi
 
         case "$state" in
@@ -401,7 +391,7 @@ function _bot_factory_personality() {
 
     case "$mood" in
         "factory_welcome")
-            color=$C_ORANGE
+            color=$THEME_MAIN
             phrases=(
                 " Neural Link Factory online. Access Level: ROOT. 🏗️"
                 " Commander verified. You have the con. 🛡️"
@@ -411,7 +401,7 @@ function _bot_factory_personality() {
             ;;
 
         "factory")
-            color=$C_ORANGE
+            color=$THEME_MAIN
             phrases=(
                 " Factory operational. Scanning active links... 📡"
                 " Current target: app.sh. Write-Mode: UNLOCKED. 🔓"
@@ -494,7 +484,7 @@ function _bot_factory_personality() {
             ;;
 
         *)
-            color=$C_ORANGE
+            color=$THEME_MAIN
             phrases=(
                 " Input received."
                 " Acknowledged."

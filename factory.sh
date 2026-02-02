@@ -9,20 +9,13 @@ if [ -z "$__MUX_CORE_ACTIVE" ]; then
         source "$MUX_ROOT/core.sh"
         unset __MUX_NO_AUTOBOOT
     else
-        echo -e "\033[1;31m :: FATAL :: Core Uplink Failed. Variables missing.\033[0m"
+        echo -e "${C_RED} :: FATAL :: Core Uplink Failed. Variables missing.${C_RESET}"
         return 1 2>/dev/null
     fi
 fi
 
 # factory.sh - Mux-OS 兵工廠
 
-F_MAIN="\033[1;38;5;208m"
-F_SUB="\033[1;37m"
-F_WARN="\033[1;33m"
-F_ERR="\033[1;31m"
-F_GRAY="\033[1;30m"
-F_RESET="\033[0m"
-F_GRE="\033[1;32m"
 
 # 神經資料讀取器 - Neural Data Reader
 # 用法: _fac_neural_read "chrome" 或 _fac_neural_read "chrome 'incognito'"
@@ -310,7 +303,7 @@ function _fac_list() {
     local target_file="$MUX_ROOT/app.csv.temp"
     local width=$(tput cols)
     
-    echo -e "${F_WARN} :: Mux-OS Command Registry :: ${F_RESET}"
+    echo -e "${THEME_WARN} :: Mux-OS Command Registry :: ${C_RESET}"
     
     awk -v FPAT='([^,]*)|("[^"]+")' 'NR>1 {
         raw_com = $5
@@ -328,13 +321,13 @@ function _fac_list() {
         }
     }' "$target_file" | sort | pr -t -3 -w "$width"
     
-    echo -e "${F_GRAY} :: End of List :: ${F_RESET}"
+    echo -e "${THEME_DESC} :: End of List :: ${C_RESET}"
 }
 
 # 兵工廠系統啟動 (Factory System Boot)
 function _factory_system_boot() {
     MUX_MODE="FAC"
-    export PS1="\[\033[1;38;5;208m\]Fac\[\033[0m\] \w › "
+    export PS1="\[${THEME_MAIN}\]Fac\[${C_RESET}\] \w › "
 
     local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
     if [ ! -d "$bak_dir" ]; then mkdir -p "$bak_dir"; fi
@@ -449,9 +442,9 @@ function _fac_rebak_wizard() {
 
             local tag=""
             if [ "$ext" == "bak" ]; then
-                tag="\033[1;36m[Session]\033[0m"
+                tag="${C_CYAN}[Session]${C_RESET}"
             else
-                tag="\033[1;38;5;208m[AutoSave]\033[0m"
+                tag="${$THEME_MAIN}[AutoSave]${C_RESET}"
             fi
 
             printf "%-20s %-20b %s\n" "$fmt_ts" "$tag" "$fname"
@@ -482,20 +475,20 @@ function _fac_rebak_wizard() {
 
     if [ -n "$target_file" ] && [ -f "$bak_dir/$target_file" ]; then
         echo ""
-        echo -e "${F_ERR} :: WARNING: This will overwrite your current workspace!${F_RESET}"
-        echo -e "${F_GRAY}    Source: $target_file${F_RESET}"
-        echo -ne "${F_WARN} :: Confirm? [Y/n]: ${F_RESET}"
+        echo -e "${THEME_ERR} :: WARNING: This will overwrite your current workspace!${C_RESET}"
+        echo -e "${THEME_DESC}    Source: $target_file${C_RESET}"
+        echo -ne "${THEME_WARN} :: Confirm? [Y/n]: ${C_RESET}"
         read -r confirm
 
         if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
             cp "$bak_dir/$target_file" "$MUX_ROOT/app.csv.temp"
-            echo -e "${F_WARN} :: Workspace Restored from: $target_file${F_RESET}"
+            echo -e "${THEME_WARN} :: Workspace Restored from: $target_file${C_RESET}"
             sleep 0.3
-            echo -e "${F_GRAY}    ›› Verified. ✅.${F_RESET}"
+            echo -e "${THEME_DESC}    ›› Verified. ✅.${C_RESET}"
             sleep 1.6
             _fac_init
         else
-            echo -e "${F_GRAY}    ›› Restore Canceled.${F_RESET}"
+            echo -e "${THEME_DESC}    ›› Restore Canceled.${C_RESET}"
         fi
     else
          _bot_say "error" "Target file not found (Extraction Error)."
@@ -504,7 +497,7 @@ function _fac_rebak_wizard() {
 
 # 機體維護工具 (Mechanism Maintenance)
 function _fac_maintenance() {
-    echo -e "${F_GRAY} :: Scanning Neural Integrity...${F_RESET}"
+    echo -e "${THEME_DESC} :: Scanning Neural Integrity...${C_RESET}"
     
     local target_file="$MUX_ROOT/app.csv.temp"
     local temp_file="${target_file}.chk"
@@ -567,24 +560,24 @@ function _fac_maintenance() {
     # 只有當 temp_file 有內容且大小大於 0 時才覆蓋
     if [ -s "$temp_file" ]; then
         mv "$temp_file" "$target_file"
-        echo -e "${F_GRE}    ›› Neural Nodes Verified & Patched.${F_RESET}"
+        echo -e "${THEME_OK}    ›› Neural Nodes Verified & Patched.${C_RESET}"
     else
         # 如果發生截斷事故，刪除壞檔，保留原檔，並報警
         rm -f "$temp_file"
-        echo -e "${F_ERR} :: CRITICAL ERROR :: Maintenance output empty! Aborting overwrite.${F_RESET}"
-        echo -e "${F_GRAY}    (Your original data has been protected)${F_RESET}"
+        echo -e "${THEME_ERR} :: CRITICAL ERROR :: Maintenance output empty! Aborting overwrite.${C_RESET}"
+        echo -e "${THEME_DESC}    (Your original data has been protected)${C_RESET}"
     fi
 }
 
 # 系統序列重整與優化 - System Sort Optimization
 function _fac_sort_optimization() {
-    echo -e "${F_GRAY} :: Optimizing Neural Sequence...${F_RESET}"
+    echo -e "${THEME_DESC} :: Optimizing Neural Sequence...${C_RESET}"
 
     local target_file="$MUX_ROOT/app.csv.temp"
     local temp_file="${target_file}.sorted"
 
     if [ ! -f "$target_file" ]; then
-        echo -e "${F_ERR} :: Target Neural Map not found.${F_RESET}"
+        echo -e "${THEME_ERR} :: Target Neural Map not found.${C_RESET}"
         return 1
     fi
 
@@ -594,10 +587,10 @@ function _fac_sort_optimization() {
 
     if [ -s "$temp_file" ]; then
         mv "$temp_file" "$target_file"
-        echo -e "${F_GRE}    ›› Sequence Optimized. Nodes Realigned.${F_RESET}"
+        echo -e "${THEME_OK}    ›› Sequence Optimized. Nodes Realigned.${C_RESET}"
     else
         rm "$temp_file"
-        echo -e "${F_ERR}    ›› Optimization Failed: Empty Output.${F_RESET}"
+        echo -e "${THEME_ERR}    ›› Optimization Failed: Empty Output.${C_RESET}"
     fi
 }
 
@@ -609,11 +602,11 @@ function _fac_safe_merge() {
     local temp_file="${target_file}.merge"
 
     if [ -z "$target_id" ] || [ -z "$source_id" ]; then
-        echo -e "${F_ERR} :: Merge Protocol Error: Missing coordinates.${F_RESET}"
+        echo -e "${THEME_ERR} :: Merge Protocol Error: Missing coordinates.${C_RESET}"
         return 1
     fi
 
-    echo -e "${F_GRAY} :: Migrating Node Matrix: [${source_id}] ›› [${target_id}]...${F_RESET}"
+    echo -e "${THEME_DESC} :: Migrating Node Matrix: [${source_id}] ›› [${target_id}]...${C_RESET}"
 
     eval $(awk -F, -v tid="$target_id" '
         BEGIN { max=0; name="Unknown" }
@@ -665,13 +658,13 @@ function _fac_safe_merge() {
     # Deploy
     if [ -s "$temp_file" ]; then
         mv "$temp_file" "$target_file"
-        echo -e "${F_GRE}    ›› Matrix Merged. Assets Transferred.${F_RESET}"
+        echo -e "${THEME_OK}    ›› Matrix Merged. Assets Transferred.${C_RESET}"
         
         _fac_sort_optimization
         _fac_matrix_defrag
     else
         rm "$temp_file"
-        echo -e "${F_ERR}    ›› Merge Failed: Output stream broken.${F_RESET}"
+        echo -e "${THEME_ERR}    ›› Merge Failed: Output stream broken.${C_RESET}"
     fi
 }
 
@@ -684,7 +677,7 @@ function _fac_matrix_defrag() {
 
     _fac_sort_optimization > /dev/null
 
-    echo -e "${F_GRAY} :: Defragmenting Matrix (Smart Indexing)...${F_RESET}"
+    echo -e "${THEME_DESC} :: Defragmenting Matrix (Smart Indexing)...${C_RESET}"
 
     awk -F, -v OFS=, '
         NR==1 { print; next }
@@ -719,10 +712,10 @@ function _fac_matrix_defrag() {
 
     if [ -s "$temp_file" ]; then
         mv "$temp_file" "$target_file"
-        echo -e "${F_GRE}    ›› Matrix Defragmented. Categories Shifted.${F_RESET}"
+        echo -e "${THEME_OK}    ›› Matrix Defragmented. Categories Shifted.${C_RESET}"
     else
         rm "$temp_file"
-        echo -e "${F_ERR}    ›› Defrag Failed.${F_RESET}"
+        echo -e "${THEME_ERR}    ›› Defrag Failed.${C_RESET}"
     fi
 }
 
@@ -732,10 +725,10 @@ function _factory_reset() {
     local target_bak=$(ls -t "$bak_dir"/app.csv.*.bak 2>/dev/null | head -n 1)
 
     echo ""
-    echo -e "${F_ERR} :: CRITICAL WARNING :: FACTORY RESET DETECTED ::${F_RESET}"
-    echo -e "${F_GRAY}    This will wipe ALL changes (Sandbox & Production) and pull from Origin.${F_RESET}"
+    echo -e "${THEME_ERR} :: CRITICAL WARNING :: FACTORY RESET DETECTED ::${C_RESET}"
+    echo -e "${THEME_DESC}    This will wipe ALL changes (Sandbox & Production) and pull from Origin.${C_RESET}"
     echo ""
-    echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO NUKE: ${F_RESET}"
+    echo -ne "${THEME_ERR} :: TYPE 'CONFIRM' TO NUKE: ${C_RESET}"
     read confirm
     echo ""
 
@@ -762,18 +755,18 @@ function _factory_reset() {
             fi
         fi
     else
-        echo -e "${F_GRAY}    ›› Reset aborted.${F_RESET}"
+        echo -e "${THEME_DESC}    ›› Reset aborted.${C_RESET}"
     fi
 }
 
 # 部署序列 (Deploy Sequence)
 function _factory_deploy_sequence() {
     unset __FAC_IO_STATE
-    echo -ne "${F_WARN} :: Initiating Deployment Sequence...${F_RESET}"
+    echo -ne "${THEME_WARN} :: Initiating Deployment Sequence...${C_RESET}"
     sleep 0.5
 
     # QA & Stats & Migration
-    echo -e "\n${F_GRAY} :: Running Final Quality Assurance (QA)...${F_RESET}"
+    echo -e "\n${THEME_DESC} :: Running Final Quality Assurance (QA)...${C_RESET}"
     
     local target_file="$MUX_ROOT/app.csv.temp"
     local qa_file="${target_file}.qa"
@@ -821,14 +814,14 @@ function _factory_deploy_sequence() {
     if [ -n "$qa_error" ]; then
         mv "$qa_file" "$target_file" # 寫回標記以便使用者檢查
         rm "$stats_log"
-        echo -e "${F_ERR} :: QA FAILED. Invalid nodes detected.${F_RESET}"
-        echo -e "${F_GRAY}    Reason: $(echo "$qa_error" | cut -d: -f2 | head -n 1)${F_RESET}"
+        echo -e "${THEME_ERR} :: QA FAILED. Invalid nodes detected.${C_RESET}"
+        echo -e "${THEME_DESC}    Reason: $(echo "$qa_error" | cut -d: -f2 | head -n 1)${C_RESET}"
         return 1
     else
         # QA 通過：應用轉正後的檔案 (P State applied)
         mv "$qa_file" "$target_file"
         rm "$stats_log"
-        echo -e "${F_GRE}    ›› QA Passed. State normalized to [P].${F_RESET}"
+        echo -e "${THEME_OK}    ›› QA Passed. State normalized to [P].${C_RESET}"
         sleep 1.9
     fi
 
@@ -836,7 +829,7 @@ function _factory_deploy_sequence() {
     clear
     _draw_logo "gray"
     
-    echo -e "${F_MAIN} :: MANIFEST CHANGES (Sandbox vs Production) ::${F_RESET}"
+    echo -e "${THEME_MAIN} :: MANIFEST CHANGES (Sandbox vs Production) ::${C_RESET}"
     echo ""
     
     if command -v diff &> /dev/null; then
@@ -848,12 +841,12 @@ function _factory_deploy_sequence() {
             {print}
         '
     else
-        echo -e "${F_WARN}    (Diff module unavailable. Changes hidden.)${F_RESET}"
+        echo -e "${THEME_WARN}    (Diff module unavailable. Changes hidden.)${C_RESET}"
     fi
     echo ""
     
     _system_unlock
-    echo -ne "${F_WARN} :: Modifications verified? [Y/n]: ${F_RESET}"
+    echo -ne "${THEME_WARN} :: Modifications verified? [Y/n]: ${C_RESET}"
     read choice
     echo ""
     
@@ -861,16 +854,16 @@ function _factory_deploy_sequence() {
         _fac_init
         echo -e ""
         _bot_say "factory" "Deployment canceled. Sandbox state retained."
-        echo -e "${F_GRAY}    ›› To discard changes: type 'fac reset'${F_RESET}"
-        echo -e "${F_GRAY}    ›› To resume editing : type 'fac edit'${F_RESET}"
+        echo -e "${THEME_DESC}    ›› To discard changes: type 'fac reset'${C_RESET}"
+        echo -e "${THEME_DESC}    ›› To resume editing : type 'fac edit'${C_RESET}"
         return
     fi
     
-    echo -e "${F_ERR} :: CRITICAL WARNING ::${F_RESET}"
-    echo -e "${F_SUB}    Sandbox will OVERWRITE Production.${F_RESET}"
-    echo -e "${F_SUB}    This action is irreversible via undo.${F_RESET}"
+    echo -e "${THEME_ERR} :: CRITICAL WARNING ::${C_RESET}"
+    echo -e "${THEME_SUB}    Sandbox will OVERWRITE Production.${C_RESET}"
+    echo -e "${THEME_SUB}    This action is irreversible via undo.${C_RESET}"
     echo ""
-    echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO DEPLOY: ${F_RESET}"
+    echo -ne "${THEME_ERR} :: TYPE 'CONFIRM' TO DEPLOY: ${C_RESET}"
     read confirm
     echo ""
     
@@ -898,7 +891,7 @@ function _factory_deploy_sequence() {
          return 1
     fi
     
-    echo -e "${F_GRE} :: DEPLOYMENT SUCCESSFUL ::${F_RESET}"
+    echo -e "${THEME_OK} :: DEPLOYMENT SUCCESSFUL ::${C_RESET}"
     sleep 1.4
     
     if command -v _ui_fake_gate &> /dev/null; then
@@ -949,7 +942,7 @@ function _fac_generic_edit() {
     fi
     
     # 3. 使用者輸入
-    echo -e "${F_GRAY}    Current: [ ${current_val:-Empty} ]${F_RESET}" >&2
+    echo -e "${THEME_DESC}    Current: [ ${current_val:-Empty} ]${C_RESET}" >&2
     read -e -p "    › " -i "$current_val" input_val
     
     # 4. 原子寫入
@@ -966,7 +959,7 @@ function _fac_update_category_name() {
     local safe_name="${new_name//\"/\"\"}"
     safe_name="\"$safe_name\""
 
-    echo -e "${F_GRAY}    ›› Updating Category [${target_id}] to ${safe_name}...${F_RESET}"
+    echo -e "${THEME_DESC}    ›› Updating Category [${target_id}] to ${safe_name}...${C_RESET}"
 
     awk -v FPAT='([^,]*)|("[^"]+")' -v OFS="," \
         -v tid="$target_id" -v val="$safe_name" '
@@ -1024,7 +1017,7 @@ function _fac_edit_router() {
             # Branch A: 新增類別 (New Category)
             if [ "$sel_id" == "NEW_SIGNAL" ]; then
                 _bot_say "action" "Forging New Category..." >&2
-                echo -e "${F_GRAY} :: Guide   : Enter name for the new category.${F_RESET}" >&2
+                echo -e "${THEME_DESC} :: Guide   : Enter name for the new category.${C_RESET}" >&2
                 read -e -p "    › " new_cat_name
                 
                 if [ -z "$new_cat_name" ]; then return 0; fi
@@ -1088,7 +1081,7 @@ function _fac_edit_router() {
                     local exist_name=$(echo "$scan_result" | cut -d: -f3)
 
                     _bot_say "warn" "Detected existing category [$exist_id]. Routing..." >&2
-                    echo -e "${F_GRAY}    ›› You typed that manually? We have a menu for a reason... 🙄${F_RESET}" >&2
+                    echo -e "${THEME_DESC}    ›› You typed that manually? We have a menu for a reason... 🙄${C_RESET}" >&2
 
                     local next_com_no=$(awk -F, -v target_cat="$exist_id" '
                         BEGIN { max=0 }
@@ -1106,7 +1099,7 @@ function _fac_edit_router() {
                 elif [[ "$scan_result" == SIMILAR* ]]; then
                     local similar_name=$(echo "$scan_result" | cut -d: -f2)
                     _bot_say "error" "Input '$new_cat_name' is too similar to existing '$similar_name'." >&2
-                    echo -e "${F_GRAY}    ›› Similarity › 70%. Did you make a typo? Request Denied.${F_RESET}" >&2
+                    echo -e "${THEME_DESC}    ›› Similarity › 70%. Did you make a typo? Request Denied.${C_RESET}" >&2
                     return 0
                 fi
 
@@ -1208,7 +1201,7 @@ function _fac_edit_router() {
 
                 if echo "$choice" | grep -q " COM"; then
                     _bot_say "action" "Edit Command (Trigger):" >&2
-                    echo -e "${F_GRAY} :: Guide   : The main CLI command (e.g., 'chrome').${F_RESET}" >&2
+                    echo -e "${THEME_DESC} :: Guide   : The main CLI command (e.g., 'chrome').${C_RESET}" >&2
                     
                     read -e -p "    › " -i "$_VAL_COM" new_com
                     new_com=$(echo "$new_com" | sed 's/^[ \t]*//;s/[ \t]*$//')
@@ -1225,7 +1218,7 @@ function _fac_edit_router() {
                     fi
                 elif echo "$choice" | grep -q " SUB"; then
                     _bot_say "action" "Edit Sub-Command (Optional):" >&2
-                    echo -e "${F_GRAY} :: Guide   : The secondary trigger (e.g., 'incognito').${F_RESET}" >&2
+                    echo -e "${THEME_DESC} :: Guide   : The secondary trigger (e.g., 'incognito').${C_RESET}" >&2
                     
                     read -e -p "    › " -i "$_VAL_COM2" new_sub
                     new_sub=$(echo "$new_sub" | sed 's/^[ \t]*//;s/[ \t]*$//')
@@ -1249,61 +1242,61 @@ function _fac_edit_router() {
             ;;
 
         "ROOM_HUD")
-            echo -e "${F_GRAY} :: Guide   : Enter the Menu Description.${F_RESET}" >&2
-            echo -e "${F_GRAY} :: Format  : e.g. 'Google Chrome Browser'${F_RESET}" >&2
+            echo -e "${THEME_DESC} :: Guide   : Enter the Menu Description.${C_RESET}" >&2
+            echo -e "${THEME_DESC} :: Format  : e.g. 'Google Chrome Browser'${C_RESET}" >&2
             
             _fac_generic_edit "$target_key" 8 "Edit Description (HUD Name):"
             return 2
             ;;
 
         "ROOM_UI")
-            echo -e "${F_GRAY} :: Guide   : UI Rendering Mode${F_RESET}" >&2
-            echo -e "${F_GRAY} :: Options : ${F_WARN}[Empty]${F_GRAY}=Default, ${F_WARN}fzf${F_GRAY}, ${F_WARN}silent${F_RESET}" >&2
+            echo -e "${THEME_DESC} :: Guide   : UI Rendering Mode${C_RESET}" >&2
+            echo -e "${THEME_DESC} :: Options : ${THEME_WARN}[Empty]${THEME_DESC}=Default, ${THEME_WARN}fzf${THEME_DESC}, ${THEME_WARN}silent${C_RESET}" >&2
             
             _fac_generic_edit "$target_key" 9 "Edit Display Name (Bot Label):"
             return 2
             ;;
             
         "ROOM_PKG")
-            echo -e "${F_GRAY} :: Guide   : Target Android Package${F_RESET}" >&2
-            echo -e "${F_GRAY} :: Hint    : Use 'apklist' or 'ROOM_LOOKUP' to find packages.${F_RESET}" >&2
+            echo -e "${THEME_DESC} :: Guide   : Target Android Package${C_RESET}" >&2
+            echo -e "${THEME_DESC} :: Hint    : Use 'apklist' or 'ROOM_LOOKUP' to find packages.${C_RESET}" >&2
             
             _fac_generic_edit "$target_key" 10 "Edit Package Name (com.xxx.xxx):"
             return 2
             ;;
 
         "ROOM_ACT")
-            echo -e "${F_GRAY} :: Guide   : Target Activity Class (Optional)${F_RESET}" >&2
-            echo -e "${F_GRAY} :: Format  : com.package.name.MainActivity${F_RESET}" >&2
+            echo -e "${THEME_DESC} :: Guide   : Target Activity Class (Optional)${C_RESET}" >&2
+            echo -e "${THEME_DESC} :: Format  : com.package.name.MainActivity${C_RESET}" >&2
             
             _fac_generic_edit "$target_key" 11 "Edit Activity / Class Path:"
             return 2
             ;;
             
         "ROOM_CATE")
-            echo -e "${F_GRAY} :: Guide   : Intent Category Suffix${F_RESET}" >&2
-            echo -e "${F_GRAY} :: Note    : System adds 'android.intent.category.' prefix.${F_RESET}" >&2
-            echo -e "${F_GRAY} :: Example : ${F_WARN}BROWSABLE${F_RESET}, ${F_WARN}DEFAULT${F_RESET}, ${F_WARN}LAUNCHER${F_RESET}" >&2
+            echo -e "${THEME_DESC} :: Guide   : Intent Category Suffix${C_RESET}" >&2
+            echo -e "${THEME_DESC} :: Note    : System adds 'android.intent.category.' prefix.${C_RESET}" >&2
+            echo -e "${THEME_DESC} :: Example : ${THEME_WARN}BROWSABLE${C_RESET}, ${THEME_WARN}DEFAULT${C_RESET}, ${THEME_WARN}LAUNCHER${C_RESET}" >&2
             
             _fac_generic_edit "$target_key" 16 "Edit Category Type:"
             return 2
             ;;
 
         "ROOM_FLAG")
-            echo -e "${F_GRAY} :: Guide   : Execution Flags (am start)${F_RESET}" >&2
-            echo -e "${F_GRAY} :: Example : ${F_WARN}--user 0${F_RESET}, ${F_WARN}--grant-read-uri-permission${F_RESET}" >&2
+            echo -e "${THEME_DESC} :: Guide   : Execution Flags (am start)${C_RESET}" >&2
+            echo -e "${THEME_DESC} :: Example : ${THEME_WARN}--user 0${C_RESET}, ${THEME_WARN}--grant-read-uri-permission${C_RESET}" >&2
             
             _fac_generic_edit "$target_key" 17 "Edit Execution Flags:"
             return 2
             ;;
 
         "ROOM_INTENT")
-            echo -e "${F_GRAY} :: Guide   : Intent Action HEAD${F_RESET}" >&2
-            echo -e "${F_GRAY} :: Format  : android.intent.action${F_RESET}" >&2
+            echo -e "${THEME_DESC} :: Guide   : Intent Action HEAD${C_RESET}" >&2
+            echo -e "${THEME_DESC} :: Format  : android.intent.action${C_RESET}" >&2
             _fac_generic_edit "$target_key" 12 "Edit Intent Action (Head):"
             
-            echo -e "${F_GRAY} :: Guide   : Intent Action BODY${F_RESET}" >&2
-            echo -e "${F_GRAY} :: Format  : '.VIEW', '.SEND', '.MAIN' ...${F_RESET}" >&2
+            echo -e "${THEME_DESC} :: Guide   : Intent Action BODY${C_RESET}" >&2
+            echo -e "${THEME_DESC} :: Format  : '.VIEW', '.SEND', '.MAIN' ...${C_RESET}" >&2
             _fac_generic_edit "$target_key" 13 "Edit Intent Data (Body):"
             return 2
             ;;
@@ -1403,7 +1396,7 @@ function _fac_edit_router() {
         "ROOM_LOOKUP")
             apklist >&2
             echo -e "" >&2
-            echo -e "${F_GRAY}    (Press 'Enter' to return to Factory)${F_RESET}" >&2
+            echo -e "${THEME_DESC}    (Press 'Enter' to return to Factory)${C_RESET}" >&2
             read
             return 2
             ;;
@@ -1692,7 +1685,7 @@ function _fac_launch_test() {
         
         # 輸出網址串
         echo -e "${C_SEP}    ---------------${C_RST}"
-        echo -e "${F_GRAY}    Resolving › $final_uri${F_RESET}"
+        echo -e "${THEME_DESC}    Resolving › $final_uri${C_RESET}"
         echo -e "${C_SEP}    ---------------${C_RST}"
     fi
 
@@ -1728,7 +1721,7 @@ function _fac_launch_test() {
     if [ -z "$fzf_sel" ]; then return 0; fi
     local fire_mode=$(echo "$fzf_sel" | awk '{print $1}')
     
-    echo -e "${F_WARN} :: EXECUTING SEQUENCE ($fire_mode) ::${F_RESET}"
+    echo -e "${THEME_WARN} :: EXECUTING SEQUENCE ($fire_mode) ::${C_RESET}"
 
     # 5. 根據開火模式組裝彈藥
     local final_cmd=""
@@ -1812,21 +1805,21 @@ function _fac_launch_test() {
 
     # 6. 執行與輸出報告
     if [ -n "$final_cmd" ]; then
-        echo -e "${F_GRAY}    Payload › $final_cmd${F_RESET}"
+        echo -e "${THEME_DESC}    Payload › $final_cmd${C_RESET}"
         output=$(eval "$final_cmd" 2>&1)
         
         if [[ "$output" == *"Error"* || "$output" == *"does not exist"* || "$output" == *"unable to resolve"* ]]; then
-             echo -e "\n${F_ERR} :: FIRE FAILED ::${F_RESET}"
-             echo -e "${F_GRAY}    $output${F_RESET}"
+             echo -e "\n${THEME_ERR} :: FIRE FAILED ::${C_RESET}"
+             echo -e "${THEME_DESC}    $output${C_RESET}"
              return 1
         else
-             echo -e "\n${F_GRE} :: FIRE SUCCESS ::${F_RESET}"
+             echo -e "\n${THEME_OK} :: FIRE SUCCESS ::${C_RESET}"
              if [ "$fire_mode" == "SSL" ]; then
-                 echo -e "${F_GRAY}    ---------------${F_RESET}"
+                 echo -e "${THEME_DESC}    ---------------${C_RESET}"
                  echo -e "$output"
-                 echo -e "${F_GRAY}    ---------------${F_RESET}"
+                 echo -e "${THEME_DESC}    ---------------${C_RESET}"
              else
-                 echo -e "${F_GRAY}    ›› Target Impacted.${F_RESET}"
+                 echo -e "${THEME_DESC}    ›› Target Impacted.${C_RESET}"
              fi
              return 0
         fi
@@ -1922,7 +1915,7 @@ function fac() {
             if command -v _factory_show_status &> /dev/null; then
                 _factory_show_status
             else
-                echo -e "${F_WARN} :: UI Module Link Failed.${F_RESET}"
+                echo -e "${THEME_WARN} :: UI Module Link Failed.${C_RESET}"
             fi
             ;;
 
@@ -2047,7 +2040,7 @@ function fac() {
                         # 鎖定 999 不可改名
                         if [ "$cat_id" == "999" ]; then
                             _bot_say "error" "System Reserved: [999] Others." >&2
-                            echo -e "${F_GRAY}    ›› The Void is immutable. You cannot rename it.${F_RESET}" >&2
+                            echo -e "${THEME_DESC}    ›› The Void is immutable. You cannot rename it.${C_RESET}" >&2
                             continue
                         fi
 
@@ -2098,12 +2091,12 @@ function fac() {
                 fi
 
                 echo -e ""
-                echo -e "${F_WARN} :: WARNING :: NEUTRALIZING TARGET NODE ::${F_RESET}"
-                echo -e "${F_WARN}    Target Identifier : [${clean_target}]${F_RESET}"
-                echo -e "${F_GRAY}    Package Binding   : ${del_pkg}${F_RESET}"
-                echo -e "${F_GRAY}    Description       : ${del_desc}${F_RESET}"
+                echo -e "${THEME_WARN} :: WARNING :: NEUTRALIZING TARGET NODE ::${C_RESET}"
+                echo -e "${THEME_WARN}    Target Identifier : [${clean_target}]${C_RESET}"
+                echo -e "${THEME_DESC}    Package Binding   : ${del_pkg}${C_RESET}"
+                echo -e "${THEME_DESC}    Description       : ${del_desc}${C_RESET}"
                 echo -e ""
-                echo -ne "${F_ERR}    ›› CONFIRM DESTRUCTION [Y/n]: ${F_RESET}"
+                echo -ne "${THEME_ERR}    ›› CONFIRM DESTRUCTION [Y/n]: ${C_RESET}"
                 
                 read -e -r conf
                 echo -e "" 
@@ -2115,14 +2108,14 @@ function fac() {
                     _fac_delete_node "$clean_target"
                     
                     sleep 0.2
-                    echo -e "${F_GRAY}    ›› Target neutralized.${F_RESET}"
+                    echo -e "${THEME_DESC}    ›› Target neutralized.${C_RESET}"
                     
                     _fac_sort_optimization
                     _fac_matrix_defrag
                     
                     sleep 0.5
                 else
-                    echo -e "${F_GRAY}    ›› Operation Aborted.${F_RESET}"
+                    echo -e "${THEME_DESC}    ›› Operation Aborted.${C_RESET}"
                     sleep 0.5
                 fi
             done
@@ -2146,8 +2139,8 @@ function fac() {
 
                 # Branch 1: 解散分類 (Dissolve Category) 
                 if [[ "$action" == *"Delete Category"* ]]; then
-                    echo -e "\033[1;31m :: CRITICAL: Dissolving Category [$db_name] [$temp_id] \033[0m"
-                    echo -e "\033[1;30m    All assets will be transferred to [Others] [999].\033[0m"
+                    echo -e "${C_RED} :: CRITICAL: Dissolving Category [$db_name] [$temp_id] ${C_RESET}"
+                    echo -e "${C_BLACK}    All assets will be transferred to [Others] [999].${C_RESET}"
                     
                     # 禁止解散 999
                     if [ "$temp_id" == "999" ]; then
@@ -2155,7 +2148,7 @@ function fac() {
                          continue
                     fi
 
-                    echo -ne "\033[1;33m    ›› TYPE 'CONFIRM' TO DEPLOY: \033[0m"
+                    echo -ne "${C_YELLOW}    ›› TYPE 'CONFIRM' TO DEPLOY: ${C_RESET}"
                     read -r confirm
                     if [ "$confirm" == "CONFIRM" ]; then
                         if command -v _factory_auto_backup &> /dev/null; then _factory_auto_backup; fi
@@ -2170,7 +2163,7 @@ function fac() {
                         _fac_matrix_defrag
                         break
                     else
-                        echo -e "${F_GRAY}    ›› Operation Aborted.${F_RESET}"
+                        echo -e "${THEME_DESC}    ›› Operation Aborted.${C_RESET}"
                     fi
 
                 # Branch 2: 肅清指令 (Neutralize Command) 
@@ -2193,9 +2186,9 @@ function fac() {
                             continue
                         fi
 
-                        echo -e "\033[1;31m :: WARNING :: NEUTRALIZING TARGET NODE ::\033[0m"
-                        echo -e "\033[1;31m    Deleting Node [$clean_target] ($del_pkg)\033[0m"
-                        echo -ne "\033[1;33m    ›› Confirm destruction? [Y/n]: \033[0m"
+                        echo -e "${C_RED} :: WARNING :: NEUTRALIZING TARGET NODE ::${C_RESET}"
+                        echo -e "${C_RED}    Deleting Node [$clean_target] ($del_pkg)${C_RESET}"
+                        echo -ne "${C_YELLOW}    ›› Confirm destruction? [Y/n]: ${C_RESET}"
                         read -e -r choice
                         
                         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
@@ -2209,7 +2202,7 @@ function fac() {
                             _fac_sort_optimization
                             _fac_matrix_defrag
                         else
-                            echo -e "${F_GRAY}    ›› Operation Aborted.${F_RESET}"
+                            echo -e "${THEME_DESC}    ›› Operation Aborted.${C_RESET}"
                             sleep 0.5
                         fi
                     done
@@ -2236,7 +2229,7 @@ function fac() {
                 
                 # 選中目標後，進入參數輸入
                 if [ -n "$target_node" ]; then
-                    read -e -p "$(echo -e "\033[1;33m :: $target_node \033[1;30m(Params?): \033[0m")" user_params < /dev/tty
+                    read -e -p "$(echo -e "${C_YELLOW} :: $target_node ${C_BLACK}(Params?): ${C_RESET}")" user_params < /dev/tty
                 fi
 
             # Logic B: 有參數 -> 智慧判斷 (Bypass Mode)
@@ -2259,7 +2252,7 @@ function fac() {
 
                 _fac_launch_test "$clean_key" "$user_params"
                 
-                echo -ne "\033[1;30m    (Press 'Enter' to return...)\033[0m"
+                echo -ne "${C_BLACK}    (Press 'Enter' to return...)${C_RESET}"
                 read
             fi
             ;;
@@ -2290,9 +2283,9 @@ function fac() {
         "deploy")
             _fac_maintenance
             if grep -q ',"E",' "$MUX_ROOT/app.csv.temp"; then
-                echo -e "\n\033[1;31m :: DEPLOY ABORTED :: Active Drafts (E) Detected.\033[0m"
-                echo -e "\033[1;30m    Please finish editing or delete drafts before deployment.\033[0m"
-                echo -ne "\n\033[1;33m    ›› Acknowledge and Return? [Y/n]: \033[0m"
+                echo -e "\n${C_RED} :: DEPLOY ABORTED :: Active Drafts (E) Detected.${C_RESET}"
+                echo -e "${C_BLACK}    Please finish editing or delete drafts before deployment.${C_RESET}"
+                echo -ne "\n${C_YELLOW}    ›› Acknowledge and Return? [Y/n]: ${C_RESET}"
                 read -n 1 -r
                 echo ""
                 return
@@ -2307,7 +2300,7 @@ function fac() {
             ;;
 
         *)
-            echo -e "${F_WARN} :: Unknown Directive: '$cmd'.${F_RESET}"
+            echo -e "${THEME_WARN} :: Unknown Directive: '$cmd'.${C_RESET}"
             ;;
     esac
 }
