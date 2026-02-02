@@ -13,7 +13,6 @@ function _draw_logo() {
     local label=""
     local cols=$(tput cols 2>/dev/null || echo 80)
 
-    # [重構] 顏色決定邏輯
     case "$mode" in
         "gray")
             color_primary="$C_BLACK"

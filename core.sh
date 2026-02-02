@@ -1268,19 +1268,6 @@ function command_not_found_handle() {
     return 127
 }
 
-# 啟動系統初始化
-if [ -z "$MUX_INITIALIZED" ]; then
-    if command -v _mux_boot_sequence &> /dev/null; then
-        _mux_boot_sequence
-    fi
-
-    if [ "$MUX_STATUS" == "LOGIN" ]; then
-        if command -v _mux_init &> /dev/null; then 
-            _mux_init
-        fi
-    fi
-fi
-
 # 讀取門禁卡 (Mux State)
 if [ -f "$MUX_ROOT/.mux_state" ]; then
     source "$MUX_ROOT/.mux_state"
@@ -1292,8 +1279,9 @@ fi
 case "$MUX_MODE" in
     "FAC")
         if [ -f "$MUX_ROOT/factory.sh" ]; then
-            source "$MUX_ROOT/factory.sh"
             THEME_MAIN="$C_ORANGE"
+            
+            source "$MUX_ROOT/factory.sh"
 
             if command -v _factory_system_boot &> /dev/null; then
                 _factory_system_boot
@@ -1330,3 +1318,16 @@ EOF
         exec bash
         ;;
 esac
+
+# 啟動系統初始化
+if [ -z "$MUX_INITIALIZED" ]; then
+    if command -v _mux_boot_sequence &> /dev/null; then
+        _mux_boot_sequence
+    fi
+
+    if [ "$MUX_STATUS" == "LOGIN" ]; then
+        if command -v _mux_init &> /dev/null; then 
+            _mux_init
+        fi
+    fi
+fi
