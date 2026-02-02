@@ -192,6 +192,145 @@ function _fac_neural_write() {
     }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
 }
 
+# 原子寫入函數 (Atomic Node Updater)
+function _fac_update_node() {
+    # 用法: _fac_update_node "TARGET_KEY" "COL_INDEX" "NEW_VALUE"
+    local target_key="$1"
+    local col_idx="$2"
+    local new_val="$3"
+    local target_file="$MUX_ROOT/app.csv.temp"
+
+    local t_com=$(echo "$target_key" | awk '{print $1}')
+    local t_sub=""
+    if [[ "$target_key" == *"'"* ]]; then
+        t_com=$(echo "$target_key" | awk -F"'" '{print $1}' | sed 's/[ \t]*$//')
+        t_sub=$(echo "$target_key" | awk -F"'" '{print $2}')
+    fi
+
+    awk -F, -v OFS=, -v tc="$t_com" -v ts="$t_sub" \
+        -v col="$col_idx" -v val="$new_val" '
+    {
+        gsub(/^"|"$/, "", $5); c=$5
+        gsub(/^"|"$/, "", $6); s=$6
+        
+        match_found = 0
+        if (c == tc) {
+            if (ts == "" && s == "") match_found = 1
+            if (ts != "" && s == ts) match_found = 1
+        }
+
+        if (match_found) {
+            $col = "\"" val "\""
+            
+            new_c = $5; gsub(/^"|"$/, "", new_c)
+            new_s = $6; gsub(/^"|"$/, "", new_s)
+            
+            if (new_s != "") {
+                print new_c " \047" new_s "\047" > "/dev/stderr" # 輸出到 stderr 讓 Shell 捕捉
+            } else {
+                print new_c > "/dev/stderr"
+            }
+        }
+        print $0
+    }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
+}
+
+# 原子刪除函數 (Atomic Node Deleter)
+function _fac_delete_node() {
+    local target_key="$1"
+    local target_file="$MUX_ROOT/app.csv.temp"
+    
+    local auth_state="${__FAC_IO_STATE:-User}" 
+
+    local t_com=$(echo "$target_key" | awk '{print $1}')
+    local t_sub=""
+    if [[ "$target_key" == *"'"* ]]; then
+        t_sub=$(echo "$target_key" | awk -F"'" '{print $2}')
+    fi
+
+    awk -F, -v OFS=, \
+        -v tc="$t_com" -v ts="$t_sub" \
+        -v mode="$auth_state" '
+    {
+        c=$5; gsub(/^"|"$/, "", c); gsub(/\r| /, "", c)
+        s=$6; gsub(/^"|"$/, "", s); gsub(/\r| /, "", s)
+        st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
+        
+        match_found = 0
+        if (c == tc) {
+            if (ts == "" && s == "") match_found = 1
+            if (ts != "" && s == ts) match_found = 1
+        }
+
+        if (match_found) {
+            if (mode == "User") {
+                if (st == "B" || st == "E" || st == "C") {
+                    print $0
+                } else {
+                    # 保護模式下，非 B/E/C 狀態不刪除
+                }
+            } else {
+                if (st == mode) {
+                } else {
+                    print $0
+                }
+            }
+        } else {
+            print $0
+        }
+    }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
+}
+
+# 複合鍵偵測器 (Private Logic)
+function _fac_check_composite_exists() {
+    local c1="$1"
+    local c2="$2"
+    local csv_path="$MUX_ROOT/app.csv.temp"
+    if [ ! -f "$csv_path" ]; then csv_path="$MUX_ROOT/app.csv"; fi
+
+    if [ -z "$c1" ] || [ -z "$c2" ]; then return 1; fi
+    if [ ! -f "$csv_path" ]; then return 1; fi
+
+    awk -F, -v c1="$c1" -v c2="$c2" '
+    {
+        k1=$5; gsub(/^"|"$/, "", k1); gsub(/^[ \t]+|[ \t]+$/, "", k1)
+        k2=$6; gsub(/^"|"$/, "", k2); gsub(/^[ \t]+|[ \t]+$/, "", k2)
+        st=$7; gsub(/^"|"$/, "", st); gsub(/[ \t]/, "", st)
+        
+        if ((st=="P" || st=="S" || st=="E") && k1==c1 && k2==c2) {
+            exit 0 # Found
+        }
+    }
+    END { exit 1 } # Not Found
+    ' "$csv_path"
+}
+
+# 兵工廠快速列表 - List all commands
+function _fac_list() {
+    local target_file="$MUX_ROOT/app.csv.temp"
+    local width=$(tput cols)
+    
+    echo -e "${F_WARN} :: Mux-OS Command Registry :: ${F_RESET}"
+    
+    awk -v FPAT='([^,]*)|("[^"]+")' 'NR>1 {
+        raw_com = $5
+        gsub(/^"|"$/, "", raw_com)
+        
+        raw_sub = $6
+        gsub(/^"|"$/, "", raw_sub)
+        
+        if (raw_com != "") {
+            if (raw_sub != "") {
+                print raw_com " " raw_sub
+            } else {
+                print raw_com
+            }
+        }
+    }' "$target_file" | sort | pr -t -3 -w "$width"
+    
+    echo -e "${F_GRAY} :: End of List :: ${F_RESET}"
+}
+
 # 兵工廠系統啟動 (Factory System Boot)
 function _factory_system_boot() {
     MUX_MODE="FAC"
@@ -254,549 +393,26 @@ function _factory_system_boot() {
     _bot_say "factory_welcome"
 }
 
-# 兵工廠重置 (Factory Reset - Phoenix Protocol)
-function _factory_reset() {
-    local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
-    local target_bak=$(ls -t "$bak_dir"/app.csv.*.bak 2>/dev/null | head -n 1)
-
-    echo ""
-    echo -e "${F_ERR} :: CRITICAL WARNING :: FACTORY RESET DETECTED ::${F_RESET}"
-    echo -e "${F_GRAY}    This will wipe ALL changes (Sandbox & Production) and pull from Origin.${F_RESET}"
-    echo ""
-    echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO NUKE: ${F_RESET}"
-    read confirm
-    echo ""
-
-    if [ "$confirm" == "CONFIRM" ]; then
-        _bot_say "action" "Reversing time flow..."
-        
-        if [ -n "$target_bak" ] && [ -f "$target_bak" ]; then
-            cp "$target_bak" "$MUX_ROOT/app.csv.temp"
-            
-            if command -v _factory_auto_backup &> /dev/null; then
-                _factory_auto_backup
-            fi
-            
-            _fac_init
-            _bot_say "success" "Timeline restored to Session Start."
-        else
-            _bot_say "error" "Session Backup missing. Fallback to Production."
-            if [ -f "$MUX_ROOT/app.csv" ]; then
-                cp "$MUX_ROOT/app.csv" "$MUX_ROOT/app.csv.temp"
-                _fac_init
-                _bot_say "success" "Restored from Production (app.csv)."
-            else
-                _bot_say "error" "Critical Failure: No source available."
-            fi
-        fi
-    else
-        echo -e "${F_GRAY}    ›› Reset aborted.${F_RESET}"
-    fi
-}
-
-
-# 兵工廠指令入口 - Factory Command Entry
-# === Fac ===
-
-# : Factory Command Entry
-function fac() {
-    local cmd="$1"
-    if [ "$MUX_MODE" != "FAC" ]; then
-        _bot_say "error" "Factory commands disabled during Core session."
-        return 1
-    fi
-
-    if [ -z "$cmd" ]; then
-        _bot_say "factory_welcome"
-        return
-    fi
-
-    case "$cmd" in
-        # : Open Neural Forge Menu
-        "menu"|"commenu"|"comm")
-            local view_state="VIEW"
-
-            while true; do
-                local raw_target=$(_factory_fzf_menu "Select App to Inspect")
-                if [ -z "$raw_target" ]; then break; fi
-                
-                local clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
-                
-                if [ "$view_state" == "VIEW" ]; then
-                    _factory_fzf_detail_view "$clean_target" "VIEW" > /dev/null
-                fi
-            done
-            ;;
-
-        # : Open Category Menu
-        "catmenu"|"catm")
-            local view_state="VIEW"
-
-            while true; do
-                local raw_cat=$(_factory_fzf_cat_selector)
-                if [ -z "$raw_cat" ]; then break; fi
-                
-                local temp_id=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
-
-                local db_name=$(awk -F, -v tid="$temp_id" '
-                    NR>1 {
-                        cid=$1; gsub(/^"|"$/, "", cid)
-                        if (cid == tid) {
-                            name=$3; gsub(/^"|"$/, "", name)
-                            print name
-                            exit
-                        }
-                    }
-                ' "$MUX_ROOT/app.csv.temp")
-
-                if [ -z "$db_name" ]; then 
-                    db_name=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{$1=""; print $0}' | sed 's/^[ \t]*//')
-                fi
-
-                while true; do
-                    local raw_cmd=$(_factory_fzf_cmd_in_cat "$db_name")
-                    if [ -z "$raw_cmd" ]; then break; fi
-                    
-                    local clean_cmd=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
-
-                    if [ "$view_state" == "VIEW" ]; then
-                        _factory_fzf_detail_view "$clean_cmd" "VIEW" > /dev/null
-                    fi
-                done
-            done
-            ;;
-
-        # : Check & Fix Formatting
-        "check")
-            _fac_maintenance
-            _fac_sort_optimization
-            _fac_matrix_defrag
-            ;;
-
-        # : List all links
-        "list"|"ls")
-            _fac_list
-            ;;
-
-        # : Show Factory Status
-        "status"|"sts")
-            if command -v _factory_show_status &> /dev/null; then
-                _factory_show_status
-            else
-                echo -e "${F_WARN} :: UI Module Link Failed.${F_RESET}"
-            fi
-            ;;
-
-        # : Neural Forge (Create Command)
-        "add"|"new") 
-            local view_state="NEW"
-
-            # 呼叫類型選單
-            local type_sel=$(_factory_fzf_add_type_menu)
-            
-            if [[ -z "$type_sel" || "$type_sel" == "Cancel" || "$type_sel" == *"------"* ]]; then
-                return
-            fi
-
-            # 自動備份
-            if command -v _factory_auto_backup &> /dev/null; then
-                _fac_maintenance
-                _factory_auto_backup
-            fi
-
-            # 計算編號
-            local next_comno=$(awk -F, '$1==999 {gsub(/^"|"$/, "", $2); if(($2+0) > max) max=$2} END {print max+1}' "$MUX_ROOT/app.csv.temp")
-            if [ -z "$next_comno" ] || [ "$next_comno" -eq 1 ]; then next_comno=1; fi
-            if ! [[ "$next_comno" =~ ^[0-9]+$ ]]; then next_comno=999; fi
-
-            # 生成臨時指令
-            local ts=$(date +%s)
-            local temp_cmd_name="ND${ts}"
-
-            local target_cat="999"
-            local target_catname="\"Others\""
-            local com3_flag="N"
-            local new_row=""
-            
-            # 指令模板
-            case "$type_sel" in
-                "Command NA")
-                    new_row="${target_cat},${next_comno},${target_catname},\"NA\",\"${temp_cmd_name}\",,\"${com3_flag}\",\"Unknown\",\"Unknown\",,,,,,,,,,,"
-                    ;;
-                "Command NB")
-                    new_row="${target_cat},${next_comno},${target_catname},\"NB\",\"${temp_cmd_name}\",,\"${com3_flag}\",\"Unknown\",\"Unknown\",,,\"android.intent.action\",\".VIEW\",\"$(echo '$__GO_TARGET')\",,,,,,\"$(echo '$SEARCH_GOOGLE')\""
-                    ;;
-                *) 
-                    return ;;
-            esac
-
-            # 寫入與啟動編輯協議
-            if [ -n "$new_row" ]; then
-                if [ -s "$MUX_ROOT/app.csv.temp" ] && [ "$(tail -c 1 "$MUX_ROOT/app.csv.temp")" != "" ]; then
-                    echo "" >> "$MUX_ROOT/app.csv.temp"
-                fi
-                echo "$new_row" >> "$MUX_ROOT/app.csv.temp"
-                
-                _bot_say "action" "Initializing Construction Sequence..."
-                
-                # 啓動綠色選單
-                _fac_safe_edit_protocol "${temp_cmd_name}" "NEW"
-                
-                # 清理暫存檔
-                if _fac_neural_read "${temp_cmd_name}" >/dev/null 2>&1; then
-                    local leftover_state=$(echo "$_VAL_COM3" | tr -d ' "')
-                    
-                    if [[ "$leftover_state" == "S" || "$leftover_state" == "P" ]]; then
-                        # 保留 S 標記
-                        _bot_say "success" "Node Created (Default Identity Kept)."
-                    else
-                        # 清除其他標記
-                        _bot_say "error" "Incomplete Transaction. Cleaning up..."
-                        unset __FAC_IO_STATE 
-                        _fac_delete_node "${temp_cmd_name}"
-                    fi
-                else
-                    # 讀不到資料，跳出
-                    : 
-                fi
-            fi
-            ;;
-
-        # : Edit Neural (Edit Command)
-        "edit"|"comedit"|"comm")
-            local view_state="EDIT"
-            local target_arg="$2"
-
-            if [ -n "$target_arg" ]; then
-                _fac_safe_edit_protocol "$target_arg"
-                return 
-            fi
-
-            while true; do
-                local raw_target=$(_factory_fzf_menu "Select App to EDIT" "EDIT")
-                if [ -z "$raw_target" ]; then break; fi
-                
-                local clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
-
-                _fac_safe_edit_protocol "$clean_target"
-            done
-            ;;
-
-        # : Edit Category
-        "catedit"|"cate")
-            local view_state="EDIT"
-
-            while true; do
-                local raw_cat=$(_factory_fzf_cat_selector "EDIT")
-                if [ -z "$raw_cat" ]; then break; fi
-                
-                local temp_id=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
-
-                # 重新讀取 ID
-                local db_data=$(awk -F, -v tid="$temp_id" 'NR>1 {gsub(/^"|"$/, "", $1); if($1==tid){gsub(/^"|"$/, "", $3); print $1 "|" $3; exit}}' "$MUX_ROOT/app.csv.temp")
-                local cat_id=$(echo "$db_data" | awk -F'|' '{print $1}')
-                local cat_name=$(echo "$db_data" | awk -F'|' '{print $2}')
-                if [ -z "$cat_id" ]; then cat_id="XX"; cat_name="Unknown"; fi
-
-                while true; do
-                    local action=$(_factory_fzf_catedit_submenu "$cat_id" "$cat_name" "EDIT")
-                    if [ -z "$action" ]; then break; fi
-
-                    # Branch 1: 修改名稱 (Rename)
-                    if echo "$action" | grep -q "Edit Name" ; then
-                        
-                        # 鎖定 999 不可改名
-                        if [ "$cat_id" == "999" ]; then
-                            _bot_say "error" "System Reserved: [999] Others." >&2
-                            echo -e "${F_GRAY}    ›› The Void is immutable. You cannot rename it.${F_RESET}" >&2
-                            continue
-                        fi
-
-                        _bot_say "action" "Rename Category [$cat_name]:"
-                        read -e -p "    › " -i "$cat_name" new_cat_name
-                        
-                        if [ -n "$new_cat_name" ] && [ "$new_cat_name" != "$cat_name" ]; then
-                            _fac_update_category_name "$cat_id" "$new_cat_name"
-                            cat_name="$new_cat_name" # 更新變數顯示
-                        fi
-                        
-                    # Branch 2: 修改內部指令 (Edit Content) 
-                    elif echo "$action" | grep -q "Edit Command in" ; then
-                        while true; do
-                            local raw_cmd=$(_factory_fzf_cmd_in_cat "$cat_name")
-                            if [ -z "$raw_cmd" ]; then break; fi
-                            
-                            local clean_target=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
-                            
-                            _fac_safe_edit_protocol "$clean_target"
-                        done
-                    fi
-                done
-            done
-            ;;
-
-        # : Break Neural (Delete Command)
-        "del"|"comd"|"delcom")
-            local view_state="DEL"
-
-            while true; do
-                local raw_target=$(_factory_fzf_menu "Select Target to DESTROY" "DEL")
-                if [ -z "$raw_target" ]; then break; fi
-
-                local clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
-                
-                _fac_neural_read "$clean_target"
-                local del_pkg="${_VAL_PKG:-N/A}"
-                local del_desc="${_VAL_HUDNAME:-N/A}"
-                
-                # 狀態檢查：禁止刪除標記 B
-                local current_st=$(echo "$_VAL_COM3" | tr -d ' "')
-                if [ "$current_st" == "B" ]; then
-                    echo ""
-                    _bot_say "error" "Operation Denied: Target is locked by active session (State: $current_st)."
-                    sleep 1
-                    continue
-                fi
-
-                echo -e ""
-                echo -e "${F_WARN} :: WARNING :: NEUTRALIZING TARGET NODE ::${F_RESET}"
-                echo -e "${F_WARN}    Target Identifier : [${clean_target}]${F_RESET}"
-                echo -e "${F_GRAY}    Package Binding   : ${del_pkg}${F_RESET}"
-                echo -e "${F_GRAY}    Description       : ${del_desc}${F_RESET}"
-                echo -e ""
-                echo -ne "${F_ERR}    ›› CONFIRM DESTRUCTION [Y/n]: ${F_RESET}"
-                
-                read -e -r conf
-                echo -e "" 
-                
-                if [[ "$conf" == "y" || "$conf" == "Y" ]]; then
-                    _bot_say "action" "Executing Deletion..."
-
-                    unset __FAC_IO_STATE
-                    _fac_delete_node "$clean_target"
-                    
-                    sleep 0.2
-                    echo -e "${F_GRAY}    ›› Target neutralized.${F_RESET}"
-                    
-                    _fac_sort_optimization
-                    _fac_matrix_defrag
-                    
-                    sleep 0.5
-                else
-                    echo -e "${F_GRAY}    ›› Operation Aborted.${F_RESET}"
-                    sleep 0.5
-                fi
-            done
-            ;;
-        
-        # : Delete Command via Category (Filter Search)
-        "catd"|"catdel")
-            local view_state="DEL"
-
-            while true; do
-                local raw_cat=$(_factory_fzf_cat_selector "DEL")
-                if [ -z "$raw_cat" ]; then break; fi
-                
-                local temp_id=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
-                local db_name=$(awk -F, -v tid="$temp_id" 'NR>1 {cid=$1; gsub(/^"|"$/, "", cid); if(cid==tid){name=$3; gsub(/^"|"$/, "", name); print name; exit}}' "$MUX_ROOT/app.csv.temp")
-                if [ -z "$db_name" ]; then db_name="Unknown"; fi
-
-                local action=$(_factory_fzf_catedit_submenu "$temp_id" "$db_name" "DEL")
-                
-                if [ -z "$action" ]; then continue; fi
-
-                # Branch 1: 解散分類 (Dissolve Category) 
-                if [[ "$action" == *"Delete Category"* ]]; then
-                    echo -e "\033[1;31m :: CRITICAL: Dissolving Category [$db_name] [$temp_id] \033[0m"
-                    echo -e "\033[1;30m    All assets will be transferred to [Others] [999].\033[0m"
-                    
-                    # 禁止解散 999
-                    if [ "$temp_id" == "999" ]; then
-                         _bot_say "error" "Cannot dissolve the [Others] singularity."
-                         continue
-                    fi
-
-                    echo -ne "\033[1;33m    ›› TYPE 'CONFIRM' TO DEPLOY: \033[0m"
-                    read -r confirm
-                    if [ "$confirm" == "CONFIRM" ]; then
-                        if command -v _factory_auto_backup &> /dev/null; then _factory_auto_backup; fi
-                        _bot_say "action" "Migrating assets to Void..."
-                        _fac_safe_merge "999" "$temp_id"
-                        
-                        awk -F, -v tid="$temp_id" -v OFS=, '$1 != tid {print $0}' "$MUX_ROOT/app.csv.temp" > "$MUX_ROOT/app.csv.temp.tmp" && mv "$MUX_ROOT/app.csv.temp.tmp" "$MUX_ROOT/app.csv.temp"
-                        
-                        _bot_say "success" "Category Dissolved."
-
-                        _fac_sort_optimization
-                        _fac_matrix_defrag
-                        break
-                    else
-                        echo -e "${F_GRAY}    ›› Operation Aborted.${F_RESET}"
-                    fi
-
-                # Branch 2: 肅清指令 (Neutralize Command) 
-                elif [[ "$action" == *"Delete Command"* ]]; then
-                    while true; do
-                        local raw_cmd=$(_factory_fzf_cmd_in_cat "$db_name" "DEL")
-                        if [ -z "$raw_cmd" ]; then break; fi
-                        
-                        local clean_target=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
-                         
-                        _fac_neural_read "$clean_target"
-                        local del_pkg="${_VAL_PKG:-N/A}"
-                        
-                        # 狀態鎖定檢查
-                        local current_st=$(echo "$_VAL_COM3" | tr -d ' "')
-                        if [[ "$current_st" == "B" || "$current_st" == "E" ]]; then
-                            echo ""
-                            _bot_say "error" "Operation Denied: Target is locked by active session."
-                            sleep 1
-                            continue
-                        fi
-
-                        echo -e "\033[1;31m :: WARNING :: NEUTRALIZING TARGET NODE ::\033[0m"
-                        echo -e "\033[1;31m    Deleting Node [$clean_target] ($del_pkg)\033[0m"
-                        echo -ne "\033[1;33m    ›› Confirm destruction? [Y/n]: \033[0m"
-                        read -e -r choice
-                        
-                        if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
-                            if command -v _factory_auto_backup &> /dev/null; then _factory_auto_backup; fi
-                            
-                            unset __FAC_IO_STATE
-                            _fac_delete_node "$clean_target"
-                            
-                            _bot_say "success" "Target neutralized."
-
-                            _fac_sort_optimization
-                            _fac_matrix_defrag
-                        else
-                            echo -e "${F_GRAY}    ›› Operation Aborted.${F_RESET}"
-                            sleep 0.5
-                        fi
-                    done
-                fi
-            done
-            ;;
-
-        # : Time Stone Undo (Rebak)
-        "undo"|"rebak")
-            _fac_rebak_wizard
-            ;;
-
-        # : Load Neural (Test Command)
-        "load"|"test") 
-            local input_1="$2"
-            local input_2="$3"
-            
-            local target_node=""
-            local user_params=""
-
-            # Logic A: 無參數 -> 開啟 FZF (Visual Mode)
-            if [ -z "$input_1" ]; then
-                target_node=$(_factory_fzf_menu "Select Payload to Test")
-                
-                # 選中目標後，進入參數輸入
-                if [ -n "$target_node" ]; then
-                    read -e -p "$(echo -e "\033[1;33m :: $target_node \033[1;30m(Params?): \033[0m")" user_params < /dev/tty
-                fi
-
-            # Logic B: 有參數 -> 智慧判斷 (Bypass Mode)
-            else
-                if [ -n "$input_2" ] && _fac_check_composite_exists "$input_1" "$input_2"; then
-                    # Case 1: 複合指令 (git status)
-                    target_node="$input_1 '$input_2'"
-                    user_params="${*:4}"
-                    _bot_say "neural" "Identified Composite Node: [$target_node]"
-                else
-                    # Case 2: 單一指令 + 參數 (Command + Args)
-                    target_node="$input_1"
-                    user_params="${*:3}"
-                fi
-            fi
-
-            # 發射程序
-            if [ -n "$target_node" ]; then
-                local clean_key=$(echo "$target_node" | sed "s/$(printf '\033')\[[0-9;]*m//g" | sed 's/^[ \t]*//;s/[ \t]*$//')
-
-                _fac_launch_test "$clean_key" "$user_params"
-                
-                echo -ne "\033[1;30m    (Press 'Enter' to return...)\033[0m"
-                read
-            fi
-            ;;
-
-        # : Show Factory Info
-        "info")
-            if command -v _factory_show_info &> /dev/null; then
-                _factory_show_info
-            fi
-            ;;
-
-        # : Reload Factory
-        "reload")
-            sleep 0.1
-            if [ -f "$MUX_ROOT/gate.sh" ]; then
-                source "$MUX_ROOT/gate.sh" "factory"
-            else
-                source "$MUX_ROOT/factory.sh"
-            fi
-            ;;
-            
-        # : Reset Factory Change
-        "reset")
-            _factory_reset
-            ;;
-
-        # : Deploy Changes
-        "deploy")
-            _fac_maintenance
-            if grep -q ',"E",' "$MUX_ROOT/app.csv.temp"; then
-                echo -e "\n\033[1;31m :: DEPLOY ABORTED :: Active Drafts (E) Detected.\033[0m"
-                echo -e "\033[1;30m    Please finish editing or delete drafts before deployment.\033[0m"
-                echo -ne "\n\033[1;33m    ›› Acknowledge and Return? [Y/n]: \033[0m"
-                read -n 1 -r
-                echo ""
-                return
-            fi
-            _fac_sort_optimization
-            _fac_matrix_defrag
-            _factory_deploy_sequence
-            ;;
-
-        "help")
-            _mux_dynamic_help_factory
-            ;;
-
-        *)
-            echo -e "${F_WARN} :: Unknown Directive: '$cmd'.${F_RESET}"
-            ;;
-    esac
-}
-
-# 兵工廠快速列表 - List all commands
-function _fac_list() {
-    local target_file="$MUX_ROOT/app.csv.temp"
-    local width=$(tput cols)
-    
-    echo -e "${F_WARN} :: Mux-OS Command Registry :: ${F_RESET}"
-    
-    awk -v FPAT='([^,]*)|("[^"]+")' 'NR>1 {
-        raw_com = $5
-        gsub(/^"|"$/, "", raw_com)
-        
-        raw_sub = $6
-        gsub(/^"|"$/, "", raw_sub)
-        
-        if (raw_com != "") {
-            if (raw_sub != "") {
-                print raw_com " " raw_sub
-            } else {
-                print raw_com
-            }
+# 初始化視覺效果 (Initialize Visuals)
+function _fac_init() {
+    _system_lock
+    _safe_ui_calc
+    clear
+    _draw_logo "factory"
+    _system_check "factory"
+    _show_hud "factory"
+    awk -F, -v OFS=, '
+    {
+        # 處決狀態 B 跟 C ，將 B 轉 P
+        st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
+        if (st == "C" || st == "E") next
+        if (st == "B") {
+            $7 = "\"P\""
         }
-    }' "$target_file" | sort | pr -t -3 -w "$width"
-    
-    echo -e "${F_GRAY} :: End of List :: ${F_RESET}"
+        print $0
+    }
+    ' "$MUX_ROOT/app.csv.temp" > "$MUX_ROOT/app.csv.temp.tmp" && mv "$MUX_ROOT/app.csv.temp.tmp" "$MUX_ROOT/app.csv.temp"
+    _system_unlock
 }
 
 # 自動備份 - Auto Backup
@@ -884,153 +500,6 @@ function _fac_rebak_wizard() {
     else
          _bot_say "error" "Target file not found (Extraction Error)."
     fi
-}
-
-# 部署序列 (Deploy Sequence)
-function _factory_deploy_sequence() {
-    unset __FAC_IO_STATE
-    echo -ne "${F_WARN} :: Initiating Deployment Sequence...${F_RESET}"
-    sleep 0.5
-
-    # QA & Stats & Migration
-    echo -e "\n${F_GRAY} :: Running Final Quality Assurance (QA)...${F_RESET}"
-    
-    local target_file="$MUX_ROOT/app.csv.temp"
-    local qa_file="${target_file}.qa"
-    local stats_log="${target_file}.log"
-
-    awk -F, -v OFS=, '
-        BEGIN { cn=0; cs=0; fail=0 }
-        NR==1 { print; next }
-        
-        {
-            st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
-            
-            # 攔截非法狀態
-            if (st == "E") { print "QA_FAIL:Active Draft (E)" > "/dev/stderr"; print $0; next }
-            if (st == "B") { print "QA_FAIL:Stuck Backup (B)" > "/dev/stderr"; print $0; next }
-            if (st == "F") { print "QA_FAIL:Broken Node (F)" > "/dev/stderr"; print $0; next }
-            if (st == "C") { print "QA_FAIL:Glitch Node (C)" > "/dev/stderr"; print $0; next }
-            
-            # 狀態轉換
-            # 1. S -> P
-            if (st == "S") {
-                cs++
-                $7 = "\"P\""
-            }
-            # 2. N -> P
-            else if (st == "N") {
-                cn++
-                $7 = "\"P\""
-            }
-            # 3. Empty (Old) -> P
-            else if (st == "") {
-                $7 = "\"P\""
-            }
-
-            print $0
-        }
-        END { print "STATS:" cn ":" cs > "/dev/stderr" }
-    ' "$target_file" > "$qa_file" 2> "$stats_log"
-
-    # 解析 QA 結果
-    local qa_error=$(grep "QA_FAIL" "$stats_log")
-    local stats_line=$(grep "STATS" "$stats_log")
-
-    # 錯誤處理
-    if [ -n "$qa_error" ]; then
-        mv "$qa_file" "$target_file" # 寫回標記以便使用者檢查
-        rm "$stats_log"
-        echo -e "${F_ERR} :: QA FAILED. Invalid nodes detected.${F_RESET}"
-        echo -e "${F_GRAY}    Reason: $(echo "$qa_error" | cut -d: -f2 | head -n 1)${F_RESET}"
-        return 1
-    else
-        # QA 通過：應用轉正後的檔案 (P State applied)
-        mv "$qa_file" "$target_file"
-        rm "$stats_log"
-        echo -e "${F_GRE}    ›› QA Passed. State normalized to [P].${F_RESET}"
-        sleep 1.9
-    fi
-
-    # Phase 1: 差異比對與確認 (Diff & Confirm)
-    clear
-    _draw_logo "gray"
-    
-    echo -e "${F_MAIN} :: MANIFEST CHANGES (Sandbox vs Production) ::${F_RESET}"
-    echo ""
-    
-    if command -v diff &> /dev/null; then
-        diff -U 0 "$MUX_ROOT/app.csv" "$MUX_ROOT/app.csv.temp" | \
-        grep -v "^---" | grep -v "^+++" | grep -v "^@" | head -n 20 | \
-        awk '
-            /^\+/ {print "\033[1;32m" $0 "\033[0m"; next}
-            /^-/ {print "\033[1;31m" $0 "\033[0m"; next}
-            {print}
-        '
-    else
-        echo -e "${F_WARN}    (Diff module unavailable. Changes hidden.)${F_RESET}"
-    fi
-    echo ""
-    
-    _system_unlock
-    echo -ne "${F_WARN} :: Modifications verified? [Y/n]: ${F_RESET}"
-    read choice
-    echo ""
-    
-    if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
-        _fac_init
-        echo -e ""
-        _bot_say "factory" "Deployment canceled. Sandbox state retained."
-        echo -e "${F_GRAY}    ›› To discard changes: type 'fac reset'${F_RESET}"
-        echo -e "${F_GRAY}    ›› To resume editing : type 'fac edit'${F_RESET}"
-        return
-    fi
-    
-    echo -e "${F_ERR} :: CRITICAL WARNING ::${F_RESET}"
-    echo -e "${F_SUB}    Sandbox will OVERWRITE Production.${F_RESET}"
-    echo -e "${F_SUB}    This action is irreversible via undo.${F_RESET}"
-    echo ""
-    echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO DEPLOY: ${F_RESET}"
-    read confirm
-    echo ""
-    
-    if [ "$confirm" != "CONFIRM" ]; then
-        _fac_init
-        _bot_say "error" "Confirmation failed. Deployment aborted."
-        return
-    fi
-
-    # Phase 2: 執行部署 (Execution)
-    sleep 0.9
-    
-    local temp_file="$MUX_ROOT/app.csv.temp"
-    local prod_file="$MUX_ROOT/app.csv"
-
-    if [ -f "$temp_file" ]; then
-        mv "$temp_file" "$prod_file"
-        
-        if [ -f "$prod_file" ]; then
-            cp "$prod_file" "$temp_file"
-        fi
-    else
-         _bot_say "error" "Sandbox integrity failed."
-         sleep 1.4
-         return 1
-    fi
-    
-    echo -e "${F_GRE} :: DEPLOYMENT SUCCESSFUL ::${F_RESET}"
-    sleep 1.4
-    
-    if command -v _ui_fake_gate &> /dev/null; then
-        _ui_fake_gate "core"
-    fi
-
-    cat > "$MUX_ROOT/.mux_state" <<EOF
-MUX_MODE="MUX"
-MUX_STATUS="DEFAULT"
-EOF
-
-    exec bash
 }
 
 # 機體維護工具 (Mechanism Maintenance)
@@ -1257,199 +726,191 @@ function _fac_matrix_defrag() {
     fi
 }
 
-# 安全沙盒編輯協議 - Safe Edit Protocol
-function _fac_safe_edit_protocol() {
-    local target_key="$1"
-    local init_mode="${2:-EDIT}"
+# 兵工廠重置 (Factory Reset - Phoenix Protocol)
+function _factory_reset() {
+    local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
+    local target_bak=$(ls -t "$bak_dir"/app.csv.*.bak 2>/dev/null | head -n 1)
 
-    # 前置作業
-    _fac_neural_read "$target_key"
-    
-    local origin_key="$target_key"
-    local restore_type="$_VAL_TYPE"
-    if [ "$init_mode" == "NEW" ]; then restore_type="N"; fi
+    echo ""
+    echo -e "${F_ERR} :: CRITICAL WARNING :: FACTORY RESET DETECTED ::${F_RESET}"
+    echo -e "${F_GRAY}    This will wipe ALL changes (Sandbox & Production) and pull from Origin.${F_RESET}"
+    echo ""
+    echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO NUKE: ${F_RESET}"
+    read confirm
+    echo ""
 
-    _fac_neural_write "$target_key" 7 "B"
-
-    # 引號處理
-    local draft_row="$_VAL_CATNO,$_VAL_COMNO,${_VAL_CATNAME:+\"$_VAL_CATNAME\"},${_VAL_TYPE:+\"$_VAL_TYPE\"},${_VAL_COM:+\"$_VAL_COM\"},${_VAL_COM2:+\"$_VAL_COM2\"},\"E\",${_VAL_HUDNAME:+\"$_VAL_HUDNAME\"},${_VAL_UINAME:+\"$_VAL_UINAME\"},${_VAL_PKG:+\"$_VAL_PKG\"},${_VAL_TARGET:+\"$_VAL_TARGET\"},${_VAL_IHEAD:+\"$_VAL_IHEAD\"},${_VAL_IBODY:+\"$_VAL_IBODY\"},${_VAL_URI:+\"$_VAL_URI\"},${_VAL_MIME:+\"$_VAL_MIME\"},${_VAL_CATE:+\"$_VAL_CATE\"},${_VAL_FLAG:+\"$_VAL_FLAG\"},${_VAL_EX:+\"$_VAL_EX\"},${_VAL_EXTRA:+\"$_VAL_EXTRA\"},${_VAL_ENGINE:+\"$_VAL_ENGINE\"}"
-    
-    # 資料格式狀態
-    echo "$draft_row" >> "$MUX_ROOT/app.csv.temp"
-    local working_key="$target_key"
-    export __FAC_IO_STATE="E"
-
-    # 編輯迴圈 (Mutation Loop)
-    local current_view_mode="$init_mode"
-    local loop_signal=0
-
-    while true; do
-        # 安全檢查
-        if ! _fac_neural_read "$working_key"; then
-             _bot_say "error" "CRITICAL: Pointer Lost ($working_key). Aborting transaction."
-             loop_signal=0
-             break
-        fi
-
-        # UI 選擇器
-        local selection
-        selection=$(_factory_fzf_detail_view "$working_key" "$current_view_mode")
+    if [ "$confirm" == "CONFIRM" ]; then
+        _bot_say "action" "Reversing time flow..."
         
-        # 如果使用者在 FZF 按 ESC，selection 會是空的
-        if [ -z "$selection" ]; then
-            loop_signal=0
-            break
-        fi
-
-        # 呼叫路由器 (Router) 並捕捉輸出
-        local router_out
-        router_out=$(_fac_edit_router "$selection" "$working_key" "$current_view_mode")
-        loop_signal=$?  # 選單狀態值
-
-        local new_key_candidate=$(echo "$router_out" | grep "UPDATE_KEY:" | cut -d':' -f2)
-        
-        if [ -n "$new_key_candidate" ]; then
-            # 更新鍵值狀態
-            working_key="$new_key_candidate"
-        fi
-
-        # 狀態轉化
-        if [ "$loop_signal" -eq 2 ] && [ "$current_view_mode" == "NEW" ]; then
-            current_view_mode="EDIT"
-        fi
-
-        if [ "$loop_signal" -eq 1 ]; then
-            # Out to Confirm
-            break
-        elif [ "$loop_signal" -eq 2 ]; then
-            # Update to keep Edit
-            _fac_sort_optimization
-            _fac_matrix_defrag
-            continue
-        elif [ "$loop_signal" -eq 0 ]; then
-            # Out to Rollback
-            break
-        fi
-    done
-
-
-    # Phase 4: 結算階段 (Settlement)
-    if [ "$loop_signal" -eq 1 ]; then
-        # Commit
-        _bot_say "action" "Committing Transaction..."
-
-        export __FAC_IO_STATE="B"
-        _fac_delete_node "$origin_key"
-        
-        export __FAC_IO_STATE="E"
-        _fac_neural_write "$working_key" 7 "S"
-        _bot_say "success" "Transaction Saved. Node is active."
-    else
-        # Rollback
-        _bot_say "warn" "Transaction Cancelled. Rolling back..."
-        export __FAC_IO_STATE="E"
-        _fac_delete_node "$working_key"
-        
-        if [ "$restore_type" == "N" ]; then
-            export __FAC_IO_STATE="B"
-            _fac_delete_node "$origin_key"
+        if [ -n "$target_bak" ] && [ -f "$target_bak" ]; then
+            cp "$target_bak" "$MUX_ROOT/app.csv.temp"
+            
+            if command -v _factory_auto_backup &> /dev/null; then
+                _factory_auto_backup
+            fi
+            
+            _fac_init
+            _bot_say "success" "Timeline restored to Session Start."
         else
-            export __FAC_IO_STATE="B"
-            _fac_neural_write "$origin_key" 7 "$restore_type"
+            _bot_say "error" "Session Backup missing. Fallback to Production."
+            if [ -f "$MUX_ROOT/app.csv" ]; then
+                cp "$MUX_ROOT/app.csv" "$MUX_ROOT/app.csv.temp"
+                _fac_init
+                _bot_say "success" "Restored from Production (app.csv)."
+            else
+                _bot_say "error" "Critical Failure: No source available."
+            fi
         fi
+    else
+        echo -e "${F_GRAY}    ›› Reset aborted.${F_RESET}"
     fi
+}
 
-    # 解除鎖定
+# 部署序列 (Deploy Sequence)
+function _factory_deploy_sequence() {
     unset __FAC_IO_STATE
-}
+    echo -ne "${F_WARN} :: Initiating Deployment Sequence...${F_RESET}"
+    sleep 0.5
 
-# 原子寫入函數 (Atomic Node Updater)
-function _fac_update_node() {
-    # 用法: _fac_update_node "TARGET_KEY" "COL_INDEX" "NEW_VALUE"
-    local target_key="$1"
-    local col_idx="$2"
-    local new_val="$3"
-    local target_file="$MUX_ROOT/app.csv.temp"
-
-    local t_com=$(echo "$target_key" | awk '{print $1}')
-    local t_sub=""
-    if [[ "$target_key" == *"'"* ]]; then
-        t_com=$(echo "$target_key" | awk -F"'" '{print $1}' | sed 's/[ \t]*$//')
-        t_sub=$(echo "$target_key" | awk -F"'" '{print $2}')
-    fi
-
-    awk -F, -v OFS=, -v tc="$t_com" -v ts="$t_sub" \
-        -v col="$col_idx" -v val="$new_val" '
-    {
-        gsub(/^"|"$/, "", $5); c=$5
-        gsub(/^"|"$/, "", $6); s=$6
-        
-        match_found = 0
-        if (c == tc) {
-            if (ts == "" && s == "") match_found = 1
-            if (ts != "" && s == ts) match_found = 1
-        }
-
-        if (match_found) {
-            $col = "\"" val "\""
-            
-            new_c = $5; gsub(/^"|"$/, "", new_c)
-            new_s = $6; gsub(/^"|"$/, "", new_s)
-            
-            if (new_s != "") {
-                print new_c " \047" new_s "\047" > "/dev/stderr" # 輸出到 stderr 讓 Shell 捕捉
-            } else {
-                print new_c > "/dev/stderr"
-            }
-        }
-        print $0
-    }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
-}
-
-# 原子刪除函數 (Atomic Node Deleter)
-function _fac_delete_node() {
-    local target_key="$1"
-    local target_file="$MUX_ROOT/app.csv.temp"
+    # QA & Stats & Migration
+    echo -e "\n${F_GRAY} :: Running Final Quality Assurance (QA)...${F_RESET}"
     
-    local auth_state="${__FAC_IO_STATE:-User}" 
+    local target_file="$MUX_ROOT/app.csv.temp"
+    local qa_file="${target_file}.qa"
+    local stats_log="${target_file}.log"
 
-    local t_com=$(echo "$target_key" | awk '{print $1}')
-    local t_sub=""
-    if [[ "$target_key" == *"'"* ]]; then
-        t_sub=$(echo "$target_key" | awk -F"'" '{print $2}')
-    fi
-
-    awk -F, -v OFS=, \
-        -v tc="$t_com" -v ts="$t_sub" \
-        -v mode="$auth_state" '
-    {
-        c=$5; gsub(/^"|"$/, "", c); gsub(/\r| /, "", c)
-        s=$6; gsub(/^"|"$/, "", s); gsub(/\r| /, "", s)
-        st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
+    awk -F, -v OFS=, '
+        BEGIN { cn=0; cs=0; fail=0 }
+        NR==1 { print; next }
         
-        match_found = 0
-        if (c == tc) {
-            if (ts == "" && s == "") match_found = 1
-            if (ts != "" && s == ts) match_found = 1
-        }
-
-        if (match_found) {
-            if (mode == "User") {
-                if (st == "B" || st == "E" || st == "C") {
-                    print $0
-                } else {
-                    # 保護模式下，非 B/E/C 狀態不刪除
-                }
-            } else {
-                if (st == mode) {
-                } else {
-                    print $0
-                }
+        {
+            st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
+            
+            # 攔截非法狀態
+            if (st == "E") { print "QA_FAIL:Active Draft (E)" > "/dev/stderr"; print $0; next }
+            if (st == "B") { print "QA_FAIL:Stuck Backup (B)" > "/dev/stderr"; print $0; next }
+            if (st == "F") { print "QA_FAIL:Broken Node (F)" > "/dev/stderr"; print $0; next }
+            if (st == "C") { print "QA_FAIL:Glitch Node (C)" > "/dev/stderr"; print $0; next }
+            
+            # 狀態轉換
+            # 1. S -> P
+            if (st == "S") {
+                cs++
+                $7 = "\"P\""
             }
-        } else {
+            # 2. N -> P
+            else if (st == "N") {
+                cn++
+                $7 = "\"P\""
+            }
+            # 3. Empty (Old) -> P
+            else if (st == "") {
+                $7 = "\"P\""
+            }
+
             print $0
         }
-    }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
+        END { print "STATS:" cn ":" cs > "/dev/stderr" }
+    ' "$target_file" > "$qa_file" 2> "$stats_log"
+
+    # 解析 QA 結果
+    local qa_error=$(grep "QA_FAIL" "$stats_log")
+    local stats_line=$(grep "STATS" "$stats_log")
+
+    # 錯誤處理
+    if [ -n "$qa_error" ]; then
+        mv "$qa_file" "$target_file" # 寫回標記以便使用者檢查
+        rm "$stats_log"
+        echo -e "${F_ERR} :: QA FAILED. Invalid nodes detected.${F_RESET}"
+        echo -e "${F_GRAY}    Reason: $(echo "$qa_error" | cut -d: -f2 | head -n 1)${F_RESET}"
+        return 1
+    else
+        # QA 通過：應用轉正後的檔案 (P State applied)
+        mv "$qa_file" "$target_file"
+        rm "$stats_log"
+        echo -e "${F_GRE}    ›› QA Passed. State normalized to [P].${F_RESET}"
+        sleep 1.9
+    fi
+
+    # Phase 1: 差異比對與確認 (Diff & Confirm)
+    clear
+    _draw_logo "gray"
+    
+    echo -e "${F_MAIN} :: MANIFEST CHANGES (Sandbox vs Production) ::${F_RESET}"
+    echo ""
+    
+    if command -v diff &> /dev/null; then
+        diff -U 0 "$MUX_ROOT/app.csv" "$MUX_ROOT/app.csv.temp" | \
+        grep -v "^---" | grep -v "^+++" | grep -v "^@" | head -n 20 | \
+        awk '
+            /^\+/ {print "\033[1;32m" $0 "\033[0m"; next}
+            /^-/ {print "\033[1;31m" $0 "\033[0m"; next}
+            {print}
+        '
+    else
+        echo -e "${F_WARN}    (Diff module unavailable. Changes hidden.)${F_RESET}"
+    fi
+    echo ""
+    
+    _system_unlock
+    echo -ne "${F_WARN} :: Modifications verified? [Y/n]: ${F_RESET}"
+    read choice
+    echo ""
+    
+    if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
+        _fac_init
+        echo -e ""
+        _bot_say "factory" "Deployment canceled. Sandbox state retained."
+        echo -e "${F_GRAY}    ›› To discard changes: type 'fac reset'${F_RESET}"
+        echo -e "${F_GRAY}    ›› To resume editing : type 'fac edit'${F_RESET}"
+        return
+    fi
+    
+    echo -e "${F_ERR} :: CRITICAL WARNING ::${F_RESET}"
+    echo -e "${F_SUB}    Sandbox will OVERWRITE Production.${F_RESET}"
+    echo -e "${F_SUB}    This action is irreversible via undo.${F_RESET}"
+    echo ""
+    echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO DEPLOY: ${F_RESET}"
+    read confirm
+    echo ""
+    
+    if [ "$confirm" != "CONFIRM" ]; then
+        _fac_init
+        _bot_say "error" "Confirmation failed. Deployment aborted."
+        return
+    fi
+
+    # Phase 2: 執行部署 (Execution)
+    sleep 0.9
+    
+    local temp_file="$MUX_ROOT/app.csv.temp"
+    local prod_file="$MUX_ROOT/app.csv"
+
+    if [ -f "$temp_file" ]; then
+        mv "$temp_file" "$prod_file"
+        
+        if [ -f "$prod_file" ]; then
+            cp "$prod_file" "$temp_file"
+        fi
+    else
+         _bot_say "error" "Sandbox integrity failed."
+         sleep 1.4
+         return 1
+    fi
+    
+    echo -e "${F_GRE} :: DEPLOYMENT SUCCESSFUL ::${F_RESET}"
+    sleep 1.4
+    
+    if command -v _ui_fake_gate &> /dev/null; then
+        _ui_fake_gate "core"
+    fi
+
+    cat > "$MUX_ROOT/.mux_state" <<EOF
+MUX_MODE="MUX"
+MUX_STATUS="DEFAULT"
+EOF
+
+    exec bash
 }
 
 # 通用單欄位編輯器 (Generic Editor)
@@ -1964,26 +1425,109 @@ function _fac_edit_router() {
     return 0
 }
 
-# 初始化視覺效果 (Initialize Visuals)
-function _fac_init() {
-    _system_lock
-    _safe_ui_calc
-    clear
-    _draw_logo "factory"
-    _system_check "factory"
-    _show_hud "factory"
-    awk -F, -v OFS=, '
-    {
-        # 處決狀態 B 跟 C ，將 B 轉 P
-        st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
-        if (st == "C" || st == "E") next
-        if (st == "B") {
-            $7 = "\"P\""
-        }
-        print $0
-    }
-    ' "$MUX_ROOT/app.csv.temp" > "$MUX_ROOT/app.csv.temp.tmp" && mv "$MUX_ROOT/app.csv.temp.tmp" "$MUX_ROOT/app.csv.temp"
-    _system_unlock
+# 安全沙盒編輯協議 - Safe Edit Protocol
+function _fac_safe_edit_protocol() {
+    local target_key="$1"
+    local init_mode="${2:-EDIT}"
+
+    # 前置作業
+    _fac_neural_read "$target_key"
+    
+    local origin_key="$target_key"
+    local restore_type="$_VAL_TYPE"
+    if [ "$init_mode" == "NEW" ]; then restore_type="N"; fi
+
+    _fac_neural_write "$target_key" 7 "B"
+
+    # 引號處理
+    local draft_row="$_VAL_CATNO,$_VAL_COMNO,${_VAL_CATNAME:+\"$_VAL_CATNAME\"},${_VAL_TYPE:+\"$_VAL_TYPE\"},${_VAL_COM:+\"$_VAL_COM\"},${_VAL_COM2:+\"$_VAL_COM2\"},\"E\",${_VAL_HUDNAME:+\"$_VAL_HUDNAME\"},${_VAL_UINAME:+\"$_VAL_UINAME\"},${_VAL_PKG:+\"$_VAL_PKG\"},${_VAL_TARGET:+\"$_VAL_TARGET\"},${_VAL_IHEAD:+\"$_VAL_IHEAD\"},${_VAL_IBODY:+\"$_VAL_IBODY\"},${_VAL_URI:+\"$_VAL_URI\"},${_VAL_MIME:+\"$_VAL_MIME\"},${_VAL_CATE:+\"$_VAL_CATE\"},${_VAL_FLAG:+\"$_VAL_FLAG\"},${_VAL_EX:+\"$_VAL_EX\"},${_VAL_EXTRA:+\"$_VAL_EXTRA\"},${_VAL_ENGINE:+\"$_VAL_ENGINE\"}"
+    
+    # 資料格式狀態
+    echo "$draft_row" >> "$MUX_ROOT/app.csv.temp"
+    local working_key="$target_key"
+    export __FAC_IO_STATE="E"
+
+    # 編輯迴圈 (Mutation Loop)
+    local current_view_mode="$init_mode"
+    local loop_signal=0
+
+    while true; do
+        # 安全檢查
+        if ! _fac_neural_read "$working_key"; then
+             _bot_say "error" "CRITICAL: Pointer Lost ($working_key). Aborting transaction."
+             loop_signal=0
+             break
+        fi
+
+        # UI 選擇器
+        local selection
+        selection=$(_factory_fzf_detail_view "$working_key" "$current_view_mode")
+        
+        # 如果使用者在 FZF 按 ESC，selection 會是空的
+        if [ -z "$selection" ]; then
+            loop_signal=0
+            break
+        fi
+
+        # 呼叫路由器 (Router) 並捕捉輸出
+        local router_out
+        router_out=$(_fac_edit_router "$selection" "$working_key" "$current_view_mode")
+        loop_signal=$?  # 選單狀態值
+
+        local new_key_candidate=$(echo "$router_out" | grep "UPDATE_KEY:" | cut -d':' -f2)
+        
+        if [ -n "$new_key_candidate" ]; then
+            # 更新鍵值狀態
+            working_key="$new_key_candidate"
+        fi
+
+        # 狀態轉化
+        if [ "$loop_signal" -eq 2 ] && [ "$current_view_mode" == "NEW" ]; then
+            current_view_mode="EDIT"
+        fi
+
+        if [ "$loop_signal" -eq 1 ]; then
+            # Out to Confirm
+            break
+        elif [ "$loop_signal" -eq 2 ]; then
+            # Update to keep Edit
+            _fac_sort_optimization
+            _fac_matrix_defrag
+            continue
+        elif [ "$loop_signal" -eq 0 ]; then
+            # Out to Rollback
+            break
+        fi
+    done
+
+    # Phase 4: 結算階段 (Settlement)
+    if [ "$loop_signal" -eq 1 ]; then
+        # Commit
+        _bot_say "action" "Committing Transaction..."
+
+        export __FAC_IO_STATE="B"
+        _fac_delete_node "$origin_key"
+        
+        export __FAC_IO_STATE="E"
+        _fac_neural_write "$working_key" 7 "S"
+        _bot_say "success" "Transaction Saved. Node is active."
+    else
+        # Rollback
+        _bot_say "warn" "Transaction Cancelled. Rolling back..."
+        export __FAC_IO_STATE="E"
+        _fac_delete_node "$working_key"
+        
+        if [ "$restore_type" == "N" ]; then
+            export __FAC_IO_STATE="B"
+            _fac_delete_node "$origin_key"
+        else
+            export __FAC_IO_STATE="B"
+            _fac_neural_write "$origin_key" 7 "$restore_type"
+        fi
+    fi
+
+    # 解除鎖定
+    unset __FAC_IO_STATE
 }
 
 # 函式攔截器 (Function Interceptor)
@@ -2031,30 +1575,6 @@ function _factory_mask_apps() {
     done
 
     return 0
-}
-
-# 複合鍵偵測器 (Private Logic)
-function _fac_check_composite_exists() {
-    local c1="$1"
-    local c2="$2"
-    local csv_path="$MUX_ROOT/app.csv.temp"
-    if [ ! -f "$csv_path" ]; then csv_path="$MUX_ROOT/app.csv"; fi
-
-    if [ -z "$c1" ] || [ -z "$c2" ]; then return 1; fi
-    if [ ! -f "$csv_path" ]; then return 1; fi
-
-    awk -F, -v c1="$c1" -v c2="$c2" '
-    {
-        k1=$5; gsub(/^"|"$/, "", k1); gsub(/^[ \t]+|[ \t]+$/, "", k1)
-        k2=$6; gsub(/^"|"$/, "", k2); gsub(/^[ \t]+|[ \t]+$/, "", k2)
-        st=$7; gsub(/^"|"$/, "", st); gsub(/[ \t]/, "", st)
-        
-        if ((st=="P" || st=="S" || st=="E") && k1==c1 && k2==c2) {
-            exit 0 # Found
-        }
-    }
-    END { exit 1 } # Not Found
-    ' "$csv_path"
 }
 
 # 兵工廠測試發射台 (Factory Fire Control Test)
@@ -2311,4 +1831,483 @@ function _fac_launch_test() {
              return 0
         fi
     fi
+}
+
+
+# 兵工廠指令入口 - Factory Command Entry
+# === Fac ===
+
+# : Factory Command Entry
+function fac() {
+    local cmd="$1"
+    if [ "$MUX_MODE" != "FAC" ]; then
+        _bot_say "error" "Factory commands disabled during Core session."
+        return 1
+    fi
+
+    if [ -z "$cmd" ]; then
+        _bot_say "factory_welcome"
+        return
+    fi
+
+    case "$cmd" in
+        # : Open Neural Forge Menu
+        "menu"|"commenu"|"comm")
+            local view_state="VIEW"
+
+            while true; do
+                local raw_target=$(_factory_fzf_menu "Select App to Inspect")
+                if [ -z "$raw_target" ]; then break; fi
+                
+                local clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+                
+                if [ "$view_state" == "VIEW" ]; then
+                    _factory_fzf_detail_view "$clean_target" "VIEW" > /dev/null
+                fi
+            done
+            ;;
+
+        # : Open Category Menu
+        "catmenu"|"catm")
+            local view_state="VIEW"
+
+            while true; do
+                local raw_cat=$(_factory_fzf_cat_selector)
+                if [ -z "$raw_cat" ]; then break; fi
+                
+                local temp_id=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
+
+                local db_name=$(awk -F, -v tid="$temp_id" '
+                    NR>1 {
+                        cid=$1; gsub(/^"|"$/, "", cid)
+                        if (cid == tid) {
+                            name=$3; gsub(/^"|"$/, "", name)
+                            print name
+                            exit
+                        }
+                    }
+                ' "$MUX_ROOT/app.csv.temp")
+
+                if [ -z "$db_name" ]; then 
+                    db_name=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{$1=""; print $0}' | sed 's/^[ \t]*//')
+                fi
+
+                while true; do
+                    local raw_cmd=$(_factory_fzf_cmd_in_cat "$db_name")
+                    if [ -z "$raw_cmd" ]; then break; fi
+                    
+                    local clean_cmd=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+
+                    if [ "$view_state" == "VIEW" ]; then
+                        _factory_fzf_detail_view "$clean_cmd" "VIEW" > /dev/null
+                    fi
+                done
+            done
+            ;;
+
+        # : Check & Fix Formatting
+        "check")
+            _fac_maintenance
+            _fac_sort_optimization
+            _fac_matrix_defrag
+            ;;
+
+        # : List all links
+        "list"|"ls")
+            _fac_list
+            ;;
+
+        # : Show Factory Status
+        "status"|"sts")
+            if command -v _factory_show_status &> /dev/null; then
+                _factory_show_status
+            else
+                echo -e "${F_WARN} :: UI Module Link Failed.${F_RESET}"
+            fi
+            ;;
+
+        # : Neural Forge (Create Command)
+        "add"|"new") 
+            local view_state="NEW"
+
+            # 呼叫類型選單
+            local type_sel=$(_factory_fzf_add_type_menu)
+            
+            if [[ -z "$type_sel" || "$type_sel" == "Cancel" || "$type_sel" == *"------"* ]]; then
+                return
+            fi
+
+            # 自動備份
+            if command -v _factory_auto_backup &> /dev/null; then
+                _fac_maintenance
+                _factory_auto_backup
+            fi
+
+            # 計算編號
+            local next_comno=$(awk -F, '$1==999 {gsub(/^"|"$/, "", $2); if(($2+0) > max) max=$2} END {print max+1}' "$MUX_ROOT/app.csv.temp")
+            if [ -z "$next_comno" ] || [ "$next_comno" -eq 1 ]; then next_comno=1; fi
+            if ! [[ "$next_comno" =~ ^[0-9]+$ ]]; then next_comno=999; fi
+
+            # 生成臨時指令
+            local ts=$(date +%s)
+            local temp_cmd_name="ND${ts}"
+
+            local target_cat="999"
+            local target_catname="\"Others\""
+            local com3_flag="N"
+            local new_row=""
+            
+            # 指令模板
+            case "$type_sel" in
+                "Command NA")
+                    new_row="${target_cat},${next_comno},${target_catname},\"NA\",\"${temp_cmd_name}\",,\"${com3_flag}\",\"Unknown\",\"Unknown\",,,,,,,,,,,"
+                    ;;
+                "Command NB")
+                    new_row="${target_cat},${next_comno},${target_catname},\"NB\",\"${temp_cmd_name}\",,\"${com3_flag}\",\"Unknown\",\"Unknown\",,,\"android.intent.action\",\".VIEW\",\"$(echo '$__GO_TARGET')\",,,,,,\"$(echo '$SEARCH_GOOGLE')\""
+                    ;;
+                *) 
+                    return ;;
+            esac
+
+            # 寫入與啟動編輯協議
+            if [ -n "$new_row" ]; then
+                if [ -s "$MUX_ROOT/app.csv.temp" ] && [ "$(tail -c 1 "$MUX_ROOT/app.csv.temp")" != "" ]; then
+                    echo "" >> "$MUX_ROOT/app.csv.temp"
+                fi
+                echo "$new_row" >> "$MUX_ROOT/app.csv.temp"
+                
+                _bot_say "action" "Initializing Construction Sequence..."
+                
+                # 啓動綠色選單
+                _fac_safe_edit_protocol "${temp_cmd_name}" "NEW"
+                
+                # 清理暫存檔
+                if _fac_neural_read "${temp_cmd_name}" >/dev/null 2>&1; then
+                    local leftover_state=$(echo "$_VAL_COM3" | tr -d ' "')
+                    
+                    if [[ "$leftover_state" == "S" || "$leftover_state" == "P" ]]; then
+                        # 保留 S 標記
+                        _bot_say "success" "Node Created (Default Identity Kept)."
+                    else
+                        # 清除其他標記
+                        _bot_say "error" "Incomplete Transaction. Cleaning up..."
+                        unset __FAC_IO_STATE 
+                        _fac_delete_node "${temp_cmd_name}"
+                    fi
+                else
+                    # 讀不到資料，跳出
+                    : 
+                fi
+            fi
+            ;;
+
+        # : Edit Neural (Edit Command)
+        "edit"|"comedit"|"comm")
+            local view_state="EDIT"
+            local target_arg="$2"
+
+            if [ -n "$target_arg" ]; then
+                _fac_safe_edit_protocol "$target_arg"
+                return 
+            fi
+
+            while true; do
+                local raw_target=$(_factory_fzf_menu "Select App to EDIT" "EDIT")
+                if [ -z "$raw_target" ]; then break; fi
+                
+                local clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+
+                _fac_safe_edit_protocol "$clean_target"
+            done
+            ;;
+
+        # : Edit Category
+        "catedit"|"cate")
+            local view_state="EDIT"
+
+            while true; do
+                local raw_cat=$(_factory_fzf_cat_selector "EDIT")
+                if [ -z "$raw_cat" ]; then break; fi
+                
+                local temp_id=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
+
+                # 重新讀取 ID
+                local db_data=$(awk -F, -v tid="$temp_id" 'NR>1 {gsub(/^"|"$/, "", $1); if($1==tid){gsub(/^"|"$/, "", $3); print $1 "|" $3; exit}}' "$MUX_ROOT/app.csv.temp")
+                local cat_id=$(echo "$db_data" | awk -F'|' '{print $1}')
+                local cat_name=$(echo "$db_data" | awk -F'|' '{print $2}')
+                if [ -z "$cat_id" ]; then cat_id="XX"; cat_name="Unknown"; fi
+
+                while true; do
+                    local action=$(_factory_fzf_catedit_submenu "$cat_id" "$cat_name" "EDIT")
+                    if [ -z "$action" ]; then break; fi
+
+                    # Branch 1: 修改名稱 (Rename)
+                    if echo "$action" | grep -q "Edit Name" ; then
+                        
+                        # 鎖定 999 不可改名
+                        if [ "$cat_id" == "999" ]; then
+                            _bot_say "error" "System Reserved: [999] Others." >&2
+                            echo -e "${F_GRAY}    ›› The Void is immutable. You cannot rename it.${F_RESET}" >&2
+                            continue
+                        fi
+
+                        _bot_say "action" "Rename Category [$cat_name]:"
+                        read -e -p "    › " -i "$cat_name" new_cat_name
+                        
+                        if [ -n "$new_cat_name" ] && [ "$new_cat_name" != "$cat_name" ]; then
+                            _fac_update_category_name "$cat_id" "$new_cat_name"
+                            cat_name="$new_cat_name" # 更新變數顯示
+                        fi
+                        
+                    # Branch 2: 修改內部指令 (Edit Content) 
+                    elif echo "$action" | grep -q "Edit Command in" ; then
+                        while true; do
+                            local raw_cmd=$(_factory_fzf_cmd_in_cat "$cat_name")
+                            if [ -z "$raw_cmd" ]; then break; fi
+                            
+                            local clean_target=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+                            
+                            _fac_safe_edit_protocol "$clean_target"
+                        done
+                    fi
+                done
+            done
+            ;;
+
+        # : Break Neural (Delete Command)
+        "del"|"comd"|"delcom")
+            local view_state="DEL"
+
+            while true; do
+                local raw_target=$(_factory_fzf_menu "Select Target to DESTROY" "DEL")
+                if [ -z "$raw_target" ]; then break; fi
+
+                local clean_target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+                
+                _fac_neural_read "$clean_target"
+                local del_pkg="${_VAL_PKG:-N/A}"
+                local del_desc="${_VAL_HUDNAME:-N/A}"
+                
+                # 狀態檢查：禁止刪除標記 B
+                local current_st=$(echo "$_VAL_COM3" | tr -d ' "')
+                if [ "$current_st" == "B" ]; then
+                    echo ""
+                    _bot_say "error" "Operation Denied: Target is locked by active session (State: $current_st)."
+                    sleep 1
+                    continue
+                fi
+
+                echo -e ""
+                echo -e "${F_WARN} :: WARNING :: NEUTRALIZING TARGET NODE ::${F_RESET}"
+                echo -e "${F_WARN}    Target Identifier : [${clean_target}]${F_RESET}"
+                echo -e "${F_GRAY}    Package Binding   : ${del_pkg}${F_RESET}"
+                echo -e "${F_GRAY}    Description       : ${del_desc}${F_RESET}"
+                echo -e ""
+                echo -ne "${F_ERR}    ›› CONFIRM DESTRUCTION [Y/n]: ${F_RESET}"
+                
+                read -e -r conf
+                echo -e "" 
+                
+                if [[ "$conf" == "y" || "$conf" == "Y" ]]; then
+                    _bot_say "action" "Executing Deletion..."
+
+                    unset __FAC_IO_STATE
+                    _fac_delete_node "$clean_target"
+                    
+                    sleep 0.2
+                    echo -e "${F_GRAY}    ›› Target neutralized.${F_RESET}"
+                    
+                    _fac_sort_optimization
+                    _fac_matrix_defrag
+                    
+                    sleep 0.5
+                else
+                    echo -e "${F_GRAY}    ›› Operation Aborted.${F_RESET}"
+                    sleep 0.5
+                fi
+            done
+            ;;
+        
+        # : Delete Command via Category (Filter Search)
+        "catd"|"catdel")
+            local view_state="DEL"
+
+            while true; do
+                local raw_cat=$(_factory_fzf_cat_selector "DEL")
+                if [ -z "$raw_cat" ]; then break; fi
+                
+                local temp_id=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
+                local db_name=$(awk -F, -v tid="$temp_id" 'NR>1 {cid=$1; gsub(/^"|"$/, "", cid); if(cid==tid){name=$3; gsub(/^"|"$/, "", name); print name; exit}}' "$MUX_ROOT/app.csv.temp")
+                if [ -z "$db_name" ]; then db_name="Unknown"; fi
+
+                local action=$(_factory_fzf_catedit_submenu "$temp_id" "$db_name" "DEL")
+                
+                if [ -z "$action" ]; then continue; fi
+
+                # Branch 1: 解散分類 (Dissolve Category) 
+                if [[ "$action" == *"Delete Category"* ]]; then
+                    echo -e "\033[1;31m :: CRITICAL: Dissolving Category [$db_name] [$temp_id] \033[0m"
+                    echo -e "\033[1;30m    All assets will be transferred to [Others] [999].\033[0m"
+                    
+                    # 禁止解散 999
+                    if [ "$temp_id" == "999" ]; then
+                         _bot_say "error" "Cannot dissolve the [Others] singularity."
+                         continue
+                    fi
+
+                    echo -ne "\033[1;33m    ›› TYPE 'CONFIRM' TO DEPLOY: \033[0m"
+                    read -r confirm
+                    if [ "$confirm" == "CONFIRM" ]; then
+                        if command -v _factory_auto_backup &> /dev/null; then _factory_auto_backup; fi
+                        _bot_say "action" "Migrating assets to Void..."
+                        _fac_safe_merge "999" "$temp_id"
+                        
+                        awk -F, -v tid="$temp_id" -v OFS=, '$1 != tid {print $0}' "$MUX_ROOT/app.csv.temp" > "$MUX_ROOT/app.csv.temp.tmp" && mv "$MUX_ROOT/app.csv.temp.tmp" "$MUX_ROOT/app.csv.temp"
+                        
+                        _bot_say "success" "Category Dissolved."
+
+                        _fac_sort_optimization
+                        _fac_matrix_defrag
+                        break
+                    else
+                        echo -e "${F_GRAY}    ›› Operation Aborted.${F_RESET}"
+                    fi
+
+                # Branch 2: 肅清指令 (Neutralize Command) 
+                elif [[ "$action" == *"Delete Command"* ]]; then
+                    while true; do
+                        local raw_cmd=$(_factory_fzf_cmd_in_cat "$db_name" "DEL")
+                        if [ -z "$raw_cmd" ]; then break; fi
+                        
+                        local clean_target=$(echo "$raw_cmd" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+                         
+                        _fac_neural_read "$clean_target"
+                        local del_pkg="${_VAL_PKG:-N/A}"
+                        
+                        # 狀態鎖定檢查
+                        local current_st=$(echo "$_VAL_COM3" | tr -d ' "')
+                        if [[ "$current_st" == "B" || "$current_st" == "E" ]]; then
+                            echo ""
+                            _bot_say "error" "Operation Denied: Target is locked by active session."
+                            sleep 1
+                            continue
+                        fi
+
+                        echo -e "\033[1;31m :: WARNING :: NEUTRALIZING TARGET NODE ::\033[0m"
+                        echo -e "\033[1;31m    Deleting Node [$clean_target] ($del_pkg)\033[0m"
+                        echo -ne "\033[1;33m    ›› Confirm destruction? [Y/n]: \033[0m"
+                        read -e -r choice
+                        
+                        if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+                            if command -v _factory_auto_backup &> /dev/null; then _factory_auto_backup; fi
+                            
+                            unset __FAC_IO_STATE
+                            _fac_delete_node "$clean_target"
+                            
+                            _bot_say "success" "Target neutralized."
+
+                            _fac_sort_optimization
+                            _fac_matrix_defrag
+                        else
+                            echo -e "${F_GRAY}    ›› Operation Aborted.${F_RESET}"
+                            sleep 0.5
+                        fi
+                    done
+                fi
+            done
+            ;;
+
+        # : Time Stone Undo (Rebak)
+        "undo"|"rebak")
+            _fac_rebak_wizard
+            ;;
+
+        # : Load Neural (Test Command)
+        "load"|"test") 
+            local input_1="$2"
+            local input_2="$3"
+            
+            local target_node=""
+            local user_params=""
+
+            # Logic A: 無參數 -> 開啟 FZF (Visual Mode)
+            if [ -z "$input_1" ]; then
+                target_node=$(_factory_fzf_menu "Select Payload to Test")
+                
+                # 選中目標後，進入參數輸入
+                if [ -n "$target_node" ]; then
+                    read -e -p "$(echo -e "\033[1;33m :: $target_node \033[1;30m(Params?): \033[0m")" user_params < /dev/tty
+                fi
+
+            # Logic B: 有參數 -> 智慧判斷 (Bypass Mode)
+            else
+                if [ -n "$input_2" ] && _fac_check_composite_exists "$input_1" "$input_2"; then
+                    # Case 1: 複合指令 (git status)
+                    target_node="$input_1 '$input_2'"
+                    user_params="${*:4}"
+                    _bot_say "neural" "Identified Composite Node: [$target_node]"
+                else
+                    # Case 2: 單一指令 + 參數 (Command + Args)
+                    target_node="$input_1"
+                    user_params="${*:3}"
+                fi
+            fi
+
+            # 發射程序
+            if [ -n "$target_node" ]; then
+                local clean_key=$(echo "$target_node" | sed "s/$(printf '\033')\[[0-9;]*m//g" | sed 's/^[ \t]*//;s/[ \t]*$//')
+
+                _fac_launch_test "$clean_key" "$user_params"
+                
+                echo -ne "\033[1;30m    (Press 'Enter' to return...)\033[0m"
+                read
+            fi
+            ;;
+
+        # : Show Factory Info
+        "info")
+            if command -v _factory_show_info &> /dev/null; then
+                _factory_show_info
+            fi
+            ;;
+
+        # : Reload Factory
+        "reload")
+            sleep 0.1
+            if [ -f "$MUX_ROOT/gate.sh" ]; then
+                source "$MUX_ROOT/gate.sh" "factory"
+            else
+                source "$MUX_ROOT/factory.sh"
+            fi
+            ;;
+            
+        # : Reset Factory Change
+        "reset")
+            _factory_reset
+            ;;
+
+        # : Deploy Changes
+        "deploy")
+            _fac_maintenance
+            if grep -q ',"E",' "$MUX_ROOT/app.csv.temp"; then
+                echo -e "\n\033[1;31m :: DEPLOY ABORTED :: Active Drafts (E) Detected.\033[0m"
+                echo -e "\033[1;30m    Please finish editing or delete drafts before deployment.\033[0m"
+                echo -ne "\n\033[1;33m    ›› Acknowledge and Return? [Y/n]: \033[0m"
+                read -n 1 -r
+                echo ""
+                return
+            fi
+            _fac_sort_optimization
+            _fac_matrix_defrag
+            _factory_deploy_sequence
+            ;;
+
+        "help")
+            _mux_dynamic_help_factory
+            ;;
+
+        *)
+            echo -e "${F_WARN} :: Unknown Directive: '$cmd'.${F_RESET}"
+            ;;
+    esac
 }

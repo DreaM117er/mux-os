@@ -8,6 +8,10 @@ if [ -f "$HOME/mux-os/setup.sh" ] && [ ! -f "$HOME/mux-os/.mux_identity" ]; then
     fi
 fi
 
+if command -v _init_identity &> /dev/null; then _init_identity; fi
+
+[ ! -d "$HOME/storage" ] && { termux-setup-storage; sleep 1; }
+
 # 基礎路徑與版本定義
 export MUX_REPO="https://github.com/DreaM117er/mux-os"
 export MUX_VERSION="7.0.0"
@@ -25,21 +29,23 @@ export SYSTEM_MOD="$MUX_ROOT/system.csv"
 export VENDOR_MOD="$MUX_ROOT/vendor.csv"
 export APP_MOD="$MUX_ROOT/app.csv"
 
-# 模組註冊表
+# 模組註冊表 (Module Registry)
 MODULES=("$BOT_MOD" "$UI_MOD" "$IDENTITY_MOD")
 for mod in "${MODULES[@]}"; do
     if [ -f "$mod" ]; then source "$mod"; fi
 done
 
-# 讀取門禁卡
-if [ -f "$MUX_ROOT/.mux_state" ]; then
-    source "$MUX_ROOT/.mux_state"
-else
-    MUX_MODE="MUX"
-    MUX_STATUS="DEFAULT"
-fi
+# 瀏覽器網址搜尋引擎
+export SEARCH_GOOGLE="https://www.google.com/search?q="
+export SEARCH_BING="https://www.bing.com/search?q="
+export SEARCH_DUCK="https://duckduckgo.com/?q="
+export SEARCH_YT="https://www.youtube.com/results?search_query="
+export SEARCH_GITHUB="https://github.com/search?q="
 
-# 系統輸入鎖定與解鎖
+export __GO_TARGET=""
+export __GO_MODE=""
+
+# 系統輸入鎖定與解鎖 (System Input Lock/Unlock)
 function _system_lock() {
     if [ -t 0 ]; then stty -echo; fi
 }
@@ -48,7 +54,13 @@ function _system_unlock() {
     if [ -t 0 ]; then stty echo; fi
 }
 
-# 無參數檢測輔助函式
+# 安全介面寬度計算 (Safe UI Width Calculation)
+function _safe_ui_calc() {
+    local width=$(tput cols)
+    content_limit=$(( width > 10 ? width - 10 : 2 ))
+}
+
+# 無參數檢測輔助函式 (Require No Args)
 function _require_no_args() {
     if [ -n "$1" ]; then
         _bot_say "no_args" "Unexpected input: $*"
@@ -57,49 +69,196 @@ function _require_no_args() {
     return 0
 }
 
-case "$MUX_MODE" in
-    "FAC")
-        if [ -f "$MUX_ROOT/factory.sh" ]; then
-            source "$MUX_ROOT/factory.sh"
-            if command -v _factory_system_boot &> /dev/null; then
-                _factory_system_boot
-            elif command -v _fac_init &> /dev/null; then
-                _fac_init
-            else
-                echo -e "\033[1;31m :: FATAL :: Factory Core Not Found.\033[0m"
-            fi
+# 雙人共舞 (Voice Dispatcher)
+function _voice_dispatch() {
+    local mood="$1"
+    local detail="$2"
+    local force_role="$3"
 
-            return 0 2>/dev/null || exit 0
-        fi
-        ;;
-        
-    "MUX")
-        if [ "$MUX_STATUS" == "LOGIN" ]; then
-            export PS1="\[\033[1;36m\]Mux\[\033[0m\] \w › "
+    # 如果有強制指定角色
+    if [ "$force_role" == "bot" ]; then
+        _bot_say "$mood" "$detail"
+        return
+    elif [ "$force_role" == "cmd" ]; then
+        if command -v _commander_voice &> /dev/null; then
+             _commander_voice "$mood" "$detail"
         else
-            export PS1="\[\033[1;30m\]Mux\[\033[0m\] \w › "
+             _bot_say "$mood" "$detail" # Fallback
         fi
+        return
+    fi
+
+    # 隨機分配
+    if [ $((RANDOM % 2)) -eq 0 ]; then
+        _bot_say "$mood" "$detail"
+    else
+        if command -v _commander_voice &> /dev/null; then
+            _commander_voice "$mood" "$detail"
+        else
+            _bot_say "$mood" "$detail"
+        fi
+    fi
+}
+
+# 啟動序列邏輯 (Boot Sequence)
+function _mux_boot_sequence() {
+    if [ "$MUX_STATUS" == "LOGIN" ]; then
+        return 0
+    else
+        clear
+        _draw_logo "gray"
+    fi
+}
+
+# 主程式初始化 (Main Initialization)
+function _mux_init() {
+    _system_lock
+    _safe_ui_calc
+    clear
+    _draw_logo "core"
+    
+    if command -v _system_check &> /dev/null; then
+        _system_check # 這個函式需要改動
+    fi
+    
+    if command -v _show_hud &> /dev/null; then
+        _show_hud
+    fi
+    
+    export MUX_INITIALIZED="true"
+    _system_unlock
+    _bot_say "hello"
+}
+
+# 重新載入核心模組
+function _mux_reload_kernel() {
+    _system_lock
+    unset MUX_INITIALIZED
+    
+    local gate_theme="core"
+    if [ "$MUX_STATUS" == "DEFAULT" ]; then
+        gate_theme="default"
+    fi
+    
+    if command -v _ui_fake_gate &> /dev/null; then
+        _ui_fake_gate "$gate_theme"
+    fi
+    
+    exec bash
+}
+
+# 強制同步系統狀態
+function _mux_force_reset() {
+    _system_lock
+    _voice_dispatch "system" "Protocol Override: Force Syncing Timeline..." "cmd"
+    echo -e "\033[1;31m :: WARNING: Obliterating all local modifications.\033[0m"
+    echo ""
+    _system_unlock
+    echo -ne "\033[1;32m :: Confirm system restore? [Y/n]: \033[0m"
+    read choice
+    if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+        _system_lock
+        cd "$BASE_DIR" || return
+        git fetch --all
+        local branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
+        git reset --hard "origin/$branch"
+        chmod +x "$BASE_DIR/"*.sh
+        echo ""
+        _bot_say "success" "Timeline restored."
+        _system_unlock
+        sleep 1
+        _mux_reload_kernel
+    else
+        echo -e "\033[1;30m    ›› Reset canceled.\033[0m"
+        _system_unlock
+        return 1
+    fi
+}
+
+# 系統更新檢測與執行
+function _mux_update_system() {
+    _system_lock
+    echo -e "\033[1;33m :: Checking for updates...\033[0m"
+    cd "$BASE_DIR" || return
+    git fetch origin
+    local LOCAL=$(git rev-parse HEAD)
+    local REMOTE=$(git rev-parse @{u} 2>/dev/null)
+    if [ -z "$REMOTE" ]; then echo "   ›› Remote branch not found."; _system_unlock; return; fi
+    if [ "$LOCAL" = "$REMOTE" ]; then
+        echo "    ›› System is up-to-date (v$MUX_VERSION). ✅"
+        _system_unlock
+    else
+        echo -e "\033[1;33m :: New version available!\033[0m"
+        echo ""
+        _system_unlock
+        echo -ne "\033[1;32m :: Update Mux-OS now? [Y/n]: \033[0m"
+        read choice
+        if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+            _system_lock
+            if git pull; then sleep 2.2; _mux_reload_kernel; else _bot_say "error" "Update conflict detected."; _system_unlock; fi
+        else
+            _system_unlock
+        fi
+    fi
+}
+
+# 系統完整性掃描器
+function _mux_integrity_scan() {
+    return 0
+}
+
+# 神經連結部署協議
+function _neural_link_deploy() {
+    if [ -z "$(git config user.name)" ]; then
+         _bot_say "error" "Identity missing. Run 'git config --global user.name \"YourName\"' first."
+         return 1
+    fi
+    echo -e "${F_MAIN} :: NEURAL LINK DEPLOYMENT PROTOCOL ::${F_RESET}"
+    echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO ENGAGE UPLINK: ${F_RESET}"
+    read confirm
+    if [ "$confirm" != "CONFIRM" ]; then return 1; fi
+    _voice_dispatch "system" "Engaging Neural Uplink..."
+    cd "$MUX_ROOT" || return 1
+    git add .
+    git commit -m "Neural Link Deploy $(date '+%Y-%m-%d %H:%M')"
+    git push
+    if [ $? -eq 0 ]; then 
+        _bot_say "success" "Deployment Successful."
+    else 
+        _bot_say "error" "Uplink destabilized."
+    fi
+}
+
+function _mux_uplink_sequence() {
+    if command -v fzf &> /dev/null; then
+        _bot_say "success" "Neural Link is already active. Signal stable."
+        return
+    fi
+
+    _bot_say "system" "Initializing Neural Bridge Protocol..."
+    sleep 0.5
+    echo -e "\033[1;33m :: Scanning local synaptic ports...\033[0m"
+    sleep 0.8
+    echo -e "\033[1;36m :: Constructing interface matrix (fzf)...\033[0m"
+    sleep 0.5
+
+    pkg install fzf -y > /dev/null 2>&1
+
+    if command -v fzf &> /dev/null; then
+        echo -e ""
+        echo -e "\033[1;35m :: SYNCHRONIZATION COMPLETE :: \033[0m"
+        echo -e ""
+        sleep 0.5
+        _bot_say "neural" "Welcome to the Grid, Commander."
         
-        export PROMPT_COMMAND="tput sgr0; echo -ne '\033[0m'"
-        ;;
-        
-    *)
-        if command -v _ui_fake_gate &> /dev/null; then _ui_fake_gate "core"; fi
-        
-        cat > "$MUX_ROOT/.mux_state" <<EOF
-MUX_MODE="MUX"
-MUX_STATUS="LOGIN"
-EOF
+        sleep 1.4
+        mux reload
+    else
+        _bot_say "error" "Link failed. Neural rejection detected."
+    fi
+}
 
-        exec bash
-        ;;
-esac
-
-if command -v _init_identity &> /dev/null; then _init_identity; fi
-
-[ ! -d "$HOME/storage" ] && { termux-setup-storage; sleep 1; }
-
-# 神經資料解析器
+# 神經資料解析器 (Neural Data Parser)
 function _mux_neural_data() {
     unset _VAL_CATNO _VAL_COMNO _VAL_CATNAME _VAL_TYPE _VAL_COM \
           _VAL_COM2 _VAL_COM3 _VAL_HUDNAME _VAL_UINAME _VAL_PKG \
@@ -178,16 +337,7 @@ function _mux_neural_data() {
     return 0
 }
 
-# 瀏覽器網址搜尋引擎
-export SEARCH_GOOGLE="https://www.google.com/search?q="
-export SEARCH_BING="https://www.bing.com/search?q="
-export SEARCH_DUCK="https://duckduckgo.com/?q="
-export SEARCH_YT="https://www.youtube.com/results?search_query="
-export SEARCH_GITHUB="https://github.com/search?q="
-
-export __GO_TARGET=""
-export __GO_MODE=""
-
+# 智慧網址解析器 (Smart URL Resolver)
 function _resolve_smart_url() {
     local engine_url="$1"
     local user_query="$2"
@@ -286,675 +436,6 @@ function _mux_launch_validator() {
         return 1
     fi
     return 0
-}
-
-# 啟動序列邏輯 (Boot Sequence)
-function _mux_boot_sequence() {
-    if [ "$MUX_STATUS" == "LOGIN" ]; then
-        return 0
-    else
-        clear
-        _draw_logo "gray"
-    fi
-}
-
-# 主程式初始化 (Main Initialization)
-function _mux_init() {
-    _system_lock
-    _safe_ui_calc
-    clear
-    _draw_logo "core"
-    
-    if command -v _system_check &> /dev/null; then
-        _system_check # 這個函式需要改動
-    fi
-    
-    if command -v _show_hud &> /dev/null; then
-        _show_hud
-    fi
-    
-    export MUX_INITIALIZED="true"
-    _system_unlock
-    _bot_say "hello"
-}
-
-# 安全介面寬度計算
-function _safe_ui_calc() {
-    local width=$(tput cols)
-    content_limit=$(( width > 10 ? width - 10 : 2 ))
-}
-
-# 雙人共舞 (Voice Dispatcher)
-function _voice_dispatch() {
-    local mood="$1"
-    local detail="$2"
-    local force_role="$3"
-
-    # 如果有強制指定角色
-    if [ "$force_role" == "bot" ]; then
-        _bot_say "$mood" "$detail"
-        return
-    elif [ "$force_role" == "cmd" ]; then
-        if command -v _commander_voice &> /dev/null; then
-             _commander_voice "$mood" "$detail"
-        else
-             _bot_say "$mood" "$detail" # Fallback
-        fi
-        return
-    fi
-
-    # 隨機分配
-    if [ $((RANDOM % 2)) -eq 0 ]; then
-        _bot_say "$mood" "$detail"
-    else
-        if command -v _commander_voice &> /dev/null; then
-            _commander_voice "$mood" "$detail"
-        else
-            _bot_say "$mood" "$detail"
-        fi
-    fi
-}
-
-# Mux-OS 指令入口 - Core Command Entry
-# === Mux ===
-
-# : Core Command Entry
-function mux() {
-    local cmd="$1"
-    if [ "$MUX_MODE" == "FAC" ]; then
-        _bot_say "error" "Core commands disabled during Factory session."
-        return 1
-    fi
-    
-    if [ -z "$cmd" ]; then
-        if [ "$MUX_STATUS" == "LOGIN" ]; then
-            _voice_dispatch "hello"
-        else
-            if [ $((RANDOM % 3)) -eq 0 ]; then
-                 if command -v _commander_voice &> /dev/null; then
-                    _commander_voice "default_idle"
-                 fi
-            fi
-        fi
-        return
-    fi
-
-    if [ "$MUX_STATUS" != "LOGIN"]; then
-        case "$cmd" in
-            "login"|"setup"|"help"|"status"|"sts"|"info"|"reload"|"reset"|"tofac"|"factory"|"driveto")
-                # 放行
-                ;;
-            *)
-                # 指揮官語音插入
-                if [ $((RANDOM % 3)) -eq 0 ]; then
-                     if command -v _commander_voice &> /dev/null; then
-                        _commander_voice "default_idle"
-                     fi
-                fi
-                return 1
-                ;;
-        esac
-    fi
-
-    case "$cmd" in
-        # : Login Sequence
-        "login")
-            _mux_pre_login
-            ;;
-
-        # : Logout Sequence
-        "logout")
-            _mux_set_logout
-            ;;
-
-        # : Open Command Dashboard
-        "menu")
-            if command -v fzf &> /dev/null; then
-                _mux_fuzzy_menu
-            else
-                _show_menu_dashboard
-            fi
-            ;;
-
-        "oldmenu"|"omenu")
-            _show_menu_dashboard
-            ;;
-
-        # : Infomation
-        "info")
-            _mux_show_info
-            ;;
-
-        # : Install Dependencies
-        "link")
-            if command -v fzf &> /dev/null; then
-                echo -e "\n\033[1;32m :: Neural Link (fzf) Status: \033[1;37mONLINE\033[0m ✅"
-                _bot_say "success" "Link is stable, Commander."
-                return
-            fi
-            echo -e ""
-            echo -e "\033[1;33m :: Initialize Neural Link Protocol? \033[0m"
-            echo -e ""
-            echo -ne "\033[1;32m :: Authorize construction? [Y/n]: \033[0m"
-            read choice
-            if [[ "$choice" == "y" || "$choice" == "Y" || "$choice" == "" ]]; then
-                if command -v _mux_uplink_sequence &> /dev/null; then
-                    _mux_uplink_sequence
-                else
-                    pkg install fzf -y
-                fi
-            fi
-            ;;
-        
-        # : Show System Status
-        "status"|"sts")
-            local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
-            local last_commit=$(git log -1 --format='%h - %s (%cr)' 2>/dev/null)
-            if [ "$current_branch" == "main" ]; then
-                    export MUX_ID="Unknown (main)"
-            fi
-            echo -e "\033[1;34m :: Mux-OS System Status \033[0m"
-            echo -e "\033[1;37m    ›› Core Protocol :\033[0m \033[1;33mv$MUX_VERSION\033[0m"
-            echo -e "\033[1;37m    ›› Current Meta  :\033[0m \033[1;35m$current_branch\033[0m"
-            echo -e "\033[1;37m    ›› Last Uplink   :\033[0m \033[0;36m$last_commit\033[0m"
-            ;;
-        
-        # : Neural Link Deploy
-        "deploy")
-            _neural_link_deploy
-            ;;
-
-        # : Check for Updates
-        "update")
-            _mux_update_system
-            ;;
-
-        # : Run Setup Protocol
-        "setup")
-            if [ -f "$MUX_ROOT/setup.sh" ]; then
-                bash "$MUX_ROOT/setup.sh"
-                if [ -f "$MUX_ROOT/core.sh" ]; then
-                    _mux_reload_kernel
-                else
-                    exec bash
-                fi
-            else
-                _bot_say "error" "Lifecycle module missing."
-            fi
-            ;;
-
-        "help")
-            _mux_dynamic_help_core
-            ;;
-
-        # : Reload System Kernel
-        "reload")
-            _voice_dispatch "system" "Reloading Kernel Sequence..."
-            sleep 0.5
-            _mux_reload_kernel
-            ;;
-
-        # : Force System Sync
-        "reset")
-            _mux_force_reset
-            if [ $? -eq 0 ]; then
-                _mux_reload_kernel
-            fi
-            ;;
-
-        # : Multiverse Suit Drive
-        "driveto"|"drive2")
-            if [ "$MUX_STATUS" == "LOGIN" ]; then
-                 _bot_say "error" "Interlock Active: Cockpit is sealed."
-                 echo -e "\033[1;30m    ›› Protocol Violation: Cannot switch unit while piloted.\033[0m"
-                 echo -e "\033[1;30m    ›› Action Required : Execute 'mux logout' to disengage.\033[0m"
-                 return 1
-            fi
-
-            # 2. 掃描機體 (Branch Selection)
-            echo -e "\033[1;36m :: Scanning Multiverse Coordinates (Hangar Walk)...\033[0m"
-            git fetch --all >/dev/null 2>&1
-            
-            # FZF 選單
-            local target_branch=$(git branch -r | grep -v '\->' | sed 's/origin\///' | fzf --ansi \
-                --height=10 \
-                --layout=reverse \
-                --border=bottom \
-                --header=" :: Mobile Suit State ::" \
-                --prompt=" :: Select Unit to Drive › " \
-                --pointer="››" \
-                --info=hidden \
-                --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-                --color=info:yellow,prompt:cyan,pointer:red,marker:green,border:blue,header:240 \
-                --bind="resize:clear-screen"
-            )
-            
-            target_branch="${target_branch// /}"
-            if [ -z "$target_branch" ]; then _bot_say "warp" "fail"; return 1; fi
-
-            # 語音回饋
-            local warp_type="start_local"
-            if [ "$target_branch" == "main" ] || [ "$target_branch" == "master" ]; then 
-                warp_type="home"
-            elif [[ "$target_branch" != *"$(whoami)"* ]]; then 
-                warp_type="start_remote"
-            fi
-            _voice_dispatch "warp_ready" "" "cmd"
-            _bot_say "warp" "$warp_type" "$target_branch"
-            
-            # 3. 執行換乘 (Checkout)
-            if [ -n "$(git status --porcelain)" ]; then 
-                git stash push -m "Auto-stash before drive sequence"
-            fi
-            
-            git checkout "$target_branch" 2>/dev/null
-            
-            # 4. 系統重載 (Reload)
-            if [ $? -eq 0 ]; then
-                echo -e "\033[1;33m :: Initializing New Unit Core...\033[0m"
-                sleep 1.0
-                
-                # 賦予新機體執行權限
-                if [ -d "$MUX_ROOT" ]; then chmod +x "$MUX_ROOT/"*.sh 2>/dev/null; fi
-                
-                if command -v _mux_reload_kernel &> /dev/null; then
-                    _mux_reload_kernel
-                else
-                    exec bash
-                fi
-            else
-                _bot_say "warp" "fail"
-            fi
-        ;;
-
-        # : Enter the Arsenal (Factory Mode)
-        "factory"|"tofac")
-            _core_pre_factory_auth
-            ;;
-
-        *)
-            if command -v "$cmd" &> /dev/null; then "$cmd" "${@:2}"; return; fi
-            echo -e "\033[1;33m :: Unknown Directive: '$cmd'.\033[0m"
-            ;;
-    esac
-}
-
-function _mux_pre_login() {
-    local F_GRAY="\033[1;30m"
-    local F_BLE="\033[1;36m"
-    local F_RESET="\033[0m"
-    local F_GRE="\033[1;32m"
-    local F_SUB="\033[1;37m"
-    local F_RED="\033[1;31m"
-    local F_WARN="\033[1;33m"
-
-    if [ "$MUX_STATUS" != "DEFAULT" ]; then
-        echo -e "${F_BLE} :: System already active, Commander.${F_RESET}"
-        return 1
-    fi
-
-    clear
-    _draw_logo "gray" # 確保Logo在視覺中心
-
-    _system_lock
-    echo -e "${F_WARN} :: SECURITY CHECKPOINT ::${F_RESET}"
-    
-    sleep 0.2
-    echo -e "${F_GRAY}    ›› Initializing Biometeric Scan...${F_RESET}"
-    sleep 0.6
-    _system_unlock
-
-    echo ""
-    echo -ne "${F_SUB} :: Commander Identity: ${F_RESET}" 
-    read input_id
-
-    _system_lock
-    echo -e "${F_GRAY}    ›› Verifying Hash Signature...${F_RESET}"
-    sleep 0.6
-    
-    local identity_valid=0
-    if [ -f "$MUX_ROOT/.mux_identity" ]; then
-        local REAL_ID=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2)
-        if [ "$input_id" == "$REAL_ID" ]; then
-            identity_valid=1
-        fi
-    else
-        identity_valid=1
-    fi
-
-    if [ "$identity_valid" -ne 1 ]; then
-        sleep 0.5
-        echo ""
-        echo -e "${F_RED} :: ACCESS DENIED :: Identity Mismatch.${F_RESET}"
-        sleep 0.5
-        _system_unlock
-        return 1
-    fi
-
-    sleep 0.4
-    echo ""
-    echo -e "${F_GRE} :: IDENTITY CONFIRMED :: ${F_RESET}"
-    sleep 0.6
-    echo ""
-    echo -e "${F_WARN} :: UNLOCKING NEURAL INTERFACE... ${F_RESET}"
-    sleep 0.8
-    echo -e "${F_GRAY}    ›› Mount Point: /dev/mux_core${F_RESET}"
-    sleep 0.2
-    echo -e "${F_GRAY}    ›› Link Status: Stable${F_RESET}"
-    sleep 0.5
-    
-    # 寫入 LOGIN 狀態
-    cat > "$MUX_ROOT/.mux_state" <<EOF
-MUX_MODE="MUX"
-MUX_STATUS="LOGIN"
-EOF
-
-    echo ""
-    echo -e "${F_GRE} :: WELCOME BACK, COMMANDER. :: ${F_RESET}"
-    sleep 1.2
-    
-    exec bash
-}
-
-# 登出系統 - Commander Logout
-function _mux_set_logout() {
-    local C_WARN="\033[1;33m"
-    local C_ERR="\033[1;31m"
-    local C_RESET="\033[0m"
-    local C_GRAY="\033[1;30m"
-
-    echo ""
-    echo -e "${C_WARN} :: WARNING: NEURAL DISCONNECT SEQUENCE ::${C_RESET}"
-    echo -e "${C_GRAY}    This will terminate your current session and seal the cockpit.${C_RESET}"
-    echo ""
-    echo -ne "${C_ERR} :: TYPE 'CONFIRM' TO DISENGAGE: ${C_RESET}"
-    read confirm
-
-    if [ "$confirm" != "CONFIRM" ]; then
-        echo ""
-        _bot_say "error" "Disconnection aborted. Neural Link stable."
-        return 1
-    fi
-
-    _system_lock
-    echo ""
-    _bot_say "success" "Terminating Neural Link..."
-    
-    # 模擬系統關閉的逐層斷電
-    local shutdown_steps=("Disengaging Motor Functions..." "Unmounting Virtual Drives..." "Saving Memory Stack..." "Sealing Cockpit Hatch...")
-    
-    for step in "${shutdown_steps[@]}"; do
-        echo -e "${C_GRAY}    ›› $step${F_RESET}"
-        sleep 0.6
-    done
-    
-    sleep 0.6
-    echo ""
-    echo -e "${C_WARN} :: SYSTEM OFFLINE :: See you space cowboy.${C_RESET}"
-    
-    cat > "$MUX_ROOT/.mux_state" <<EOF
-MUX_MODE="MUX"
-MUX_STATUS="DEFAULT"
-EOF
-
-    sleep 1.9
-    _mux_reload_kernel
-}
-
-# 工廠前置驗證協議 (Pre-Flight Auth)
-function _core_pre_factory_auth() {
-    local F_GRAY="\033[1;30m"
-    local F_RED="\033[1;31m"
-    local F_WARN="\033[1;33m"
-    local F_RESET="\033[0m"
-    local F_GRE="\033[1;32m"
-    local F_SUB="\033[1;37m"
-    local F_ORG="\033[1;38;5;208m"
-
-    clear
-    _draw_logo "gray"
-    
-    _system_lock
-    echo -e "${F_ORG} :: SECURITY CHECKPOINT ::${F_RESET}"
-    sleep 0.2
-    echo -e "${F_GRAY}    ›› Identity Verification Required.${F_RESET}"
-    sleep 0.4
-    echo ""
-    
-    _system_unlock
-    echo -ne "${F_SUB} :: Commander ID: ${F_RESET}" 
-    read input_id
-
-    local identity_valid=0
-    if [ -f "$MUX_ROOT/.mux_identity" ]; then
-        local REAL_ID=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2)
-        if [ "$input_id" == "$REAL_ID" ] || [ "$REAL_ID" == "Unknown" ]; then
-            identity_valid=1
-        fi
-    else
-        identity_valid=1
-    fi
-
-    echo -ne "${F_WARN} :: CONFIRM IDENTITY (Type 'CONFIRM'): ${F_RESET}"
-    read confirm
-    
-    if [ "$confirm" != "CONFIRM" ]; then
-        _core_eject_sequence "Confirmation Failed."
-        return 1
-    fi
-
-    if [ "$identity_valid" -ne 1 ]; then
-        _core_eject_sequence "Identity Mismatch."
-        return 1
-    fi
-
-    echo ""
-    _system_lock
-    echo -e "${F_GRAY} :: Verifying Neural Signature... ${F_RESET}"
-    sleep 0.8
-    echo ""
-    echo -e "${F_GRE} :: ACCESS GRANTED :: ${F_RESET}"
-    sleep 0.5
-    echo ""
-    echo -e "${F_GRAY} :: Scanning Combat Equipment... ${F_RESET}"
-    sleep 1
-    echo ""
-    if ! command -v fzf &> /dev/null; then
-        echo -e "\n${F_RED} :: EQUIPMENT MISSING :: ${F_RESET}"
-        echo ""
-        sleep 0.5
-        _core_eject_sequence "Neural Link (fzf) Required."
-        return 1
-    else
-        echo -e "\r${F_GRE} :: EQUIPMENT CONFIRM :: ${F_RESET}"
-        sleep 0.5
-    fi
-
-    echo ""
-    echo -e "${F_RED} :: WARNING: FACTORY PROTOCOL :: ${F_RESET}"
-    echo -e "${F_GRAY}    1. Modifications are permanent.${F_RESET}"
-    echo -e "${F_GRAY}    2. Sandbox Environment Active (.temp).${F_RESET}"
-    echo -e "${F_GRAY}    3. Core 'mux' commands are ${F_RED}LOCKED${F_RESET}.${F_RESET}"
-    echo -e "${F_GRAY}    4. App launches are ${F_RED}LOCKED${F_RESET}.${F_RESET}"
-    echo -e "${F_GRAY}    5. You are responsible for system stability.${F_RESET}"
-    echo ""
-    
-    _system_unlock
-    echo -ne "${F_WARN} :: Proceed? [Y/n]: ${F_RESET}"
-    read choice
-    
-    if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
-        _core_eject_sequence "User Aborted."
-        return 1
-    fi
-    
-    _system_lock
-    local steps=("Injecting Logic..." "Desynchronizing Core..." "Loading Arsenal..." "Entering Factory...")
-    for step in "${steps[@]}"; do
-        echo -e "${F_GRAY}    ›› $step${F_RESET}"
-        sleep 0.2
-    done
-    sleep 0.5
-    
-    if command -v _ui_fake_gate &> /dev/null; then
-        _ui_fake_gate "factory"
-    fi
-
-    cat > "$MUX_ROOT/.mux_state" <<EOF
-MUX_MODE="FAC"
-MUX_STATUS="LOGIN"
-EOF
-
-    exec bash
-}
-
-# 彈射序列 (The Ejection - Core Simulation)
-function _core_eject_sequence() {
-    local reason="$1"
-    local F_ERR="\033[1;31m"
-    local F_RESET="\033[0m"
-    local F_GRAY="\033[1;30m"
-    
-    _system_lock
-    echo ""
-    echo -e "${F_ERR} :: ACCESS DENIED :: ${reason}${F_RESET}"
-    sleep 0.8
-    echo ""
-    echo -e "${F_ERR} :: Initiating Eviction Protocol...${F_RESET}"
-    sleep 0.4
-    echo -e "${F_ERR} :: Locking Cockpit...${F_RESET}"
-    sleep 0.6
-    echo -e "${F_ERR} :: Auto-Eject System Activated.${F_RESET}"
-    sleep 1
-    
-    for i in {3..1}; do
-        echo -e "${F_GRAY}    ›› Ejection in $i...${F_RESET}"
-        sleep 0.99
-    done
-
-    echo -e ""
-    _bot_factory_personality "eject"
-    sleep 1.9
-    _ui_fake_gate "core"
-    _safe_ui_calc
-    clear
-    _draw_logo "core"
-    _system_check
-    _show_hud
-    _system_unlock
-    _bot_say "hello"
-}
-
-# 重新載入核心模組
-function _mux_reload_kernel() {
-    _system_lock
-    unset MUX_INITIALIZED
-    
-    local gate_theme="core"
-    if [ "$MUX_STATUS" == "DEFAULT" ]; then
-        gate_theme="default"
-    fi
-    
-    if command -v _ui_fake_gate &> /dev/null; then
-        _ui_fake_gate "$gate_theme"
-    fi
-    
-    exec bash
-}
-
-# 強制同步系統狀態
-function _mux_force_reset() {
-    _system_lock
-    _voice_dispatch "system" "Protocol Override: Force Syncing Timeline..." "cmd"
-    echo -e "\033[1;31m :: WARNING: Obliterating all local modifications.\033[0m"
-    echo ""
-    _system_unlock
-    echo -ne "\033[1;32m :: Confirm system restore? [Y/n]: \033[0m"
-    read choice
-    if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
-        _system_lock
-        cd "$BASE_DIR" || return
-        git fetch --all
-        local branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
-        git reset --hard "origin/$branch"
-        chmod +x "$BASE_DIR/"*.sh
-        echo ""
-        _bot_say "success" "Timeline restored."
-        _system_unlock
-        sleep 1
-        _mux_reload_kernel
-    else
-        echo -e "\033[1;30m    ›› Reset canceled.\033[0m"
-        _system_unlock
-        return 1
-    fi
-}
-
-# 系統更新檢測與執行
-function _mux_update_system() {
-    _system_lock
-    echo -e "\033[1;33m :: Checking for updates...\033[0m"
-    cd "$BASE_DIR" || return
-    git fetch origin
-    local LOCAL=$(git rev-parse HEAD)
-    local REMOTE=$(git rev-parse @{u} 2>/dev/null)
-    if [ -z "$REMOTE" ]; then echo "   ›› Remote branch not found."; _system_unlock; return; fi
-    if [ "$LOCAL" = "$REMOTE" ]; then
-        echo "    ›› System is up-to-date (v$MUX_VERSION). ✅"
-        _system_unlock
-    else
-        echo -e "\033[1;33m :: New version available!\033[0m"
-        echo ""
-        _system_unlock
-        echo -ne "\033[1;32m :: Update Mux-OS now? [Y/n]: \033[0m"
-        read choice
-        if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
-            _system_lock
-            if git pull; then sleep 2.2; _mux_reload_kernel; else _bot_say "error" "Update conflict detected."; _system_unlock; fi
-        else
-            _system_unlock
-        fi
-    fi
-}
-
-# 神經連結部署協議
-function _neural_link_deploy() {
-    if [ -z "$(git config user.name)" ]; then
-         _bot_say "error" "Identity missing. Run 'git config --global user.name \"YourName\"' first."
-         return 1
-    fi
-    echo -e "${F_MAIN} :: NEURAL LINK DEPLOYMENT PROTOCOL ::${F_RESET}"
-    echo -ne "${F_ERR} :: TYPE 'CONFIRM' TO ENGAGE UPLINK: ${F_RESET}"
-    read confirm
-    if [ "$confirm" != "CONFIRM" ]; then return 1; fi
-    _voice_dispatch "system" "Engaging Neural Uplink..."
-    cd "$MUX_ROOT" || return 1
-    git add .
-    git commit -m "Neural Link Deploy $(date '+%Y-%m-%d %H:%M')"
-    git push
-    if [ $? -eq 0 ]; then 
-        _bot_say "success" "Deployment Successful."
-    else 
-        _bot_say "error" "Uplink destabilized."
-    fi
-}
-
-# 系統完整性掃描器
-function _mux_integrity_scan() {
-    return 0
-}
-
-# 直接鎖定系統 ROOT 指令
-function su()     { _mux_security_gate "su" "$@"; return 1; }
-function tsu()    { _mux_security_gate "tsu" "$@"; return 1; }
-function sudo()   { _mux_security_gate "sudo" "$@"; return 1; }
-function mount()  { _mux_security_gate "mount" "$@"; return 1; }
-function umount() { _mux_security_gate "umount" "$@"; return 1; }
-
-# PM 指令過濾器
-function pm() {
-    ! _mux_security_gate "pm" "$@" && return 1
-    command pm "$@"
 }
 
 # 安全過濾層 (Security Layer)
@@ -1271,6 +752,511 @@ function _mux_neural_fire_control() {
     return 0
 }
 
+# 直接鎖定系統 ROOT 指令
+function su()     { _mux_security_gate "su" "$@"; return 1; }
+function tsu()    { _mux_security_gate "tsu" "$@"; return 1; }
+function sudo()   { _mux_security_gate "sudo" "$@"; return 1; }
+function mount()  { _mux_security_gate "mount" "$@"; return 1; }
+function umount() { _mux_security_gate "umount" "$@"; return 1; }
+
+# PM 指令過濾器
+function pm() {
+    ! _mux_security_gate "pm" "$@" && return 1
+    command pm "$@"
+}
+
+# 登入系統 - Commander Login
+function _mux_pre_login() {
+    local F_GRAY="\033[1;30m"
+    local F_BLE="\033[1;36m"
+    local F_RESET="\033[0m"
+    local F_GRE="\033[1;32m"
+    local F_SUB="\033[1;37m"
+    local F_RED="\033[1;31m"
+    local F_WARN="\033[1;33m"
+
+    if [ "$MUX_STATUS" != "DEFAULT" ]; then
+        echo -e "${F_BLE} :: System already active, Commander.${F_RESET}"
+        return 1
+    fi
+
+    clear
+    _draw_logo "gray" # 確保Logo在視覺中心
+
+    _system_lock
+    echo -e "${F_WARN} :: SECURITY CHECKPOINT ::${F_RESET}"
+    
+    sleep 0.2
+    echo -e "${F_GRAY}    ›› Initializing Biometeric Scan...${F_RESET}"
+    sleep 0.6
+    _system_unlock
+
+    echo ""
+    echo -ne "${F_SUB} :: Commander Identity: ${F_RESET}" 
+    read input_id
+
+    _system_lock
+    echo -e "${F_GRAY}    ›› Verifying Hash Signature...${F_RESET}"
+    sleep 0.6
+    
+    local identity_valid=0
+    if [ -f "$MUX_ROOT/.mux_identity" ]; then
+        local REAL_ID=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2)
+        if [ "$input_id" == "$REAL_ID" ]; then
+            identity_valid=1
+        fi
+    else
+        identity_valid=1
+    fi
+
+    if [ "$identity_valid" -ne 1 ]; then
+        sleep 0.5
+        echo ""
+        echo -e "${F_RED} :: ACCESS DENIED :: Identity Mismatch.${F_RESET}"
+        sleep 0.5
+        _system_unlock
+        return 1
+    fi
+
+    sleep 0.4
+    echo ""
+    echo -e "${F_GRE} :: IDENTITY CONFIRMED :: ${F_RESET}"
+    sleep 0.6
+    echo ""
+    echo -e "${F_WARN} :: UNLOCKING NEURAL INTERFACE... ${F_RESET}"
+    sleep 0.8
+    echo -e "${F_GRAY}    ›› Mount Point: /dev/mux_core${F_RESET}"
+    sleep 0.2
+    echo -e "${F_GRAY}    ›› Link Status: Stable${F_RESET}"
+    sleep 0.5
+    
+    # 寫入 LOGIN 狀態
+    cat > "$MUX_ROOT/.mux_state" <<EOF
+MUX_MODE="MUX"
+MUX_STATUS="LOGIN"
+EOF
+
+    echo ""
+    echo -e "${F_GRE} :: WELCOME BACK, COMMANDER. :: ${F_RESET}"
+    sleep 1.2
+    
+    exec bash
+}
+
+# 登出系統 - Commander Logout
+function _mux_set_logout() {
+    local C_WARN="\033[1;33m"
+    local C_ERR="\033[1;31m"
+    local C_RESET="\033[0m"
+    local C_GRAY="\033[1;30m"
+
+    echo ""
+    echo -e "${C_WARN} :: WARNING: NEURAL DISCONNECT SEQUENCE ::${C_RESET}"
+    echo -e "${C_GRAY}    This will terminate your current session and seal the cockpit.${C_RESET}"
+    echo ""
+    echo -ne "${C_ERR} :: TYPE 'CONFIRM' TO DISENGAGE: ${C_RESET}"
+    read confirm
+
+    if [ "$confirm" != "CONFIRM" ]; then
+        echo ""
+        _bot_say "error" "Disconnection aborted. Neural Link stable."
+        return 1
+    fi
+
+    _system_lock
+    echo ""
+    _bot_say "success" "Terminating Neural Link..."
+    
+    # 模擬系統關閉的逐層斷電
+    local shutdown_steps=("Disengaging Motor Functions..." "Unmounting Virtual Drives..." "Saving Memory Stack..." "Sealing Cockpit Hatch...")
+    
+    for step in "${shutdown_steps[@]}"; do
+        echo -e "${C_GRAY}    ›› $step${F_RESET}"
+        sleep 0.6
+    done
+    
+    sleep 0.6
+    echo ""
+    echo -e "${C_WARN} :: SYSTEM OFFLINE :: See you space cowboy.${C_RESET}"
+    
+    cat > "$MUX_ROOT/.mux_state" <<EOF
+MUX_MODE="MUX"
+MUX_STATUS="DEFAULT"
+EOF
+
+    sleep 1.9
+    _mux_reload_kernel
+}
+
+# 工廠前置驗證協議 (Pre-Flight Auth)
+function _core_pre_factory_auth() {
+    local F_GRAY="\033[1;30m"
+    local F_RED="\033[1;31m"
+    local F_WARN="\033[1;33m"
+    local F_RESET="\033[0m"
+    local F_GRE="\033[1;32m"
+    local F_SUB="\033[1;37m"
+    local F_ORG="\033[1;38;5;208m"
+
+    clear
+    _draw_logo "gray"
+    
+    _system_lock
+    echo -e "${F_ORG} :: SECURITY CHECKPOINT ::${F_RESET}"
+    sleep 0.2
+    echo -e "${F_GRAY}    ›› Identity Verification Required.${F_RESET}"
+    sleep 0.4
+    echo ""
+    
+    _system_unlock
+    echo -ne "${F_SUB} :: Commander ID: ${F_RESET}" 
+    read input_id
+
+    local identity_valid=0
+    if [ -f "$MUX_ROOT/.mux_identity" ]; then
+        local REAL_ID=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2)
+        if [ "$input_id" == "$REAL_ID" ] || [ "$REAL_ID" == "Unknown" ]; then
+            identity_valid=1
+        fi
+    else
+        identity_valid=1
+    fi
+
+    echo -ne "${F_WARN} :: CONFIRM IDENTITY (Type 'CONFIRM'): ${F_RESET}"
+    read confirm
+    
+    if [ "$confirm" != "CONFIRM" ]; then
+        _core_eject_sequence "Confirmation Failed."
+        return 1
+    fi
+
+    if [ "$identity_valid" -ne 1 ]; then
+        _core_eject_sequence "Identity Mismatch."
+        return 1
+    fi
+
+    echo ""
+    _system_lock
+    echo -e "${F_GRAY} :: Verifying Neural Signature... ${F_RESET}"
+    sleep 0.8
+    echo ""
+    echo -e "${F_GRE} :: ACCESS GRANTED :: ${F_RESET}"
+    sleep 0.5
+    echo ""
+    echo -e "${F_GRAY} :: Scanning Combat Equipment... ${F_RESET}"
+    sleep 1
+    echo ""
+    if ! command -v fzf &> /dev/null; then
+        echo -e "\n${F_RED} :: EQUIPMENT MISSING :: ${F_RESET}"
+        echo ""
+        sleep 0.5
+        _core_eject_sequence "Neural Link (fzf) Required."
+        return 1
+    else
+        echo -e "\r${F_GRE} :: EQUIPMENT CONFIRM :: ${F_RESET}"
+        sleep 0.5
+    fi
+
+    echo ""
+    echo -e "${F_RED} :: WARNING: FACTORY PROTOCOL :: ${F_RESET}"
+    echo -e "${F_GRAY}    1. Modifications are permanent.${F_RESET}"
+    echo -e "${F_GRAY}    2. Sandbox Environment Active (.temp).${F_RESET}"
+    echo -e "${F_GRAY}    3. Core 'mux' commands are ${F_RED}LOCKED${F_RESET}.${F_RESET}"
+    echo -e "${F_GRAY}    4. App launches are ${F_RED}LOCKED${F_RESET}.${F_RESET}"
+    echo -e "${F_GRAY}    5. You are responsible for system stability.${F_RESET}"
+    echo ""
+    
+    _system_unlock
+    echo -ne "${F_WARN} :: Proceed? [Y/n]: ${F_RESET}"
+    read choice
+    
+    if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
+        _core_eject_sequence "User Aborted."
+        return 1
+    fi
+    
+    _system_lock
+    local steps=("Injecting Logic..." "Desynchronizing Core..." "Loading Arsenal..." "Entering Factory...")
+    for step in "${steps[@]}"; do
+        echo -e "${F_GRAY}    ›› $step${F_RESET}"
+        sleep 0.2
+    done
+    sleep 0.5
+    
+    if command -v _ui_fake_gate &> /dev/null; then
+        _ui_fake_gate "factory"
+    fi
+
+    cat > "$MUX_ROOT/.mux_state" <<EOF
+MUX_MODE="FAC"
+MUX_STATUS="LOGIN"
+EOF
+
+    exec bash
+}
+
+# 彈射序列 (The Ejection - Core Simulation)
+function _core_eject_sequence() {
+    local reason="$1"
+    local F_ERR="\033[1;31m"
+    local F_RESET="\033[0m"
+    local F_GRAY="\033[1;30m"
+    
+    _system_lock
+    echo ""
+    echo -e "${F_ERR} :: ACCESS DENIED :: ${reason}${F_RESET}"
+    sleep 0.8
+    echo ""
+    echo -e "${F_ERR} :: Initiating Eviction Protocol...${F_RESET}"
+    sleep 0.4
+    echo -e "${F_ERR} :: Locking Cockpit...${F_RESET}"
+    sleep 0.6
+    echo -e "${F_ERR} :: Auto-Eject System Activated.${F_RESET}"
+    sleep 1
+    
+    for i in {3..1}; do
+        echo -e "${F_GRAY}    ›› Ejection in $i...${F_RESET}"
+        sleep 0.99
+    done
+
+    echo -e ""
+    _bot_factory_personality "eject"
+    sleep 1.9
+    _ui_fake_gate "core"
+    _safe_ui_calc
+    clear
+    _draw_logo "core"
+    _system_check
+    _show_hud
+    _system_unlock
+    _bot_say "hello"
+}
+
+
+# Mux-OS 指令入口 - Core Command Entry
+# === Mux ===
+
+# : Core Command Entry
+function mux() {
+    local cmd="$1"
+    if [ "$MUX_MODE" == "FAC" ]; then
+        _bot_say "error" "Core commands disabled during Factory session."
+        return 1
+    fi
+    
+    if [ -z "$cmd" ]; then
+        if [ "$MUX_STATUS" == "LOGIN" ]; then
+            _voice_dispatch "hello"
+        else
+            if [ $((RANDOM % 3)) -eq 0 ]; then
+                 if command -v _commander_voice &> /dev/null; then
+                    _commander_voice "default_idle"
+                 fi
+            fi
+        fi
+        return
+    fi
+
+    if [ "$MUX_STATUS" != "LOGIN" ]; then
+        case "$cmd" in
+            "login"|"setup"|"help"|"status"|"sts"|"info"|"reload"|"reset"|"tofac"|"factory"|"driveto")
+                # 放行
+                ;;
+            *)
+                # 指揮官語音插入
+                if [ $((RANDOM % 3)) -eq 0 ]; then
+                     if command -v _commander_voice &> /dev/null; then
+                        _commander_voice "default_idle"
+                     fi
+                fi
+                return 1
+                ;;
+        esac
+    fi
+
+    case "$cmd" in
+        # : Login Sequence
+        "login")
+            _mux_pre_login
+            ;;
+
+        # : Logout Sequence
+        "logout")
+            _mux_set_logout
+            ;;
+
+        # : Open Command Dashboard
+        "menu")
+            if command -v fzf &> /dev/null; then
+                _mux_fuzzy_menu
+            else
+                _show_menu_dashboard
+            fi
+            ;;
+
+        "oldmenu"|"omenu")
+            _show_menu_dashboard
+            ;;
+
+        # : Infomation
+        "info")
+            _mux_show_info
+            ;;
+
+        # : Install Dependencies
+        "link")
+            if command -v fzf &> /dev/null; then
+                echo -e "\n\033[1;32m :: Neural Link (fzf) Status: \033[1;37mONLINE\033[0m ✅"
+                _bot_say "success" "Link is stable, Commander."
+                return
+            fi
+            echo -e ""
+            echo -e "\033[1;33m :: Initialize Neural Link Protocol? \033[0m"
+            echo -e ""
+            echo -ne "\033[1;32m :: Authorize construction? [Y/n]: \033[0m"
+            read choice
+            if [[ "$choice" == "y" || "$choice" == "Y" || "$choice" == "" ]]; then
+                if command -v _mux_uplink_sequence &> /dev/null; then
+                    _mux_uplink_sequence
+                else
+                    pkg install fzf -y
+                fi
+            fi
+            ;;
+        
+        # : Show System Status
+        "status"|"sts")
+            local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
+            local last_commit=$(git log -1 --format='%h - %s (%cr)' 2>/dev/null)
+            if [ "$current_branch" == "main" ]; then
+                    export MUX_ID="Unknown (main)"
+            fi
+            echo -e "\033[1;34m :: Mux-OS System Status \033[0m"
+            echo -e "\033[1;37m    ›› Core Protocol :\033[0m \033[1;33mv$MUX_VERSION\033[0m"
+            echo -e "\033[1;37m    ›› Current Meta  :\033[0m \033[1;35m$current_branch\033[0m"
+            echo -e "\033[1;37m    ›› Last Uplink   :\033[0m \033[0;36m$last_commit\033[0m"
+            ;;
+        
+        # : Neural Link Deploy
+        "deploy")
+            _neural_link_deploy
+            ;;
+
+        # : Check for Updates
+        "update")
+            _mux_update_system
+            ;;
+
+        # : Run Setup Protocol
+        "setup")
+            if [ -f "$MUX_ROOT/setup.sh" ]; then
+                bash "$MUX_ROOT/setup.sh"
+                if [ -f "$MUX_ROOT/core.sh" ]; then
+                    _mux_reload_kernel
+                else
+                    exec bash
+                fi
+            else
+                _bot_say "error" "Lifecycle module missing."
+            fi
+            ;;
+
+        "help")
+            _mux_dynamic_help_core
+            ;;
+
+        # : Reload System Kernel
+        "reload")
+            _voice_dispatch "system" "Reloading Kernel Sequence..."
+            sleep 0.5
+            _mux_reload_kernel
+            ;;
+
+        # : Force System Sync
+        "reset")
+            _mux_force_reset
+            if [ $? -eq 0 ]; then
+                _mux_reload_kernel
+            fi
+            ;;
+
+        # : Multiverse Suit Drive
+        "driveto"|"drive2")
+            if [ "$MUX_STATUS" == "LOGIN" ]; then
+                 _bot_say "error" "Interlock Active: Cockpit is sealed."
+                 echo -e "\033[1;30m    ›› Protocol Violation: Cannot switch unit while piloted.\033[0m"
+                 echo -e "\033[1;30m    ›› Action Required : Execute 'mux logout' to disengage.\033[0m"
+                 return 1
+            fi
+
+            # 2. 掃描機體 (Branch Selection)
+            echo -e "\033[1;36m :: Scanning Multiverse Coordinates (Hangar Walk)...\033[0m"
+            git fetch --all >/dev/null 2>&1
+            
+            # FZF 選單
+            local target_branch=$(git branch -r | grep -v '\->' | sed 's/origin\///' | fzf --ansi \
+                --height=10 \
+                --layout=reverse \
+                --border=bottom \
+                --header=" :: Mobile Suit State ::" \
+                --prompt=" :: Select Unit to Drive › " \
+                --pointer="››" \
+                --info=hidden \
+                --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                --color=info:yellow,prompt:cyan,pointer:red,marker:green,border:blue,header:240 \
+                --bind="resize:clear-screen"
+            )
+            
+            target_branch="${target_branch// /}"
+            if [ -z "$target_branch" ]; then _bot_say "warp" "fail"; return 1; fi
+
+            # 語音回饋
+            local warp_type="start_local"
+            if [ "$target_branch" == "main" ] || [ "$target_branch" == "master" ]; then 
+                warp_type="home"
+            elif [[ "$target_branch" != *"$(whoami)"* ]]; then 
+                warp_type="start_remote"
+            fi
+            _voice_dispatch "warp_ready" "" "cmd"
+            _bot_say "warp" "$warp_type" "$target_branch"
+            
+            # 3. 執行換乘 (Checkout)
+            if [ -n "$(git status --porcelain)" ]; then 
+                git stash push -m "Auto-stash before drive sequence"
+            fi
+            
+            git checkout "$target_branch" 2>/dev/null
+            
+            # 4. 系統重載 (Reload)
+            if [ $? -eq 0 ]; then
+                echo -e "\033[1;33m :: Initializing New Unit Core...\033[0m"
+                sleep 1.0
+                
+                # 賦予新機體執行權限
+                if [ -d "$MUX_ROOT" ]; then chmod +x "$MUX_ROOT/"*.sh 2>/dev/null; fi
+                
+                if command -v _mux_reload_kernel &> /dev/null; then
+                    _mux_reload_kernel
+                else
+                    exec bash
+                fi
+            else
+                _bot_say "warp" "fail"
+            fi
+        ;;
+
+        # : Enter the Arsenal (Factory Mode)
+        "factory"|"tofac")
+            _core_pre_factory_auth
+            ;;
+
+        *)
+            if command -v "$cmd" &> /dev/null; then "$cmd" "${@:2}"; return; fi
+            echo -e "\033[1;33m :: Unknown Directive: '$cmd'.\033[0m"
+            ;;
+    esac
+}
+
 # 神經連接執行器
 function command_not_found_handle() {
     local cmd="$1"
@@ -1297,3 +1283,49 @@ if [ -z "$MUX_INITIALIZED" ]; then
         fi
     fi
 fi
+
+# 讀取門禁卡 (Mux State)
+if [ -f "$MUX_ROOT/.mux_state" ]; then
+    source "$MUX_ROOT/.mux_state"
+else
+    MUX_MODE="MUX"
+    MUX_STATUS="DEFAULT"
+fi
+
+case "$MUX_MODE" in
+    "FAC")
+        if [ -f "$MUX_ROOT/factory.sh" ]; then
+            source "$MUX_ROOT/factory.sh"
+            if command -v _factory_system_boot &> /dev/null; then
+                _factory_system_boot
+            elif command -v _fac_init &> /dev/null; then
+                _fac_init
+            else
+                echo -e "\033[1;31m :: FATAL :: Factory Core Not Found.\033[0m"
+            fi
+
+            return 0 2>/dev/null || exit 0
+        fi
+        ;;
+        
+    "MUX")
+        if [ "$MUX_STATUS" == "LOGIN" ]; then
+            export PS1="\[\033[1;36m\]Mux\[\033[0m\] \w › "
+        else
+            export PS1="\[\033[1;30m\]Mux\[\033[0m\] \w › "
+        fi
+        
+        export PROMPT_COMMAND="tput sgr0; echo -ne '\033[0m'"
+        ;;
+        
+    *)
+        if command -v _ui_fake_gate &> /dev/null; then _ui_fake_gate "core"; fi
+        
+        cat > "$MUX_ROOT/.mux_state" <<EOF
+MUX_MODE="MUX"
+MUX_STATUS="LOGIN"
+EOF
+
+        exec bash
+        ;;
+esac

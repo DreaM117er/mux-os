@@ -459,35 +459,6 @@ function _mux_fuzzy_menu() {
     fi
 }
 
-function _mux_uplink_sequence() {
-    if command -v fzf &> /dev/null; then
-        _bot_say "success" "Neural Link is already active. Signal stable."
-        return
-    fi
-
-    _bot_say "system" "Initializing Neural Bridge Protocol..."
-    sleep 0.5
-    echo -e "\033[1;33m :: Scanning local synaptic ports...\033[0m"
-    sleep 0.8
-    echo -e "\033[1;36m :: Constructing interface matrix (fzf)...\033[0m"
-    sleep 0.5
-
-    pkg install fzf -y > /dev/null 2>&1
-
-    if command -v fzf &> /dev/null; then
-        echo -e ""
-        echo -e "\033[1;35m :: SYNCHRONIZATION COMPLETE :: \033[0m"
-        echo -e ""
-        sleep 0.5
-        _bot_say "neural" "Welcome to the Grid, Commander."
-        
-        sleep 1.4
-        mux reload
-    else
-        _bot_say "error" "Link failed. Neural rejection detected."
-    fi
-}
-
 # 顯示兵工廠狀態 - Display Factory Status
 function _factory_show_status() {
     local F_MAIN="\033[1;38;5;208m"
