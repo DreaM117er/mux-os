@@ -9,39 +9,27 @@ fi
 function _draw_logo() {
     local mode="${1:-core}"
     local color_primary=""
-    local color_sub=""
+    local color_sub="$C_BLACK"
     local label=""
     local cols=$(tput cols 2>/dev/null || echo 80)
 
-case "$mode" in
-        "factory")
-            color_primary="\033[1;38;5;208m"
-            color_sub="\033[1;30m"
-            if [ "$cols" -lt 52 ]; then
-                label=":: Mux-OS v$MUX_VERSION Factory ::"
-            else
-                label=":: Mux-OS v$MUX_VERSION Factory :: Neural Forge ::"
-            fi
-            ;;
-
+    case "$mode" in
         "gray")
-            color_primary="\033[1;30m"
-            color_sub="\033[1;30m"
-            if [ "$cols" -lt 52 ]; then
-                label=":: SYSTEM LOCKED ::"
-            else
-                label=":: SYSTEM LOCKED :: AUTHENTICATION REQUIRED ::"
-            fi
+            color_primary="$C_BLACK"
+            label=":: SYSTEM LOCKED ::"
+            if [ "$cols" -ge 52 ]; then label+=" AUTHENTICATION REQUIRED ::"; fi
+            ;;
+        
+        "factory")
+            color_primary="$THEME_MAIN"
+            label=":: Mux-OS v$MUX_VERSION Factory ::"
+            if [ "$cols" -ge 52 ]; then label+=" Neural Forge ::"; fi
             ;;
 
         *)
-            color_primary="\033[1;36m"
-            color_sub="\033[1;30m"
-            if [ "$cols" -lt 52 ]; then
-                label=":: Mux-OS v$MUX_VERSION Core ::"
-            else
-                label=":: Mux-OS v$MUX_VERSION Core :: Gate System ::"
-            fi
+            color_primary="$THEME_MAIN"
+            label=":: Mux-OS v$MUX_VERSION Core ::"
+            if [ "$cols" -ge 52 ]; then label+=" Gate System ::"; fi
             ;;
     esac
 
@@ -117,7 +105,7 @@ function _show_hud() {
     local content_limit=$(( box_width - 13 ))
     [ "$content_limit" -lt 5 ] && content_limit=5
     
-    local border_color="\033[1;34m" 
+    local border_color="$C_BLUE" 
     
     local text_color="\033[1;37m"
     local value_color="\033[0m"
@@ -286,7 +274,7 @@ function _show_menu_dashboard() {
     local C_WARN="\033[1;31m"
     local C_RST="\033[0m"
 
-    if [ "$__MUX_MODE" == "factory" ]; then
+    if [ "$MUX_MODE" == "FAC" ]; then
         title_text=":: Factory Sandbox Manifest ::"
         C_TITLE="\033[1;35m"
         C_CAT="\033[1;31m"
@@ -459,50 +447,13 @@ function _mux_fuzzy_menu() {
     fi
 }
 
-function _mux_uplink_sequence() {
-    if command -v fzf &> /dev/null; then
-        _bot_say "success" "Neural Link is already active. Signal stable."
-        return
-    fi
-
-    _bot_say "system" "Initializing Neural Bridge Protocol..."
-    sleep 0.5
-    echo -e "\033[1;33m :: Scanning local synaptic ports...\033[0m"
-    sleep 0.8
-    echo -e "\033[1;36m :: Constructing interface matrix (fzf)...\033[0m"
-    sleep 0.5
-
-    pkg install fzf -y > /dev/null 2>&1
-
-    if command -v fzf &> /dev/null; then
-        echo -e ""
-        echo -e "\033[1;35m :: SYNCHRONIZATION COMPLETE :: \033[0m"
-        echo -e ""
-        sleep 0.5
-        _bot_say "neural" "Welcome to the Grid, Commander."
-        
-        sleep 1.4
-        mux reload
-    else
-        _bot_say "error" "Link failed. Neural rejection detected."
-    fi
-}
-
 # 顯示兵工廠狀態 - Display Factory Status
 function _factory_show_status() {
-    local F_MAIN="\033[1;38;5;208m"
-    local F_SUB="\033[1;37m"
-    local F_WARN="\033[1;33m"
-    local F_ERR="\033[1;31m"
-    local F_GRAY="\033[1;30m"
-    local F_CYAN="\033[1;36m"
-    local F_RESET="\033[0m"
-
     local temp_file="$MUX_ROOT/app.csv.temp"
     local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
 
-    echo -e "${F_MAIN} :: Neural Forge Status Report ::${F_RESET}"
-    echo -e "${F_GRAY}    --------------------------${F_RESET}"
+    echo -e "${THEME_MAIN} :: Neural Forge Status Report ::${C_RESET}"
+    echo -e "${THEME_DESC}    --------------------------${C_RESET}"
 
     if [ -f "$temp_file" ]; then
         local line_count=$(wc -l < "$temp_file")
@@ -511,15 +462,15 @@ function _factory_show_status() {
         
         local size=$(du -h "$temp_file" | cut -f1)
         
-        echo -e "${F_GRAY}    Target  : ${F_WARN}app.csv.temp${F_RESET}"
-        echo -e "${F_GRAY}    Size    : $size"
-        echo -e "${F_GRAY}    Nodes   : ${F_SUB}$node_count active commands${F_RESET}"
+        echo -e "${THEME_DESC}    Target  : ${THEME_WARN}app.csv.temp${C_RESET}"
+        echo -e "${THEME_DESC}    Size    : $size"
+        echo -e "${THEME_DESC}    Nodes   : ${THEME_SUB}$node_count active commands${C_RESET}"
     else
-        echo -e "${F_ERR}    Target  : CRITICAL ERROR (Sandbox Missing)${F_RESET}"
+        echo -e "${THEME_ERR}    Target  : CRITICAL ERROR (Sandbox Missing)${C_RESET}"
     fi
 
     echo -e ""
-    echo -e "${F_SUB}    [Temporal Snapshots (Time Stone)]${F_RESET}"
+    echo -e "${THEME_SUB}    [Temporal Snapshots (Time Stone)]${C_RESET}"
     
     local found_any=0
     
@@ -530,7 +481,7 @@ function _factory_show_status() {
         local fmt_ts="${raw_ts:0:4}-${raw_ts:4:2}-${raw_ts:6:2} ${raw_ts:8:2}:${raw_ts:10:2}:${raw_ts:12:2}"
         local f_size=$(du -h "$session_bak" | cut -f1)
 
-        echo -e "    ${F_CYAN}[Session Origin]${F_RESET}"
+        echo -e "    ${F_CYAN}[Session Origin]${C_RESET}"
         echo -e "    ›› Time : $fmt_ts"
         echo -e "    ›› File : $fname ($f_size)"
         found_any=1
@@ -539,7 +490,7 @@ function _factory_show_status() {
     local atb_files=$(ls -t "$bak_dir"/app.csv.*.atb 2>/dev/null | head -n 3)
     
     if [ -n "$atb_files" ]; then
-        [ "$found_any" -eq 1 ] && echo -e "${F_GRAY}    --------------------------${F_RESET}"
+        [ "$found_any" -eq 1 ] && echo -e "${THEME_DESC}    --------------------------${C_RESET}"
         
         SAVEIFS=$IFS
         IFS=$'\n'
@@ -549,7 +500,7 @@ function _factory_show_status() {
             local fmt_ts="${raw_ts:0:4}-${raw_ts:4:2}-${raw_ts:6:2} ${raw_ts:8:2}:${raw_ts:10:2}:${raw_ts:12:2}"
             local f_size=$(du -h "$f_path" | cut -f1)
 
-            echo -e "    ${F_MAIN}[Auto Save]${F_RESET}"
+            echo -e "    ${THEME_MAIN}[Auto Save]${C_RESET}"
             echo -e "    ›› Time : $fmt_ts"
             echo -e "    ›› Size : $f_size"
             found_any=1
@@ -558,10 +509,10 @@ function _factory_show_status() {
     fi
 
     if [ "$found_any" -eq 0 ]; then
-        echo -e "${F_GRAY} :: No temporal snapshots found in $bak_dir.${F_RESET}"
+        echo -e "${THEME_DESC} :: No temporal snapshots found in $bak_dir.${C_RESET}"
     fi
 
-    echo -e "${F_GRAY}    --------------------------${F_RESET}"
+    echo -e "${THEME_DESC}    --------------------------${C_RESET}"
     
     if command -v _bot_say &> /dev/null; then
         _bot_say "factory" "Status report generated."
@@ -570,28 +521,21 @@ function _factory_show_status() {
 
 # 顯示兵工廠資訊 - Display Factory Info Manifest
 function _factory_show_info() {
-    local F_MAIN="\033[1;38;5;208m"
-    local F_SUB="\033[1;37m"
-    local F_WARN="\033[1;33m"
-    local F_GRAY="\033[1;30m"
-    local F_RESET="\033[0m"
-    local C_GREEN="\033[1;32m"
-
     clear
     _draw_logo "factory"
     
-    echo -e " ${F_MAIN}:: INDUSTRIAL MANIFEST ::${F_RESET}"
+    echo -e " ${THEME_MAIN}:: INDUSTRIAL MANIFEST ::${C_RESET}"
     echo ""
-    echo -e "  ${F_GRAY}PROTOCOL   :${F_RESET} ${F_SUB}Factory Mode${F_RESET}"
-    echo -e "  ${F_GRAY}ACCESS     :${F_RESET} ${F_MAIN}COMMANDER${F_RESET}"
-    echo -e "  ${F_GRAY}PURPOSE    :${F_RESET} ${F_SUB}Neural Link Construction & Modification${F_RESET}"
-    echo -e "  ${F_GRAY}TARGET     :${F_RESET} ${F_WARN}app.csv.temp${F_RESET}"
+    echo -e "  ${THEME_DESC}PROTOCOL   :${C_RESET} ${THEME_SUB}Factory Mode${C_RESET}"
+    echo -e "  ${THEME_DESC}ACCESS     :${C_RESET} ${THEME_MAIN}COMMANDER${C_RESET}"
+    echo -e "  ${THEME_DESC}PURPOSE    :${C_RESET} ${THEME_SUB}Neural Link Construction & Modification${C_RESET}"
+    echo -e "  ${THEME_DESC}TARGET     :${C_RESET} ${THEME_WARN}app.csv.temp${C_RESET}"
     echo ""
-    echo -e " ${F_MAIN}:: WARNING ::${F_RESET}"
-    echo -e "  ${F_GRAY}\"With great power comes great possibility of breaking things.\"${F_RESET}"
+    echo -e " ${THEME_MAIN}:: WARNING ::${C_RESET}"
+    echo -e "  ${THEME_DESC}\"With great power comes great possibility of breaking things.\"${C_RESET}"
     echo ""
     
-    echo -ne " ${C_GREEN}:: Ready to returning to forge? [Y/n]: ${F_RESET}"
+    echo -ne " ${C_GREEN}:: Ready to returning to forge? [Y/n]: ${C_RESET}"
     read choice
     
     if [[ "$choice" == "y" || "$choice" == "Y" || -z "$choice" ]]; then
@@ -1090,15 +1034,15 @@ function _ui_fake_gate() {
     
     case "$target_system" in
         "factory")
-            theme_color="\033[1;38;5;208m"
+            theme_color="$C_ORANGE"
             theme_text="NEURAL FORGE"
             ;;
         "default")
-            theme_color="\033[1;37m"
+            theme_color="$C_WHITE"
             theme_text="TO COMMANDER"
             ;;
         *)
-            theme_color="\033[1;36m"
+            theme_color="$C_CYAN"
             theme_text="SYSTEM CORE"
             ;;
     esac

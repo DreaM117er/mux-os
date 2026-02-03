@@ -5,22 +5,12 @@ if [ -z "$__MUX_CORE_ACTIVE" ]; then
     return 1 2>/dev/null || exit 1
 fi
 
-export C_RESET="\033[0m"
-export C_CYAN="\033[1;36m"
-export C_GREEN="\033[1;32m"
-export C_RED="\033[1;31m"
-export C_YELLOW="\033[1;33m"
-export C_GRAY="\033[1;30m"
-export C_PURPLE="\033[1;35m"
-export C_ORANGE="\033[1;38;5;208m"
-export C_WHITE="\033[1;37m"     # Commander's Color
-
 # 系統核心人格 (The System)
 function _bot_say() {
     local mood="$1"
     local detail="$2"
 
-    if [ "$__MUX_MODE" == "factory" ]; then
+    if [ "$MUX_MODE" == "FAC" ]; then
         _bot_factory_personality "$mood" "$detail"
         return
     fi
@@ -171,7 +161,7 @@ function _bot_say() {
                 "Sync complete. The mechanic left a note: 'Good luck'. 🔧"
                 "Warning: Coffee stain detected on control panel. Cleaning..."
              )
-             echo -e "\033[1;35m :: ${eggs[$((RANDOM % ${#eggs[@]}))]}\033[0m"
+             echo -e "${C_PURPLE} :: ${eggs[$((RANDOM % ${#eggs[@]}))]}${C_RESET}"
         fi
 
         case "$state" in
@@ -213,7 +203,7 @@ function _bot_say() {
 
         if [ ${#quotes[@]} -gt 0 ]; then
             local msg="${quotes[$((RANDOM % ${#quotes[@]}))]}"
-            echo -e "\033[1;34m    ›› $msg\033[0m"
+            echo -e "${C_BLUE}    ›› $msg${C_RESET}"
         fi
         return
         ;;
@@ -246,7 +236,7 @@ function _bot_say() {
     local selected_phrase="${phrases[$rand_index]}"
 
     echo -e "${color}${icon}${selected_phrase}${C_RESET}"
-    [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
+    [ -n "$detail" ] && echo -e "   ${C_BLACK} ›› ${detail}${C_RESET}"
 }
 
 
@@ -375,7 +365,7 @@ function _commander_voice() {
 
     local rand_index=$(( RANDOM % ${#phrases[@]} ))
     echo -e "${color}${icon}${phrases[$rand_index]}${C_RESET}"
-    [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
+    [ -n "$detail" ] && echo -e "   ${C_BLACK} ›› ${detail}${C_RESET}"
 }
 
 # 整備長官人格 (The Smith)
@@ -396,12 +386,12 @@ function _bot_factory_personality() {
             " Do not proceed without confirmation. 👁️"
         )
         local w_index=$(( RANDOM % ${#wisdom[@]} ))
-        echo -e "\033[1;30m ::${wisdom[$w_index]}\033[0m"
+        echo -e "\033[1;30m ::${wisdom[$w_index]}${C_RESET}"
     fi
 
     case "$mood" in
         "factory_welcome")
-            color=$C_ORANGE
+            color=$THEME_MAIN
             phrases=(
                 " Neural Link Factory online. Access Level: ROOT. 🏗️"
                 " Commander verified. You have the con. 🛡️"
@@ -411,7 +401,7 @@ function _bot_factory_personality() {
             ;;
 
         "factory")
-            color=$C_ORANGE
+            color=$THEME_MAIN
             phrases=(
                 " Factory operational. Scanning active links... 📡"
                 " Current target: app.sh. Write-Mode: UNLOCKED. 🔓"
@@ -494,7 +484,7 @@ function _bot_factory_personality() {
             ;;
 
         *)
-            color=$C_ORANGE
+            color=$THEME_MAIN
             phrases=(
                 " Input received."
                 " Acknowledged."
@@ -507,5 +497,5 @@ function _bot_factory_personality() {
 
     local rand_index=$(( RANDOM % ${#phrases[@]} ))
     echo -e "${color}${icon}${phrases[$rand_index]}${C_RESET}"
-    [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
+    [ -n "$detail" ] && echo -e "   ${C_BLACK} ›› ${detail}${C_RESET}"
 }
