@@ -892,6 +892,8 @@ MUX_MODE="MUX"
 MUX_STATUS="DEFAULT"
 EOF
 
+    MUX_STATUS="DEFAULT"
+
     sleep 1.9
     _mux_reload_kernel
 }
