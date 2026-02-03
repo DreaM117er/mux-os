@@ -1254,7 +1254,7 @@ function mux() {
             if [ "$current_branch" == "main" ]; then
                 current_branch="Unknown (main)"
             fi
-            echo -e "${THEME_MAIN} :: Mux-OS System Status ${C_RESET}"
+            echo -e "${C_PURPLE} :: Mux-OS System Status ${C_RESET}"
             echo -e "${THEME_SUB}    ›› Core Protocol :${C_RESET} ${THEME_WARN}v$MUX_VERSION${C_RESET}"
             echo -e "${THEME_SUB}    ›› Current Meta  :${C_RESET} ${THEME_OK}$current_branch${C_RESET}"
             echo -e "${THEME_SUB}    ›› Last Uplink   :${C_RESET} ${THEME_DESC}$last_commit${C_RESET}"
