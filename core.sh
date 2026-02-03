@@ -949,7 +949,6 @@ function _core_pre_factory_auth() {
     echo ""
     if ! command -v fzf &> /dev/null; then
         echo -e "\n${THEME_ERR} :: EQUIPMENT MISSING :: ${C_RESET}"
-        echo ""
         sleep 0.5
         _core_eject_sequence "Neural Link (fzf) Required."
         return 1
