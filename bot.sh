@@ -228,7 +228,7 @@ function _bot_say() {
         )
         local ee_index=$(( RANDOM % ${#easter_eggs[@]} ))
         echo -e "${color}${icon}${easter_eggs[$ee_index]}${C_RESET}"
-        [ -n "$detail" ] && echo -e "   ${C_GRAY} ›› ${detail}${C_RESET}"
+        [ -n "$detail" ] && echo -e "   ${C_BLACK} ›› ${detail}${C_RESET}"
         return
     fi
 
