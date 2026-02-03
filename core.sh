@@ -853,6 +853,7 @@ EOF
     echo -e "${THEME_OK} :: WELCOME BACK, COMMANDER :: ${C_RESET}"
     sleep 1.2
     
+    unset MUX_INITIALIZED
     exec bash
 }
 
@@ -893,7 +894,6 @@ MUX_STATUS="DEFAULT"
 EOF
 
     MUX_STATUS="DEFAULT"
-
     sleep 1.9
     _mux_reload_kernel
 }
