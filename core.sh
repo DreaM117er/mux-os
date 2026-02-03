@@ -853,6 +853,7 @@ EOF
     echo -e "${THEME_OK} :: WELCOME BACK, COMMANDER :: ${C_RESET}"
     sleep 1.2
     
+    MUX_STATUS="LOGIN"
     unset MUX_INITIALIZED
     _mux_reload_kernel
 }
