@@ -48,16 +48,16 @@ function _draw_logo() {
 function _system_check() {
     local mode="${1:-core}"
     
-    local C_CHECK="${C_GREEN}✓${C_RESET}"
-    local C_FAIL="${C_RED}✗${C_RESET}"
-    local C_WARN="${C_YELLOW}!${C_RESET}"
-    local C_PROC="${C_YELLOW}⟳${C_RESET}"
+    local C_CHECK="\033[1;32m✓\033[0m"
+    local C_FAIL="\033[1;31m✗\033[0m"
+    local C_WARN="\033[1;33m!\033[0m"
+    local C_PROC="\033[1;33m⟳\033[0m"
     local DELAY_ANIM=0.06
     local DELAY_STEP=0.02
     
     local steps=()
     if [ "$mode" == "factory" ]; then
-        C_PROC="${C_PURPLE}⟳${C_RESET}"
+        C_PROC="\033[1;35m⟳\033[0m"
         steps=(
             "Initializing Neural Forge..."
             "Overriding Read-Only Filesystem..."
@@ -82,8 +82,8 @@ function _system_check() {
         local status="${2:-0}"
         echo -ne " $C_PROC $msg\r"; sleep $DELAY_ANIM
         if [ "$status" -eq 0 ]; then echo -e " $C_CHECK $msg                    ";
-        elif [ "$status" -eq 1 ]; then echo -e " $C_FAIL $msg ${C_RED}[OFFLINE]${C_RESET}";
-        else echo -e " $C_WARN $msg ${C_YELLOW}[UNKNOWN]${C_RESET}"; fi
+        elif [ "$status" -eq 1 ]; then echo -e " $C_FAIL $msg \033[1;31m[OFFLINE]\033[0m";
+        else echo -e " $C_WARN $msg \033[1;33m[UNKNOWN]\033[0m"; fi
         sleep $DELAY_STEP
     }
 
@@ -105,7 +105,7 @@ function _show_hud() {
     local content_limit=$(( box_width - 13 ))
     [ "$content_limit" -lt 5 ] && content_limit=5
     
-    local border_color="$C_BLUE"
+    local border_color="$THEME_MAIN" 
     
     local text_color="$THEME_SUB"
     local value_color="$C_RESET"
@@ -139,11 +139,11 @@ function _show_hud() {
 
     local border_line=$(printf '═%.0s' $(seq 1 $((box_width - 2))))
     
-    echo -e "${border_color}╔${border_line}╗${C_RESET}"
-    printf "${border_color}║${C_RESET} ${text_color}%s${C_RESET}: %-*s ${border_color}║${C_RESET}\n" "$line1_k" $content_limit "$line1_v"
-    printf "${border_color}║${C_RESET} ${text_color}%s${C_RESET}: %-*s ${border_color}║${C_RESET}\n" "$line2_k" $content_limit "$line2_v"
-    printf "${border_color}║${C_RESET} ${text_color}%s${C_RESET}: %-*s ${border_color}║${C_RESET}\n" "$line3_k" $content_limit "$line3_v"
-    echo -e "${border_color}╚${border_line}╝${C_RESET}"
+    echo -e "${border_color}╔${border_line}╗\033[0m"
+    printf "${border_color}║\033[0m ${text_color}%s\033[0m: %-*s ${border_color}║\033[0m\n" "$line1_k" $content_limit "$line1_v"
+    printf "${border_color}║\033[0m ${text_color}%s\033[0m: %-*s ${border_color}║\033[0m\n" "$line2_k" $content_limit "$line2_v"
+    printf "${border_color}║\033[0m ${text_color}%s\033[0m: %-*s ${border_color}║\033[0m\n" "$line3_k" $content_limit "$line3_v"
+    echo -e "${border_color}╚${border_line}╝\033[0m"
     echo ""
 }
 
@@ -208,7 +208,7 @@ function _mux_dynamic_help_core() {
 
     local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "Unknown")
 
-    echo -e "${C_PURPLE} :: Mux-OS Core v$MUX_VERSION Protocols :: @$current_branch :: ${C_RESET}"
+    echo -e "\033[1;35m :: Mux-OS Core v$MUX_VERSION Protocols :: @$current_branch :: ${C_RESET}"
     
     awk -v cmd_color="$C_CMD" '
     /function mux\(\) \{/ { inside_mux=1; next }
@@ -233,7 +233,7 @@ function _mux_dynamic_help_core() {
 
 # 動態Help Factory選單檢測 - Dynamic Help Factory Detection
 function _mux_dynamic_help_factory() {
-echo -e "${C_PURPLE} :: Mux-OS Factory Protocols ::${C_RESET}"
+echo -e "\033[1;35m :: Mux-OS Factory Protocols ::${C_RESET}"
     
     awk '
     /function fac\(\) \{/ { inside_fac=1; next }
@@ -262,19 +262,19 @@ function _show_menu_dashboard() {
     local target_app_file="$APP_MOD"
     local title_text=":: Mux-OS Command Center ::"
     
-    local C_TITLE="$C_PURPLE"
-    local C_CAT="$C_YELLOW"
-    local C_COM="$C_CYAN"
-    local C_SUB="$C_BLUE"
-    local C_DESC="$C_WHITE"
-    local C_WARN="$C_RED"
-    local C_RST="$C_RESET"
+    local C_TITLE="\033[1;35m"
+    local C_CAT="\033[1;33m"
+    local C_COM="\033[1;36m"
+    local C_SUB="\033[1;34m"
+    local C_DESC="\033[0;37m"
+    local C_WARN="\033[1;31m"
+    local C_RST="\033[0m"
 
     if [ "$MUX_MODE" == "FAC" ]; then
         title_text=":: Factory Sandbox Manifest ::"
-        C_TITLE="$C_PURPLE"
-        C_CAT="$C_RED"
-        C_COM="$C_WHITE"
+        C_TITLE="\033[1;35m"
+        C_CAT="\033[1;31m"
+        C_COM="\033[1;37m"
         
         if [ -f "$MUX_ROOT/app.csv.temp" ]; then
             target_app_file="$MUX_ROOT/app.csv.temp"
@@ -351,12 +351,7 @@ function _show_menu_dashboard() {
     sort -t'|' -k1,1n -k2,2n -k3,3n | \
     
     # 3. 渲染
-    awk -F'|' \
-        -v C_CAT="$(echo -e "$C_CAT")" \
-        -v C_COM="$(echo -e "$C_COM")" \
-        -v C_SUB="$(echo -e "$C_SUB")" \
-        -v C_DESC="$(echo -e "$C_DESC")" \
-        -v C_RST="$(echo -e "$C_RST")" '
+    awk -F'|' -v C_CAT="$C_CAT" -v C_COM="$C_COM" -v C_SUB="$C_COM" -v C_DESC="$C_DESC" -v C_RST="$C_RST" '
         {
             cat_no = $2
             cat_name = $4
@@ -382,7 +377,7 @@ function _show_menu_dashboard() {
 # 模糊指令選單介面 - Fuzzy Command Menu Interface
 function _mux_fuzzy_menu() {
     if ! command -v fzf &> /dev/null; then
-        echo -e "\n${C_RED} :: Neural Module (fzf) missing.${C_RESET}"
+        echo -e "\n\033[1;31m :: Neural Module (fzf) missing.\033[0m"
         return 1
     fi
 
@@ -432,7 +427,7 @@ function _mux_fuzzy_menu() {
         local clean_base=$(echo "$raw_part" | sed "s/$(printf '\033')\[[0-9;]*m//g")
         local cmd_base=$(echo "$clean_base" | sed 's/^[ \t]*//;s/[ \t]*$//')
 
-        read -e -p "$(echo -e "${C_YELLOW} :: $cmd_base ${C_BLACK}(Params?): ${C_RESET})" user_params < /dev/tty
+        read -e -p "$(echo -e "\033[1;33m :: $cmd_base \033[1;30m(Params?): \033[0m")" user_params < /dev/tty
         
         local final_cmd="$cmd_base"
         [ -n "$user_params" ] && final_cmd="$cmd_base $user_params"
@@ -442,7 +437,7 @@ function _mux_fuzzy_menu() {
         if [[ "$cmd_base" == "mux" ]]; then
             $final_cmd
         else
-            echo -e "${C_BLACK}     ›› Executing: $final_cmd${C_RESET}"
+            echo -e "\033[1;30m     ›› Executing: $final_cmd\033[0m"
             eval "$final_cmd"
         fi
     fi
