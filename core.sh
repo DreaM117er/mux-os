@@ -164,7 +164,7 @@ function _mux_reload_kernel() {
     if command -v _ui_fake_gate &> /dev/null; then
         _ui_fake_gate "$gate_theme"
     fi
-    
+    _system_unlock
     exec bash
 }
 
