@@ -1026,14 +1026,17 @@ function _core_eject_sequence() {
     echo -e ""
     _bot_factory_personality "eject"
     sleep 1.9
-    _ui_fake_gate "core"
-    _safe_ui_calc
-    clear
-    _draw_logo "core"
-    _system_check
-    _show_hud
-    _system_unlock
-    _bot_say "hello"
+
+    cat > "$MUX_ROOT/.mux_state" <<EOF
+MUX_MODE="MUX"
+MUX_STATUS="DEFAULT"
+EOF
+
+    if command -v _ui_fake_gate &> /dev/null; then
+        _ui_fake_gate "core"
+    fi
+
+    exec bash
 }
 
 
