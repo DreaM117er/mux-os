@@ -1011,11 +1011,23 @@ function _core_eject_sequence() {
     echo -e "${THEME_ERR} :: ACCESS DENIED :: ${reason}${C_RESET}"
     sleep 0.8
     echo ""
-    echo -e "${THEME_ERR} :: Initiating Eviction Protocol...${C_RESET}"
-    sleep 0.4
-    echo -e "${THEME_ERR} :: Locking Cockpit...${C_RESET}"
-    sleep 0.6
-    echo -e "${THEME_ERR} :: Auto-Eject System Activated.${C_RESET}"
+
+    if [ "$current_status" == "LOGIN" ]; then
+        # 駕駛艙彈射
+        echo -e "${THEME_ERR} :: CRITICAL: Cockpit Security Breach.${C_RESET}"
+        sleep 0.4
+        echo -e "${THEME_ERR} :: Neural Link Unstable.${C_RESET}"
+        sleep 0.6
+        echo -e "${THEME_ERR} :: EMERGENCY EJECTION SYSTEM: ARMED.${C_RESET}"
+    else
+        # 人員驅離
+        echo -e "${THEME_ERR} :: SECURITY VIOLATION DETECTED.${C_RESET}"
+        sleep 0.4
+        echo -e "${THEME_ERR} :: Hangar Defense System Engaged.${C_RESET}"
+        sleep 0.6
+        echo -e "${THEME_ERR} :: INITIATING FORCIBLE REMOVAL.${C_RESET}"
+    fi
+    
     sleep 1
     
     for i in {3..1}; do
@@ -1033,9 +1045,10 @@ MUX_STATUS="DEFAULT"
 EOF
 
     if command -v _ui_fake_gate &> /dev/null; then
-        _ui_fake_gate "core"
+        _ui_fake_gate "default"
     fi
 
+    _safe_ui_calc
     exec bash
 }
 
