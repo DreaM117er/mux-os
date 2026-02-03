@@ -110,7 +110,7 @@ bash setup.sh
     # "Factory" 是一個內建的 IDE，允許你在終端機內直接鍛造新的指令。
 
     1. 進入工廠：
-       在停機坪 (DEFAULT) 輸入 `fac` 或 `mux factory`。
+       在停機坪 (DEFAULT) 輸入`mux factory`。
 
     2. 創造指令 (Forging)：
        輸入 `fac new`，系統會引導你設定：
