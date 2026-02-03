@@ -112,7 +112,7 @@ function _bot_say() {
 
         "loading")
             icon=" ::"
-            color=$C_GRAY
+            color=$C_BLACK
             phrases=(
                 " Processing... 😑"
                 " Entropy increasing... 🌀"
