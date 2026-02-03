@@ -1252,12 +1252,12 @@ function mux() {
             local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
             local last_commit=$(git log -1 --format='%h - %s (%cr)' 2>/dev/null)
             if [ "$current_branch" == "main" ]; then
-                    export MUX_ID="Unknown (main)"
+                current_branch="Unknown (main)"
             fi
-            echo -e "${C_BLUE} :: Mux-OS System Status ${C_RESET}"
-            echo -e "${C_WHITE}    ›› Core Protocol :${C_RESET} ${C_YELLOW}v$MUX_VERSION${C_RESET}"
-            echo -e "${C_WHITE}    ›› Current Meta  :${C_RESET} ${C_PURPLE}$current_branch${C_RESET}"
-            echo -e "${C_WHITE}    ›› Last Uplink   :${C_RESET} \033[0;36m$last_commit${C_RESET}"
+            echo -e "${THEME_MAIN} :: Mux-OS System Status ${C_RESET}"
+            echo -e "${THEME_SUB}    ›› Core Protocol :${C_RESET} ${THEME_WARN}v$MUX_VERSION${C_RESET}"
+            echo -e "${THEME_SUB}    ›› Current Meta  :${C_RESET} ${THEME_OK}$current_branch${C_RESET}"
+            echo -e "${THEME_SUB}    ›› Last Uplink   :${C_RESET} ${THEME_DESC}$last_commit${C_RESET}"
             ;;
         
         # : Neural Link Deploy
@@ -1318,7 +1318,7 @@ function mux() {
             fi
 
             # 2. 掃描機體 (Branch Selection)
-            echo -e "${C_CYAN} :: Scanning Multiverse Coordinates (Hangar Walk)...${C_RESET}"
+            echo -e "${C_BLACK} :: Scanning Multiverse Coordinates (Hangar Walk)...${C_RESET}"
             git fetch --all >/dev/null 2>&1
             
             # FZF 選單
@@ -1331,7 +1331,7 @@ function mux() {
                 --pointer="››" \
                 --info=hidden \
                 --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-                --color=info:yellow,prompt:cyan,pointer:red,marker:green,border:blue,header:240 \
+                --color=info:yellow,prompt:gray,pointer:red,marker:green,border:blue,header:240 \
                 --bind="resize:clear-screen"
             )
             
