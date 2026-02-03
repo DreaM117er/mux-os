@@ -893,14 +893,23 @@ function _factory_deploy_sequence() {
     
     echo -e "${THEME_OK} :: DEPLOYMENT SUCCESSFUL ::${C_RESET}"
     sleep 1.4
+
+    local next_status="DEFAULT"
+    local gate_theme="default"
     
+    if [ "$MUX_ENTRY_POINT" == "COCKPIT" ]; then
+        next_status="LOGIN"
+        gate_theme="core"
+    fi
+
+    # 啟動星門
     if command -v _ui_fake_gate &> /dev/null; then
-        _ui_fake_gate "core"
+        _ui_fake_gate "$gate_theme"
     fi
 
     cat > "$MUX_ROOT/.mux_state" <<EOF
 MUX_MODE="MUX"
-MUX_STATUS="DEFAULT"
+MUX_STATUS="$next_status"
 EOF
 
     exec bash

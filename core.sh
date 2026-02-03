@@ -898,6 +898,7 @@ EOF
 
 # 工廠前置驗證協議 (Pre-Flight Auth)
 function _core_pre_factory_auth() {
+    local origin_status="$MUX_STATUS"
     clear
     _draw_logo "gray"
     
@@ -987,9 +988,15 @@ function _core_pre_factory_auth() {
         _ui_fake_gate "factory"
     fi
 
+    local entry_point="HANGAR"
+    if [ "$origin_status" == "LOGIN" ]; then
+        entry_point="COCKPIT"
+    fi
+
     cat > "$MUX_ROOT/.mux_state" <<EOF
 MUX_MODE="FAC"
 MUX_STATUS="LOGIN"
+MUX_ENTRY_POINT="$entry_point"
 EOF
 
     exec bash
@@ -1056,7 +1063,7 @@ function mux() {
 
     if [ "$MUX_STATUS" != "LOGIN" ]; then
         case "$cmd" in
-            "login"|"setup"|"help"|"status"|"sts"|"info"|"reload"|"reset"|"driveto"|"update"|"drive2")
+            "login"|"setup"|"help"|"status"|"sts"|"info"|"reload"|"reset"|"factory"|"tofac"|"driveto"|"update"|"drive2")
                 # 放行
                 ;;
             *)
