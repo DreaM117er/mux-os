@@ -1000,6 +1000,7 @@ MUX_STATUS="LOGIN"
 MUX_ENTRY_POINT="$entry_point"
 EOF
 
+    unset MUX_INITIALIZED
     exec bash
 }
 
