@@ -1048,6 +1048,7 @@ EOF
     fi
 
     _safe_ui_calc
+    unset MUX_INITIALIZED
     exec bash
 }
 
