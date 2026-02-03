@@ -854,7 +854,7 @@ EOF
     sleep 1.2
     
     unset MUX_INITIALIZED
-    exec bash
+    _mux_reload_kernel
 }
 
 # 登出系統 - Commander Logout
