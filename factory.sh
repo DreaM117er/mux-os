@@ -912,6 +912,7 @@ MUX_MODE="MUX"
 MUX_STATUS="$next_status"
 EOF
 
+    unset MUX_INITIALIZED
     exec bash
 }
 
