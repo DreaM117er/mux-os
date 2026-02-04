@@ -62,7 +62,7 @@ function _system_check() {
             "Initializing Neural Forge..."
             "Overriding Read-Only Filesystem..."
             "Disabling Safety Interlocks..."
-            "Mounting app.sh (Write-Mode)..."
+            "Mounting app.csv.temp (Write-Mode)..."
             "Establishing Factory Uplink..."
         )
     else
