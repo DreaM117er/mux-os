@@ -19,10 +19,17 @@
 
 <br>
 
-![Bash](https://img.shields.io/badge/Language-Bash-4EAA25?style=flat-square&logo=gnu-bash&logoColor=white)
+![Mux-OS](https://img.shields.io/badge/Mux--OS-v7.0.0-00BFFF?style=flat-square&logo=android&logoColor=white)
+![Status](https://img.shields.io/badge/System-Operational-46FF46?style=flat-square)
+![Codename](https://img.shields.io/badge/Codename-Neural%20Link-blueviolet?style=flat-square)
+
+![Core](https://img.shields.io/badge/Core-Bash%20%7C%20Awk%20%7C%20Fzf-lightgrey?style=flat-square&logo=gnu-bash&logoColor=black)
+![Database](https://img.shields.io/badge/Database-CSV%20Driven-orange?style=flat-square)
+![Architecture](https://img.shields.io/badge/Architecture-State%20Machine-ff0055?style=flat-square)
 ![Platform](https://img.shields.io/badge/Platform-Termux-black?style=flat-square)
-![Architecture](https://img.shields.io/badge/Architecture-State%20Machine-blue?style=flat-square)
-![License](https://img.shields.io/badge/License-MIT-orange?style=flat-square)
+
+![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
+![Maintenance](https://img.shields.io/badge/Maintenance-Active-success?style=flat-square)
 
 > *The Android Neural Link / A Personal Cyberdeck Environment*
 > *"Logic in mind, Hardware in hand."*
