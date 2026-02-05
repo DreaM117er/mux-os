@@ -196,6 +196,7 @@ MUX_MODE="MUX"
 MUX_STATUS="DEFAULT"
 EOF
 
+    unset MUX_INITIALIZED
     exec bash
 }
 
