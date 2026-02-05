@@ -38,8 +38,8 @@
  :: Target: Android/Termux :: v7.0.0 Dual Core ::
  :: Architect: @DreaM117er :: 
 
-    ›› INITIATING MUX-OS KERNEL...
-    ›› LOADING MODULES:
+ :: INITIATING MUX-OS KERNEL...
+ :: LOADING MODULES:
     ›› [LOADED] #ai-agent
     ›› [LOADED] #embodied-ai
     ›› [LOADED] #cellphone-control
@@ -50,7 +50,10 @@
     ›› [LOADED] #gemini-codified
     ›› [LOADED] #termux-automation
     ›› ...
-    ›› SYSTEM READY. WAITING FOR ARCHITECT COMMAND.
+
+ :: SYSTEM READY. WAITING FOR ARCHITECT COMMAND.
+ :: WARNING: LOGIC DENSITY EXCEEDS STANDARD PARAMETERS.
+ :: PROCEED WITH CAUTION.
 
 
  :: 01. System Manifest (Mission Briefing) ::
