@@ -52,6 +52,7 @@
     ›› ...
     ›› SYSTEM READY. WAITING FOR ARCHITECT COMMAND.
 
+
  :: 01. System Manifest (Mission Briefing) ::
     ›› 這不僅僅是一個 Shell 腳本，這是一個架構在 Android 核心之上的「作業系統」。
     ›› Commander (指揮官)：你是機體的靈魂。
