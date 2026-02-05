@@ -178,7 +178,7 @@ function _install_protocol() {
         echo "    ›› Neural uplink already active."
     fi
     
-    echo "    ›› Bootloader injected into $RC_FILE (v7.1.0 structure)"
+    echo "    ›› Bootloader injected into $RC_FILE."
 
     if [ ! -f "$MUX_ROOT/.mux_identity" ]; then
         echo ""
