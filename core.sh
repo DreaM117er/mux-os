@@ -598,32 +598,21 @@ function _mux_neural_fire_control() {
 
                 local cmd="am start --user 0 -a \"$final_action\""
 
-                if [ -n "$_VAL_PKG" ]; then cmd="$cmd -p \"$_VAL_PKG\""; fi
                 if [ -n "$_VAL_FLAG" ]; then cmd="$cmd -f $_VAL_FLAG"; fi
                 if [ -n "$_VAL_CATE" ]; then cmd="$cmd -c android.intent.category.$_VAL_CATE"; fi
                 
                 if [ -n "$_VAL_EX" ]; then
-                    local fixed_ex="${_VAL_EX//\"/\\\"}"
-                    
-                    if [[ "$_VAL_EX" == *"\"\$query\""* ]]; then
-                        local injected_ex="${fixed_ex//\$query/$safe_query}"
-                        cmd="$cmd $injected_ex"
-                    else
-                        local injected_ex="${fixed_ex//\$query/\\\"$safe_query\\\"}"
-                        cmd="$cmd $injected_ex"
-                    fi
+                    local injected_ex="${_VAL_EX//\$query/$safe_query}"
+                    cmd="$cmd $injected_ex"
                 fi
 
                 if [ -n "$_VAL_EXTRA" ]; then
-                    local fixed_extra="${_VAL_EXTRA//\"/\\\"}"
-                    if [[ "$_VAL_EXTRA" == *"\"\$query\""* ]]; then
-                        local injected_extra="${fixed_extra//\$query/$safe_query}"
-                        cmd="$cmd $injected_extra"
-                    else
-                        local injected_extra="${fixed_extra//\$query/\\\"$safe_query\\\"}"
-                        cmd="$cmd $injected_extra"
-                    fi
+                    local injected_extra="${_VAL_EXTRA//\$query/$safe_query}"
+                    cmd="$cmd $injected_extra"
                 fi
+                
+                # 這裡特別留意，最後處理 PKG
+                if [ -n "$_VAL_PKG" ]; then cmd="$cmd -p \"$_VAL_PKG\""; fi
 
                 # FIRE THE COMMAND
                 local output=$(eval "$cmd" 2>&1)
