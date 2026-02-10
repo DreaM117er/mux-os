@@ -619,18 +619,21 @@ function _mux_neural_fire_control() {
                 if [[ "$output" == *"Error"* ]]; then
                    _bot_say "loading" "I would try another mode, wait a minute."
                     
+                    local hard_query="\\\"${raw_input}\\\""
                     local cmd_retry="am start --user 0 -a \"$final_action\""
                     
                     if [ -n "$_VAL_FLAG" ]; then cmd_retry="$cmd_retry -f $_VAL_FLAG"; fi
                     if [ -n "$_VAL_CATE" ]; then cmd_retry="$cmd_retry -c android.intent.category.$_VAL_CATE"; fi
                     
                     if [ -n "$_VAL_EX" ]; then
-                        local injected_ex="${_VAL_EX//\$query/$safe_query}"
+                        local clean_ex="${_VAL_EX//\"/}"
+                        local injected_ex="${clean_ex//\$query/$hard_query}"
                         cmd_retry="$cmd_retry $injected_ex"
                     fi
                     
                     if [ -n "$_VAL_EXTRA" ]; then
-                        local injected_extra="${_VAL_EXTRA//\$query/$safe_query}"
+                        local clean_extra="${_VAL_EXTRA//\"/}"
+                        local injected_extra="${clean_extra//\$query/$hard_query}"
                         cmd_retry="$cmd_retry $injected_extra"
                     fi
 
