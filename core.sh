@@ -617,30 +617,8 @@ function _mux_neural_fire_control() {
 
                 # Fallback to 'e' mode
                 if [[ "$output" == *"Error"* ]]; then
-                   _bot_say "loading" "I would try another mode, wait a minute."
-                    
-                    local cmd_retry="am start --user 0 -a \"$final_action\""
-                    
-                    if [ -n "$_VAL_FLAG" ]; then cmd_retry="$cmd_retry -f $_VAL_FLAG"; fi
-                    if [ -n "$_VAL_CATE" ]; then cmd_retry="$cmd_retry -c android.intent.category.$_VAL_CATE"; fi
-                    
-                    if [ -n "$_VAL_EX" ]; then
-                        local injected_ex="${_VAL_EX//\$query/$safe_query}"
-                        cmd_retry="$cmd_retry $injected_ex"
-                    fi
-                    
-                    if [ -n "$_VAL_EXTRA" ]; then
-                        local injected_extra="${_VAL_EXTRA//\$query/$safe_query}"
-                        cmd_retry="$cmd_retry $injected_extra"
-                    fi
-
-                    # FIRE THE COMMAND
-                    local output_retry=$(eval "$cmd_retry" 2>&1)
-
-                    if [[ "$output_retry" == *"Error"* ]]; then
-                        _bot_say "error" "Launch Failed: $output_retry"
-                        return 1
-                    fi
+                    _bot_say "error" "Launch Failed: $output"
+                    return 1
                 fi
                 return 0
             fi
