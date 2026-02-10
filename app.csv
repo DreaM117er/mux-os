@@ -24,7 +24,7 @@
 7,1,"Communication","NA","phone",,"P","Google Phone","Phone","com.google.android.dialer",".extensions.GoogleDialtactsActivity",,,,,,,,,
 8,1,"Productivity","NA","line",,"P","Line","Line","jp.naver.line.android",".activity.SplashActivity",,,,,,,,,
 8,2,"Productivity","NA","x",,"P","X (Twitter)","X (Twitter)","com.twitter.android",".StartActivity",,,,,,,,,
-8,3,"Productivity","NA","twitter",,"P",,"X (Twitter)","com.twitter.android",".StartActivity",,,,,,,,,
+8,3,"Productivity","NA","twitter",,"P","X (Twitter)","X (Twitter)","com.twitter.android",".StartActivity",,,,,,,,,
 8,4,"Productivity","NA","tg",,"P","Telegram","Telegram","org.telegram.messenger",".DefaultIcon",,,,,,,,,
 8,5,"Productivity","NA","msger",,"P","Messenger","Messenger","com.facebook.orca",".auth.StartScreenActivity",,,,,,,,,
 8,6,"Productivity","NA","dc",,"P","Discord","Discord","com.discord",".main.MainDefault",,,,,,,,,

@@ -615,7 +615,7 @@ function _mux_neural_fire_control() {
                 # FIRE THE COMMAND
                 local output=$(eval "$cmd" 2>&1)
 
-                # Fallback to 'e' mode
+                # 不要試圖去更動 system 裡的參數，後果自負
                 if [[ "$output" == *"Error"* ]]; then
                     _bot_say "error" "Launch Failed: $output"
                     return 1
