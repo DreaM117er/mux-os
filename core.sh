@@ -368,6 +368,7 @@ function _resolve_smart_url() {
 
     # 2. 安全編碼：空格轉 +
     local safe_query="${raw_input// /+}"
+    safe_query="${safe_query//\"/}"
 
     # 3. 初始化目標
     __GO_TARGET=""
@@ -598,17 +599,17 @@ function _mux_neural_fire_control() {
 
                 local cmd="am start --user 0 -a \"$final_action\""
 
-                if [ -n "$_VAL_PKG" ]; then cmd="$cmd -p $_VAL_PKG"; fi
+                if [ -n "$_VAL_PKG" ]; then cmd="$cmd -p \"$_VAL_PKG\""; fi
                 if [ -n "$_VAL_FLAG" ]; then cmd="$cmd -f $_VAL_FLAG"; fi
                 if [ -n "$_VAL_CATE" ]; then cmd="$cmd -c android.intent.category.$_VAL_CATE"; fi
                 
                 if [ -n "$_VAL_EX" ]; then
-                    local injected_ex="${_VAL_EX//\$query/$safe_query}"
+                    local injected_ex="${_VAL_EX//\$query/\\\"$safe_query\\\"}"
                     cmd="$cmd $injected_ex"
                 fi
 
                 if [ -n "$_VAL_EXTRA" ]; then
-                    local injected_extra="${_VAL_EXTRA//\$query/$safe_query}"
+                    local injected_extra="${_VAL_EXTRA//\$query/\\\"$safe_query\\\"}"
                     cmd="$cmd $injected_extra"
                 fi
 
