@@ -13,18 +13,15 @@ function _draw_level_bar() {
     local id="${MUX_ID:-Unknown}"
     
     if [ -z "$lvl" ]; then return; fi
-
     if [ -z "$next" ] || [ "$next" -eq 0 ]; then next=1; fi
+    
+    # 進度條總長度
+    local bar_len=25
     
     # 計算百分比
     local percent=$(( (xp * 100) / next ))
     if [ "$percent" -gt 100 ]; then percent=100; fi
 
-    # 動態寬度
-    local cols=$(tput cols 2>/dev/null || echo 80)
-    local bar_len=30
-    if [ "$cols" -lt 40 ]; then bar_len=$(( cols - 10 )); fi
-    
     local filled_blocks=$(( (percent * bar_len) / 100 ))
     local empty_blocks=$(( bar_len - filled_blocks ))
 
@@ -32,45 +29,43 @@ function _draw_level_bar() {
     local bar_empty=$(printf "%0.s░" $(seq 1 $empty_blocks 2>/dev/null))
     
     # 定義顏色
-    local c_sub="\033[1;30m"
-    local c_txt="\033[1;37m"
+    local c_frame="\033[1;37m" # 邊框：白 (固定)
+    local c_fill="\033[1;32m"  # 實心：綠 (固定)
+    local c_empty="\033[1;30m" # 空心：深灰
+    local c_xp="\033[1;30m"    # XP：灰色
+    
+    # 定義稱號與狀態文字顏色
     local title="Init"
-    local c_title="\033[0;37m" # 預設白
-    local c_bar="\033[1;32m"   # 預設綠
+    local c_status="\033[1;32m" # 預設綠
     
     case "$lvl" in
         1|2|3)
             title="Novice"
-            c_title="\033[1;32m"     # Light Green
-            c_bar="\033[1;32m"
+            c_status="\033[1;32m"     # Light Green
             ;;
         4|5|6|7)
             title="Operator"
-            c_title="\033[1;36m"     # Cyan
-            c_bar="\033[1;36m"
+            c_status="\033[1;36m"     # Cyan
             ;;
         8|9|10|11)
             title="Vanguard"         # XUM Unlocked
-            c_title="\033[1;35m"     # Magenta (Purple)
-            c_bar="\033[1;35m"
+            c_status="\033[1;35m"     # Magenta (Purple)
             ;;
         12|13|14|15)
             title="Elite"            # High Mastery
-            c_title="\033[1;31m"     # Red
-            c_bar="\033[1;31m"
+            c_status="\033[1;31m"     # Red
             ;;
         *)
             # L16 and above
             title="Architect"        # The Creator
-            c_title="\033[1;37m"     # Bright White
-            c_bar="\033[1;37m"
+            c_status="\033[1;37m"     # Bright White
             ;;
     esac
 
     # 渲染輸出
-    echo -e " ${c_txt}║${bar_filled}${c_sub}${bar_empty}${c_txt}║ ${c_sub}${xp}/${next} XP${C_RESET}"
-    echo -e " ${c_bar}[L${lvl}][${id}]${c_sub}-[${title}]${C_RESET}"
-    echo ""
+    echo -e " ${c_frame}║${c_fill}${bar_filled}${c_empty}${bar_empty}${c_frame}║${C_RESET}"
+    echo -e " ${c_xp}${xp}/${next} XP${C_RESET}"
+    echo -e " ${c_status}[L${lvl}][${id}]${c_empty}-[${title}]${C_RESET}"
 }
 
 # 繪製 Mux-OS Logo標誌
