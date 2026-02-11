@@ -108,6 +108,13 @@ function _check_active_buffs() {
     local current_day=$(date +%u) # 1-7 (1=Mon, 7=Sun)
     local current_date=$(date +%m%d)
 
+    # 閏年特別加成 [3x]
+    if [ "$current_date" == "0229" ]; then
+        export MUX_CURRENT_MULT=3
+        export MUX_BUFF_TAG="\033[1;35;47m[3x:Rift]\033[0m"
+        return
+    fi
+
     # 節日慶典 [2x]
     local event_name=""
     
