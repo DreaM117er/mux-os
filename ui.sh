@@ -38,8 +38,9 @@ function _draw_logo() {
     esac
 
     # 等級進度條
-    if [ -n "$MUX_LEVEL" ] && [ "$mode" != "gray" ]; then
+    if [ -n "$lvl" ] && [ "$mode" != "gray" ]; then
         if [ -z "$next" ] || [ "$next" -eq 0 ]; then next=1; fi
+        
         local percent=$(( (xp * 100) / next ))
         if [ "$percent" -gt 100 ]; then percent=100; fi
 
