@@ -481,6 +481,9 @@ function _fac_rebak_wizard() {
         read -r confirm
 
         if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
+            if command -v _grant_xp &> /dev/null; then
+                _grant_xp 15 "FAC_REBAK"
+            fi
             cp "$bak_dir/$target_file" "$MUX_ROOT/app.csv.temp"
             echo -e "${THEME_WARN} :: Workspace Restored from: $target_file${C_RESET}"
             sleep 0.3
@@ -892,6 +895,12 @@ function _factory_deploy_sequence() {
     fi
     
     echo -e "${THEME_OK} :: DEPLOYMENT SUCCESSFUL ::${C_RESET}"
+
+    # 部署獎勵
+    if command -v _grant_xp &> /dev/null; then
+        _grant_xp 20 "FAC_DEPLOY"
+    fi
+
     sleep 1.4
 
     local next_status="DEFAULT"
@@ -958,6 +967,11 @@ function _fac_generic_edit() {
     # 4. 原子寫入
     _fac_neural_write "$target_key" "$col_idx" "$input_val"
     _bot_say "success" "Parameter Updated." >&2
+
+    # 5. 經驗獎勵
+    if command -v _grant_xp &> /dev/null; then
+        _grant_xp 15 "FAC_EDIT"
+    fi
 }
 
 # 分類名稱批量更新器 (Batch Category Renamer)
@@ -1133,6 +1147,7 @@ function _fac_edit_router() {
                 _fac_neural_write "$target_key" 3 "$new_cat_name"
                 
                 _bot_say "success" "Node Relocated." >&2
+                if command -v _grant_xp &> /dev/null; then _grant_xp 15 "FAC_EDIT"; fi
                 return 2
 
             # Branch B: 移動到現有類別 (Existing Category)
@@ -1171,6 +1186,7 @@ function _fac_edit_router() {
                 _fac_neural_write "$target_key" 3 "$sel_name"
 
                 _bot_say "success" "Transfer Complete. Assigned ID: $next_com_no" >&2
+                if command -v _grant_xp &> /dev/null; then _grant_xp 15 "FAC_EDIT"; fi
                 return 2
             fi
             ;;
@@ -1225,6 +1241,7 @@ function _fac_edit_router() {
                             current_track_key="$new_com"
                         fi
                         _bot_say "success" "Identity Updated." >&2
+                        if command -v _grant_xp &> /dev/null; then _grant_xp 15 "FAC_EDIT"; fi
                     fi
                 elif echo "$choice" | grep -q " SUB"; then
                     _bot_say "action" "Edit Sub-Command (Optional):" >&2
@@ -1242,6 +1259,7 @@ function _fac_edit_router() {
                             current_track_key="$cur_com"
                         fi
                         _bot_say "success" "Sub-Command Updated." >&2
+                        if command -v _grant_xp &> /dev/null; then _grant_xp 15 "FAC_EDIT"; fi
                     fi
                 
                 elif echo "$choice" | grep -q "Confirm"; then
@@ -1391,6 +1409,7 @@ function _fac_edit_router() {
                             edit_engine="$sel_eng"
                             edit_uri="\$__GO_TARGET"
                             _bot_say "success" "Engine Linked. URI locked to \$__GO_TARGET."
+                            if command -v _grant_xp &> /dev/null; then _grant_xp 15 "FAC_EDIT"; fi
                         fi
                     fi
 
@@ -1398,6 +1417,7 @@ function _fac_edit_router() {
                     _fac_neural_write "$target_key" 14 "$edit_uri"
                     _fac_neural_write "$target_key" 20 "$edit_engine"
                     _bot_say "success" "URI/Engine Configuration Saved."
+                    if command -v _grant_xp &> /dev/null; then _grant_xp 15 "FAC_EDIT"; fi
                     return 2
                 fi
             done
@@ -1819,19 +1839,27 @@ function _fac_launch_test() {
         output=$(eval "$final_cmd" 2>&1)
         
         if [[ "$output" == *"Error"* || "$output" == *"does not exist"* || "$output" == *"unable to resolve"* ]]; then
-             echo -e "\n${THEME_ERR} :: FIRE FAILED ::${C_RESET}"
-             echo -e "${THEME_DESC}    $output${C_RESET}"
-             return 1
+            echo -e "\n${THEME_ERR} :: FIRE FAILED ::${C_RESET}"
+            echo -e "${THEME_DESC}    $output${C_RESET}"
+
+            if command -v _grant_xp &> /dev/null; then
+                _grant_xp 2 "TEST_FAIL"
+            fi
+
+            return 1
         else
-             echo -e "\n${THEME_OK} :: FIRE SUCCESS ::${C_RESET}"
-             if [ "$fire_mode" == "SSL" ]; then
-                 echo -e "${THEME_DESC}    ---------------${C_RESET}"
-                 echo -e "$output"
-                 echo -e "${THEME_DESC}    ---------------${C_RESET}"
-             else
-                 echo -e "${THEME_DESC}    ›› Target Impacted.${C_RESET}"
-             fi
-             return 0
+            echo -e "\n${THEME_OK} :: FIRE SUCCESS ::${C_RESET}"
+            if [ "$fire_mode" == "SSL" ]; then
+                echo -e "${THEME_DESC}    ---------------${C_RESET}"
+                echo -e "$output"
+                echo -e "${THEME_DESC}    ---------------${C_RESET}"
+            else
+                echo -e "${THEME_DESC}    ›› Target Impacted.${C_RESET}"
+            fi
+            if command -v _grant_xp &> /dev/null; then
+                _grant_xp 5 "TEST_OK"
+            fi
+            return 0
         fi
     fi
 }
@@ -1910,6 +1938,9 @@ function fac() {
 
         # : Check & Fix Formatting
         "check")
+            if command -v _grant_xp &> /dev/null; then
+                _grant_xp 10 "FAC_MAINTAIN"
+            fi
             _fac_maintenance
             _fac_sort_optimization
             _fac_matrix_defrag
@@ -1917,6 +1948,9 @@ function fac() {
 
         # : List all links
         "list"|"ls")
+            if command -v _grant_xp &> /dev/null; then
+                _grant_xp 3 "FAC_LIST"
+            fi
             _fac_list
             ;;
 
@@ -1991,6 +2025,18 @@ function fac() {
                     if [[ "$leftover_state" == "S" || "$leftover_state" == "P" ]]; then
                         # 保留 S 標記
                         _bot_say "success" "Node Created (Default Identity Kept)."
+
+                        # 創造獎勵
+                        local xp_reward=25
+                        case "$type_sel" in
+                            *"NB")  xp_reward=50 ;;
+                            *"SYS") xp_reward=50 ;;
+                            *"SSL") xp_reward=100 ;;
+                        esac
+                        
+                        if command -v _grant_xp &> /dev/null; then
+                            _grant_xp $xp_reward "FAC_CREATE"
+                        fi
                     else
                         # 清除其他標記
                         _bot_say "error" "Incomplete Transaction. Cleaning up..."
@@ -2119,6 +2165,10 @@ function fac() {
                     
                     sleep 0.2
                     echo -e "${THEME_DESC}    ›› Target neutralized.${C_RESET}"
+
+                    if command -v _grant_xp &> /dev/null; then
+                        _grant_xp 25 "FAC_DEL"
+                    fi
                     
                     _fac_sort_optimization
                     _fac_matrix_defrag
@@ -2168,6 +2218,10 @@ function fac() {
                         awk -F, -v tid="$temp_id" -v OFS=, '$1 != tid {print $0}' "$MUX_ROOT/app.csv.temp" > "$MUX_ROOT/app.csv.temp.tmp" && mv "$MUX_ROOT/app.csv.temp.tmp" "$MUX_ROOT/app.csv.temp"
                         
                         _bot_say "success" "Category Dissolved."
+                        
+                        if command -v _grant_xp &> /dev/null; then
+                            _grant_xp 25 "FAC_DEL"
+                        fi
 
                         _fac_sort_optimization
                         _fac_matrix_defrag
@@ -2208,6 +2262,10 @@ function fac() {
                             _fac_delete_node "$clean_target"
                             
                             _bot_say "success" "Target neutralized."
+
+                            if command -v _grant_xp &> /dev/null; then
+                                _grant_xp 25 "FAC_DEL"
+                            fi
 
                             _fac_sort_optimization
                             _fac_matrix_defrag
