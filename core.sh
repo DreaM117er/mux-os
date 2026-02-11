@@ -14,7 +14,7 @@ if command -v _init_identity &> /dev/null; then _init_identity; fi
 
 # 基礎路徑與版本定義
 export MUX_REPO="https://github.com/DreaM117er/mux-os"
-export MUX_VERSION="7.0.0"
+export MUX_VERSION="7.1.0"
 export MUX_ROOT="$HOME/mux-os"
 export BASE_DIR="$MUX_ROOT"
 export MUX_BAK="$MUX_ROOT/bak"
