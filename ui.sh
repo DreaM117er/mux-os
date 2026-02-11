@@ -70,8 +70,14 @@ function _draw_level_bar() {
             ;;
     esac
 
+    if command -v _check_active_buffs &> /dev/null; then
+        _check_active_buffs
+    else
+        MUX_BUFF_TAG=""
+    fi
+
     # 渲染輸出
-    echo -e " ${c_frame}║${c_fill}${bar_filled}${c_empty}${bar_empty}${c_frame}║${C_RESET}"
+    echo -e " ${c_frame}║${c_fill}${bar_filled}${c_empty}${bar_empty}${c_frame}║${C_RESET}${MUX_BUFF_TAG}"
     echo -e " ${c_frame}╚ ${c_xp}${xp}/${next} XP${C_RESET}"
     echo -e " ${c_status}[L${lvl}][${id}]${c_empty}-[${title}]${C_RESET}"
 }
