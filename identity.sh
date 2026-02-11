@@ -98,21 +98,89 @@ if [ ! -f "$IDENTITY_FILE" ]; then
     fi
 }
 
+# 狀態加成計算核心 (Buff Calculation Engine)
+function _check_active_buffs() {
+    # 預設：無加成
+    export MUX_CURRENT_MULT=1
+    export MUX_BUFF_TAG=""
+    
+    local current_hour=$(date +%H)
+    local current_day=$(date +%u) # 1-7 (1=Mon, 7=Sun)
+    local current_date=$(date +%m%d)
+
+    # 節日慶典 [2x]
+    local event_name=""
+    
+    case "$current_date" in
+        "0101") event_name="Init";;    # New Year
+        "0314") event_name="Pi";;      # Pi Day
+        "0401") event_name="Glitch";;  # April Fools
+        "0504") event_name="Force";;   # Star Wars Day
+        "0913") event_name="Dev";;     # Programmer Day
+        "1031") event_name="Spooky";;  # Halloween
+        "1225") event_name="Xmas";;    # Christmas
+    esac
+
+    if [ -n "$event_name" ]; then
+        export MUX_CURRENT_MULT=2
+        export MUX_BUFF_TAG="\033[1;35m[2x:$event_name]\033[0m" 
+        return
+    fi
+
+    # 懲罰性加成 [-5] - Blue Monday: 週一上午 06:00 - 12:00
+    if [ "$current_day" -eq 1 ] && [ "$current_hour" -ge 6 ] && [ "$current_hour" -lt 12 ]; then
+        export MUX_CURRENT_MULT=0.5
+        export MUX_BUFF_TAG="\033[1;34m[-5:Blue]\033[0m"
+        return
+    fi
+
+    # 深夜模式: 00:00 - 04:00 (熬夜獎勵)
+    # 請不要熬夜玩系統
+    if [ "$current_hour" -ge 0 ] && [ "$current_hour" -lt 4 ]; then
+        export MUX_CURRENT_MULT=1.5
+        export MUX_BUFF_TAG="\033[1;33m[+5:Night]\033[0m" 
+        return
+    fi
+
+    # 週末戰士: 週日全天 (Sunday)
+    if [ "$current_day" -ge 7 ]; then
+        export MUX_CURRENT_MULT=1.5
+        export MUX_BUFF_TAG="\033[1;36m[+5:Sun]\033[0m" 
+        return
+    fi
+}
+
 # XP 以及 Level 升級系統 (Experience and Leveling System)
 function _grant_xp() {
-    local amount=$1
+    local base_amount=$1
     local source_type=$2
     
-    source "$IDENTITY_FILE"
+    if [ -f "$IDENTITY_FILE" ]; then
+        source "$IDENTITY_FILE"
+    fi
+
+    _check_active_buffs
+
+    local final_amount=$(awk "BEGIN {print int($base_amount * $MUX_CURRENT_MULT)}")
+
+    # 如果有加成且數值大於 0，顯示加成特效 (可選)
+    # if [ "$MUX_CURRENT_MULT" != "1" ] && [ "$final_amount" -gt 0 ]; then
+    #    echo -e " \033[1;30m(Buff Applied: x$MUX_CURRENT_MULT)\033[0m"
+    # fi
     
-    MUX_XP=$((MUX_XP + amount))
+    MUX_XP=$((MUX_XP + final_amount))
     
     if [ "$MUX_XP" -ge "$MUX_NEXT_XP" ]; then
         MUX_LEVEL=$((MUX_LEVEL + 1))
+        # 混合線性成長公式
         MUX_NEXT_XP=$(awk "BEGIN {print int($MUX_NEXT_XP * 1.5 + 2000)}")
         
         echo ""
-        _bot_say "system" "LEVEL UP! Clearance Level $MUX_LEVEL Granted."
+        if command -v _bot_say &> /dev/null; then
+            _bot_say "system" "LEVEL UP! Clearance Level $MUX_LEVEL Granted."
+        else
+            echo -e "\033[1;33m :: LEVEL UP! Clearance Level $MUX_LEVEL Granted. ::\033[0m"
+        fi
 
         if [ "$MUX_LEVEL" -eq 8 ]; then
              echo -e "\033[1;35m :: OVERCLOCK PROTOCOL UNLOCKED ::\033[0m"
