@@ -5,7 +5,7 @@ if [ -z "$__MUX_CORE_ACTIVE" ]; then
     return 1 2>/dev/null || exit 1
 fi
 
-# 繪製等級進度條 (獨立組件)
+# 等級進度條繪製 (Level Progress Bar Rendering)
 function _draw_level_bar() {
     local lvl="${MUX_LEVEL:-1}"
     local xp="${MUX_XP:-0}"
