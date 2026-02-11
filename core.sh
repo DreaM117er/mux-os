@@ -871,6 +871,11 @@ function _core_system_scan() {
         fi
     done
 
+    # 經驗值獎勵
+    if command -v _grant_xp &> /dev/null; then
+        _grant_xp 5 "SYS_SCAN"
+    fi
+
     # 結果回饋
     if [ "$error_count" -gt 0 ]; then
         # [異常狀態]
@@ -1003,6 +1008,12 @@ EOF
     
     MUX_STATUS="LOGIN"
     unset MUX_INITIALIZED
+
+    # 經驗值獎勵
+    if command -v _grant_xp &> /dev/null; then
+        _grant_xp 1 "LOGIN"
+    fi
+
     _mux_reload_kernel
 }
 
@@ -1044,6 +1055,12 @@ EOF
 
     MUX_STATUS="DEFAULT"
     sleep 1.9
+
+    # 經驗值獎勵
+    if command -v _grant_xp &> /dev/null; then
+        _grant_xp 1 "LOGOUT"
+    fi
+
     _mux_reload_kernel
 }
 
@@ -1161,6 +1178,11 @@ function _core_pre_factory_auth() {
         _ui_fake_gate "factory"
     fi
 
+    # 工廠通行證獎勵
+    if command -v _grant_xp &> /dev/null; then
+        _grant_xp 20 "FACTORY_ENTRY"
+    fi
+
     local entry_point="HANGAR"
     if [ "$origin_status" == "LOGIN" ]; then
         entry_point="COCKPIT"
@@ -1208,6 +1230,11 @@ function _core_eject_sequence() {
         echo -e "${THEME_DESC}    ›› Ejection in $i...${C_RESET}"
         sleep 0.99
     done
+
+    # 經驗值獎勵
+    if command -v _grant_xp &> /dev/null; then
+        _grant_xp 5 "EJECTED"
+    fi
 
     echo -e ""
     _bot_factory_personality "eject"
@@ -1430,6 +1457,12 @@ function mux() {
             # 4. 系統重載 (Reload)
             if [ $? -eq 0 ]; then
                 echo -e "${C_YELLOW} :: Initializing New Unit Core...${C_RESET}"
+
+                # 空間跳躍獎勵
+                if command -v _grant_xp &> /dev/null; then
+                    _grant_xp 15 "WARP_JUMP"
+                fi
+
                 sleep 1.0
                 
                 # 賦予新機體執行權限

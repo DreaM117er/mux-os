@@ -15,7 +15,7 @@ function _draw_level_bar() {
     if [ -z "$lvl" ]; then return; fi
     if [ -z "$next" ] || [ "$next" -eq 0 ]; then next=1; fi
     
-    # [設定] 進度條總長度 (不含邊框)
+    # 進度條執行長度
     local bar_len=25
     
     # 計算百分比
@@ -71,7 +71,6 @@ function _draw_level_bar() {
     esac
 
     # 渲染輸出
-    # 當 XP=0 時，bar_filled 為空，直接顯示 c_empty 顏色的 bar_empty
     echo -e " ${c_frame}║${c_fill}${bar_filled}${c_empty}${bar_empty}${c_frame}║${C_RESET}"
     echo -e " ${c_frame}╚ ${c_xp}${xp}/${next} XP${C_RESET}"
     echo -e " ${c_status}[L${lvl}][${id}]${c_empty}-[${title}]${C_RESET}"

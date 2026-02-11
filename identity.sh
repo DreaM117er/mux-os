@@ -94,7 +94,7 @@ if [ ! -f "$IDENTITY_FILE" ]; then
     
     source "$IDENTITY_FILE"
     
-    # 舊用戶遷移 (Migration): 如果讀進來發現沒有 XP 變數，補上
+    # 舊用戶遷移
     if [ -z "$MUX_LEVEL" ]; then
         MUX_LEVEL=1
         MUX_XP=0
@@ -115,7 +115,7 @@ function _grant_xp() {
     
     if [ "$MUX_XP" -ge "$MUX_NEXT_XP" ]; then
         MUX_LEVEL=$((MUX_LEVEL + 1))
-        MUX_NEXT_XP=$(awk "BEGIN {print int($MUX_NEXT_XP * 1.5)}")
+        MUX_NEXT_XP=$(awk "BEGIN {print int($MUX_NEXT_XP * 1.5 + 2000)}")
         
         echo ""
         _bot_say "system" "LEVEL UP! Clearance Level $MUX_LEVEL Granted."
