@@ -68,8 +68,8 @@ function _draw_level_bar() {
     esac
 
     # 渲染輸出
-    echo -e " ${c_bar}║${bar_filled}${c_sub}${bar_empty}${c_bar}║ ${c_sub}${xp}/${next} XP${C_RESET}"
-    echo -e " ${c_bar}[L${lvl}]${c_txt}[${id}]${c_sub}-[${title}]${C_RESET}"
+    echo -e " ${c_txt}║${bar_filled}${c_sub}${bar_empty}${c_txt}║ ${c_sub}${xp}/${next} XP${C_RESET}"
+    echo -e " ${c_bar}[L${lvl}][${id}]${c_sub}-[${title}]${C_RESET}"
     echo ""
 }
 
