@@ -771,6 +771,20 @@ function _mux_neural_fire_control() {
             return 1
             ;;
     esac
+
+    local xp_gain=0
+
+    case "$_VAL_TYPE" in
+        "SYS") xp_gain=5 ;;   # 系統指令 +5
+        "NA")  xp_gain=10 ;;  # App 啟動 +10
+        "NB")  xp_gain=15 ;;  # 網頁/複雜指令 +15
+        *)     xp_gain=2 ;;   # 其他 +2
+    esac
+
+    if command -v _grant_xp &> /dev/null; then
+        _grant_xp $xp_gain "CMD_EXEC"
+    fi
+
     return 0
 }
 
@@ -1489,11 +1503,14 @@ case "$MUX_MODE" in
 
         if [ "$MUX_STATUS" == "LOGIN" ]; then
             export PS1="\[\033[1;36m\]Mux\[\033[0m\] \w › "
+            
+            if [[ "$PROMPT_COMMAND" != *"_grant_xp"* ]]; then
+                 export PROMPT_COMMAND="_grant_xp 1 'SHELL' >/dev/null 2>&1; tput sgr0; echo -ne '\033[0m'"
+            fi
         else
             export PS1="\[\033[1;30m\]Mux\[\033[0m\] \w › "
+            export PROMPT_COMMAND="tput sgr0; echo -ne '\033[0m'"
         fi
-        
-        export PROMPT_COMMAND="tput sgr0; echo -ne '\033[0m'"
         ;;
         
     *)

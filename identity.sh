@@ -119,9 +119,9 @@ function _grant_xp() {
         
         echo ""
         _bot_say "system" "LEVEL UP! Clearance Level $MUX_LEVEL Granted."
-        
+
         if [ "$MUX_LEVEL" -eq 8 ]; then
-            _bot_say "warn" "OVERCLOCK PROTOCOL [XUM] UNLOCKED."
+             echo -e "\033[1;35m :: OVERCLOCK PROTOCOL UNLOCKED ::\033[0m"
         fi
     fi
     _save_identity
