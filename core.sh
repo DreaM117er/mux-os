@@ -898,8 +898,11 @@ function _mux_pre_login() {
     echo -e "${THEME_WARN} :: SECURITY CHECKPOINT ::${C_RESET}"
     
     sleep 0.2
+    local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "unknown")
+    echo -e "${THEME_DESC}    ›› Mobile Suit Unit : ${C_CYAN}$current_branch${C_RESET}"
+    sleep 0.3
     echo -e "${THEME_DESC}    ›› Initializing Biometeric Scan...${C_RESET}"
-    sleep 0.6
+    sleep 0.4
     _system_unlock
 
     echo ""
@@ -911,36 +914,67 @@ function _mux_pre_login() {
     sleep 0.6
     
     local identity_valid=0
+    local REAL_ID=""
     if [ -f "$MUX_ROOT/.mux_identity" ]; then
-        local REAL_ID=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2 | tr -d '"')
+        REAL_ID=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2 | tr -d '"')
         if [ "$input_id" == "$REAL_ID" ]; then
             identity_valid=1
         fi
     else
         identity_valid=1
+        REAL_ID="$input_id"
     fi
 
     if [ "$identity_valid" -ne 1 ]; then
         sleep 0.5
         echo ""
-        echo -e "${THEME_ERR} :: ACCESS DENIED :: Identity Mismatch.${C_RESET}"
+        echo -e "${THEME_ERR} :: ACCESS DENIED :: Signature Mismatch.${C_RESET}"
         sleep 0.5
         _system_unlock
         return 1
+    fi
+
+    local sync_status="GUEST"
+    local welcome_msg="WELCOME BACK, GUEST PILOT"
+    local voice_code="guest_login"
+    
+    # 轉小寫比對
+    local branch_lower=$(echo "$current_branch" | tr '[:upper:]' '[:lower:]')
+    local id_lower=$(echo "$REAL_ID" | tr '[:upper:]' '[:lower:]')
+
+    if [[ "$branch_lower" == *"$id_lower"* ]]; then
+        # 完美同步 (專用機)
+        sync_status="COMMANDER"
+        welcome_msg="WELCOME BACK, COMMANDER $REAL_ID"
+    elif [[ "$branch_lower" == "main" || "$branch_lower" == "master" ]]; then
+        # 原型機 (Root)
+        sync_status="ADMIN"
+        welcome_msg="ROOT ACCESS GRANTED :: $REAL_ID"
+    else
+        # 訪客模式 (借用機體)
+        sync_status="GUEST"
+        welcome_msg="WARNING: FOREIGN PILOT DETECTED :: GUEST MODE"
     fi
 
     sleep 0.4
     echo ""
     echo -e "${THEME_OK} :: IDENTITY CONFIRMED :: ${C_RESET}"
     sleep 0.6
+    
+    # 顯示同步率結果
     echo ""
-    echo -e "${THEME_WARN} :: UNLOCKING NEURAL INTERFACE... ${C_RESET}"
+    if [ "$sync_status" == "COMMANDER" ]; then
+        echo -e "${C_GREEN} :: SYNCHRONIZATION RATE: 100% (Owner)${C_RESET}"
+    elif [ "$sync_status" == "ADMIN" ]; then
+        echo -e "${C_YELLOW} :: SYNCHRONIZATION RATE: OVERRIDE (Root)${C_RESET}"
+    else
+        echo -e "${C_RED} :: SYNCHRONIZATION RATE: 15% (Guest)${C_RESET}"
+    fi
     sleep 0.8
+
     echo -e "${THEME_DESC}    ›› Mount Point: /dev/mux_core${C_RESET}"
     sleep 0.2
-    echo -e "${THEME_DESC}    ›› Link Status: Stable${C_RESET}"
-    sleep 0.5
-
+    
     _core_system_scan "silent"
     
     # 寫入 LOGIN 狀態
@@ -950,7 +984,7 @@ MUX_STATUS="LOGIN"
 EOF
 
     echo ""
-    echo -e "${THEME_OK} :: WELCOME BACK, COMMANDER :: ${C_RESET}"
+    echo -e "${THEME_OK} :: $welcome_msg :: ${C_RESET}"
     sleep 1.2
     
     MUX_STATUS="LOGIN"
@@ -1008,6 +1042,29 @@ function _core_pre_factory_auth() {
     _system_lock
     echo -e "${C_ORANGE} :: SECURITY CHECKPOINT ::${C_RESET}"
     sleep 0.2
+    echo -e "${THEME_DESC}    ›› Scanning Timeline (Git Branch)...${C_RESET}"
+    local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "unknown")
+
+    if [[ "$current_branch" == "main" || "$current_branch" == "master" || "$current_branch" == "unknown" ]]; then
+         _system_unlock
+         echo ""
+         echo -e "${THEME_ERR} :: PROTOCOL VIOLATION ::${C_RESET}"
+         echo -e "${THEME_DESC}    Factory modifications are forbidden on the '${THEME_WARN}$current_branch${THEME_DESC}' timeline.${C_RESET}"
+         echo -e "${THEME_DESC}    Reason: Core Integrity Protection Active.${C_RESET}"
+         echo ""
+         echo -e "${THEME_SUB}    [Action Required]${C_RESET}"
+         echo -e "${THEME_DESC}    Create a divergence branch to enter Factory:${C_RESET}"
+         echo -e "${C_GREEN}    ›› git checkout -b dev-feature${C_RESET}"
+         sleep 2
+         
+         _core_eject_sequence "Protected Timeline Active."
+         return 1
+    fi
+
+    echo -e "${THEME_OK}    ›› Timeline Verified: ${C_GREEN}$current_branch${C_RESET}"
+    sleep 0.5
+
+    sleep 0.5
     echo -e "${THEME_DESC}    ›› Identity Verification Required.${C_RESET}"
     sleep 0.4
     echo ""
