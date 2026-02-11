@@ -912,7 +912,7 @@ function _mux_pre_login() {
     
     local identity_valid=0
     if [ -f "$MUX_ROOT/.mux_identity" ]; then
-        local REAL_ID=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2)
+        local REAL_ID=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2 | tr -d '"')
         if [ "$input_id" == "$REAL_ID" ]; then
             identity_valid=1
         fi
@@ -1018,7 +1018,7 @@ function _core_pre_factory_auth() {
 
     local identity_valid=0
     if [ -f "$MUX_ROOT/.mux_identity" ]; then
-        local REAL_ID=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2)
+        local REAL_ID=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2 | tr -d '"')
         if [ "$input_id" == "$REAL_ID" ] || [ "$REAL_ID" == "Unknown" ]; then
             identity_valid=1
         fi
