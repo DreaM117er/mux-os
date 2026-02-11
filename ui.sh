@@ -25,8 +25,13 @@ function _draw_level_bar() {
     local filled_blocks=$(( (percent * bar_len) / 100 ))
     local empty_blocks=$(( bar_len - filled_blocks ))
 
-    local bar_filled=$(printf "%0.s█" $(seq 1 $filled_blocks 2>/dev/null))
-    local bar_empty=$(printf "%0.s░" $(seq 1 $empty_blocks 2>/dev/null))
+    local full_space=$(printf "%${bar_len}s")
+
+    local bar_filled="${full_space:0:filled_len}"
+    local bar_empty="${full_space:0:empty_len}"
+
+    bar_filled="${bar_filled// /█}"
+    bar_empty="${bar_empty// /░}"
     
     # 定義顏色
     local c_frame="\033[1;37m" # 邊框：白 (固定)
