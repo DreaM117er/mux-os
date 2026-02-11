@@ -5,6 +5,77 @@ if [ -z "$__MUX_CORE_ACTIVE" ]; then
     return 1 2>/dev/null || exit 1
 fi
 
+# 繪製等級進度條 (獨立組件)
+function _draw_level_bar() {
+    local lvl="${MUX_LEVEL:-1}"
+    local xp="${MUX_XP:-0}"
+    local next="${MUX_NEXT_XP:-2000}"
+    local id="${MUX_ID:-Unknown}"
+    
+    if [ -z "$lvl" ]; then return; fi
+    if [ -z "$next" ] || [ "$next" -eq 0 ]; then next=1; fi
+    
+    # 進度條執行長度
+    local bar_len=25
+    
+    # 計算百分比
+    local percent=$(( (xp * 100) / next ))
+    if [ "$percent" -gt 100 ]; then percent=100; fi
+
+    # 計算格數
+    local filled_len=$(( (percent * bar_len) / 100 ))
+    local empty_len=$(( bar_len - filled_len ))
+
+    local full_space=$(printf "%${bar_len}s")
+    
+    # 2. 切割字串
+    local bar_filled="${full_space:0:filled_len}"
+    local bar_empty="${full_space:0:empty_len}"
+    
+    # 3. 替換字元 (將空格替換為圖塊)
+    bar_filled="${bar_filled// /█}"
+    bar_empty="${bar_empty// /░}"
+    
+    # 定義顏色
+    local c_frame="\033[1;37m" # 邊框：白
+    local c_fill="\033[1;32m"  # 實心：綠
+    local c_empty="\033[1;30m" # 空心：深灰 (XP=0 時會看到這個)
+    local c_xp="\033[1;30m"    # XP數值：灰色
+    
+    # 定義稱號與狀態文字顏色
+    local title="Init"
+    local c_status="\033[1;32m" # 預設綠
+    
+    case "$lvl" in
+        1|2|3)
+            title="Novice"
+            c_status="\033[1;32m"     # Light Green
+            ;;
+        4|5|6|7)
+            title="Operator"
+            c_status="\033[1;36m"     # Cyan
+            ;;
+        8|9|10|11)
+            title="Vanguard"         # XUM Unlocked
+            c_status="\033[1;35m"     # Magenta (Purple)
+            ;;
+        12|13|14|15)
+            title="Elite"            # High Mastery
+            c_status="\033[1;31m"     # Red
+            ;;
+        *)
+            # L16 and above
+            title="Architect"        # The Creator
+            c_status="\033[1;37m"     # Bright White
+            ;;
+    esac
+
+    # 渲染輸出
+    echo -e " ${c_frame}║${c_fill}${bar_filled}${c_empty}${bar_empty}${c_frame}║${C_RESET}"
+    echo -e " ${c_frame}╚ ${c_xp}${xp}/${next} XP${C_RESET}"
+    echo -e " ${c_status}[L${lvl}][${id}]${c_empty}-[${title}]${C_RESET}"
+}
+
 # 繪製 Mux-OS Logo標誌
 function _draw_logo() {
     local mode="${1:-core}"
@@ -13,19 +84,21 @@ function _draw_logo() {
     local label=""
     local cols=$(tput cols 2>/dev/null || echo 80)
 
+    # 1. 呼叫等級進度條
+    _draw_level_bar
+
+    # 2. 設定 Logo 樣式
     case "$mode" in
         "gray")
             color_primary="$C_BLACK"
             label=":: SYSTEM LOCKED ::"
             if [ "$cols" -ge 52 ]; then label+=" AUTHENTICATION REQUIRED ::"; fi
             ;;
-        
         "factory")
             color_primary="$THEME_MAIN"
             label=":: Mux-OS v$MUX_VERSION Factory ::"
             if [ "$cols" -ge 52 ]; then label+=" Neural Forge ::"; fi
             ;;
-
         *)
             color_primary="$THEME_MAIN"
             label=":: Mux-OS v$MUX_VERSION Core ::"
@@ -33,6 +106,7 @@ function _draw_logo() {
             ;;
     esac
 
+    # 3. 繪製 Logo
     echo -e "${color_primary}"
     echo "  __  __                  ___  ____  "
     echo " |  \/  |_   ___  __     / _ \/ ___| "

@@ -180,7 +180,12 @@ function _install_protocol() {
     
     echo "    ›› Bootloader injected into $RC_FILE."
 
-    if [ ! -f "$MUX_ROOT/.mux_identity" ]; then
+    local current_id=""
+    if [ -f "$MUX_ROOT/.mux_identity" ]; then
+        current_id=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2 | tr -d '"')
+    fi
+
+    if [ ! -f "$MUX_ROOT/.mux_identity" ] || [ "$current_id" == "Unknown" ]; then
         echo ""
         echo -e "${C_YELLOW} :: Initializing Identity Protocol...${C_RESET}"
         sleep 1

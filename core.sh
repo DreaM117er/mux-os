@@ -771,6 +771,20 @@ function _mux_neural_fire_control() {
             return 1
             ;;
     esac
+
+    local xp_gain=0
+
+    case "$_VAL_TYPE" in
+        "SYS") xp_gain=5 ;;   # 系統指令 +5
+        "NA")  xp_gain=10 ;;  # App 啟動 +10
+        "NB")  xp_gain=15 ;;  # 網頁/複雜指令 +15
+        *)     xp_gain=2 ;;   # 其他 +2
+    esac
+
+    if command -v _grant_xp &> /dev/null; then
+        _grant_xp $xp_gain "CMD_EXEC"
+    fi
+
     return 0
 }
 
@@ -857,6 +871,11 @@ function _core_system_scan() {
         fi
     done
 
+    # 經驗值獎勵
+    if command -v _grant_xp &> /dev/null; then
+        _grant_xp 5 "SYS_SCAN"
+    fi
+
     # 結果回饋
     if [ "$error_count" -gt 0 ]; then
         # [異常狀態]
@@ -898,8 +917,11 @@ function _mux_pre_login() {
     echo -e "${THEME_WARN} :: SECURITY CHECKPOINT ::${C_RESET}"
     
     sleep 0.2
+    local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "unknown")
+    echo -e "${THEME_DESC}    ›› Mobile Suit Unit : ${C_CYAN}$current_branch${C_RESET}"
+    sleep 0.3
     echo -e "${THEME_DESC}    ›› Initializing Biometeric Scan...${C_RESET}"
-    sleep 0.6
+    sleep 0.4
     _system_unlock
 
     echo ""
@@ -911,36 +933,67 @@ function _mux_pre_login() {
     sleep 0.6
     
     local identity_valid=0
+    local REAL_ID=""
     if [ -f "$MUX_ROOT/.mux_identity" ]; then
-        local REAL_ID=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2)
+        REAL_ID=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2 | tr -d '"')
         if [ "$input_id" == "$REAL_ID" ]; then
             identity_valid=1
         fi
     else
         identity_valid=1
+        REAL_ID="$input_id"
     fi
 
     if [ "$identity_valid" -ne 1 ]; then
         sleep 0.5
         echo ""
-        echo -e "${THEME_ERR} :: ACCESS DENIED :: Identity Mismatch.${C_RESET}"
+        echo -e "${THEME_ERR} :: ACCESS DENIED :: Signature Mismatch.${C_RESET}"
         sleep 0.5
         _system_unlock
         return 1
+    fi
+
+    local sync_status="GUEST"
+    local welcome_msg="WELCOME BACK, GUEST PILOT"
+    local voice_code="guest_login"
+    
+    # 轉小寫比對
+    local branch_lower=$(echo "$current_branch" | tr '[:upper:]' '[:lower:]')
+    local id_lower=$(echo "$REAL_ID" | tr '[:upper:]' '[:lower:]')
+
+    if [[ "$branch_lower" == *"$id_lower"* ]]; then
+        # 完美同步 (專用機)
+        sync_status="COMMANDER"
+        welcome_msg="WELCOME BACK, COMMANDER $REAL_ID"
+    elif [[ "$branch_lower" == "main" || "$branch_lower" == "master" ]]; then
+        # 原型機 (Root)
+        sync_status="ADMIN"
+        welcome_msg="ROOT ACCESS GRANTED :: $REAL_ID"
+    else
+        # 訪客模式 (借用機體)
+        sync_status="GUEST"
+        welcome_msg="WARNING: FOREIGN PILOT DETECTED :: GUEST MODE"
     fi
 
     sleep 0.4
     echo ""
     echo -e "${THEME_OK} :: IDENTITY CONFIRMED :: ${C_RESET}"
     sleep 0.6
+    
+    # 顯示同步率結果
     echo ""
-    echo -e "${THEME_WARN} :: UNLOCKING NEURAL INTERFACE... ${C_RESET}"
+    if [ "$sync_status" == "COMMANDER" ]; then
+        echo -e "${C_GREEN} :: SYNCHRONIZATION RATE: 100% (Owner)${C_RESET}"
+    elif [ "$sync_status" == "ADMIN" ]; then
+        echo -e "${C_YELLOW} :: SYNCHRONIZATION RATE: OVERRIDE (Root)${C_RESET}"
+    else
+        echo -e "${C_RED} :: SYNCHRONIZATION RATE: 15% (Guest)${C_RESET}"
+    fi
     sleep 0.8
+
     echo -e "${THEME_DESC}    ›› Mount Point: /dev/mux_core${C_RESET}"
     sleep 0.2
-    echo -e "${THEME_DESC}    ›› Link Status: Stable${C_RESET}"
-    sleep 0.5
-
+    
     _core_system_scan "silent"
     
     # 寫入 LOGIN 狀態
@@ -950,11 +1003,17 @@ MUX_STATUS="LOGIN"
 EOF
 
     echo ""
-    echo -e "${THEME_OK} :: WELCOME BACK, COMMANDER :: ${C_RESET}"
+    echo -e "${THEME_OK} :: $welcome_msg :: ${C_RESET}"
     sleep 1.2
     
     MUX_STATUS="LOGIN"
     unset MUX_INITIALIZED
+
+    # 經驗值獎勵
+    if command -v _grant_xp &> /dev/null; then
+        _grant_xp 1 "LOGIN"
+    fi
+
     _mux_reload_kernel
 }
 
@@ -996,6 +1055,12 @@ EOF
 
     MUX_STATUS="DEFAULT"
     sleep 1.9
+
+    # 經驗值獎勵
+    if command -v _grant_xp &> /dev/null; then
+        _grant_xp 1 "LOGOUT"
+    fi
+
     _mux_reload_kernel
 }
 
@@ -1008,6 +1073,29 @@ function _core_pre_factory_auth() {
     _system_lock
     echo -e "${C_ORANGE} :: SECURITY CHECKPOINT ::${C_RESET}"
     sleep 0.2
+    echo -e "${THEME_DESC}    ›› Scanning Timeline (Git Branch)...${C_RESET}"
+    local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "unknown")
+
+    if [[ "$current_branch" == "main" || "$current_branch" == "master" || "$current_branch" == "unknown" ]]; then
+         _system_unlock
+         echo ""
+         echo -e "${THEME_ERR} :: PROTOCOL VIOLATION ::${C_RESET}"
+         echo -e "${THEME_DESC}    Factory modifications are forbidden on the '${THEME_WARN}$current_branch${THEME_DESC}' timeline.${C_RESET}"
+         echo -e "${THEME_DESC}    Reason: Core Integrity Protection Active.${C_RESET}"
+         echo ""
+         echo -e "${THEME_SUB}    [Action Required]${C_RESET}"
+         echo -e "${THEME_DESC}    Create a divergence branch to enter Factory:${C_RESET}"
+         echo -e "${C_GREEN}    ›› git checkout -b dev-feature${C_RESET}"
+         sleep 2
+         
+         _core_eject_sequence "Protected Timeline Active."
+         return 1
+    fi
+
+    echo -e "${THEME_OK}    ›› Timeline Verified: ${C_GREEN}$current_branch${C_RESET}"
+    sleep 0.5
+
+    sleep 0.5
     echo -e "${THEME_DESC}    ›› Identity Verification Required.${C_RESET}"
     sleep 0.4
     echo ""
@@ -1018,7 +1106,7 @@ function _core_pre_factory_auth() {
 
     local identity_valid=0
     if [ -f "$MUX_ROOT/.mux_identity" ]; then
-        local REAL_ID=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2)
+        local REAL_ID=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2 | tr -d '"')
         if [ "$input_id" == "$REAL_ID" ] || [ "$REAL_ID" == "Unknown" ]; then
             identity_valid=1
         fi
@@ -1090,6 +1178,11 @@ function _core_pre_factory_auth() {
         _ui_fake_gate "factory"
     fi
 
+    # 工廠通行證獎勵
+    if command -v _grant_xp &> /dev/null; then
+        _grant_xp 20 "FACTORY_ENTRY"
+    fi
+
     local entry_point="HANGAR"
     if [ "$origin_status" == "LOGIN" ]; then
         entry_point="COCKPIT"
@@ -1137,6 +1230,11 @@ function _core_eject_sequence() {
         echo -e "${THEME_DESC}    ›› Ejection in $i...${C_RESET}"
         sleep 0.99
     done
+
+    # 經驗值獎勵
+    if command -v _grant_xp &> /dev/null; then
+        _grant_xp 5 "EJECTED"
+    fi
 
     echo -e ""
     _bot_factory_personality "eject"
@@ -1359,6 +1457,12 @@ function mux() {
             # 4. 系統重載 (Reload)
             if [ $? -eq 0 ]; then
                 echo -e "${C_YELLOW} :: Initializing New Unit Core...${C_RESET}"
+
+                # 空間跳躍獎勵
+                if command -v _grant_xp &> /dev/null; then
+                    _grant_xp 15 "WARP_JUMP"
+                fi
+
                 sleep 1.0
                 
                 # 賦予新機體執行權限
@@ -1432,11 +1536,14 @@ case "$MUX_MODE" in
 
         if [ "$MUX_STATUS" == "LOGIN" ]; then
             export PS1="\[\033[1;36m\]Mux\[\033[0m\] \w › "
+            
+            if [[ "$PROMPT_COMMAND" != *"_grant_xp"* ]]; then
+                 export PROMPT_COMMAND="_grant_xp 1 'SHELL' >/dev/null 2>&1; tput sgr0; echo -ne '\033[0m'"
+            fi
         else
             export PS1="\[\033[1;30m\]Mux\[\033[0m\] \w › "
+            export PROMPT_COMMAND="tput sgr0; echo -ne '\033[0m'"
         fi
-        
-        export PROMPT_COMMAND="tput sgr0; echo -ne '\033[0m'"
         ;;
         
     *)
