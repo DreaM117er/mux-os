@@ -13,6 +13,10 @@ function _draw_logo() {
     local label=""
     local cols=$(tput cols 2>/dev/null || echo 80)
 
+    local lvl="${MUX_LEVEL:-1}"
+    local xp="${MUX_XP:-0}"
+    local next="${MUX_NEXT_XP:-2000}"
+
     case "$mode" in
         "gray")
             color_primary="$C_BLACK"
@@ -33,6 +37,28 @@ function _draw_logo() {
             ;;
     esac
 
+    # 等級進度條
+    if [ -n "$MUX_LEVEL" ] && [ "$mode" != "gray" ]; then
+        if [ -z "$next" ] || [ "$next" -eq 0 ]; then next=1; fi
+        local percent=$(( (xp * 100) / next ))
+        if [ "$percent" -gt 100 ]; then percent=100; fi
+
+        local total_blocks=30
+        local filled_blocks=$(( (percent * total_blocks) / 100 ))
+        local empty_blocks=$(( total_blocks - filled_blocks ))
+        
+        local bar_filled=$(printf "%0.s█" $(seq 1 $filled_blocks 2>/dev/null))
+        local bar_empty=$(printf "%0.s░" $(seq 1 $empty_blocks 2>/dev/null))
+        
+        local bar_color="$THEME_SUB"
+        if [ "$lvl" -ge 8 ]; then bar_color="\033[1;35m"; fi
+        
+        echo -e " ${bar_color}[${bar_filled}\033[1;30m${bar_empty}${bar_color}] \033[0;37mLv.${lvl}${C_RESET}"
+    fi
+    
+    echo ""
+
+    # Logo 輸出
     echo -e "${color_primary}"
     echo "  __  __                  ___  ____  "
     echo " |  \/  |_   ___  __     / _ \/ ___| "

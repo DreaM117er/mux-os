@@ -9,6 +9,21 @@ if [ -z "$__MUX_CORE_ACTIVE" ]; then
     return 1 2>/dev/null || exit 1
 fi
 
+# 存檔核心 (Identity Save Protocol)
+function _save_identity() {
+    cat > "$IDENTITY_FILE" <<EOF
+MUX_ID="$MUX_ID"
+MUX_ROLE="$MUX_ROLE"
+MUX_ACCESS_LEVEL="$MUX_ACCESS_LEVEL"
+MUX_CREATED_AT="$MUX_CREATED_AT"
+MUX_LEVEL="${MUX_LEVEL:-1}"
+MUX_XP="${MUX_XP:-0}"
+MUX_NEXT_XP="${MUX_NEXT_XP:-2000}"
+MUX_BADGES="${MUX_BADGES:-INIT}"
+EOF
+}
+
+# 註冊指揮官身份 (Interactive Mode)
 function _register_commander_interactive() {
     echo -e "\033[1;33m :: Mux-OS Identity Registration ::\033[0m"
     echo ""
@@ -62,14 +77,54 @@ fi
 
 export IDENTITY_FILE="$MUX_ROOT/.mux_identity"
 
+# 初始化身份文件 (Default to Unknown)
 function _init_identity() {
-    if [ ! -f "$IDENTITY_FILE" ]; then
-        echo "MUX_ID=Unknown" > "$IDENTITY_FILE"
-        echo "MUX_ROLE=GUEST" >> "$IDENTITY_FILE"
-        echo "MUX_ACCESS_LEVEL=0" >> "$IDENTITY_FILE"
-        echo "MUX_CREATED_AT=$(date +%s)" >> "$IDENTITY_FILE"
+if [ ! -f "$IDENTITY_FILE" ]; then
+        # 全新用戶
+        MUX_ID="Unknown"
+        MUX_ROLE="GUEST"
+        MUX_ACCESS_LEVEL="0"
+        MUX_CREATED_AT=$(date +%s)
+        MUX_LEVEL=1
+        MUX_XP=0
+        MUX_NEXT_XP=2000
+        MUX_BADGES="INIT"
+        _save_identity
     fi
+    
     source "$IDENTITY_FILE"
+    
+    # 舊用戶遷移 (Migration): 如果讀進來發現沒有 XP 變數，補上
+    if [ -z "$MUX_LEVEL" ]; then
+        MUX_LEVEL=1
+        MUX_XP=0
+        MUX_NEXT_XP=2000
+        MUX_BADGES="INIT"
+        _save_identity
+    fi
+}
+
+# XP 以及 Level 升級系統 (Experience and Leveling System)
+function _grant_xp() {
+    local amount=$1
+    local source_type=$2
+    
+    source "$IDENTITY_FILE"
+    
+    MUX_XP=$((MUX_XP + amount))
+    
+    if [ "$MUX_XP" -ge "$MUX_NEXT_XP" ]; then
+        MUX_LEVEL=$((MUX_LEVEL + 1))
+        MUX_NEXT_XP=$(awk "BEGIN {print int($MUX_NEXT_XP * 1.5)}")
+        
+        echo ""
+        _bot_say "system" "LEVEL UP! Clearance Level $MUX_LEVEL Granted."
+        
+        if [ "$MUX_LEVEL" -eq 8 ]; then
+            _bot_say "warn" "OVERCLOCK PROTOCOL [XUM] UNLOCKED."
+        fi
+    fi
+    _save_identity
 }
 
 # 掃描前置儀式 (Pre-Auth Ritual)
@@ -107,7 +162,7 @@ function _identity_access_denied() {
     _draw_logo "core"
 }
 
-# 註冊流程
+# 註冊流程 (Commander Registration Protocol)
 function _register_commander() {
     _system_lock
     clear
@@ -146,6 +201,7 @@ function _register_commander() {
     fi
 }
 
+# 驗證身份流程 (Factory Access Protocol)
 function _verify_identity_for_factory() {
     if [ ! -f "$IDENTITY_FILE" ]; then _init_identity; fi
     source "$IDENTITY_FILE"
