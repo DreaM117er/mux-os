@@ -267,6 +267,7 @@ function _mux_uplink_sequence() {
 
     if command -v fzf &> /dev/null; then
         echo -e ""
+        if command -v _grant_xp &> /dev/null; then _grant_xp 100 "UPLINK_OK"; fi
         echo -e "\033[1;35m :: SYNCHRONIZATION COMPLETE :: ${C_RESET}"
         echo -e ""
         sleep 0.5
