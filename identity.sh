@@ -134,7 +134,7 @@ function _check_active_buffs() {
         return
     fi
 
-    # 深夜模式 00:00 - 04:00 [+5]
+    # 深夜模式: 00:00 - 04:00 (熬夜獎勵)
     # 請不要熬夜玩系統
     if [ "$current_hour" -ge 0 ] && [ "$current_hour" -lt 4 ]; then
         export MUX_CURRENT_MULT=1.5
@@ -142,7 +142,7 @@ function _check_active_buffs() {
         return
     fi
 
-    # 週日戰神加成 週日 [+5]
+    # 週末戰士: 週日全天 (Sunday)
     if [ "$current_day" -ge 7 ]; then
         export MUX_CURRENT_MULT=1.5
         export MUX_BUFF_TAG="\033[1;36m[+5:Sun]\033[0m" 
