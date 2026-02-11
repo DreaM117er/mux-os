@@ -997,6 +997,7 @@ function _fac_update_category_name() {
     }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
     
     _bot_say "success" "Category Renamed."
+    if command -v _grant_xp &> /dev/null; then _grant_xp 10 "CAT_RENAME"; fi
 }
 
 # 核心編輯路由器 (The Logic Router)
