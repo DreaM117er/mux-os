@@ -15,29 +15,32 @@ function _draw_level_bar() {
     if [ -z "$lvl" ]; then return; fi
     if [ -z "$next" ] || [ "$next" -eq 0 ]; then next=1; fi
     
-    # 進度條總長度
+    # [設定] 進度條總長度 (不含邊框)
     local bar_len=25
     
     # 計算百分比
     local percent=$(( (xp * 100) / next ))
     if [ "$percent" -gt 100 ]; then percent=100; fi
 
-    local filled_blocks=$(( (percent * bar_len) / 100 ))
-    local empty_blocks=$(( bar_len - filled_blocks ))
+    # 計算格數
+    local filled_len=$(( (percent * bar_len) / 100 ))
+    local empty_len=$(( bar_len - filled_len ))
 
     local full_space=$(printf "%${bar_len}s")
-
+    
+    # 2. 切割字串
     local bar_filled="${full_space:0:filled_len}"
     local bar_empty="${full_space:0:empty_len}"
-
+    
+    # 3. 替換字元 (將空格替換為圖塊)
     bar_filled="${bar_filled// /█}"
     bar_empty="${bar_empty// /░}"
     
     # 定義顏色
-    local c_frame="\033[1;37m" # 邊框：白 (固定)
-    local c_fill="\033[1;32m"  # 實心：綠 (固定)
-    local c_empty="\033[1;30m" # 空心：深灰
-    local c_xp="\033[1;30m"    # XP：灰色
+    local c_frame="\033[1;37m" # 邊框：白
+    local c_fill="\033[1;32m"  # 實心：綠
+    local c_empty="\033[1;30m" # 空心：深灰 (XP=0 時會看到這個)
+    local c_xp="\033[1;30m"    # XP數值：灰色
     
     # 定義稱號與狀態文字顏色
     local title="Init"
@@ -68,6 +71,7 @@ function _draw_level_bar() {
     esac
 
     # 渲染輸出
+    # 當 XP=0 時，bar_filled 為空，直接顯示 c_empty 顏色的 bar_empty
     echo -e " ${c_frame}║${c_fill}${bar_filled}${c_empty}${bar_empty}${c_frame}║${C_RESET}"
     echo -e " ${c_frame}╚ ${c_xp}${xp}/${next} XP${C_RESET}"
     echo -e " ${c_status}[L${lvl}][${id}]${c_empty}-[${title}]${C_RESET}"
