@@ -237,3 +237,5 @@ function _verify_identity_for_factory() {
     _identity_access_denied
     return 1
 }
+
+_init_identity
