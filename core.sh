@@ -1349,6 +1349,7 @@ function mux() {
         
         # : Show System Status
         "status"|"sts")
+            if [ -d "$MUX_ROOT" ]; then cd "$MUX_ROOT"; fi
             local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
             local last_commit=$(git log -1 --format='%h - %s (%cr)' 2>/dev/null)
             if [ "$current_branch" == "main" ]; then
@@ -1416,6 +1417,9 @@ function mux() {
                  echo -e "${C_BLACK}    ›› Action Required : Execute 'mux logout' to disengage.${C_RESET}"
                  return 1
             fi
+
+            # 1. 進入機庫 (Hangar Access)
+            if [ -d "$MUX_ROOT" ]; then cd "$MUX_ROOT"; else _bot_say "error" "Hangar not found."; return 1; fi
 
             # 2. 掃描機體 (Branch Selection)
             echo -e "${C_BLACK} :: Scanning Multiverse Coordinates (Hangar Walk)...${C_RESET}"
