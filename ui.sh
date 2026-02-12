@@ -12,67 +12,77 @@ function _draw_level_bar() {
     local next="${MUX_NEXT_XP:-2000}"
     local id="${MUX_ID:-Unknown}"
     
-    if [ -z "$lvl" ]; then return; fi
-    if [ -z "$next" ] || [ "$next" -eq 0 ]; then next=1; fi
-    
-    # 進度條執行長度
-    local bar_len=25
-    
-    # 計算百分比
-    local percent=$(( (xp * 100) / next ))
-    if [ "$percent" -gt 100 ]; then percent=100; fi
+    # 1. 定義顏色與稱號
+    local c_frame="\033[1;37m" # 白框
+    local c_fill="\033[1;32m"  # 預設綠
+    local c_empty="\033[1;30m" # 深灰底
+    local c_xp="\033[1;30m"    # 數值灰
+    local title="Init"
+    local c_status="\033[1;32m"
 
-    # 計算格數
+    # 特殊狀態檢查 (Buffs)
+    local buff_tag=""
+    if command -v _check_active_buffs &> /dev/null; then
+        _check_active_buffs
+        buff_tag="$MUX_BUFF_TAG"
+    fi
+
+    case "$lvl" in
+        1|2|3)      title="Novice";   c_status="\033[1;32m"; c_fill="\033[1;32m" ;; # Green
+        4|5|6|7)    title="Operator"; c_status="\033[1;36m"; c_fill="\033[1;36m" ;; # Cyan
+        8|9|10|11)  title="Vanguard"; c_status="\033[1;35m"; c_fill="\033[1;35m" ;; # Purple
+        12|13|14|15)title="Elite";    c_status="\033[1;31m"; c_fill="\033[1;31m" ;; # Red
+        *)          
+            # L16+ Architect (Max Level Logic)
+            title="Architect"
+            c_status="\033[1;37m"; c_fill="\033[1;37m" # White
+            lvl="16" # 鎖定顯示
+            ;;
+    esac
+
+    # 2. 數學計算 (核心修正)
+    local percent=0
+    local bar_len=25
+    local xp_display="${xp}/${next} XP"
+
+    if [ "$lvl" -ge 16 ]; then
+        # [滿等狀態]
+        percent=100
+        xp_display="Max"
+        buff_tag=""
+    else
+        # [一般狀態]
+        # 反推上一級門檻：Prev = (Next - 2000) / 1.5
+        local prev=$(awk "BEGIN {print int(($next - 2000) / 1.5)}")
+        
+        # 區間總量 (Range)
+        local range=$(( next - prev ))
+        if [ "$range" -le 0 ]; then range=1; fi # 防除以零
+
+        # 當前區間進度 (Current Progress)
+        local current_prog=$(( xp - prev ))
+        if [ "$current_prog" -lt 0 ]; then current_prog=0; fi # 保護機制
+
+        # 計算百分比
+        percent=$(( (current_prog * 100) / range ))
+        if [ "$percent" -gt 100 ]; then percent=100; fi
+    fi
+
+    # 3. 繪製圖形
     local filled_len=$(( (percent * bar_len) / 100 ))
     local empty_len=$(( bar_len - filled_len ))
 
     local full_space=$(printf "%${bar_len}s")
-    
-    # 2. 切割字串
     local bar_filled="${full_space:0:filled_len}"
     local bar_empty="${full_space:0:empty_len}"
     
-    # 3. 替換字元 (將空格替換為圖塊)
+    # 替換圖塊
     bar_filled="${bar_filled// /█}"
     bar_empty="${bar_empty// /░}"
     
-    # 定義顏色
-    local c_frame="\033[1;37m" # 邊框：白
-    local c_fill="\033[1;32m"  # 實心：綠
-    local c_empty="\033[1;30m" # 空心：深灰 (XP=0 時會看到這個)
-    local c_xp="\033[1;30m"    # XP數值：灰色
-    
-    # 定義稱號與狀態文字顏色
-    local title="Init"
-    local c_status="\033[1;32m" # 預設綠
-    
-    case "$lvl" in
-        1|2|3)
-            title="Novice"
-            c_status="\033[1;32m"     # Light Green
-            ;;
-        4|5|6|7)
-            title="Operator"
-            c_status="\033[1;36m"     # Cyan
-            ;;
-        8|9|10|11)
-            title="Vanguard"         # XUM Unlocked
-            c_status="\033[1;35m"     # Magenta (Purple)
-            ;;
-        12|13|14|15)
-            title="Elite"            # High Mastery
-            c_status="\033[1;31m"     # Red
-            ;;
-        *)
-            # L16 and above
-            title="Architect"        # The Creator
-            c_status="\033[1;37m"     # Bright White
-            ;;
-    esac
-
-    # 渲染輸出
-    echo -e " ${c_frame}║${c_fill}${bar_filled}${c_empty}${bar_empty}${c_frame}║${C_RESET}"
-    echo -e " ${c_frame}╚ ${c_xp}${xp}/${next} XP${C_RESET}"
+    # 4. 輸出渲染
+    echo -e " ${c_frame}║${c_fill}${bar_filled}${c_empty}${bar_empty}${c_frame}║${C_RESET}${buff_tag}"
+    echo -e " ${c_frame}╚ ${c_xp}${xp_display}${C_RESET}"
     echo -e " ${c_status}[L${lvl}][${id}]${c_empty}-[${title}]${C_RESET}"
 }
 
