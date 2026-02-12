@@ -48,7 +48,7 @@ function _draw_level_bar() {
     if [ "$lvl" -ge 16 ]; then
         # [滿等狀態]
         percent=100
-        xp_display="Max"
+        xp_display="MAXIMUM CAP"
         buff_tag=""
     else
         # [一般狀態]
