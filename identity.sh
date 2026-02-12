@@ -23,54 +23,6 @@ MUX_BADGES="${MUX_BADGES:-INIT}"
 EOF
 }
 
-# 註冊指揮官身份 (Interactive Mode)
-function _register_commander_interactive() {
-    echo -e "\033[1;33m :: Mux-OS Identity Registration ::\033[0m"
-    echo ""
-    
-    local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
-    
-    if [ "false" == "true" ]; then
-        echo -e "    Detected Branch: \033[1;31m$current_branch (Public)\033[0m"
-        echo -e "    \033[1;33m:: Notice: Identity is locked to 'Unknown' on main branch.\033[0m"
-        sleep 1
-        
-        echo "MUX_ID=Unknown" > "$IDENTITY_FILE"
-        echo "MUX_ROLE=GUEST" >> "$IDENTITY_FILE"
-        echo "MUX_ACCESS_LEVEL=0" >> "$IDENTITY_FILE"
-        echo "MUX_CREATED_AT=$(date +%s)" >> "$IDENTITY_FILE"
-        
-        echo ""
-        echo -e "\033[1;32m :: Identity Set: Unknown (main) \033[0m"
-        sleep 1
-        return
-    fi
-
-    local git_user=$(git config user.name 2>/dev/null)
-    [ -z "$git_user" ] && git_user="$current_branch"
-    
-    echo -e "    Detected Signal: \033[1;36m$git_user\033[0m"
-    echo -ne "\033[1;32m :: Input Commander ID: \033[0m"
-    read input_id
-
-    if [ -z "$input_id" ]; then
-        input_id="$git_user"
-    fi
-
-    echo ""
-    echo -e "\033[1;35m :: Encoding Identity...\033[0m"
-    echo ""
-    sleep 1
-    
-    echo "MUX_ID=$input_id" > "$IDENTITY_FILE"
-    echo "MUX_ROLE=COMMANDER" >> "$IDENTITY_FILE"
-    echo "MUX_ACCESS_LEVEL=5" >> "$IDENTITY_FILE"
-    echo "MUX_CREATED_AT=$(date +%s)" >> "$IDENTITY_FILE"
-    
-    echo -e "\033[1;32m :: Identity Confirmed: $input_id \033[0m"
-    sleep 1
-}
-
 # 初始化身份文件 (Default to Unknown)
 function _init_identity() {
 if [ ! -f "$IDENTITY_FILE" ]; then
@@ -194,6 +146,108 @@ function _grant_xp() {
         fi
     fi
     _save_identity
+}
+
+# Git/GitHub 連結設定 (Uplink Setup)
+function _setup_git_auth() {
+    echo ""
+    echo -e "\033[1;33m :: Initializing GitHub Neural Uplink... ::\033[0m"
+    
+    # 1. 解決變更權限後導致 git dirty 的問題
+    git config core.fileMode false
+    
+    # 2. 檢查 Git 身份
+    local current_name=$(git config --global user.name)
+    local current_email=$(git config --global user.email)
+    
+    if [ -z "$current_name" ] || [ -z "$current_email" ]; then
+        echo -e "\033[1;30m    ›› Git identity not found. Configuring now...\033[0m"
+        
+        echo -ne "\033[1;36m    ›› Enter GitHub Username: \033[0m"
+        read git_user
+        echo -ne "\033[1;36m    ›› Enter GitHub Email   : \033[0m"
+        read git_email
+        
+        if [ -n "$git_user" ] && [ -n "$git_email" ]; then
+            git config --global user.name "$git_user"
+            git config --global user.email "$git_email"
+            
+            # 儲存憑證 (避免每次 push 都要打密碼)
+            git config --global credential.helper store
+            
+            echo -e "\033[1;32m    ›› Git Identity Configured.\033[0m"
+        fi
+    else
+        echo -e "\033[1;32m    ›› Git Identity Verified: $current_name\033[0m"
+    fi
+
+    # 3. GitHub CLI (gh) 授權檢測
+    if command -v gh &> /dev/null; then
+        echo ""
+        echo -e "\033[1;35m :: GitHub CLI (gh) Detected. ::\033[0m"
+        
+        # 檢查 gh 是否已登入
+        if ! gh auth status &> /dev/null; then
+            echo -ne "\033[1;33m    ›› Authenticate with GitHub now? [Y/n]: \033[0m"
+            read choice
+            if [[ "$choice" == "y" || "$choice" == "Y" || -z "$choice" ]]; then
+                # 啟動 gh 登入流程
+                gh auth login
+            fi
+        else
+             echo -e "\033[1;32m    ›› GitHub Uplink Active.\033[0m"
+        fi
+    fi
+}
+
+# 註冊指揮官身份 (Interactive Mode)
+function _register_commander_interactive() {
+    echo -e "\033[1;33m :: Mux-OS Identity Registration ::\033[0m"
+    echo ""
+    
+    local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
+    
+    if [ "false" == "true" ]; then
+        echo -e "    Detected Branch: \033[1;31m$current_branch (Public)\033[0m"
+        echo -e "    \033[1;33m:: Notice: Identity is locked to 'Unknown' on main branch.\033[0m"
+        sleep 1
+        
+        echo "MUX_ID=Unknown" > "$IDENTITY_FILE"
+        echo "MUX_ROLE=GUEST" >> "$IDENTITY_FILE"
+        echo "MUX_ACCESS_LEVEL=0" >> "$IDENTITY_FILE"
+        echo "MUX_CREATED_AT=$(date +%s)" >> "$IDENTITY_FILE"
+        
+        echo ""
+        echo -e "\033[1;32m :: Identity Set: Unknown (main) \033[0m"
+        sleep 1
+        return
+    fi
+
+    local git_user=$(git config user.name 2>/dev/null)
+    [ -z "$git_user" ] && git_user="$current_branch"
+    
+    echo -e "    Detected Signal: \033[1;36m$git_user\033[0m"
+    echo -ne "\033[1;32m :: Input Commander ID: \033[0m"
+    read input_id
+
+    if [ -z "$input_id" ]; then
+        input_id="$git_user"
+    fi
+
+    echo ""
+    echo -e "\033[1;35m :: Encoding Identity...\033[0m"
+    echo ""
+    sleep 1
+    
+    echo "MUX_ID=$input_id" > "$IDENTITY_FILE"
+    echo "MUX_ROLE=COMMANDER" >> "$IDENTITY_FILE"
+    echo "MUX_ACCESS_LEVEL=5" >> "$IDENTITY_FILE"
+    echo "MUX_CREATED_AT=$(date +%s)" >> "$IDENTITY_FILE"
+
+    _setup_git_auth
+    
+    echo -e "\033[1;32m :: Identity Confirmed: $input_id \033[0m"
+    sleep 1
 }
 
 # 獨立執行判斷 (For setup.sh to trigger wizard)
