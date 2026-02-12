@@ -1000,6 +1000,25 @@ function _fac_update_category_name() {
     if command -v _grant_xp &> /dev/null; then _grant_xp 10 "CAT_RENAME"; fi
 }
 
+# 分類名稱衝突檢測器 (Category Conflict Scanner)
+function _fac_check_category_conflict() {
+    local check_name="$1"
+    local target_file="$MUX_ROOT/app.csv.temp"
+
+    awk -F, -v target="$check_name" '
+        NR>1 {
+            gsub(/^"|"$/, "", $3); name=$3
+            gsub(/^"|"$/, "", $1); id=$1
+            
+            # 這裡進行精確比對 (Case Sensitive)
+            if (name == target) { 
+                print id
+                exit 
+            }
+        }
+    ' "$target_file"
+}
+
 # 核心編輯路由器 (The Logic Router)
 function _fac_edit_router() {
     local raw_selection="$1"
@@ -2105,8 +2124,28 @@ function fac() {
                         read -e -p "    › " -i "$cat_name" new_cat_name
                         
                         if [ -n "$new_cat_name" ] && [ "$new_cat_name" != "$cat_name" ]; then
-                            _fac_update_category_name "$cat_id" "$new_cat_name"
-                            cat_name="$new_cat_name" # 更新變數顯示
+                            # 1. 檢查衝突 (Conflict Check)
+                            local conflict_id=$(_fac_check_category_conflict "$new_cat_name")
+                            
+                            if [ -n "$conflict_id" ]; then
+                                # 2. 觸發嘲諷合併邏輯
+                                _bot_say "neural" "Wait... '$new_cat_name' already exists (ID: $conflict_id)."
+                                sleep 0.5
+                                echo -e "${THEME_DESC}    ›› Trying to be smart, huh? Merging protocols... 😒${C_RESET}"
+                                sleep 0.8
+                                
+                                # 3. 執行合併 (Source -> Target)
+                                _fac_safe_merge "$conflict_id" "$cat_id"
+                                
+                                _bot_say "success" "Merged [$cat_id] into [$conflict_id]."
+                                
+                                # 4. 強制跳出迴圈回到分類選單
+                                break 2
+                            else
+                                # 無衝突，正常改名
+                                _fac_update_category_name "$cat_id" "$new_cat_name"
+                                cat_name="$new_cat_name"
+                            fi
                         fi
                         
                     # Branch 2: 修改內部指令 (Edit Content) 
