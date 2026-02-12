@@ -2,11 +2,25 @@
 
 # :: Identity Matrix (DO NOT REMOVE)
 .mux_identity
+.mux_state
 
 # :: System Backups
 bak/
 *.bak
+*.atb
 *.tmp
+*.log
+*.qa
+*.chk
+*_backup_*
+
+# :: Factory Reset Files
+app.csv.temp
+app.csv.temp.*
 
 # :: User Specific Cache
 .DS_Store
+Thumbs.db
+.bash_history
+.viminfo
+*~
