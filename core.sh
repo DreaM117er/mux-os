@@ -135,6 +135,11 @@ function _mux_boot_sequence() {
 function _mux_init() {
     _system_lock
     _safe_ui_calc
+
+    if [ -f "$MUX_ROOT/app.csv.temp" ]; then
+        rm "$MUX_ROOT/app.csv.temp"
+    fi
+    
     clear
     _draw_logo "core"
     
@@ -1235,6 +1240,10 @@ function _core_eject_sequence() {
     # 經驗值獎勵
     if command -v _grant_xp &> /dev/null; then
         _grant_xp 5 "EJECTED"
+    fi
+
+    if [ -f "$MUX_ROOT/app.csv.temp" ]; then
+        rm "$MUX_ROOT/app.csv.temp"
     fi
 
     echo -e ""
