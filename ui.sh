@@ -164,8 +164,8 @@ function _show_badges() {
     local has_special=false
 
     if [ "$has_special" = false ]; then
-        echo -e " ${C_BLACK}[??:??][LOCKED]${C_RESET}"
-        echo -e "  ${C_BLACK}??? › Classified information.${C_RESET}"
+        echo -e " ${C_BLACK}[??:S0][LOCKED]${C_RESET}"
+        echo -e "  ???${C_BLACK} › Classified information.${C_RESET}"
         echo ""
     fi
 
