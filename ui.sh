@@ -111,8 +111,8 @@ function _render_badge() {
         stage="S1"; next_target="$s2"; color="${C_ORANGE}" # 銅牌 (Bronze)
     fi
         
-    printf " ${color}[%s:%s]${C_RESET}-${color}[%s/%s]${C_RESET}\n%s: " "$abbr" "$stage" "$current" "$next_target" "$name"
-    echo -e "    ${C_BLACK}›› ${desc}${C_RESET}"
+    printf " ${color}[%s:%s]${C_RESET}-${color}[%s/%s]${C_RESET}\n   %s: " "$abbr" "$stage" "$current" "$next_target" "$name"
+    echo -e "${C_BLACK}› ${desc}${C_RESET}"
     echo ""
 }
 
