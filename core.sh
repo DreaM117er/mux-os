@@ -250,6 +250,10 @@ function _neural_link_deploy() {
     git push
     if [ $? -eq 0 ]; then 
         _bot_say "success" "Deployment Successful."
+        # 行爲記錄 (Behavior record)
+        if command -v _grant_xp &> /dev/null; then
+            _grant_xp 30 "GIT_PUSH"
+        fi
     else 
         _bot_say "error" "Uplink destabilized."
     fi
@@ -398,6 +402,11 @@ function _resolve_smart_url() {
             __GO_TARGET="$safe_query"
             __GO_MODE="direct"
         fi
+    fi
+
+    # 5. 記錄行爲 (Behavior record)
+    if command -v _record_behavior &> /dev/null; then
+        _record_behavior "NEURAL_LINK"
     fi
 }
 
