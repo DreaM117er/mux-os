@@ -20,6 +20,15 @@ MUX_LEVEL="${MUX_LEVEL:-1}"
 MUX_XP="${MUX_XP:-0}"
 MUX_NEXT_XP="${MUX_NEXT_XP:-2000}"
 MUX_BADGES="${MUX_BADGES:-INIT}"
+MUX_DATE="${MUX_DATE}"
+MUX_LF="${MUX_LF}"
+MUX_LB="${MUX_LB}"
+HEAP_ALLOCATION_IDX="${HEAP_ALLOCATION_IDX:-0}"
+IO_WRITE_CYCLES="${IO_WRITE_CYCLES:-0}"
+KERNEL_PANIC_OFFSET="${KERNEL_PANIC_OFFSET:-0}"
+UPLINK_LATENCY_MS="${UPLINK_LATENCY_MS:-0}"
+ENTROPY_DISCHARGE="${ENTROPY_DISCHARGE:-0}"
+NEURAL_SYNAPSE_FIRING="${NEURAL_SYNAPSE_FIRING:-0}"
 EOF
 }
 
@@ -35,19 +44,77 @@ if [ ! -f "$IDENTITY_FILE" ]; then
         MUX_XP=0
         MUX_NEXT_XP=2000
         MUX_BADGES="INIT"
+        MUX_DATE=$(date +%s)
+        MUX_LF=$MUX_DATE
+        MUX_LB=""
+        HEAP_ALLOCATION_IDX=0     # Exec
+        IO_WRITE_CYCLES=0         # Create
+        KERNEL_PANIC_OFFSET=0     # Edit
+        UPLINK_LATENCY_MS=0       # Deploy
+        ENTROPY_DISCHARGE=0       # Delete
+        NEURAL_SYNAPSE_FIRING=0   # Search/Link
         _save_identity
+        return
     fi
     
     source "$IDENTITY_FILE"
     
     # 舊用戶遷移
-    if [ -z "$MUX_LEVEL" ]; then
-        MUX_LEVEL=1
-        MUX_XP=0
-        MUX_NEXT_XP=2000
-        MUX_BADGES="INIT"
+    if [ -z "$MUX_DATE" ]; then
+        MUX_DATE=$(date +%s)
+        MUX_LF=$MUX_DATE
+        MUX_LB=""
+        HEAP_ALLOCATION_IDX=${HEAP_ALLOCATION_IDX:-0}
+        IO_WRITE_CYCLES=${IO_WRITE_CYCLES:-0}
+        KERNEL_PANIC_OFFSET=${KERNEL_PANIC_OFFSET:-0}
+        UPLINK_LATENCY_MS=${UPLINK_LATENCY_MS:-0}
+        ENTROPY_DISCHARGE=${ENTROPY_DISCHARGE:-0}
+        NEURAL_SYNAPSE_FIRING=${NEURAL_SYNAPSE_FIRING:-0}
+        
+        save_required=true
+    fi
+    
+    if [ "$save_required" == "true" ]; then
         _save_identity
     fi
+}
+
+# 行為記錄器 (Behavior Recorder)
+function _record_behavior() {
+    local action_type="$1"
+    
+    # 確保變數已載入
+    if [ -z "$HEAP_ALLOCATION_IDX" ]; then source "$IDENTITY_FILE"; fi
+    
+    case "$action_type" in
+        "CMD_EXEC")
+            # 執行指令 -> 堆疊分配索引
+            HEAP_ALLOCATION_IDX=$((HEAP_ALLOCATION_IDX + 1))
+            ;;
+        "FAC_CREATE")
+            # 新增節點 -> IO寫入循環
+            IO_WRITE_CYCLES=$((IO_WRITE_CYCLES + 1))
+            ;;
+        "FAC_EDIT")
+            # 修改參數 -> 核心錯誤偏移
+            KERNEL_PANIC_OFFSET=$((KERNEL_PANIC_OFFSET + 1))
+            ;;
+        "GIT_PUSH")
+            # 部署/上傳 -> 上行延遲
+            UPLINK_LATENCY_MS=$((UPLINK_LATENCY_MS + 1))
+            ;;
+        "FAC_DEL")
+            # 刪除節點 -> 熵值釋放
+            ENTROPY_DISCHARGE=$((ENTROPY_DISCHARGE + 1))
+            ;;
+        "NEURAL_LINK")
+            # 搜尋/連結 -> 神經突觸點火
+            NEURAL_SYNAPSE_FIRING=$((NEURAL_SYNAPSE_FIRING + 1))
+            ;;
+    esac
+    
+    # 靜默存檔
+    _save_identity
 }
 
 # 狀態加成計算核心 (Buff Calculation Engine)
@@ -113,7 +180,58 @@ function _check_active_buffs() {
 function _grant_xp() {
     local base_amount=$1
     local source_type=$2
-    
+
+    local whitelist=(
+                        "mux"
+                        "fac"
+                        "_mux_pre_login"
+                        "_mux_set_logout"
+                        "_core_system_scan"
+                        "_neural_link_deploy"
+                        "_core_pre_factory_auth"
+                        "_core_eject_sequence"
+                        "_mux_neural_fire_control"
+                        "_mux_uplink_sequence"
+                        "_fac_edit_router"
+                        "_fac_launch_test"
+                        "_factory_deploy_sequence"
+                        "_fac_safe_edit_protocol"
+                        "_fac_generic_edit"
+                        "_fac_update_category_name"
+                        "_fac_delete_node"
+                        "_fac_rebak_wizard"
+                    )
+    local authorized=false
+    local stack_trace="${FUNCNAME[*]}"
+
+    # 豁免條款
+    if [ "$source_type" == "SHELL" ]; then
+        authorized=true
+    else
+        for trigger in "${whitelist[@]}"; do
+            if [[ "$stack_trace" == *"$trigger"* ]]; then
+                authorized=true
+                break
+            fi
+        done
+    fi
+
+    # 攔截非法呼叫
+    if [ "$authorized" == "false" ]; then
+        echo ""
+        echo -e "\033[1;31m :: SECURITY ALERT :: Unauthorized XP Injection Detected.\033[0m"
+        echo -e "\033[1;30m    ›› Source: Direct Terminal / External Script\033[0m"
+        echo -e "\033[1;30m    ›› Action: Request Denied. Incident Logged.\033[0m"
+        
+        # 懲罰機制：扣除 50 XP (可選)
+        # MUX_XP=$((MUX_XP - 50))
+        # if [ "$MUX_XP" -lt 0 ]; then MUX_XP=0; fi
+        # _save_identity
+        
+        return 1
+    fi
+
+    # 確保身份數據已載入
     if [ -f "$IDENTITY_FILE" ]; then
         source "$IDENTITY_FILE"
     fi
@@ -128,11 +246,29 @@ function _grant_xp() {
     # fi
     
     MUX_XP=$((MUX_XP + final_amount))
+
+    case "$source_type" in
+        "CMD_EXEC")    _record_behavior "CMD_EXEC" ;;    # 執行指令
+        "FAC_CREATE")  _record_behavior "FAC_CREATE" ;;  # 新增節點
+        "FAC_EDIT")    _record_behavior "FAC_EDIT" ;;    # 修改參數
+        "FAC_DEL")     _record_behavior "FAC_DEL" ;;     # 刪除節點
+        "FAC_DEPLOY")  _record_behavior "GIT_PUSH" ;;    # 工廠部署 -> 視為上傳 (Uplink)
+        "GIT_PUSH")    _record_behavior "GIT_PUSH" ;;    # 核心部署 -> 上傳
+        "NEURAL_LINK") _record_behavior "NEURAL_LINK" ;; # 連結/搜尋
+        "WARP_JUMP")   _record_behavior "NEURAL_LINK" ;; # 切換分支 -> 視為連結
+        *) ;;  # 其他行為不記錄
+    esac
     
     if [ "$MUX_XP" -ge "$MUX_NEXT_XP" ]; then
         MUX_LEVEL=$((MUX_LEVEL + 1))
         # 混合線性成長公式
         MUX_NEXT_XP=$(awk "BEGIN {print int($MUX_NEXT_XP * 1.5 + 2000)}")
+
+        local now_ts=$(date +%s)
+        MUX_LB=$now_ts
+        # local duration=$(( MUX_LB - MUX_LF )) # 計算該等級滯留時間
+        MUX_LF=$MUX_LB
+        MUX_LB=""
         
         echo ""
         if command -v _bot_say &> /dev/null; then
