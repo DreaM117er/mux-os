@@ -96,7 +96,7 @@ function _render_badge() {
         
     local stage="S0"
     local next_target="$s1"
-    local C_GRAY="${C_BLACK:-\033[1;30m}"    # 未解鎖 (Locked)
+    local C_GRAY="${C_BLACK}"    # 未解鎖 (Locked)
     local icon="🔒"
 
     if [ "$current" -ge "$s5" ]; then
