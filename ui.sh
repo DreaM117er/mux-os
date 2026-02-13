@@ -111,7 +111,7 @@ function _render_badge() {
         stage="S1"; next_target="$s2"; color="${C_ORANGE}" # 銅牌 (Bronze)
     fi
         
-    printf " ${color}[%s:%s]${C_RESET} %-12s ${color}[%s/%s]${C_RESET}\n" "$abbr" "$stage" "$name" "$current" "$next_target"
+    printf " ${color}[%s:%s]${C_RESET}-${color}[%s/%s]${C_RESET}\n%s: " "$abbr" "$stage" "$current" "$next_target" "$name"
     echo -e "    ${C_BLACK}›› ${desc}${C_RESET}"
     echo ""
 }
@@ -122,7 +122,7 @@ function _show_badges() {
     if [ -f "$HOME/mux-os/identity.sh" ]; then source "$HOME/mux-os/identity.sh"; fi
     if [ -f "$HOME/mux-os/.mux_identity" ]; then source "$HOME/mux-os/.mux_identity"; fi
 
-    echo -e "${C_PURPLE} :: Mux-OS Hall of Fame ::${C_RESET}"
+    echo -e "${C_CYAN} :: Mux-OS Hall of Fame ::${C_RESET}"
     echo ""
 
     # 常規獎牌
