@@ -96,25 +96,23 @@ function _render_badge() {
         
     local stage="S0"
     local next_target="$s1"
-    local C_GRAY="${C_BLACK}"    # 未解鎖 (Locked)
-    local icon="🔒"
+    
+    local color="${C_BLACK}"
 
     if [ "$current" -ge "$s5" ]; then
-        stage="S5"; next_target="MAX"; color="${C_PURPLE}"; icon="⚫" # 黑牌 (Onyx)
+        stage="S5"; next_target="MAX"; color="${C_PURPLE}" # 黑牌 (Onyx)
     elif [ "$current" -ge "$s4" ]; then
-        stage="S4"; next_target="$s5"; color="${C_CYAN}"; icon="⚪"   # 白金 (Platinum)
+        stage="S4"; next_target="$s5"; color="${C_CYAN}"   # 白金 (Platinum)
     elif [ "$current" -ge "$s3" ]; then
-        stage="S3"; next_target="$s4"; color="${C_YELLOW}"; icon="🟡" # 金牌 (Gold)
+        stage="S3"; next_target="$s4"; color="${C_YELLOW}" # 金牌 (Gold)
     elif [ "$current" -ge "$s2" ]; then
-        stage="S2"; next_target="$s3"; color="${C_WHITE}"; icon="⚪"   # 銀牌 (Silver)
+        stage="S2"; next_target="$s3"; color="${C_WHITE}"  # 銀牌 (Silver)
     elif [ "$current" -ge "$s1" ]; then
-        stage="S1"; next_target="$s2"; color="${C_ORANGE}"; icon="🟤" # 銅牌 (Bronze)
+        stage="S1"; next_target="$s2"; color="${C_ORANGE}" # 銅牌 (Bronze)
     fi
         
-    # 格式化輸出: [Fb:S2] Fabricator [35/100]
-    # 使用 printf 確保對齊
     printf " ${color}[%s:%s]${C_RESET} %-12s ${color}[%s/%s]${C_RESET}\n" "$abbr" "$stage" "$name" "$current" "$next_target"
-    echo -e "    ${C_GRAY}›› ${desc}${C_RESET}"
+    echo -e "    ${C_BLACK}›› ${desc}${C_RESET}"
     echo ""
 }
 
@@ -124,17 +122,17 @@ function _show_badges() {
     if [ -f "$HOME/mux-os/identity.sh" ]; then source "$HOME/mux-os/identity.sh"; fi
     if [ -f "$HOME/mux-os/.mux_identity" ]; then source "$HOME/mux-os/.mux_identity"; fi
 
-    echo -e "${C_CYAN} :: Mux-OS Hall of Fame ::${C_RESET}"
+    echo -e "${C_PURPLE} :: Mux-OS Hall of Fame ::${C_RESET}"
     echo ""
 
-    # === 常規獎牌 (Standard Medals) ===
+    # 常規獎牌
     
     # [Hk] Hacker (Exec) - The Operator
     _render_badge "Hk" "Hacker" "$HEAP_ALLOCATION_IDX" \
         60 500 2500 10000 50000 \
         "Neural command execution cycles."
 
-    # [Fb] Fabricator (Create) - The Maker (Rename from Architect)
+    # [Fb] Fabricator (Create) - The Maker
     _render_badge "Fb" "Fabricator" "$IO_WRITE_CYCLES" \
         5 30 100 300 1000 \
         "Infrastructure node construction."
@@ -159,7 +157,7 @@ function _show_badges() {
         30 100 500 1000 3000 \
         "External neural network queries."
 
-    # === 特殊獎牌 (Hidden / Special) ===
+    # 特殊獎牌
     echo -e "${C_RED} :: Special Operations ::${C_RESET}"
     echo ""
 
