@@ -111,7 +111,7 @@ function _render_badge() {
         stage="S1"; next_target="$s2"; color="${C_ORANGE}" # 銅牌 (Bronze)
     fi
         
-    printf " ${color}[%s:%s]${C_RESET}-${color}[%s/%s]${C_RESET}\n   %s: " "$abbr" "$stage" "$current" "$next_target" "$name"
+    printf " ${color}[%s:%s]${C_RESET}${color}[%s/%s]${C_RESET}\n  %s: " "$abbr" "$stage" "$current" "$next_target" "$name"
     echo -e "${C_BLACK}› ${desc}${C_RESET}"
     echo ""
 }
@@ -122,7 +122,7 @@ function _show_badges() {
     if [ -f "$HOME/mux-os/identity.sh" ]; then source "$HOME/mux-os/identity.sh"; fi
     if [ -f "$HOME/mux-os/.mux_identity" ]; then source "$HOME/mux-os/.mux_identity"; fi
 
-    echo -e "${C_CYAN} :: Mux-OS Hall of Fame ::${C_RESET}"
+    echo -e "${C_PURPLE} :: Mux-OS Hall of Fame ::${C_RESET}"
     echo ""
 
     # 常規獎牌
@@ -167,7 +167,7 @@ function _show_badges() {
     # 檢查 MUX_BADGES 字串中是否包含 "2D_STRIKE"
     if [[ "$MUX_BADGES" == *"2D_STRIKE"* ]]; then
         echo -e " ${C_RED}[Si:S5]${C_RESET} Singularity  ${C_RED}[MAX]${C_RESET}"
-        echo -e "    ${C_GRAY}›› Survivor of Dimensional Collapse.${C_RESET}"
+        echo -e "    ${C_BLACK}›› Survivor of Dimensional Collapse.${C_RESET}"
         echo ""
         has_special=true
     fi
@@ -176,15 +176,15 @@ function _show_badges() {
     # 假設我們之後加一個 "TIME_LORD" 標籤
     if [[ "$MUX_BADGES" == *"TIME_LORD"* ]]; then
         echo -e " ${C_YELLOW}[Ti:S5]${C_RESET} Time Lord    ${C_YELLOW}[MAX]${C_RESET}"
-        echo -e "    ${C_GRAY}›› Master of the temporal flow.${C_RESET}"
+        echo -e "    ${C_BLACK}›› Master of the temporal flow.${C_RESET}"
         echo ""
         has_special=true
     fi
 
     # 如果沒有任何特殊獎牌，顯示神祕訊息
     if [ "$has_special" = false ]; then
-        echo -e " ${C_GRAY}[??:??] ???          [LOCKED]${C_RESET}"
-        echo -e "    ${C_GRAY}›› Classified information.${C_RESET}"
+        echo -e " ${C_BLACK}[??:??][LOCKED]${C_RESET}"
+        echo -e "   ${C_BLACK}???: Classified information.${C_RESET}"
         echo ""
     fi
 }
