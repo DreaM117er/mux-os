@@ -86,6 +86,111 @@ function _draw_level_bar() {
     echo -e " ${c_status}[L${lvl}][${id}]${c_empty}-[${title}]${C_RESET}"
 }
 
+# 渲染核心 (Render Core)
+function _render_badge() {
+    local abbr="$1"
+    local name="$2"
+    local current="${3:-0}"
+    local s1=$4; local s2=$5; local s3=$6; local s4=$7; local s5=$8
+    local desc="$9"
+        
+    local stage="S0"
+    local next_target="$s1"
+    local C_GRAY="${C_BLACK:-\033[1;30m}"    # 未解鎖 (Locked)
+    local icon="🔒"
+
+    if [ "$current" -ge "$s5" ]; then
+        stage="S5"; next_target="MAX"; color="${C_PURPLE}"; icon="⚫" # 黑牌 (Onyx)
+    elif [ "$current" -ge "$s4" ]; then
+        stage="S4"; next_target="$s5"; color="${C_CYAN}"; icon="⚪"   # 白金 (Platinum)
+    elif [ "$current" -ge "$s3" ]; then
+        stage="S3"; next_target="$s4"; color="${C_YELLOW}"; icon="🟡" # 金牌 (Gold)
+    elif [ "$current" -ge "$s2" ]; then
+        stage="S2"; next_target="$s3"; color="${C_WHITE}"; icon="⚪"   # 銀牌 (Silver)
+    elif [ "$current" -ge "$s1" ]; then
+        stage="S1"; next_target="$s2"; color="${C_ORANGE}"; icon="🟤" # 銅牌 (Bronze)
+    fi
+        
+    # 格式化輸出: [Fb:S2] Fabricator [35/100]
+    # 使用 printf 確保對齊
+    printf " ${color}[%s:%s]${C_RESET} %-12s ${color}[%s/%s]${C_RESET}\n" "$abbr" "$stage" "$name" "$current" "$next_target"
+    echo -e "    ${C_GRAY}›› ${desc}${C_RESET}"
+    echo ""
+}
+
+# 顯示勳章牆 (Medal Wall)
+function _show_badges() {
+    # 確保資料是最新的
+    if [ -f "$HOME/mux-os/identity.sh" ]; then source "$HOME/mux-os/identity.sh"; fi
+    if [ -f "$HOME/mux-os/.mux_identity" ]; then source "$HOME/mux-os/.mux_identity"; fi
+
+    echo -e "${C_CYAN} :: Mux-OS Hall of Fame ::${C_RESET}"
+    echo ""
+
+    # === 常規獎牌 (Standard Medals) ===
+    
+    # [Hk] Hacker (Exec) - The Operator
+    _render_badge "Hk" "Hacker" "$HEAP_ALLOCATION_IDX" \
+        60 500 2500 10000 50000 \
+        "Neural command execution cycles."
+
+    # [Fb] Fabricator (Create) - The Maker (Rename from Architect)
+    _render_badge "Fb" "Fabricator" "$IO_WRITE_CYCLES" \
+        5 30 100 300 1000 \
+        "Infrastructure node construction."
+
+    # [En] Engineer (Edit) - The Tuner
+    _render_badge "En" "Engineer" "$KERNEL_PANIC_OFFSET" \
+        30 100 500 1500 3000 \
+        "System parameter optimization."
+
+    # [Cn] Connector (Deploy) - The Link
+    _render_badge "Cn" "Connector" "$UPLINK_LATENCY_MS" \
+        5 30 100 300 600 \
+        "Cloud uplink synchronization events."
+
+    # [Pu] Purifier (Delete) - The Cleaner
+    _render_badge "Pu" "Purifier" "$ENTROPY_DISCHARGE" \
+        3 10 50 150 500 \
+        "Entropy reduction (node deletion)."
+
+    # [Ex] Explorer (Neural) - The Seeker
+    _render_badge "Ex" "Explorer" "$NEURAL_SYNAPSE_FIRING" \
+        30 100 500 1000 3000 \
+        "External neural network queries."
+
+    # === 特殊獎牌 (Hidden / Special) ===
+    echo -e "${C_RED} :: Special Operations ::${C_RESET}"
+    echo ""
+
+    local has_special=false
+
+    # 1. Singularity (降維打擊)
+    # 檢查 MUX_BADGES 字串中是否包含 "2D_STRIKE"
+    if [[ "$MUX_BADGES" == *"2D_STRIKE"* ]]; then
+        echo -e " ${C_RED}[Si:S5]${C_RESET} Singularity  ${C_RED}[MAX]${C_RESET}"
+        echo -e "    ${C_GRAY}›› Survivor of Dimensional Collapse.${C_RESET}"
+        echo ""
+        has_special=true
+    fi
+
+    # 2. Time Lord (時間領主 - 隱藏成就範例)
+    # 假設我們之後加一個 "TIME_LORD" 標籤
+    if [[ "$MUX_BADGES" == *"TIME_LORD"* ]]; then
+        echo -e " ${C_YELLOW}[Ti:S5]${C_RESET} Time Lord    ${C_YELLOW}[MAX]${C_RESET}"
+        echo -e "    ${C_GRAY}›› Master of the temporal flow.${C_RESET}"
+        echo ""
+        has_special=true
+    fi
+
+    # 如果沒有任何特殊獎牌，顯示神祕訊息
+    if [ "$has_special" = false ]; then
+        echo -e " ${C_GRAY}[??:??] ???          [LOCKED]${C_RESET}"
+        echo -e "    ${C_GRAY}›› Classified information.${C_RESET}"
+        echo ""
+    fi
+}
+
 # 繪製 Mux-OS Logo標誌
 function _draw_logo() {
     local mode="${1:-core}"
