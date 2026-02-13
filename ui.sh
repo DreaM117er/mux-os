@@ -111,8 +111,8 @@ function _render_badge() {
         stage="S1"; next_target="$s2"; color="${C_ORANGE}" # 銅牌 (Bronze)
     fi
         
-    printf " ${color}[%s:%s]${C_RESET}${color}[%s/%s]${C_RESET}\n  %s " "$abbr" "$stage" "$current" "$next_target" "$name"
-    echo -e "${C_BLACK}› ${desc}${C_RESET}"
+    printf " ${color}[%s:%s]${C_RESET}${color}[%s/%s] -${C_RESET} %s\n" "$abbr" "$stage" "$current" "$next_target" "$name"
+    echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
     echo ""
 }
 
@@ -164,15 +164,15 @@ function _show_badges() {
     local has_special=false
 
     if [ "$has_special" = false ]; then
-        echo -e " ${C_BLACK}[??:S0][LOCKED]${C_RESET}"
-        echo -e "  ???${C_BLACK} › Classified information.${C_RESET}"
+        echo -e " ${C_BLACK}[??:S0][LOCKED] - ${C_RESET}???"
+        echo -e "  ${C_BLACK}› Classified information.${C_RESET}"
         echo ""
     fi
 
     # 降維打擊 (Dimensional Strike)
     if [[ "$MUX_BADGES" == *"DSTRIKE"* ]]; then
-        echo -e " ${C_RED}[Ds:SS]${C_RESET}${C_BLACK}[--/--]${C_RESET}"
-        echo -e "  Dimensional Strike${C_BLACK} › Survivor of Dimensional Collapse.${C_RESET}"
+        echo -e " ${C_RED}[Ds:SS]${C_RESET}${C_BLACK}[--/--] - ${C_RESET}Dimensional Strike"
+        echo -e "  ${C_BLACK}› Survivor of Dimensional Collapse.${C_RESET}"
         echo ""
         has_special=true
     fi
