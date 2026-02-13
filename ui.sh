@@ -111,7 +111,7 @@ function _render_badge() {
         stage="S1"; next_target="$s2"; color="${C_ORANGE}" # 銅牌 (Bronze)
     fi
         
-    printf " ${color}[%s:%s]${C_RESET}${color}[%s/%s]${C_RESET}\n  %s: " "$abbr" "$stage" "$current" "$next_target" "$name"
+    printf " ${color}[%s:%s]${C_RESET}${color}[%s/%s]${C_RESET}\n  %s " "$abbr" "$stage" "$current" "$next_target" "$name"
     echo -e "${C_BLACK}› ${desc}${C_RESET}"
     echo ""
 }
@@ -163,29 +163,18 @@ function _show_badges() {
 
     local has_special=false
 
-    # 1. Singularity (降維打擊)
-    # 檢查 MUX_BADGES 字串中是否包含 "2D_STRIKE"
-    if [[ "$MUX_BADGES" == *"2D_STRIKE"* ]]; then
-        echo -e " ${C_RED}[Si:S5]${C_RESET} Singularity  ${C_RED}[MAX]${C_RESET}"
-        echo -e "    ${C_BLACK}›› Survivor of Dimensional Collapse.${C_RESET}"
-        echo ""
-        has_special=true
-    fi
-
-    # 2. Time Lord (時間領主 - 隱藏成就範例)
-    # 假設我們之後加一個 "TIME_LORD" 標籤
-    if [[ "$MUX_BADGES" == *"TIME_LORD"* ]]; then
-        echo -e " ${C_YELLOW}[Ti:S5]${C_RESET} Time Lord    ${C_YELLOW}[MAX]${C_RESET}"
-        echo -e "    ${C_BLACK}›› Master of the temporal flow.${C_RESET}"
-        echo ""
-        has_special=true
-    fi
-
-    # 如果沒有任何特殊獎牌，顯示神祕訊息
     if [ "$has_special" = false ]; then
         echo -e " ${C_BLACK}[??:??][LOCKED]${C_RESET}"
-        echo -e "   ${C_BLACK}???: Classified information.${C_RESET}"
+        echo -e "  ${C_BLACK}??? › Classified information.${C_RESET}"
         echo ""
+    fi
+
+    # 降維打擊 (Dimensional Strike)
+    if [[ "$MUX_BADGES" == *"DSTRIKE"* ]]; then
+        echo -e " ${C_RED}[Ds:SS]${C_RESET}${C_BLACK}[--/--]${C_RESET}"
+        echo -e "  Dimensional Strike${C_BLACK} › Survivor of Dimensional Collapse.${C_RESET}"
+        echo ""
+        has_special=true
     fi
 }
 
