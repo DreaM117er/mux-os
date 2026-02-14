@@ -161,7 +161,10 @@ function _mux_reload_kernel() {
     _system_lock
     unset MUX_INITIALIZED
     
-    _check_singularity
+    if command -v _check_singularity &> /dev/null; then
+        _check_singularity
+        if [ $? -ne 0 ]; then return; fi 
+    fi
 
     local gate_theme="core"
     if [ "$MUX_STATUS" == "DEFAULT" ]; then
