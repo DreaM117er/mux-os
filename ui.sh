@@ -86,7 +86,7 @@ function _draw_level_bar() {
     echo -e " ${c_status}[L${lvl}][${id}]${c_empty}-[${title}]${C_RESET}"
 }
 
-# 渲染核心 (Render Core)
+# 常規獎牌渲染 (Standard Medal Render)
 function _render_badge() {
     local abbr="$1"
     local name="$2"
@@ -94,88 +94,131 @@ function _render_badge() {
     local s1=$4; local s2=$5; local s3=$6; local s4=$7; local s5=$8
     local desc="$9"
         
-    local stage="S0"
+    local stage="0"
     local next_target="$s1"
     
-    local color="${C_BLACK}"
+    # 預設: 0 (C_BLACK / Dark Gray)
+    local color="${C_BLACK:-\033[1;30m}"
 
     if [ "$current" -ge "$s5" ]; then
-        stage="S5"; next_target="MAX"; color="${C_PURPLE}" # 黑牌 (Onyx)
+        stage="5"; next_target="MAX"; color="${C_PURPLE}" # Onyx (Purple)
     elif [ "$current" -ge "$s4" ]; then
-        stage="S4"; next_target="$s5"; color="${C_CYAN}"   # 白金 (Platinum)
+        stage="4"; next_target="$s5"; color="${C_CYAN}"   # Platinum (Cyan)
     elif [ "$current" -ge "$s3" ]; then
-        stage="S3"; next_target="$s4"; color="${C_YELLOW}" # 金牌 (Gold)
+        stage="3"; next_target="$s4"; color="${C_YELLOW}" # Gold (Yellow)
     elif [ "$current" -ge "$s2" ]; then
-        stage="S2"; next_target="$s3"; color="${C_WHITE}"  # 銀牌 (Silver)
+        stage="2"; next_target="$s3"; color="${C_WHITE}"  # Silver (White)
     elif [ "$current" -ge "$s1" ]; then
-        stage="S1"; next_target="$s2"; color="${C_ORANGE}" # 銅牌 (Bronze)
+        stage="1"; next_target="$s2"; color="${C_ORANGE}" # Bronze (Orange)
     fi
         
-    printf " ${color}[%s:%s]${C_RESET}${color}[%s/%s] -${C_RESET} %s\n" "$abbr" "$stage" "$current" "$next_target" "$name"
+    # 三行式排版
+    # Line 1: [Abbr] - Name
+    # Line 2: [Stage X][Curr/Next]
+    # Line 3: Description (Gray)
+    echo -e " ${color}[${abbr}] - ${name}${C_RESET}"
+    echo -e " ${color}[Stage ${stage}][${current}/${next_target}]${C_RESET}"
     echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
+    echo ""
+}
+
+# 特殊獎牌渲染 (Special Medal Render - with Obfuscation)
+function _render_special() {
+    local tag="$1"
+    local abbr="$2"
+    local name="$3"
+    local desc="$4"
+    
+    # 計算持有數量 (Count)
+    local count=0
+    if [[ "$MUX_BADGES" == *"$tag"* ]]; then
+        # 簡單計算出現次數
+        count=$(echo "$MUX_BADGES" | grep -o "$tag" | wc -l)
+    fi
+
+    if [ "$count" -gt 0 ]; then
+        # [已解鎖]
+        echo -e " ${C_RED}[${abbr}] - ${name}${C_RESET}"
+        echo -e " ${C_RED}[Classified][${count}]${C_RESET}"
+        echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
+    else
+        # [未解鎖] - 隱藏資訊
+        local locked_color="${C_BLACK:-\033[1;30m}"
+        echo -e " ${locked_color}[??] - ???${C_RESET}"
+        echo -e " ${locked_color}[LOCKED][0/1]${C_RESET}"
+        echo -e "  ${locked_color}› ???${C_RESET}"
+    fi
     echo ""
 }
 
 # 顯示勳章牆 (Medal Wall)
 function _show_badges() {
-    # 確保資料是最新的
+    local tag="$1"
+    local abbr="$2"
+    local name="$3"
+    local desc="$4"
+    
+    # 計算持有數量 (Count)
+    local count=0
+    if [[ "$MUX_BADGES" == *"$tag"* ]]; then
+        # 簡單計算出現次數
+        count=$(echo "$MUX_BADGES" | grep -o "$tag" | wc -l)
+    fi
+
+    if [ "$count" -gt 0 ]; then
+        # [已解鎖]
+        echo -e " ${C_RED}[${abbr}] - ${name}${C_RESET}"
+        echo -e " ${C_RED}[Classified][${count}]${C_RESET}"
+        echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
+    else
+        # [未解鎖] - 隱藏資訊
+        local locked_color="${C_BLACK:-\033[1;30m}"
+        echo -e " ${locked_color}[??] - ???${C_RESET}"
+        echo -e " ${locked_color}[LOCKED][0/1]${C_RESET}"
+        echo -e "  ${locked_color}› ???${C_RESET}"
+    fi
+    echo ""
+}
+
+# 顯示勳章牆 (Medal Wall)
+function _show_badges() {
     if [ -f "$HOME/mux-os/identity.sh" ]; then source "$HOME/mux-os/identity.sh"; fi
     if [ -f "$HOME/mux-os/.mux_identity" ]; then source "$HOME/mux-os/.mux_identity"; fi
 
     echo -e "${C_PURPLE} :: Mux-OS Hall of Fame ::${C_RESET}"
     echo ""
 
-    # 常規獎牌
-    
-    # [Hk] Hacker (Exec) - The Operator
+    # 常規獎牌 (Standard)
     _render_badge "Hk" "Hacker" "$HEAP_ALLOCATION_IDX" \
-        60 500 2500 10000 50000 \
+        50 300 1000 5000 15000 \
         "Neural command execution cycles."
 
-    # [Fb] Fabricator (Create) - The Maker
     _render_badge "Fb" "Fabricator" "$IO_WRITE_CYCLES" \
-        5 30 100 300 1000 \
+        5 25 50 150 500 \
         "Infrastructure node construction."
 
-    # [En] Engineer (Edit) - The Tuner
     _render_badge "En" "Engineer" "$KERNEL_PANIC_OFFSET" \
         30 100 500 1500 3000 \
         "System parameter optimization."
 
-    # [Cn] Connector (Deploy) - The Link
     _render_badge "Cn" "Connector" "$UPLINK_LATENCY_MS" \
-        5 30 100 300 600 \
+        5 25 50 100 200 \
         "Cloud uplink synchronization events."
 
-    # [Pu] Purifier (Delete) - The Cleaner
     _render_badge "Pu" "Purifier" "$ENTROPY_DISCHARGE" \
         3 10 50 150 500 \
         "Entropy reduction (node deletion)."
 
-    # [Ex] Explorer (Neural) - The Seeker
     _render_badge "Ex" "Explorer" "$NEURAL_SYNAPSE_FIRING" \
         30 100 500 1000 3000 \
         "External neural network queries."
 
-    # 特殊獎牌
+    # 特殊獎牌 (Special)
     echo -e "${C_RED} :: Special Operations ::${C_RESET}"
     echo ""
 
-    local has_special=false
-
-    if [ "$has_special" = false ]; then
-        echo -e " ${C_BLACK}[??:S0][LOCKED] - ${C_RESET}???"
-        echo -e "  ${C_BLACK}› Classified information.${C_RESET}"
-        echo ""
-    fi
-
-    # 降維打擊 (Dimensional Strike)
-    if [[ "$MUX_BADGES" == *"DSTRIKE"* ]]; then
-        echo -e " ${C_RED}[Ds:SS]${C_RESET}${C_BLACK}[--/--] - ${C_RESET}Dimensional Strike"
-        echo -e "  ${C_BLACK}› Survivor of Dimensional Collapse.${C_RESET}"
-        echo ""
-        has_special=true
-    fi
+    # 1. 降維打擊 (Dimensional Strike)
+    _render_special "DSTRIKE" "Ds" "Dimensional Strike" "Survivor of Dimensional Collapse."
 }
 
 # 繪製 Mux-OS Logo標誌
