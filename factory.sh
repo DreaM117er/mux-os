@@ -2389,6 +2389,7 @@ function fac() {
         # : Reload Factory
         "reload")
             sleep 0.1
+            _check_singularity
             if [ -f "$MUX_ROOT/gate.sh" ]; then
                 source "$MUX_ROOT/gate.sh" "factory"
             else
