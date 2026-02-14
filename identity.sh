@@ -117,6 +117,44 @@ function _record_behavior() {
     _save_identity
 }
 
+# 隱藏成就解鎖器 (Hidden Achievement Unlocker)
+# 用法: _unlock_badge "TAG_NAME" "Badge Name"
+function _unlock_badge() {
+    local tag="$1"
+    local name="$2"
+    
+    # 1. 讀取最新狀態
+    if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+    
+    # 2. 檢查是否已擁有 (避免重複跳通知)
+    if [[ "$MUX_BADGES" == *"$tag"* ]]; then
+        return 0
+    fi
+    
+    # 3. 寫入標記
+    # 如果是 INIT，直接附加；否則加 | 分隔
+    if [ "$MUX_BADGES" == "INIT" ] || [ -z "$MUX_BADGES" ]; then
+        MUX_BADGES="$tag"
+    else
+        MUX_BADGES="${MUX_BADGES}|${tag}"
+    fi
+    
+    # 4. 存檔
+    _save_identity
+    
+    # 5. 視覺通知 (Achievement Unlocked)
+    echo ""
+    echo -e "\033[1;33m :: HIDDEN ACHIEVEMENT UNLOCKED ::\033[0m"
+    echo -e "\033[1;37m    [ $name ]\033[0m"
+    echo -e "\033[1;30m    ›› Identity Record Updated.\033[0m"
+    echo ""
+    
+    # 播放音效 (可選)
+    if command -v _bot_say &> /dev/null; then
+        _bot_say "success" "Achievement Unlocked: $name"
+    fi
+}
+
 # 狀態加成計算核心 (Buff Calculation Engine)
 function _check_active_buffs() {
     # 預設：無加成
@@ -173,6 +211,80 @@ function _check_active_buffs() {
         export MUX_CURRENT_MULT=1.5
         export MUX_BUFF_TAG="\033[1;36m[+5:Sun]\033[0m" 
         return
+    fi
+}
+
+# 奇點審判庭 (Singularity Tribunal)
+function _check_singularity() {
+    local calc_req=2000
+    for ((i=1; i<16; i++)); do
+        calc_req=$(awk "BEGIN {print int($calc_req * 1.5 + 2000)}")
+    done
+    local l16_floor=$calc_req
+    local l16_ceiling=$(( l16_floor + 5000 )) 
+
+    local strike_reason=""
+    local now_ts=$(date +%s)
+
+    if [ "$MUX_XP" -gt "$l16_ceiling" ]; then
+        strike_reason="Singularity: Mass Overflow (XP > Theoretical Cap)"
+    fi
+
+    if [ "$MUX_LEVEL" -ge 16 ] && [ "$MUX_XP" -lt "$l16_floor" ]; then
+        strike_reason="Paradox Detected: False Ascension (Level != XP)"
+    fi
+
+    local install_time="${MUX_DATE:-$now_ts}"
+    local time_diff=$(( now_ts - install_time ))
+    local min_time_required=43200 
+
+    if [ "$MUX_LEVEL" -ge 16 ] && [ "$time_diff" -lt "$min_time_required" ]; then
+        strike_reason="Temporal Violation: Speedrun Impossible (${time_diff}s)"
+    fi
+
+    if [ -n "$strike_reason" ]; then
+        _trigger_dimensional_strike "$strike_reason"
+        return 1
+    fi
+    
+    return 0
+}
+
+# 審判執行 (Execute Force)
+function _trigger_dimensional_strike() {
+    local reason="$1"
+    
+    echo ""
+    echo -e "\033[1;31m :: WARNING: SINGULARITY THRESHOLD EXCEEDED ::\033[0m"
+    echo -e "\033[1;30m    ›› Analysis: $reason\033[0m"
+    sleep 0.5
+    echo -e "\033[1;30m    ›› System Entropy: CRITICAL\033[0m"
+    sleep 0.5
+    
+    if command -v _unlock_badge &> /dev/null; then
+        _unlock_badge "DSTRIKE" "Dimensional Strike"
+    fi
+    
+    sleep 1
+    echo -e "\033[1;31;5m :: INITIATING DUAL VECTOR FOIL ATTACK :: \033[0m"
+    sleep 2
+    
+    MUX_LEVEL=1
+    MUX_XP=0
+    MUX_NEXT_XP=2000
+    MUX_DATE=$(date +%s)
+    MUX_LF=$MUX_DATE
+    MUX_LB=""
+    
+    _save_identity
+    
+    echo -e "\033[1;36m :: UNIVERSE REBOOTING... :: \033[0m"
+    sleep 2
+    
+    if command -v _mux_reload_kernel &> /dev/null; then
+        _mux_reload_kernel
+    else
+        exec bash
     fi
 }
 
@@ -236,6 +348,11 @@ function _grant_xp() {
         source "$IDENTITY_FILE"
     fi
 
+    if [ "$MUX_LEVEL" -ge 16 ]; then
+        _check_singularity
+        return
+    fi
+
     _check_active_buffs
 
     local final_amount=$(awk "BEGIN {print int($base_amount * $MUX_CURRENT_MULT)}")
@@ -275,6 +392,11 @@ function _grant_xp() {
             _bot_say "system" "LEVEL UP! Clearance Level $MUX_LEVEL Granted."
         else
             echo -e "\033[1;33m :: LEVEL UP! Clearance Level $MUX_LEVEL Granted. ::\033[0m"
+        fi
+
+        if [ "$MUX_LEVEL" -ge 16 ]; then
+             echo -e "\033[1;37m :: MAXIMUM CLEARANCE REACHED :: ARCHITECT STATUS ::\033[0m"
+             _check_singularity
         fi
 
         if [ "$MUX_LEVEL" -eq 8 ]; then
