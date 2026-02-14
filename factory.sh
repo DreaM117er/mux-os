@@ -2372,6 +2372,20 @@ function fac() {
             fi
             ;;
 
+        # : Show Hall of Fame (Medals)
+        "hof")
+            if command -v _show_badges &> /dev/null; then
+                _show_badges
+            else
+                if [ -f "$MUX_ROOT/ui.sh" ]; then
+                    source "$MUX_ROOT/ui.sh"
+                    _show_badges
+                else
+                    _bot_say "error" "Visual module (ui.sh) missing."
+                fi
+            fi
+            ;;
+
         # : Reload Factory
         "reload")
             sleep 0.1

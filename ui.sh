@@ -86,6 +86,110 @@ function _draw_level_bar() {
     echo -e " ${c_status}[L${lvl}][${id}]${c_empty}-[${title}]${C_RESET}"
 }
 
+# 常規獎牌渲染 (Standard Medal Render)
+function _render_badge() {
+    local abbr="$1"
+    local name="$2"
+    local current="${3:-0}"
+    local s1=$4; local s2=$5; local s3=$6; local s4=$7; local s5=$8
+    local desc="$9"
+        
+    local stage="0"
+    local next_target="$s1"
+    
+    # 預設: 0 (C_BLACK / Dark Gray)
+    local color="${C_BLACK}"
+
+    if [ "$current" -ge "$s5" ]; then
+        stage="5"; next_target="MAX"; color="${C_PURPLE}" # Onyx (Purple)
+    elif [ "$current" -ge "$s4" ]; then
+        stage="4"; next_target="$s5"; color="${C_CYAN}"   # Platinum (Cyan)
+    elif [ "$current" -ge "$s3" ]; then
+        stage="3"; next_target="$s4"; color="${C_YELLOW}" # Gold (Yellow)
+    elif [ "$current" -ge "$s2" ]; then
+        stage="2"; next_target="$s3"; color="${C_WHITE}"  # Silver (White)
+    elif [ "$current" -ge "$s1" ]; then
+        stage="1"; next_target="$s2"; color="${C_ORANGE}" # Bronze (Orange)
+    fi
+        
+    # 三行式排版
+    echo -e " ${color}[${abbr}] - ${name}${C_RESET}"
+    echo -e " ${color}[Stage ${stage}][${current}/${next_target}]${C_RESET}"
+    echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
+    echo ""
+}
+
+# 特殊獎牌渲染 (Special Medal Render - with Obfuscation)
+function _render_special() {
+    local tag="$1"
+    local abbr="$2"
+    local name="$3"
+    local desc="$4"
+    
+    # 計算持有數量 (Count)
+    local count=0
+    if [[ "$MUX_BADGES" == *"$tag"* ]]; then
+        # 簡單計算出現次數
+        count=$(echo "$MUX_BADGES" | grep -o "$tag" | wc -l)
+    fi
+
+    if [ "$count" -gt 0 ]; then
+        # [已解鎖]
+        echo -e " ${C_RED}[${abbr}] - ${name}${C_RESET}"
+        echo -e " ${C_RED}[Stage C][${count}]${C_RESET}"
+        echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
+    else
+        # [未解鎖] - 隱藏資訊
+        local locked_color="${C_BLACK}"
+        echo -e " ${locked_color}[${abbr}] - ${name}${C_RESET}"
+        echo -e " ${locked_color}[Stage L][0/1]${C_RESET}"
+        echo -e "  ${locked_color}› ???${C_RESET}"
+    fi
+    echo ""
+}
+
+
+# 顯示勳章牆 (Medal Wall)
+function _show_badges() {
+    if [ -f "$HOME/mux-os/identity.sh" ]; then source "$HOME/mux-os/identity.sh"; fi
+    if [ -f "$HOME/mux-os/.mux_identity" ]; then source "$HOME/mux-os/.mux_identity"; fi
+
+    echo -e "${C_PURPLE} :: Mux-OS Hall of Fame ::${C_RESET}"
+    echo ""
+
+    # 常規獎牌 (Standard)
+    _render_badge "Hk" "Hacker" "$HEAP_ALLOCATION_IDX" \
+        50 300 1000 5000 15000 \
+        "Neural command execution cycles."
+
+    _render_badge "Fb" "Fabricator" "$IO_WRITE_CYCLES" \
+        5 25 50 150 500 \
+        "Infrastructure node construction."
+
+    _render_badge "En" "Engineer" "$KERNEL_PANIC_OFFSET" \
+        30 100 500 1500 3000 \
+        "System parameter optimization."
+
+    _render_badge "Cn" "Connector" "$UPLINK_LATENCY_MS" \
+        5 25 50 100 200 \
+        "Cloud uplink synchronization events."
+
+    _render_badge "Pu" "Purifier" "$ENTROPY_DISCHARGE" \
+        3 10 50 150 500 \
+        "Entropy reduction (node deletion)."
+
+    _render_badge "Ex" "Explorer" "$NEURAL_SYNAPSE_FIRING" \
+        30 100 500 1000 3000 \
+        "External neural network queries."
+
+    # 特殊獎牌 (Special)
+    echo -e "${C_RED} :: Special Operations ::${C_RESET}"
+    echo ""
+
+    # 1. 降維打擊 (Dimensional Strike)
+    _render_special "DSTRIKE" "Ds" "Dimensional Strike" "Survivor of Dimensional Collapse."
+}
+
 # 繪製 Mux-OS Logo標誌
 function _draw_logo() {
     local mode="${1:-core}"

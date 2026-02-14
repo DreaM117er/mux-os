@@ -1300,7 +1300,7 @@ function mux() {
 
     if [ "$MUX_STATUS" != "LOGIN" ]; then
         case "$cmd" in
-            "login"|"setup"|"help"|"status"|"sts"|"info"|"reload"|"reset"|"factory"|"tofac"|"driveto"|"update"|"drive2")
+            "login"|"setup"|"help"|"status"|"sts"|"info"|"reload"|"reset"|"factory"|"tofac"|"driveto"|"update"|"drive2"|"hof")
                 # 放行
                 ;;
             *)
@@ -1337,6 +1337,20 @@ function mux() {
 
         "oldmenu"|"omenu")
             _show_menu_dashboard
+            ;;
+
+        # : Show Hall of Fame (Medals)
+        "hof")
+            if command -v _show_badges &> /dev/null; then
+                _show_badges
+            else
+                if [ -f "$MUX_ROOT/ui.sh" ]; then
+                    source "$MUX_ROOT/ui.sh"
+                    _show_badges
+                else
+                    _bot_say "error" "Visual module (ui.sh) missing."
+                fi
+            fi
             ;;
 
         # : Infomation
