@@ -161,6 +161,8 @@ function _mux_reload_kernel() {
     _system_lock
     unset MUX_INITIALIZED
     
+    _check_singularity
+
     local gate_theme="core"
     if [ "$MUX_STATUS" == "DEFAULT" ]; then
         gate_theme="default"
