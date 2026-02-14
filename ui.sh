@@ -113,9 +113,6 @@ function _render_badge() {
     fi
         
     # 三行式排版
-    # Line 1: [Abbr] - Name
-    # Line 2: [Stage X][Curr/Next]
-    # Line 3: Description (Gray)
     echo -e " ${color}[${abbr}] - ${name}${C_RESET}"
     echo -e " ${color}[Stage ${stage}][${current}/${next_target}]${C_RESET}"
     echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
@@ -151,34 +148,6 @@ function _render_special() {
     echo ""
 }
 
-# 顯示勳章牆 (Medal Wall)
-function _show_badges() {
-    local tag="$1"
-    local abbr="$2"
-    local name="$3"
-    local desc="$4"
-    
-    # 計算持有數量 (Count)
-    local count=0
-    if [[ "$MUX_BADGES" == *"$tag"* ]]; then
-        # 簡單計算出現次數
-        count=$(echo "$MUX_BADGES" | grep -o "$tag" | wc -l)
-    fi
-
-    if [ "$count" -gt 0 ]; then
-        # [已解鎖]
-        echo -e " ${C_RED}[${abbr}] - ${name}${C_RESET}"
-        echo -e " ${C_RED}[Classified][${count}]${C_RESET}"
-        echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
-    else
-        # [未解鎖] - 隱藏資訊
-        local locked_color="${C_BLACK:-\033[1;30m}"
-        echo -e " ${locked_color}[??] - ???${C_RESET}"
-        echo -e " ${locked_color}[LOCKED][0/1]${C_RESET}"
-        echo -e "  ${locked_color}› ???${C_RESET}"
-    fi
-    echo ""
-}
 
 # 顯示勳章牆 (Medal Wall)
 function _show_badges() {
