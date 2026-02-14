@@ -98,7 +98,7 @@ function _render_badge() {
     local next_target="$s1"
     
     # 預設: 0 (C_BLACK / Dark Gray)
-    local color="${C_BLACK:-\033[1;30m}"
+    local color="${C_BLACK}"
 
     if [ "$current" -ge "$s5" ]; then
         stage="5"; next_target="MAX"; color="${C_PURPLE}" # Onyx (Purple)
@@ -136,13 +136,13 @@ function _render_special() {
     if [ "$count" -gt 0 ]; then
         # [已解鎖]
         echo -e " ${C_RED}[${abbr}] - ${name}${C_RESET}"
-        echo -e " ${C_RED}[Classified][${count}]${C_RESET}"
+        echo -e " ${C_RED}[Stage C][${count}]${C_RESET}"
         echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
     else
         # [未解鎖] - 隱藏資訊
-        local locked_color="${C_BLACK:-\033[1;30m}"
-        echo -e " ${locked_color}[??] - ???${C_RESET}"
-        echo -e " ${locked_color}[LOCKED][0/1]${C_RESET}"
+        local locked_color="${C_BLACK}"
+        echo -e " ${locked_color}[${abbr}] - ${name}${C_RESET}"
+        echo -e " ${locked_color}[Stage L][0/1]${C_RESET}"
         echo -e "  ${locked_color}› ???${C_RESET}"
     fi
     echo ""
