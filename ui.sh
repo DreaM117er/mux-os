@@ -136,7 +136,7 @@ function _render_special() {
     if [ "$count" -gt 0 ]; then
         # [已解鎖]
         echo -e " ${C_RED}[${abbr}] - ${name}${C_RESET}"
-        echo -e " ${C_RED}[Stage C][${count}]${C_RESET}"
+        echo -e " ${C_RED}[Stage C][${count}/1]${C_RESET}"
         echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
     else
         # [未解鎖] - 隱藏資訊
