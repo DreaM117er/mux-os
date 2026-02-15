@@ -132,7 +132,7 @@ function _render_special() {
 
     if [ "$count" -gt 0 ]; then
         echo -e " ${C_RED}[${abbr}]${C_BLACK} - ${C_WHITE}${name}${C_RESET}"
-        echo -e " ${C_RED}[Stage S]${C_BLACK}[${count}]${C_RESET}"
+        echo -e " ${C_RED}[Stage S]${C_BLACK}[${count}/1]${C_RESET}"
         echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
     else
         local locked_color="${C_BLACK}"
