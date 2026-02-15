@@ -29,6 +29,10 @@ KERNEL_PANIC_OFFSET="${KERNEL_PANIC_OFFSET:-0}"
 UPLINK_LATENCY_MS="${UPLINK_LATENCY_MS:-0}"
 ENTROPY_DISCHARGE="${ENTROPY_DISCHARGE:-0}"
 NEURAL_SYNAPSE_FIRING="${NEURAL_SYNAPSE_FIRING:-0}"
+NEURAL_SYNAPSE_FIRING="${NEURAL_SYNAPSE_FIRING:-0}"
+EJECTION_COUNT="${EJECTION_COUNT:-0}"
+SUDO_ATTEMPT_COUNT="${SUDO_ATTEMPT_COUNT:-0}"
+HELP_ACCESS_COUNT="${HELP_ACCESS_COUNT:-0}"
 EOF
 }
 
@@ -53,6 +57,7 @@ if [ ! -f "$IDENTITY_FILE" ]; then
         UPLINK_LATENCY_MS=0       # Deploy
         ENTROPY_DISCHARGE=0       # Delete
         NEURAL_SYNAPSE_FIRING=0   # Search/Link
+        
         _save_identity
         return
     fi
@@ -70,6 +75,9 @@ if [ ! -f "$IDENTITY_FILE" ]; then
         UPLINK_LATENCY_MS=${UPLINK_LATENCY_MS:-0}
         ENTROPY_DISCHARGE=${ENTROPY_DISCHARGE:-0}
         NEURAL_SYNAPSE_FIRING=${NEURAL_SYNAPSE_FIRING:-0}
+        EJECTION_COUNT=${EJECTION_COUNT:-0}
+        SUDO_ATTEMPT_COUNT=${SUDO_ATTEMPT_COUNT:-0}
+        HELP_ACCESS_COUNT=${HELP_ACCESS_COUNT:-0}
         
         save_required=true
     fi
@@ -167,6 +175,7 @@ function _check_active_buffs() {
 
     # 閏年特別加成 [3x]
     if [ "$current_date" == "0229" ]; then
+        if command -v _unlock_badge &> /dev/null; then _unlock_badge "LOST_TIME" "Lost in Time"; fi
         export MUX_CURRENT_MULT=3
         export MUX_BUFF_TAG="\033[1;35;47m[3x:Rift]\033[0m"
         return
@@ -341,6 +350,17 @@ function _grant_xp() {
         # _save_identity
         
         return 1
+    fi
+
+    local now_ts=$(date +%s)
+    local install_ts="${MUX_DATE:-$now_ts}"
+    local day_diff=$(( (now_ts - install_ts) / 86400 ))
+    if [ "$day_diff" -ge 365 ]; then
+        _unlock_badge "ANCIENT_ONE" "The Ancient One"
+    fi
+
+    if [ "$MUX_LEVEL" -ge 8 ] && [[ "$MUX_BADGES" == *"DSTRIKE"* ]]; then
+        _unlock_badge "PHOENIX" "Phoenix"
     fi
 
     # 確保身份數據已載入
