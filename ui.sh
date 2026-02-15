@@ -101,7 +101,7 @@ function _render_badge() {
     local color="${C_BLACK}"
 
     if [ "$current" -ge "$s5" ]; then
-        stage="5"; next_target="MAX"; color="${C_PURPLE}" # Onyx
+        stage="5"; next_target="C"; color="${C_PURPLE}" # Onyx
     elif [ "$current" -ge "$s4" ]; then
         stage="4"; next_target="$s5"; color="${C_CYAN}"   # Platinum
     elif [ "$current" -ge "$s3" ]; then
