@@ -2403,6 +2403,7 @@ function fac() {
             fi
             sleep 0.1
             _fac_init
+            _bot_say "factory_welcome"
             ;;
             
         # : Reset Factory Change
