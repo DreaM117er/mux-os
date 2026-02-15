@@ -112,7 +112,7 @@ function _render_badge() {
         stage="1"; next_target="$s2"; color="${C_ORANGE}" # Bronze
     fi
         
-    echo -e " ${color}[${abbr}]${C_BLACK} - ${C_WHITE}${name}${C_RESET}"
+    echo -e " ${color}[${abbr}]${C_BLACK}-${C_WHITE}${name}${C_RESET}"
     echo -e " ${color}[Stage ${stage}]${C_BLACK}[${current}/${next_target}]${C_RESET}"
     echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
     echo ""
@@ -155,13 +155,13 @@ function _render_special() {
     # 渲染
     if [ "$is_unlocked" -eq 1 ]; then
         # [已解鎖]
-        echo -e " ${C_RED}[${abbr}]${C_BLACK} - ${C_WHITE}${name}${C_RESET}"
+        echo -e " ${C_RED}[${abbr}]${C_BLACK}-${C_WHITE}${name}${C_RESET}"
         echo -e " ${C_RED}[Stage C]${C_BLACK}${count_display}${C_RESET}"
         echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
     else
         # [未解鎖]
         local locked_color="${C_BLACK}"
-        echo -e " ${locked_color}[${abbr}] - ${name}${C_RESET}"
+        echo -e " ${locked_color}[${abbr}]-${name}${C_RESET}"
         echo -e " ${locked_color}[Stage L]${count_display}${C_RESET}"
         echo -e "  ${locked_color}› ???${C_RESET}"
     fi
