@@ -933,6 +933,7 @@ function _core_system_scan() {
 
 # 登入系統 - Commander Login
 function _mux_pre_login() {
+    if [ -d "$MUX_ROOT" ]; then cd "$MUX_ROOT"; fi
     if [ "$MUX_STATUS" != "DEFAULT" ]; then
         echo -e "${F_BLE} :: System already active, Commander.${C_RESET}"
         return 1
@@ -1094,6 +1095,7 @@ EOF
 
 # 工廠前置驗證協議 (Pre-Flight Auth)
 function _core_pre_factory_auth() {
+    if [ -d "$MUX_ROOT" ]; then cd "$MUX_ROOT"; fi
     local origin_status="$MUX_STATUS"
     clear
     _draw_logo "gray"
@@ -1530,7 +1532,12 @@ function mux() {
             fi
 
             # 1. 進入機庫 (Hangar Access)
-            if [ -d "$MUX_ROOT" ]; then cd "$MUX_ROOT"; else _bot_say "error" "Hangar not found."; return 1; fi
+            if [ -d "$MUX_ROOT" ]; then 
+                cd "$MUX_ROOT"
+            else 
+                _bot_say "error" "Hangar not found ($MUX_ROOT missing)."
+                return 1
+            fi
 
             # 2. 掃描機體 (Branch Selection)
             echo -e "${C_BLACK} :: Scanning Multiverse Coordinates (Hangar Walk)...${C_RESET}"
