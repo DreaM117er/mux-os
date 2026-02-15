@@ -2402,7 +2402,7 @@ function fac() {
                 if [ $? -ne 0 ]; then return; fi
             fi
             sleep 0.1
-            source "$MUX_ROOT/factory.sh"
+            _fac_init
             ;;
             
         # : Reset Factory Change
