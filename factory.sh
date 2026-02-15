@@ -2402,8 +2402,8 @@ function fac() {
                 if [ $? -ne 0 ]; then return; fi
             fi
             sleep 0.1
-            unset MUX_INITIALIZED
-            source "$MUX_ROOT/factory.sh"
+            _fac_init
+            _bot_say "factory_welcome"
             ;;
             
         # : Reset Factory Change
