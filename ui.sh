@@ -101,20 +101,19 @@ function _render_badge() {
     local color="${C_BLACK}"
 
     if [ "$current" -ge "$s5" ]; then
-        stage="5"; next_target="MAX"; color="${C_PURPLE}" # Onyx (Purple)
+        stage="5"; next_target="MAX"; color="${C_PURPLE}" # Onyx
     elif [ "$current" -ge "$s4" ]; then
-        stage="4"; next_target="$s5"; color="${C_CYAN}"   # Platinum (Cyan)
+        stage="4"; next_target="$s5"; color="${C_CYAN}"   # Platinum
     elif [ "$current" -ge "$s3" ]; then
-        stage="3"; next_target="$s4"; color="${C_YELLOW}" # Gold (Yellow)
+        stage="3"; next_target="$s4"; color="${C_YELLOW}" # Gold
     elif [ "$current" -ge "$s2" ]; then
-        stage="2"; next_target="$s3"; color="${C_WHITE}"  # Silver (White)
+        stage="2"; next_target="$s3"; color="${C_WHITE}"  # Silver
     elif [ "$current" -ge "$s1" ]; then
-        stage="1"; next_target="$s2"; color="${C_ORANGE}" # Bronze (Orange)
+        stage="1"; next_target="$s2"; color="${C_ORANGE}" # Bronze
     fi
         
-    # 三行式排版
-    echo -e " ${color}[${abbr}] - ${name}${C_RESET}"
-    echo -e " ${color}[Stage ${stage}][${current}/${next_target}]${C_RESET}"
+    echo -e " ${color}[${abbr}]${C_BLACK} - ${C_WHITE}${name}${C_RESET}"
+    echo -e " ${color}[Stage ${stage}]${C_BLACK}[${current}/${next_target}]${C_RESET}"
     echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
     echo ""
 }
@@ -126,20 +125,16 @@ function _render_special() {
     local name="$3"
     local desc="$4"
     
-    # 計算持有數量 (Count)
     local count=0
     if [[ "$MUX_BADGES" == *"$tag"* ]]; then
-        # 簡單計算出現次數
         count=$(echo "$MUX_BADGES" | grep -o "$tag" | wc -l)
     fi
 
     if [ "$count" -gt 0 ]; then
-        # [已解鎖]
-        echo -e " ${C_RED}[${abbr}] - ${name}${C_RESET}"
-        echo -e " ${C_RED}[Stage C][${count}/1]${C_RESET}"
+        echo -e " ${C_RED}[${abbr}]${C_BLACK} - ${C_WHITE}${name}${C_RESET}"
+        echo -e " ${C_RED}[Stage S]${C_BLACK}[${count}]${C_RESET}"
         echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
     else
-        # [未解鎖] - 隱藏資訊
         local locked_color="${C_BLACK}"
         echo -e " ${locked_color}[${abbr}] - ${name}${C_RESET}"
         echo -e " ${locked_color}[Stage L][0/1]${C_RESET}"
@@ -183,11 +178,21 @@ function _show_badges() {
         "External neural network queries."
 
     # 特殊獎牌 (Special)
-    echo -e "${C_RED} :: Special Operations ::${C_RESET}"
+    echo -e "${C_PURPLE} :: Special Operations ::${C_RESET}"
     echo ""
 
-    # 1. 降維打擊 (Dimensional Strike)
     _render_special "DSTRIKE" "Ds" "Dimensional Strike" "Survivor of Dimensional Collapse."
+    _render_special "ANCIENT_ONE" "Le" "The Ancient One" "System uptime exceeds one solar cycle."
+    _render_special "LOST_TIME"   "44" "Lost in Time"    "Login detected on a phantom date."
+    _render_special "FALSE_IDOL"  "Rt" "False Idol"      "Attempted to invoke Administrator privileges."
+    _render_special "VOID_WALKER" "Vd" "Void Walker"     "Embraced the chaos of Category 999."
+    _render_special "OUROBOROS"     "O4" "Ouroboros"     "Tried to contain the container (Core)."
+    _render_special "INFINITE_GEAR" "Ig" "Infinite Gear" "Constructing the constructor (Factory)."
+    _render_special "GHOST_SHELL" "Gt" "Ghost in the Shell" "Frequent synchronization with the system core."
+    _render_special "TEAPOT"      "Ct" "Protocol 418"       "I'm a teapot."
+    _render_special "SCHIZO"      "Sh" "Schizophrenia"      "Conversations with the internal monologue."
+    _render_special "PHOENIX"   "Px" "Phoenix"   "Rose from the ashes of dimensional collapse."
+    _render_special "MAJOR_TOM" "Ej" "Major Tom" "Ejection limit exceeded. Ground control to Major Tom."
 }
 
 # 繪製 Mux-OS Logo標誌
@@ -845,6 +850,9 @@ function _factory_fzf_cat_selector() {
             header_msg="RELOCATE NODE"
             prompt_msg="Move to"
             ;;
+        "EDIT"|"NEW")
+            border_color="46"
+            ;;
         *)
             border_color="208"
             ;;
@@ -914,6 +922,9 @@ function _factory_fzf_cmd_in_cat() {
         "DEL")
             border_color="196"
             prompt_msg="Delete Command"
+            ;;
+        "EDIT"|"NEW")
+            border_color="46"
             ;;
         *)
             border_color="208"

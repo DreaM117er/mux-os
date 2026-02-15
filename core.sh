@@ -487,6 +487,14 @@ function _mux_security_gate() {
     # 1. 絕對違禁指令 (Root/Filesystem)
     if [[ "$cmd" =~ ^(su|tsu|sudo|mount|umount)$ ]]; then
         _bot_say "error" "Administrator access denied. (Non-Root Protocol Active)"
+        
+        if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+        SUDO_ATTEMPT_COUNT=$((SUDO_ATTEMPT_COUNT + 1))
+        if [ "$SUDO_ATTEMPT_COUNT" -ge 20 ]; then
+             if command -v _unlock_badge &> /dev/null; then _unlock_badge "FALSE_IDOL" "False Idol"; fi
+        fi
+        _save_identity
+        
         return 1
     fi
 
@@ -1221,7 +1229,15 @@ EOF
 # 彈射序列 (The Ejection - Core Simulation)
 function _core_eject_sequence() {
     local reason="$1"
-   
+
+    if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+    EJECTION_COUNT=$((EJECTION_COUNT + 1))
+    
+    if [ "$EJECTION_COUNT" -ge 100 ]; then
+        if command -v _unlock_badge &> /dev/null; then _unlock_badge "MAJOR_TOM" "Major Tom"; fi
+    fi
+    _save_identity
+
     _system_lock
     echo ""
     echo -e "${THEME_ERR} :: ACCESS DENIED :: ${reason}${C_RESET}"
@@ -1320,6 +1336,52 @@ function mux() {
         esac
     fi
 
+    if [ "$cmd" == "mux" ]; then
+        _bot_say "error" "Recursion Detected. The snake eats its tail."
+        if command -v _unlock_badge &> /dev/null; then _unlock_badge "OUROBOROS" "Ouroboros"; fi
+        return 1
+    fi
+
+    if [ "$cmd" == "commander" ]; then
+        # 使用全域變數追蹤連續次數 (重載後歸零)
+        __SCHIZO_COUNT=${__SCHIZO_COUNT:-0}
+        __SCHIZO_COUNT=$((__SCHIZO_COUNT + 1))
+        
+        # 指揮官專屬白色 (Raw Echo)
+        local C_CMD="\033[1;37m"
+        local C_RST="\033[0m"
+
+        case "$__SCHIZO_COUNT" in
+            1|2)
+                :
+                ;;
+            3)
+                echo -e "${C_CMD} :: ...${C_RST}"
+                ;;
+            4)
+                echo -e "${C_CMD} :: Reporting. ...Wait, I am the Commander.${C_RST}"
+                ;;
+            5) 
+               echo -e "${C_CMD} :: Okay, clearly I've been coding too long. Shutting down.${C_RST}"
+               
+               if command -v _unlock_badge &> /dev/null; then 
+                   _unlock_badge "SCHIZO" "Schizophrenia" 
+               fi
+               
+               sleep 1.6
+               exit 0 
+               ;;
+            *) 
+               # 超過 5 次的例外處理
+               __SCHIZO_COUNT=0
+               ;;
+        esac
+        return
+    else
+        # 如果執行了其他指令，計數器重置（必須是連續輸入）
+        __SCHIZO_COUNT=0
+    fi
+
     case "$cmd" in
         # : Login Sequence
         "login")
@@ -1360,6 +1422,12 @@ function mux() {
 
         # : Infomation
         "info")
+            if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+            HELP_ACCESS_COUNT=$((HELP_ACCESS_COUNT + 1))
+            if [ "$HELP_ACCESS_COUNT" -ge 100 ]; then
+                if command -v _unlock_badge &> /dev/null; then _unlock_badge "GHOST_SHELL" "Ghost in the Shell"; fi
+            fi
+            _save_identity
             _mux_show_info
             ;;
 
@@ -1428,6 +1496,12 @@ function mux() {
             ;;
 
         "help")
+            if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+            HELP_ACCESS_COUNT=$((HELP_ACCESS_COUNT + 1))
+            if [ "$HELP_ACCESS_COUNT" -ge 100 ]; then
+                if command -v _unlock_badge &> /dev/null; then _unlock_badge "GHOST_SHELL" "Ghost in the Shell"; fi
+            fi
+            _save_identity
             _mux_dynamic_help_core
             ;;
 

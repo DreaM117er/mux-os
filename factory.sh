@@ -444,7 +444,7 @@ function _fac_rebak_wizard() {
             if [ "$ext" == "bak" ]; then
                 tag="${C_CYAN}[Session]${C_RESET}"
             else
-                tag="${$THEME_MAIN}[AutoSave]${C_RESET}"
+                tag="${THEME_MAIN}[AutoSave]${C_RESET}"
             fi
 
             printf "%-20s %-20b %s\n" "$fmt_ts" "$tag" "$fname"
@@ -1554,6 +1554,9 @@ function _fac_safe_edit_protocol() {
         export __FAC_IO_STATE="E"
         _fac_neural_write "$working_key" 7 "S"
         _bot_say "success" "Transaction Saved. Node is active."
+
+        unset __FAC_IO_STATE
+        return 0
     else
         # Rollback
         _bot_say "warn" "Transaction Cancelled. Rolling back..."
@@ -1567,6 +1570,9 @@ function _fac_safe_edit_protocol() {
             export __FAC_IO_STATE="B"
             _fac_neural_write "$origin_key" 7 "$restore_type"
         fi
+
+        unset __FAC_IO_STATE
+        return 1
     fi
 
     # 解除鎖定
@@ -1964,6 +1970,9 @@ function fac() {
             _fac_maintenance
             _fac_sort_optimization
             _fac_matrix_defrag
+            if _fac_neural_read "coffee" >/dev/null 2>&1 && _fac_neural_read "tea" >/dev/null 2>&1; then
+                if command -v _unlock_badge &> /dev/null; then _unlock_badge "TEAPOT" "Protocol 418"; fi
+            fi
             ;;
 
         # : List all links
@@ -2026,6 +2035,10 @@ function fac() {
                     return ;;
             esac
 
+            if [[ "$type_sel" == *"Command"* ]]; then
+                 :
+            fi
+
             # 寫入與啟動編輯協議
             if [ -n "$new_row" ]; then
                 if [ -s "$MUX_ROOT/app.csv.temp" ] && [ "$(tail -c 1 "$MUX_ROOT/app.csv.temp")" != "" ]; then
@@ -2035,37 +2048,33 @@ function fac() {
                 
                 _bot_say "action" "Initializing Construction Sequence..."
                 
-                # 啓動綠色選單
-                _fac_safe_edit_protocol "${temp_cmd_name}" "NEW"
-                
-                # 清理暫存檔
-                if _fac_neural_read "${temp_cmd_name}" >/dev/null 2>&1; then
-                    local leftover_state=$(echo "$_VAL_COM3" | tr -d ' "')
+                if _fac_safe_edit_protocol "${temp_cmd_name}" "NEW"; then
                     
-                    if [[ "$leftover_state" == "S" || "$leftover_state" == "P" ]]; then
-                        # 保留 S 標記
-                        _bot_say "success" "Node Created (Default Identity Kept)."
+                    # 成功儲存
+                    _bot_say "success" "Node Created."
 
-                        # 創造獎勵
-                        local xp_reward=25
-                        case "$type_sel" in
-                            *"NB")  xp_reward=50 ;;
-                            *"SYS") xp_reward=50 ;;
-                            *"SSL") xp_reward=100 ;;
-                        esac
-                        
-                        if command -v _grant_xp &> /dev/null; then
-                            _grant_xp $xp_reward "FAC_CREATE"
-                        fi
-                    else
-                        # 清除其他標記
-                        _bot_say "error" "Incomplete Transaction. Cleaning up..."
-                        unset __FAC_IO_STATE 
-                        _fac_delete_node "${temp_cmd_name}"
+                    if _fac_neural_read "fac" >/dev/null 2>&1; then
+                         if command -v _unlock_badge &> /dev/null; then _unlock_badge "INFINITE_GEAR" "Infinite Gear"; fi
+                    fi
+
+                    local void_count=$(awk -F, '$1==999 {count++} END {print count+0}' "$MUX_ROOT/app.csv.temp")
+                    if [ "$void_count" -ge 50 ]; then
+                         if command -v _unlock_badge &> /dev/null; then _unlock_badge "VOID_WALKER" "Void Walker"; fi
+                    fi
+
+                    local xp_reward=25
+                    case "$type_sel" in
+                        *"NB")  xp_reward=50 ;;
+                        *"SYS") xp_reward=50 ;;
+                        *"SSL") xp_reward=100 ;;
+                    esac
+                    
+                    if command -v _grant_xp &> /dev/null; then
+                        _grant_xp $xp_reward "FAC_CREATE"
                     fi
                 else
-                    # 讀不到資料，跳出
-                    : 
+                    # 失敗/取消
+                    _bot_say "warn" "Creation Aborted."
                 fi
             fi
             ;;
@@ -2393,11 +2402,7 @@ function fac() {
                 if [ $? -ne 0 ]; then return; fi
             fi
             sleep 0.1
-            if [ -f "$MUX_ROOT/gate.sh" ]; then
-                source "$MUX_ROOT/gate.sh" "factory"
-            else
-                source "$MUX_ROOT/factory.sh"
-            fi
+            source "$MUX_ROOT/factory.sh"
             ;;
             
         # : Reset Factory Change
