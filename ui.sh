@@ -125,19 +125,44 @@ function _render_special() {
     local name="$3"
     local desc="$4"
     
-    local count=0
-    if [[ "$MUX_BADGES" == *"$tag"* ]]; then
-        count=$(echo "$MUX_BADGES" | grep -o "$tag" | wc -l)
+    # 計數器模式開關
+    local cur_val="$5"
+    local max_val="$6"
+    
+    local is_unlocked=0
+    local count_display=""
+    local stage_display=""
+    
+    # 邏輯判定
+    if [ -n "$max_val" ]; then
+        # [模式 B] 計數器模式
+        local safe_cur="${cur_val:-0}"
+        
+        if [ "$safe_cur" -ge "$max_val" ]; then
+            is_unlocked=1
+        fi
+        count_display="[${safe_cur}/${max_val}]"
+    else
+        # [模式 A] 解鎖模式
+        if [[ "$MUX_BADGES" == *"$tag"* ]]; then
+            is_unlocked=1
+            count_display="[1/1]"
+        else
+            count_display="[0/1]"
+        fi
     fi
 
-    if [ "$count" -gt 0 ]; then
+    # 渲染
+    if [ "$is_unlocked" -eq 1 ]; then
+        # [已解鎖]
         echo -e " ${C_RED}[${abbr}]${C_BLACK} - ${C_WHITE}${name}${C_RESET}"
-        echo -e " ${C_RED}[Stage S]${C_BLACK}[${count}/1]${C_RESET}"
+        echo -e " ${C_RED}[Stage C]${C_BLACK}${count_display}${C_RESET}"
         echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
     else
+        # [未解鎖]
         local locked_color="${C_BLACK}"
         echo -e " ${locked_color}[${abbr}] - ${name}${C_RESET}"
-        echo -e " ${locked_color}[Stage L][0/1]${C_RESET}"
+        echo -e " ${locked_color}[Stage L]${count_display}${C_RESET}"
         echo -e "  ${locked_color}› ???${C_RESET}"
     fi
     echo ""
@@ -181,18 +206,33 @@ function _show_badges() {
     echo -e "${C_PURPLE} :: Special Operations ::${C_RESET}"
     echo ""
 
-    _render_special "DSTRIKE" "Ds" "Dimensional Strike" "Survivor of Dimensional Collapse."
-    _render_special "ANCIENT_ONE" "Le" "The Ancient One" "System uptime exceeds one solar cycle."
-    _render_special "LOST_TIME"   "44" "Lost in Time"    "Login detected on a phantom date."
-    _render_special "FALSE_IDOL"  "Rt" "False Idol"      "Attempted to invoke Administrator privileges."
-    _render_special "VOID_WALKER" "Vd" "Void Walker"     "Embraced the chaos of Category 999."
-    _render_special "OUROBOROS"     "O4" "Ouroboros"     "Tried to contain the container (Core)."
-    _render_special "INFINITE_GEAR" "Ig" "Infinite Gear" "Constructing the constructor (Factory)."
-    _render_special "GHOST_SHELL" "Gt" "Ghost in the Shell" "Frequent synchronization with the system core."
+    # 1. 標籤型 - 只有 4 個參數
+    _render_special "DSTRIKE"     "Ds" "Dimensional Strike" "Survivor of Dimensional Collapse."
+    _render_special "ANCIENT_ONE" "Le" "The Ancient One"    "System uptime exceeds one solar cycle."
+    _render_special "LOST_TIME"   "44" "Lost in Time"       "Login detected on a phantom date."
+    _render_special "OUROBOROS"   "O4" "Ouroboros"          "Tried to contain the container (Core)."
+    _render_special "INFINITE_GEAR" "Ig" "Infinite Gear"    "Constructing the constructor (Factory)."
     _render_special "TEAPOT"      "Ct" "Protocol 418"       "I'm a teapot."
     _render_special "SCHIZO"      "Sh" "Schizophrenia"      "Conversations with the internal monologue."
-    _render_special "PHOENIX"   "Px" "Phoenix"   "Rose from the ashes of dimensional collapse."
-    _render_special "MAJOR_TOM" "Ej" "Major Tom" "Ejection limit exceeded. Ground control to Major Tom."
+    _render_special "PHOENIX"     "Px" "Phoenix"            "Rose from the ashes of dimensional collapse."
+
+    # 2. 計數器型 - 傳入 6 個參數
+    _render_special "FALSE_IDOL"  "Rt" "False Idol" \
+        "Attempted to invoke Administrator privileges." \
+        "${SUDO_ATTEMPT_COUNT:-0}" "10"
+
+    local void_count=$(awk -F, '$1==999 {count++} END {print count+0}' "$MUX_ROOT/app.csv.temp" 2>/dev/null)
+    _render_special "VOID_WALKER" "Vd" "Void Walker" \
+        "Embraced the chaos of Category 999." \
+        "${void_count:-0}" "50"
+
+    _render_special "GHOST_SHELL" "Gt" "Ghost in the Shell" \
+        "Frequent synchronization with the system core." \
+        "${HELP_ACCESS_COUNT:-0}" "100"
+
+    _render_special "MAJOR_TOM"   "Ej" "Major Tom" \
+        "Ejection limit exceeded. Ground control to Major Tom." \
+        "${EJECTION_COUNT:-0}" "100"
 }
 
 # 繪製 Mux-OS Logo標誌
