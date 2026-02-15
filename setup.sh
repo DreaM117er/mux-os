@@ -165,18 +165,19 @@ function _install_protocol() {
 
     echo "    ›› Installing Bootloader..."
 
-    sed -i '/# === Mux-OS Auto-Loader ===/d' "$RC_FILE"
-    sed -i '/_mux_boot_sequence/d' "$RC_FILE"
+    # 重要！定義注入區塊
+    BLOCK_START="# [Mux-OS-START]"
+    BLOCK_END="# [Mux-OS-END]"
+
+    sed -i '/source .*mux-os\/core.sh/d' "$RC_FILE"
     sed -i '/# Mux-OS Core Uplink/d' "$RC_FILE"
-    sed -i "\#source \"$MUX_ROOT/core.sh\"#d" "$RC_FILE"
-    sed -i "\#source $MUX_ROOT/core.sh#d" "$RC_FILE"
+    sed -i "/$BLOCK_START/,/$BLOCK_END/d" "$RC_FILE"
 
     cat << EOF >> "$RC_FILE"
-
-# Mux-OS Core Uplink
-if [ -f "$MUX_ROOT/core.sh" ]; then
-    source "$MUX_ROOT/core.sh"
-fi
+$BLOCK_START
+# Mux-OS Core Uplink (v7.1.0)
+[ -f "\$HOME/mux-os/core.sh" ] && source "\$HOME/mux-os/core.sh"
+$BLOCK_END
 EOF
     
     echo "    ›› Bootloader injected into $RC_FILE."
