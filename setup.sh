@@ -175,7 +175,7 @@ function _install_protocol() {
 
     cat << EOF >> "$RC_FILE"
 $BLOCK_START
-# Mux-OS Core Uplink (v7.1.0)
+# Mux-OS Core Uplink
 [ -f "\$HOME/mux-os/core.sh" ] && source "\$HOME/mux-os/core.sh"
 $BLOCK_END
 EOF
