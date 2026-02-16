@@ -321,7 +321,9 @@ function _mux_neural_data() {
                 row_com2 = $6; gsub(/^"|"$/, "", row_com2); gsub(/\r| /, "", row_com2)
 
                 if (row_com == key && row_com2 == subkey && subkey != "") {
-                    print $0; exit
+                    print $0
+                    found = 1
+                    exit
                 }
                 
                 if (row_com == key && row_com2 == "") {
@@ -329,7 +331,7 @@ function _mux_neural_data() {
                 }
             }
             END {
-                if (fallback != "") print fallback
+                if (found != 1 && fallback != "") print fallback
             }
         ' "$bank")
         
@@ -525,55 +527,50 @@ function _mux_security_gate() {
 
 # 神經火控系統 - Neural Fire Control
 function _mux_neural_fire_control() {
-    if [ "$MUX_STATUS" != "LOGIN" ]; then
-        return 127
-    fi
+    # 0. 狀態檢查
+    if [ "$MUX_STATUS" != "LOGIN" ]; then return 127; fi
 
-    local input_signal="$1" # COM
-    local input_sub="$2" # COM2 (Candidate)
-    local input_args="${*:2}" # All args starting from $2
+    # 1. 抓取輸入
+    local input_com="$1"
+    local input_sub="$2"
 
+    # 2. 工廠模式遮罩
     if [ "$MUX_MODE" == "FAC" ]; then
         if command -v _factory_mask_apps &> /dev/null; then
-            _factory_mask_apps "$input_signal" "$input_sub" || return 127
+            _factory_mask_apps "$input_com" "$input_sub" || return 127
         fi
     fi
    
-    if ! _mux_neural_data "$input_signal" "$input_sub"; then
-        
-        local recovered=0
-        if [ -n "$input_sub" ]; then
-            if _mux_neural_data "$input_signal" ""; then
-                recovered=1
-            fi
-        fi
-
-        if [ "$recovered" -eq 0 ]; then
-            _bot_say "error" "'$input_signal' command not found."
-            return 127
-        fi
+    # 3. 資料比對
+    if ! _mux_neural_data "$input_com" "$input_sub"; then
+        _bot_say "error" "Unknown Directive: '$input_com'"
+        return 127
     fi
 
+    # 4. 定義參數起點
+    local real_args=""
+    
+    if [ -n "$_VAL_COM2" ] && [ "$_VAL_COM2" == "$input_sub" ]; then
+        real_args="${*:3}"
+    else
+        real_args="${*:2}"
+    fi
+
+    # 5. 完整性檢查
     integrity_flag=$(echo "$_VAL_COM3" | tr -d ' "')
 
     if [ "$integrity_flag" == "F" ]; then
         echo ""
         _bot_say "error" "NEURAL LINK SEVERED :: Integrity Failure (Code: F)"
         echo -e "${C_BLACK} ›› Diagnosis: Critical parameter missing or malformed.${C_RESET}"
-        echo -e "${C_BLACK} ›› Protocol : Execution blocked by Safety Override.${C_RESET}"
-        echo -e "${C_BLACK} ›› Action : Use 'factory' to repair this node.${C_RESET}"
-        echo ""
         return 127
     elif [ "$integrity_flag" == "W" ]; then
         echo ""
         _bot_say "warn" "NEURAL LINK UNSTABLE :: Parameter Anomaly (Code: W)"
-        echo -e "${C_BLACK} ›› Diagnosis: Non-critical structure mismatch detected.${C_RESET}"
-        echo -e "${C_BLACK} ›› Protocol : Bypassing safety lock... Executing with caution.${C_RESET}"
         sleep 0.8
     fi
 
     local cate_arg=""
-
     if [ -n "$_VAL_CATE" ]; then
         cate_arg=" -c android.intent.category.$_VAL_CATE"
     fi
@@ -581,22 +578,22 @@ function _mux_neural_fire_control() {
     case "$_VAL_TYPE" in
         "NA")
             # 明確指定外部呼叫
-            if [ -z "$_VAL_COM2" ]; then
-                _require_no_args "$input_args" || return 1
-                _launch_android_app
-            else
-                _require_no_args "${*:3}" || return 1
-                _launch_android_app
+            if [ -n "$real_args" ]; then 
+                _require_no_args "$real_args" || return 1
             fi
+            _launch_android_app
             ;;
 
         "NB")
             # 外部呼叫需要fallback
-            local real_args=""
-            if [ -n "$_VAL_COM2" ]; then
-                real_args="${*:3}"
-            else
-                real_args="$input_args"
+            if [ -z "$real_args" ]; then
+                if [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
+                    _VAL_URI=""
+                    _launch_android_app
+                    return 0
+                fi
+                _bot_say "error" "Strict Protocol '$_VAL_COM': Parameter required."
+                return 1
             fi
             
             # 參數檢查：跳出 or 跳轉
