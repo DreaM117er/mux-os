@@ -1278,21 +1278,21 @@ function _ui_fake_gate() {
 
     # 主題定義
     local color_main="${C_CYAN}"
-    local gate_name="CORE KERNEL"
+    local gate_name="SYSTEM CORE"
     local c_border="${C_WHITE}" 
     
     case "$theme" in
         "factory")
             color_main="${C_ORANGE}"
-            gate_name="FACTORY ARSENAL"
+            gate_name="NEURAL FORGE"
             ;;
         "core")
             color_main="${C_CYAN}"
-            gate_name="COMMANDER KERNEL"
+            gate_name="SYSTEM CORE"
             ;;
         "default")
             color_main="${C_WHITE}"
-            gate_name="GUEST SESSION"
+            gate_name="COMMANDER"
             ;;
         "eject")
             color_main="${C_RED}"
@@ -1383,7 +1383,7 @@ function _ui_fake_gate() {
         fi
     done
     
-    sleep 0.2
+    sleep 0.15
     tput cnorm
     clear
 }
