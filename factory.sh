@@ -390,9 +390,6 @@ function _factory_system_boot() {
 function _fac_init() {
     _system_lock
     _safe_ui_calc
-    if command -v _ui_fake_gate &> /dev/null; then
-        _ui_fake_gate "factory"
-    fi
     clear
     _draw_logo "factory"
     _system_check "factory"
@@ -2405,6 +2402,9 @@ function fac() {
                 if [ $? -ne 0 ]; then return; fi
             fi
             sleep 0.1
+            if command -v _ui_fake_gate &> /dev/null; then
+                _ui_fake_gate "factory"
+            fi
             _fac_init
             _bot_say "factory_welcome"
             ;;
