@@ -321,7 +321,9 @@ function _mux_neural_data() {
                 row_com2 = $6; gsub(/^"|"$/, "", row_com2); gsub(/\r| /, "", row_com2)
 
                 if (row_com == key && row_com2 == subkey && subkey != "") {
-                    print $0; exit
+                    print $0
+                    found = 1
+                    exit
                 }
                 
                 if (row_com == key && row_com2 == "") {
@@ -329,7 +331,7 @@ function _mux_neural_data() {
                 }
             }
             END {
-                if (fallback != "") print fallback
+                if (found != 1 && fallback != "") print fallback
             }
         ' "$bank")
         
@@ -578,7 +580,6 @@ function _mux_neural_fire_control() {
             # 明確指定外部呼叫
             if [ -n "$real_args" ]; then 
                 _require_no_args "$real_args" || return 1
-                :
             fi
             _launch_android_app
             ;;
