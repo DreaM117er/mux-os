@@ -1342,7 +1342,7 @@ function _ui_fake_gate() {
         local empty_len=$(( bar_total - filled_len ))
         # Line 1: Header
         tput cup $start_row $start_col
-        echo -ne "${c_border}:: GATE TO ${current_color}${gate_name}${C_RESET}" 
+        echo -ne "${c_border}╔ ${C_BLACK}GATE TO ${current_color}${gate_name}${C_RESET}" 
         # Line 2: Bar
         tput cup $((start_row + 1)) $start_col
         echo -ne "${c_border}║${current_color}"
@@ -1351,7 +1351,7 @@ function _ui_fake_gate() {
         echo -ne "${c_border}║${C_RESET}"
         # Line 3: Info
         tput cup $((start_row + 2)) $start_col
-        echo -ne "${c_border}╠ MEM: ${current_color}${mem_display}${c_border} ╣ ${current_color}"
+        echo -ne "${c_border}╠ ${C_BLACK}MEM: ${current_color}${mem_display}${c_border} ╣${current_color}"
         printf "%3d%%" "$pct"
         echo -ne "${c_border}║${C_RESET}"
         # Line 4: Footer
