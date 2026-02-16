@@ -1354,9 +1354,9 @@ function _ui_fake_gate() {
         if [ "$empty_len" -gt 0 ]; then printf "${C_BLACK}░%.0s" $(seq 1 "$empty_len"); fi
         
         # 數值顯示
-        echo -ne "${c_border}║${c_border}[${current_color}"
+        echo -ne "${c_border}║${c_border}║${current_color}"
         printf "%3d%%" "$pct"
-        echo -ne "${c_border}]${C_RESET}"
+        echo -ne "${c_border}║${C_RESET}"
 
         tput cup $((start_row + 2)) $start_col
         echo -ne "${c_border}╠ MEM: ${current_color}${mem_display}${C_RESET}"
