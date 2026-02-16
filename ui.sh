@@ -1263,102 +1263,118 @@ function _factory_fzf_add_type_menu() {
 
 # 星門 - UI Mask / Fake Gate
 function _ui_fake_gate() {
-    local target_system="${1:-core}"
-    local theme_color=""
-    local theme_text=""
+    local theme="$1"
+    local bar_total=25
+    local full_width=$(( bar_total + 2 ))
+    local screen_lines=$(tput lines)
+    local screen_cols=$(tput cols)
+    local start_row=$(( screen_lines / 2 - 2 ))
+    local start_col=$(( (screen_cols - full_width) / 2 ))
     
-    case "$target_system" in
+    if [ "$start_col" -lt 0 ]; then start_col=0; fi
+
+    local color_main="${C_CYAN}"
+    local gate_name="SYSTEM CORE"
+    local c_border="${C_WHITE}" 
+    
+    case "$theme" in
         "factory")
-            theme_color="$C_ORANGE"
-            theme_text="NEURAL FORGE"
+            color_main="${C_ORANGE}"
+            gate_name="NEURAL FORGE"
+            ;;
+        "core")
+            color_main="${C_CYAN}"
+            gate_name="SYSTEM CORE"
             ;;
         "default")
-            theme_color="$C_WHITE"
-            theme_text="TO COMMANDER"
+            color_main="${C_WHITE}"
+            gate_name="COMMANDER"
             ;;
-        *)
-            theme_color="$C_CYAN"
-            theme_text="SYSTEM CORE"
+        "eject")
+            color_main="${C_RED}"
+            gate_name="EJECTION POD"
             ;;
     esac
 
-    local C_TXT="\033[1;30m"
-    local C_RESET="\033[0m"
+    if [ ${#gate_name} -gt 15 ]; then gate_name="${gate_name:0:13}.."; fi
 
-    # 安全網
+    local quotes=(
+        "Reality is a glitch."
+        "Ghost in the shell."
+        "Entropy increases."
+        "Loading constructs..."
+        "Connecting Akansha..."
+        "Standby for Titanfall."
+        "Wake up, Neo."
+        "Protocol 3: Protect."
+        "Null pointer in soul."
+        "Time is a flat circle."
+        "Don't EJECT early."
+        "Safety is optional."
+        "He is watching you."
+    )
+    local footer_msg="${quotes[$(( RANDOM % ${#quotes[@]} ))]}"
+    if [ ${#footer_msg} -gt 25 ]; then footer_msg="${footer_msg:0:22}..."; fi
+
     tput civis
-    stty -echo
-    trap 'tput cnorm; stty echo; echo -e "${C_RESET}";' EXIT INT TERM
-
     clear
-    local rows=$(tput lines)
-    local cols=$(tput cols)
-    
-    # 計算進度條長度
-    local bar_len=$(( cols * 45 / 100 ))
-    if [ "$bar_len" -lt 15 ]; then bar_len=15; fi
 
-    local center_row=$(( rows / 2 ))
-    
-    # 進度條起始位置
-    local bar_start_col=$(( (cols - bar_len - 2) / 2 ))
-    
-    # 標題置中計算
-    local title_start_col=$(( (cols - 25) / 2 ))
-
-    # 繪製標題
-    tput cup $((center_row - 2)) $title_start_col
-    echo -e "${C_TXT}:: GATE ${theme_color}${theme_text} ${C_TXT}::${C_RESET}"
-
-    local current_pct=0
+    local pct=0
+    local mem_val=$(( RANDOM % 65535 ))
     local trap_triggered="false"
     
     local should_trap="false"
-    if [ $((RANDOM % 100)) -ge 98 ]; then
-        should_trap="true"
-    fi
+    if [ $((RANDOM % 100)) -ge 95 ]; then should_trap="true"; fi
 
-    while true; do
-        # 繪圖：進度條
-        local filled_len=$(( (current_pct * bar_len) / 100 ))
-        local remain=$(( bar_len - filled_len ))
+    while [ $pct -le 100 ]; do
+        local current_color="$color_main"
+        local is_stalled="false"
+        local mem_display=""
+        if [ "$should_trap" == "true" ] && [ "$pct" -ge 98 ] && [ "$pct" -lt 100 ]; then
+            current_color="${C_PURPLE}" 
+            is_stalled="true"
+            mem_display="0xDEAD"
+        else
+            mem_display=$(printf "0x%04X" "$mem_val")
+        fi
 
-        tput cup $center_row $bar_start_col
-        echo -ne "${C_TXT}[${C_RESET}"
-        if [ "$filled_len" -gt 0 ]; then printf "${theme_color}%.0s#${C_RESET}" $(seq 1 "$filled_len"); fi
-        if [ "$remain" -gt 0 ]; then printf "%.0s " $(seq 1 "$remain"); fi
-        echo -ne "${C_TXT}]${C_RESET}"
+        local filled_len=$(( (pct * bar_total) / 100 ))
+        local empty_len=$(( bar_total - filled_len ))
+        # Line 1: Header
+        tput cup $start_row $start_col
+        echo -ne "${c_border}╔ ${C_BLACK}GATE TO ${current_color}${gate_name}${C_RESET}" 
+        # Line 2: Bar
+        tput cup $((start_row + 1)) $start_col
+        echo -ne "${c_border}║${current_color}"
+        if [ "$filled_len" -gt 0 ]; then printf "█%.0s" $(seq 1 "$filled_len"); fi
+        if [ "$empty_len" -gt 0 ]; then printf "${C_BLACK}░%.0s" $(seq 1 "$empty_len"); fi
+        echo -ne "${c_border}║${C_RESET}"
+        # Line 3: Info
+        tput cup $((start_row + 2)) $start_col
+        echo -ne "${c_border}╠ ${C_BLACK}MEM: ${current_color}${mem_display}${c_border} ╣${current_color}"
+        printf "%3d%%" "$pct"
+        echo -ne "${c_border}║${C_RESET}"
+        # Line 4: Footer
+        tput cup $((start_row + 3)) $start_col
+        echo -ne "${c_border}╚ ${C_BLACK}${footer_msg}${C_RESET}"
 
-        local hex_val=$(printf "0x%04X" $((RANDOM%65535)))
-        
-        tput cup $((center_row + 2)) $bar_start_col
-        printf "${C_TXT}:: ${theme_color}%3s%%${C_TXT} :: MEM: ${hex_val}${C_RESET}\033[K" "$current_pct"
+        if [ "$pct" -ge 100 ]; then break; fi
 
-        if [ "$current_pct" -ge 100 ]; then break; fi
-
-        # 陷阱卡邏輯 (卡頓特效)
-        if [ "$should_trap" == "true" ] && [ "$current_pct" -ge 98 ] && [ "$trap_triggered" == "false" ]; then
-            current_pct=99
+        if [ "$is_stalled" == "true" ] && [ "$trap_triggered" == "false" ]; then
             trap_triggered="true"
-            sleep 2
-            continue
-        fi
-
-        local step=$(( (RANDOM % 4) + 1 ))
-        current_pct=$(( current_pct + step ))
-        
-        if [ "$should_trap" == "true" ] && [ "$current_pct" -gt 98 ] && [ "$trap_triggered" == "false" ]; then
-            current_pct=98
+            pct=99
+            sleep 2.5
+        else
+            sleep 0.02
+            if [ $(( RANDOM % 10 )) -gt 7 ]; then sleep 0.05; fi
+            pct=$(( pct + (RANDOM % 4 + 1) ))
+            if [ $pct -gt 100 ]; then pct=100; fi
         fi
         
-        if [ "$current_pct" -gt 100 ]; then current_pct=100; fi
-
-        sleep 0.015
+        if [ $(( RANDOM % 5 )) -eq 0 ]; then mem_val=$(( RANDOM % 65535 )); fi
     done
-
-    # 清理
-    trap - EXIT INT TERM
+    
+    sleep 0.015
     tput cnorm
-    stty echo
     clear
 }
