@@ -1264,11 +1264,8 @@ function _factory_fzf_add_type_menu() {
 # 星門 - UI Mask / Fake Gate
 function _ui_fake_gate() {
     local theme="$1"
-    
-    # 固定尺寸
     local bar_total=25
-    local full_width=40
-    
+    local full_width=$(( bar_total + 2 ))
     local screen_lines=$(tput lines)
     local screen_cols=$(tput cols)
     local start_row=$(( screen_lines / 2 - 2 ))
@@ -1276,9 +1273,8 @@ function _ui_fake_gate() {
     
     if [ "$start_col" -lt 0 ]; then start_col=0; fi
 
-    # 主題定義
     local color_main="${C_CYAN}"
-    local gate_name="SYSTEM CORE"
+    local gate_name="CORE KERNEL"
     local c_border="${C_WHITE}" 
     
     case "$theme" in
@@ -1286,7 +1282,7 @@ function _ui_fake_gate() {
             color_main="${C_ORANGE}"
             gate_name="NEURAL FORGE"
             ;;
-        "core")
+        "core"|"mux")
             color_main="${C_CYAN}"
             gate_name="SYSTEM CORE"
             ;;
@@ -1300,23 +1296,37 @@ function _ui_fake_gate() {
             ;;
     esac
 
-    # 隨機哲學/彩蛋庫
+    local max_name_len=$(( full_width - 14 ))
+    if [ ${#gate_name} -gt $max_name_len ]; then
+        gate_name="${gate_name:0:$((max_name_len-2))}.."
+    fi
+
+    # 隨機語句
     local quotes=(
-        "Reality is a glitch in the system."
-        "The ghost whispers in the shell."
-        "Entropy increases. Chaos persists."
-        "Loading personality constructs..."
-        "Connecting to the Akansha Network..."
+        "Reality is a glitch."
+        "Ghost in the shell."
+        "Entropy increases."
+        "Loading constructs..."
+        "Connecting Akansha..."
         "Standby for Titanfall."
         "Wake up, Neo."
-        "Protocol 3: Protect the Pilot."
-        "Null pointer exception in soul.exe"
+        "Protocol 3: Protect."
+        "Null pointer in soul."
         "Time is a flat circle."
+        "Don't EJECT early."
+        "Safety is optional."
+        "He is watching you."
     )
     local rand_idx=$(( RANDOM % ${#quotes[@]} ))
     local footer_msg="${quotes[$rand_idx]}"
+    
+    # 字串處理
+    local max_footer_len=$(( full_width - 4 ))
+    if [ ${#footer_msg} -gt $max_footer_len ]; then
+        footer_msg="${footer_msg:0:$((max_footer_len-3))}..."
+    fi
 
-    # 動畫迴圈
+    # 動畫邏輯
     tput civis
     clear
 
@@ -1324,6 +1334,7 @@ function _ui_fake_gate() {
     local mem_val=$(( RANDOM % 65535 ))
     local trap_triggered="false"
     
+    # 5% 觸發機率
     local should_trap="false"
     if [ $((RANDOM % 100)) -ge 95 ]; then should_trap="true"; fi
 
@@ -1332,6 +1343,7 @@ function _ui_fake_gate() {
         local is_stalled="false"
         local mem_display=""
 
+        # 鎖定判定
         if [ "$should_trap" == "true" ] && [ "$pct" -ge 98 ] && [ "$pct" -lt 100 ]; then
             current_color="${C_PURPLE}" 
             is_stalled="true"
@@ -1340,37 +1352,39 @@ function _ui_fake_gate() {
             mem_display=$(printf "0x%04X" "$mem_val")
         fi
 
+        # 計算長度
         local filled_len=$(( (pct * bar_total) / 100 ))
         local empty_len=$(( bar_total - filled_len ))
 
-        # 繪圖
         tput cup $start_row $start_col
-        echo -e "${c_border}:: GATE TO ${current_color}${gate_name}${C_RESET}"
+        echo -ne "${c_border}:: GATE TO ${current_color}${gate_name}${C_RESET}"
 
-        # 進度條
         tput cup $((start_row + 1)) $start_col
         echo -ne "${c_border}║${current_color}"
         if [ "$filled_len" -gt 0 ]; then printf "█%.0s" $(seq 1 "$filled_len"); fi
         if [ "$empty_len" -gt 0 ]; then printf "${C_BLACK}░%.0s" $(seq 1 "$empty_len"); fi
-        
-        # 數值顯示
-        echo -ne "${c_border}║${c_border}${current_color}"
-        printf "%3d%%" "$pct"
         echo -ne "${c_border}║${C_RESET}"
-
+        echo -ne " ${current_color}"
+        printf "%3d%%" "$pct"
+        echo -ne "${C_RESET}"
         tput cup $((start_row + 2)) $start_col
+        
+        local pad_len=$(( bar_total + 2 - 15 ))
+        if [ "$pad_len" -lt 0 ]; then pad_len=0; fi
+        
         echo -ne "${c_border}╠ MEM: ${current_color}${mem_display}${C_RESET}"
-
+        printf "%${pad_len}s" ""
+        echo -ne "${c_border}╣${C_RESET}"
         tput cup $((start_row + 3)) $start_col
         echo -ne "${c_border}╚ ${C_BLACK}${footer_msg}${C_RESET}"
-
-        # 邏輯
+        
+        # 更新邏輯 (Update Logic)
         if [ "$pct" -ge 100 ]; then break; fi
 
         if [ "$is_stalled" == "true" ] && [ "$trap_triggered" == "false" ]; then
             trap_triggered="true"
             pct=99
-            sleep 2.5 # 邪惡鎖定
+            sleep 2.5 
         else
             sleep 0.02
             if [ $(( RANDOM % 10 )) -gt 7 ]; then sleep 0.05; fi
@@ -1383,7 +1397,34 @@ function _ui_fake_gate() {
         fi
     done
     
-    sleep 0.15
+    # 最終狀態：100% 滿格
+    local filled_len=$bar_total
+
+    tput cup $start_row $start_col
+    local header_len=$(( 11 + ${#gate_name} ))
+    local header_pad=$(( full_width - header_len - 2 ))
+    echo -ne "${c_border}:: GATE TO ${color_main}${gate_name}${C_RESET}"
+    printf "%${header_pad}s" ""
+    echo -ne "${c_border}::${C_RESET}"
+
+    tput cup $((start_row + 1)) $start_col
+    echo -ne "${c_border}║${color_main}"
+    printf "█%.0s" $(seq 1 "$filled_len")
+    echo -ne "${c_border}║${C_RESET}"
+
+    tput cup $((start_row + 2)) $start_col
+    echo -ne "${c_border}╠ MEM: ${color_main}$(printf "0x%04X" $((RANDOM%65535)))${c_border} ╣${C_RESET}"
+    
+    local remaining_space=$(( full_width - 16 ))
+    local pct_str="100%"
+    local pad_len=$(( remaining_space - ${#pct_str} ))
+    printf "%${pad_len}s" ""
+    echo -ne "${color_main}${pct_str}${c_border}║${C_RESET}"
+
+    tput cup $((start_row + 3)) $start_col
+    echo -ne "${c_border}╚ ${C_BLACK}${footer_msg}${C_RESET}"
+
+    sleep 0.2
     tput cnorm
     clear
 }
