@@ -1340,15 +1340,21 @@ function _ui_fake_gate() {
 
         local filled_len=$(( (pct * bar_total) / 100 ))
         local empty_len=$(( bar_total - filled_len ))
+        # Line 1: Header
         tput cup $start_row $start_col
-        echo -ne "${c_border}╔ GATE TO ${current_color}${gate_name}${C_RESET}"
+        echo -ne "${c_border}:: GATE TO ${current_color}${gate_name}${C_RESET}" 
+        # Line 2: Bar
         tput cup $((start_row + 1)) $start_col
         echo -ne "${c_border}║${current_color}"
         if [ "$filled_len" -gt 0 ]; then printf "█%.0s" $(seq 1 "$filled_len"); fi
         if [ "$empty_len" -gt 0 ]; then printf "${C_BLACK}░%.0s" $(seq 1 "$empty_len"); fi
         echo -ne "${c_border}║${C_RESET}"
+        # Line 3: Info
         tput cup $((start_row + 2)) $start_col
-        echo -ne "${c_border}╠ MEM: ${current_color}${mem_display}${c_border} ╣ ${current_color}${pct}%${c_border}║${C_RESET}"
+        echo -ne "${c_border}╠ MEM: ${current_color}${mem_display}${c_border} ╣ ${current_color}"
+        printf "%3d%%" "$pct"
+        echo -ne "${c_border}║${C_RESET}"
+        # Line 4: Footer
         tput cup $((start_row + 3)) $start_col
         echo -ne "${c_border}╚ ${C_BLACK}${footer_msg}${C_RESET}"
 
@@ -1368,7 +1374,7 @@ function _ui_fake_gate() {
         if [ $(( RANDOM % 5 )) -eq 0 ]; then mem_val=$(( RANDOM % 65535 )); fi
     done
     
-    sleep 0.2
+    sleep 0.015
     tput cnorm
     clear
 }
