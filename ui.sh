@@ -1354,7 +1354,7 @@ function _ui_fake_gate() {
         if [ "$empty_len" -gt 0 ]; then printf "${C_BLACK}░%.0s" $(seq 1 "$empty_len"); fi
         
         # 數值顯示
-        echo -ne "${c_border}║${c_border}║${current_color}"
+        echo -ne "${c_border}║${c_border}${current_color}"
         printf "%3d%%" "$pct"
         echo -ne "${c_border}║${C_RESET}"
 
