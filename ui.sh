@@ -1265,6 +1265,7 @@ function _factory_fzf_add_type_menu() {
 function _ui_fake_gate() {
     local theme="$1"
     
+    # 固定尺寸
     local bar_total=25
     local full_width=40
     
@@ -1275,21 +1276,23 @@ function _ui_fake_gate() {
     
     if [ "$start_col" -lt 0 ]; then start_col=0; fi
 
+    # 主題定義
     local color_main="${C_CYAN}"
-    local gate_name="SYSTEM CORE"
+    local gate_name="CORE KERNEL"
+    local c_border="${C_WHITE}" 
     
     case "$theme" in
         "factory")
             color_main="${C_ORANGE}"
-            gate_name="NEURAL FORGE"
+            gate_name="FACTORY ARSENAL"
             ;;
         "core")
             color_main="${C_CYAN}"
-            gate_name="SYSTEM CORE"
+            gate_name="COMMANDER KERNEL"
             ;;
         "default")
             color_main="${C_WHITE}"
-            gate_name="COMMANDER"
+            gate_name="GUEST SESSION"
             ;;
         "eject")
             color_main="${C_RED}"
@@ -1297,6 +1300,7 @@ function _ui_fake_gate() {
             ;;
     esac
 
+    # 隨機哲學/彩蛋庫
     local quotes=(
         "Reality is a glitch in the system."
         "The ghost whispers in the shell."
@@ -1312,53 +1316,64 @@ function _ui_fake_gate() {
     local rand_idx=$(( RANDOM % ${#quotes[@]} ))
     local footer_msg="${quotes[$rand_idx]}"
 
+    # 動畫迴圈
     tput civis
     clear
 
     local pct=0
     local mem_val=$(( RANDOM % 65535 ))
     local trap_triggered="false"
+    
+    local should_trap="false"
+    if [ $((RANDOM % 100)) -ge 95 ]; then should_trap="true"; fi
 
     while [ $pct -le 100 ]; do
         local current_color="$color_main"
         local is_stalled="false"
+        local mem_display=""
 
-        if [ "$pct" -ge 98 ] && [ "$pct" -lt 100 ]; then
+        if [ "$should_trap" == "true" ] && [ "$pct" -ge 98 ] && [ "$pct" -lt 100 ]; then
             current_color="${C_PURPLE}" 
             is_stalled="true"
-            
-            mem_val=$(( RANDOM % 65535 ))
+            mem_display="0xDEAD"
+        else
+            mem_display=$(printf "0x%04X" "$mem_val")
         fi
 
         local filled_len=$(( (pct * bar_total) / 100 ))
         local empty_len=$(( bar_total - filled_len ))
 
+        # 繪圖
         tput cup $start_row $start_col
-        echo -e "${C_TXT}:: GATE TO ${current_color}${gate_name}${C_RESET}"
+        echo -e "${c_border}:: GATE TO ${current_color}${gate_name}${C_RESET}"
 
+        # 進度條
         tput cup $((start_row + 1)) $start_col
-        echo -ne "${C_TXT}║${current_color}"
+        echo -ne "${c_border}║${current_color}"
         if [ "$filled_len" -gt 0 ]; then printf "█%.0s" $(seq 1 "$filled_len"); fi
         if [ "$empty_len" -gt 0 ]; then printf "${C_BLACK}░%.0s" $(seq 1 "$empty_len"); fi
-        echo -ne "${C_TXT}║${C_TXT}[${current_color}%3d%%${C_TXT}]${C_RESET}" "$pct"
+        
+        # 數值顯示
+        echo -ne "${c_border}║${c_border}[${current_color}"
+        printf "%3d%%" "$pct"
+        echo -ne "${c_border}]${C_RESET}"
 
         tput cup $((start_row + 2)) $start_col
-        printf "${C_TXT}╠ MEM: ${current_color}0x%04X${C_RESET}" "$mem_val"
+        echo -ne "${c_border}╠ MEM: ${current_color}${mem_display}${C_RESET}"
 
         tput cup $((start_row + 3)) $start_col
-        echo -ne "${C_TXT}╚ ${C_BLACK}${footer_msg}${C_RESET}"
+        echo -ne "${c_border}╚ ${C_BLACK}${footer_msg}${C_RESET}"
 
-
+        # 邏輯
         if [ "$pct" -ge 100 ]; then break; fi
 
         if [ "$is_stalled" == "true" ] && [ "$trap_triggered" == "false" ]; then
             trap_triggered="true"
             pct=99
-            sleep 2
+            sleep 2.5 # 邪惡鎖定
         else
             sleep 0.02
             if [ $(( RANDOM % 10 )) -gt 7 ]; then sleep 0.05; fi
-            
             pct=$(( pct + (RANDOM % 4 + 1) ))
             if [ $pct -gt 100 ]; then pct=100; fi
         fi
