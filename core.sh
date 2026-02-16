@@ -578,6 +578,7 @@ function _mux_neural_fire_control() {
             # 明確指定外部呼叫
             if [ -n "$real_args" ]; then 
                 _require_no_args "$real_args" || return 1
+                :
             fi
             _launch_android_app
             ;;
