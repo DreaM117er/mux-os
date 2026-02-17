@@ -111,6 +111,16 @@ function _render_badge() {
     elif [ "$current" -ge "$s1" ]; then
         stage="1"; next_target="$s2"; color="${C_ORANGE}" # Bronze
     fi
+
+    if [ "$RENDER_MODE" == "CALC" ]; then
+        # 統計各階級數量
+        if [ "$stage" -ge 1 ]; then ((MEDAL_STATS_S1++)); fi
+        if [ "$stage" -ge 2 ]; then ((MEDAL_STATS_S2++)); fi
+        if [ "$stage" -ge 3 ]; then ((MEDAL_STATS_S3++)); fi
+        if [ "$stage" -ge 4 ]; then ((MEDAL_STATS_S4++)); fi
+        if [ "$stage" -ge 5 ]; then ((MEDAL_STATS_S5++)); fi
+        return
+    fi
         
     echo -e " ${color}[${abbr}]${C_BLACK}-${C_WHITE}${name}${C_RESET}"
     echo -e " ${color}[Stage ${stage}]${C_BLACK}[${current}/${next_target}]${C_RESET}"
@@ -169,48 +179,61 @@ function _render_special() {
 
 # 顯示勳章牆 (Medal Wall)
 function _show_badges() {
+    local mode="$1"
+
     if [ -f "$HOME/mux-os/identity.sh" ]; then source "$HOME/mux-os/identity.sh"; fi
     if [ -f "$HOME/mux-os/.mux_identity" ]; then source "$HOME/mux-os/.mux_identity"; fi
+
+    # 初始化計算環境
+    if [ "$mode" == "CALC" ]; then
+        export RENDER_MODE="CALC"
+        export MEDAL_STATS_S1=0
+        export MEDAL_STATS_S2=0
+        export MEDAL_STATS_S3=0
+        export MEDAL_STATS_S4=0
+        export MEDAL_STATS_S5=0
+    else
+        unset RENDER_MODE
+        echo -e "${C_PURPLE} :: Mux-OS Hall of Fame ::${C_RESET}"
+        echo ""
+    fi
 
     echo -e "${C_PURPLE} :: Mux-OS Hall of Fame ::${C_RESET}"
     echo ""
 
     # 常規獎牌 (Standard)
-    _render_badge "Hk" "Hacker" "$HEAP_ALLOCATION_IDX" \
-        50 500 2500 10000 50000 \
-        "Neural command execution cycles."
+    # [Hk] Hacker (50, 500, 2500, 10000, 50000)
+    _render_badge "Hk" "Hacker" "$HEAP_ALLOCATION_IDX" 50 500 2500 10000 50000 "Neural command execution cycles."
 
-    _render_badge "Fb" "Fabricator" "$IO_WRITE_CYCLES" \
-        10 50 200 500 1000 \
-        "Infrastructure node construction."
+    # [Fb] Fabricator (10, 50, 200, 500, 1000)
+    _render_badge "Fb" "Fabricator" "$IO_WRITE_CYCLES" 10 50 200 500 1000 "Infrastructure node construction."
 
-    _render_badge "En" "Engineer" "$KERNEL_PANIC_OFFSET" \
-        30 150 600 2000 5000 \
-        "System parameter optimization."
+    # [En] Engineer (30, 150, 600, 2000, 5000)
+    _render_badge "En" "Engineer" "$KERNEL_PANIC_OFFSET" 30 150 600 2000 5000 "System parameter optimization."
 
-    _render_badge "Cn" "Connector" "$UPLINK_LATENCY_MS" \
-        10 50 200 500 1000 \
-        "Cloud uplink synchronization events."
+    # [Cn] Connector (10, 50, 200, 500, 1000)
+    _render_badge "Cn" "Connector" "$UPLINK_LATENCY_MS" 10 50 200 500 1000 "Cloud uplink synchronization events."
 
-    _render_badge "Pu" "Purifier" "$ENTROPY_DISCHARGE" \
-        5 25 100 300 666 \
-        "Entropy reduction (node deletion)."
+    # [Pu] Purifier (5, 25, 100, 300, 666)
+    _render_badge "Pu" "Purifier" "$ENTROPY_DISCHARGE" 5 25 100 300 666 "Entropy reduction (node deletion)."
 
-    _render_badge "Ex" "Explorer" "$NEURAL_SYNAPSE_FIRING" \
-        30 200 800 3000 10000 \
-        "External neural network queries."
+    # [Ex] Explorer (30, 200, 800, 3000, 10000)
+    _render_badge "Ex" "Explorer" "$NEURAL_SYNAPSE_FIRING" 30 200 800 3000 10000 "External neural network queries."
 
-    _render_badge "Gn" "Gunner" "$TEST_LAUNCH_COUNT" \
-        10 50 200 800 2000 \
-        "Factory launch test cycles."
+    # [Gn] Gunner (10, 50, 200, 800, 2000)
+    _render_badge "Gn" "Gunner" "$TEST_LAUNCH_COUNT" 10 50 200 800 2000 "Factory launch test cycles."
 
-    _render_badge "Nv" "Navigator" "$WARP_JUMP_COUNT" \
-        5 25 100 300 1000 \
-        "Timeline (branch) jump events."
+    # [Nv] Navigator (5, 25, 100, 300, 1000)
+    _render_badge "Nv" "Navigator" "$WARP_JUMP_COUNT" 5 25 100 300 1000 "Timeline (branch) jump events."
 
-    _render_badge "Vt" "Veteran" "$LOGIN_COUNT" \
-        10 100 500 2000 5000 \
-        "System login frequency."
+    # [Vt] Veteran (10, 100, 500, 2000, 5000)
+    _render_badge "Vt" "Veteran" "$LOGIN_COUNT" 10 100 500 2000 5000 "System login frequency."
+
+    # 計算模式結束處理
+    if [ "$mode" == "CALC" ]; then
+        unset RENDER_MODE
+        return
+    fi
 
     # 特殊獎牌 (Special)
     echo -e "${C_PURPLE} :: Special Operations ::${C_RESET}"
