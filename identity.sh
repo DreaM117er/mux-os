@@ -29,7 +29,6 @@ KERNEL_PANIC_OFFSET="${KERNEL_PANIC_OFFSET:-0}"
 UPLINK_LATENCY_MS="${UPLINK_LATENCY_MS:-0}"
 ENTROPY_DISCHARGE="${ENTROPY_DISCHARGE:-0}"
 NEURAL_SYNAPSE_FIRING="${NEURAL_SYNAPSE_FIRING:-0}"
-NEURAL_SYNAPSE_FIRING="${NEURAL_SYNAPSE_FIRING:-0}"
 EJECTION_COUNT="${EJECTION_COUNT:-0}"
 SUDO_ATTEMPT_COUNT="${SUDO_ATTEMPT_COUNT:-0}"
 HELP_ACCESS_COUNT="${HELP_ACCESS_COUNT:-0}"
@@ -52,12 +51,16 @@ if [ ! -f "$IDENTITY_FILE" ]; then
         MUX_DATE=$(date +%s)
         MUX_LF=$MUX_DATE
         MUX_LB=""
-        HEAP_ALLOCATION_IDX=0     # Exec
-        IO_WRITE_CYCLES=0         # Create
-        KERNEL_PANIC_OFFSET=0     # Edit
-        UPLINK_LATENCY_MS=0       # Deploy
-        ENTROPY_DISCHARGE=0       # Delete
-        NEURAL_SYNAPSE_FIRING=0   # Search/Link
+        HEAP_ALLOCATION_IDX=0
+        IO_WRITE_CYCLES=0
+        KERNEL_PANIC_OFFSET=0
+        UPLINK_LATENCY_MS=0
+        ENTROPY_DISCHARGE=0
+        NEURAL_SYNAPSE_FIRING=0
+        EJECTION_COUNT=0
+        SUDO_ATTEMPT_COUNT=0
+        HELP_ACCESS_COUNT=0
+        FACTORY_ABUSE_COUNT=0
         
         _save_identity
         return
@@ -67,9 +70,9 @@ if [ ! -f "$IDENTITY_FILE" ]; then
     
     # 舊用戶遷移
     if [ -z "$MUX_DATE" ]; then
-        MUX_DATE=$(date +%s)
-        MUX_LF=$MUX_DATE
-        MUX_LB=""
+        MUX_DATE=${MUX_DATE:-$(date +%s)}
+        MUX_LF=${MUX_LF:-$MUX_DATE}
+        MUX_LB=${MUX_LB:-""}
         HEAP_ALLOCATION_IDX=${HEAP_ALLOCATION_IDX:-0}
         IO_WRITE_CYCLES=${IO_WRITE_CYCLES:-0}
         KERNEL_PANIC_OFFSET=${KERNEL_PANIC_OFFSET:-0}
@@ -79,6 +82,7 @@ if [ ! -f "$IDENTITY_FILE" ]; then
         EJECTION_COUNT=${EJECTION_COUNT:-0}
         SUDO_ATTEMPT_COUNT=${SUDO_ATTEMPT_COUNT:-0}
         HELP_ACCESS_COUNT=${HELP_ACCESS_COUNT:-0}
+        FACTORY_ABUSE_COUNT=${FACTORY_ABUSE_COUNT:-0}
         
         save_required=true
     fi
