@@ -131,11 +131,13 @@ function _render_special() {
     
     local is_unlocked=0
     local count_display=""
-    local stage_display=""
+    
+    if [[ "$MUX_BADGES" == *"$tag"* ]]; then
+        is_unlocked=1
+    fi
     
     # 邏輯判定
     if [ -n "$max_val" ]; then
-        # [模式 B] 計數器模式
         local safe_cur="${cur_val:-0}"
         
         if [ "$safe_cur" -ge "$max_val" ]; then
@@ -143,9 +145,7 @@ function _render_special() {
         fi
         count_display="[${safe_cur}/${max_val}]"
     else
-        # [模式 A] 解鎖模式
-        if [[ "$MUX_BADGES" == *"$tag"* ]]; then
-            is_unlocked=1
+        if [ "$is_unlocked" -eq 1 ]; then
             count_display="[1/1]"
         else
             count_display="[0/1]"
@@ -154,12 +154,10 @@ function _render_special() {
 
     # 渲染
     if [ "$is_unlocked" -eq 1 ]; then
-        # [已解鎖]
         echo -e " ${C_RED}[${abbr}]${C_BLACK}-${C_WHITE}${name}${C_RESET}"
         echo -e " ${C_RED}[Stage C]${C_BLACK}${count_display}${C_RESET}"
         echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
     else
-        # [未解鎖]
         local locked_color="${C_BLACK}"
         echo -e " ${locked_color}[${abbr}]-${name}${C_RESET}"
         echo -e " ${locked_color}[Stage L]${count_display}${C_RESET}"
