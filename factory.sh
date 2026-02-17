@@ -899,6 +899,10 @@ MUX_STATUS="DEFAULT"
 FAC_EJMODE="1"
 EOF
                 fi
+
+                if command -v _ui_fake_gate &> /dev/null; then
+                    _ui_fake_gate "eject"
+                fi
                 
                 unset MUX_INITIALIZED
                 exec bash
