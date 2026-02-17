@@ -889,17 +889,16 @@ function _factory_deploy_sequence() {
                 sleep 1.5
                 
                 # 呼叫彈射
-                if command -v _ui_fake_gate &> /dev/null; then
-                    _ui_fake_gate "eject"
-                fi
-
-                # D. 強制重置為 DEFAULT
-                cat > "$MUX_ROOT/.mux_state" <<EOF
+                if command -v _update_mux_state &> /dev/null; then
+                    _update_mux_state "MUX" "DEFAULT"
+                else
+                    cat > "$MUX_ROOT/.mux_state" <<EOF
 MUX_MODE="MUX"
 MUX_STATUS="DEFAULT"
 FAC_EJMODE="1"
 EOF
-EOF
+                fi
+                
                 unset MUX_INITIALIZED
                 exec bash
                 return
@@ -966,10 +965,14 @@ EOF
         _ui_fake_gate "$gate_theme"
     fi
 
-    cat > "$MUX_ROOT/.mux_state" <<EOF
+    if command -v _update_mux_state &> /dev/null; then
+        _update_mux_state "MUX" "$next_status"
+    else
+        cat > "$MUX_ROOT/.mux_state" <<EOF
 MUX_MODE="MUX"
 MUX_STATUS="$next_status"
 EOF
+    fi
 
     unset MUX_INITIALIZED
     unset __FAC_IO_STATE
