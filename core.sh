@@ -830,16 +830,15 @@ function pm() {
 function _core_system_scan() {
     local mode="${1:-silent}"
     local error_count=0
+    local warn_count=0
     local report_lines=""
     
     # 定義掃描目標
     local scan_targets=("$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD")
     
-    # 開始掃描
+    # 掃描邏輯核心
     for target in "${scan_targets[@]}"; do
-        if [ ! -f "$target" ]; then
-            continue
-        fi
+        if [ ! -f "$target" ]; then continue; fi
 
         local target_name=$(basename "$target")
         
@@ -849,48 +848,74 @@ function _core_system_scan() {
                 # 1. 資料清洗
                 type = $4;  gsub(/^"|"$/, "", type);  gsub(/^[ \t]+|[ \t]+$/, "", type)
                 com  = $5;  gsub(/^"|"$/, "", com);   gsub(/^[ \t]+|[ \t]+$/, "", com)
+                st   = $7;  gsub(/^"|"$/, "", st);    gsub(/\r| /, "", st) # 狀態欄位
+                
                 pkg  = $10; gsub(/^"|"$/, "", pkg);   gsub(/^[ \t]+|[ \t]+$/, "", pkg)
                 tgt  = $11; gsub(/^"|"$/, "", tgt);   gsub(/^[ \t]+|[ \t]+$/, "", tgt)
                 ihead= $12; gsub(/^"|"$/, "", ihead); gsub(/^[ \t]+|[ \t]+$/, "", ihead)
                 ibody= $13; gsub(/^"|"$/, "", ibody); gsub(/^[ \t]+|[ \t]+$/, "", ibody)
                 
-                err = ""
+                level = ""
+                msg = ""
 
-                # 2. 邏輯判斷 (Primitive Checks)
+                # 2. 既定狀態檢查
+                if (st == "F") {
+                    level = "ERR"
+                    msg = "Node Locked (State: F)"
+                }
+                else if (st == "C") {
+                    level = "ERR"
+                    msg = "Glitch Detected (State: C)"
+                }
+                else if (st == "W") {
+                    level = "WARN"
+                    msg = "Unstable Parameter (State: W)"
+                }
+
+                # 3. 結構完整性預判 (Deep Scan)
+                # 即使狀態是 P (Pass)，如果資料空缺，一樣要報錯
+                
                 if (type == "NA") {
                     # NA: PKG 與 TARGET 必須存在
                     if (pkg == "" || tgt == "") {
-                        err = "Structural Breach (Missing PKG/TARGET)"
+                        level = "ERR"
+                        msg = "Structural Breach (Missing PKG/TARGET)"
                     }
                 }
                 else if (type == "NB") {
                     # NB: IHEAD 與 IBODY 必須存在
                     if (ihead == "" || ibody == "") {
-                        err = "Neural Pathway Broken (Missing INTENT)"
+                        level = "ERR"
+                        msg = "Neural Pathway Broken (Missing INTENT)"
                     } else {
-                        # IBODY 必須是大寫 (忽略開頭的點)
+                        # IBODY 檢查 (建議大寫，雖非強制但視為警告)
                         check_body = ibody
-                        sub(/^\./, "", check_body) # 移除開頭的 .
-                        if (check_body ~ /[a-z]/) {
-                            err = "Protocol Mismatch (IBODY must be UPPERCASE)"
+                        sub(/^\./, "", check_body)
+                        if (check_body ~ /^[a-z]/) {
+                            if (level == "") { # 如果沒有更嚴重的錯誤
+                                level = "WARN"
+                                msg = "Protocol Mismatch (Lower-case Body)"
+                            }
                         }
                     }
                 }
                 
-                # 3. 輸出錯誤 (格式: COM_NAME|ERROR_MSG)
-                if (err != "") {
-                    print com "_err|" err
+                # 4. 輸出結果 (格式: COM_NAME|LEVEL|MSG)
+                if (level != "") {
+                    print com "|" level "|" msg
                 }
             }
         ' "$target")
 
         # 解析結果
         if [ -n "$scan_result" ]; then
-            while IFS='|' read -r node_name error_msg; do
-                error_count=$((error_count + 1))
-                if [ "$mode" == "manual" ]; then
-                    # node_name 現在會顯示為 "edge_err"
-                    report_lines+="${THEME_DESC}    [${target_name}] ${THEME_WARN}${node_name}${C_RESET} : ${THEME_ERR}${error_msg}${C_RESET}\n"
+            while IFS='|' read -r node_name level msg; do
+                if [ "$level" == "ERR" ]; then
+                    error_count=$((error_count + 1))
+                    report_lines+="${THEME_DESC}    [${target_name}] ${THEME_ERR}${node_name}${C_RESET} : ${THEME_ERR}${msg}${C_RESET}\n"
+                elif [ "$level" == "WARN" ]; then
+                    warn_count=$((warn_count + 1))
+                    report_lines+="${THEME_DESC}    [${target_name}] ${THEME_WARN}${node_name}${C_RESET} : ${THEME_WARN}${msg}${C_RESET}\n"
                 fi
             done <<< "$scan_result"
         fi
@@ -901,18 +926,23 @@ function _core_system_scan() {
         _grant_xp 5 "SYS_SCAN"
     fi
 
-    # 結果回饋
-    if [ "$error_count" -gt 0 ]; then
+    # 結果回饋邏輯
+    local total_issues=$(( error_count + warn_count ))
+
+    if [ "$total_issues" -gt 0 ]; then
         # [異常狀態]
         if [ "$mode" == "manual" ]; then
             echo -e "${THEME_ERR} :: SYSTEM INTEGRITY COMPROMISED ::${C_RESET}"
-            echo -e "${THEME_DESC}    Critical Faults: ${THEME_ERR}${error_count}${C_RESET}"
+            echo -e "${THEME_DESC}    Critical Faults : ${THEME_ERR}${error_count}${C_RESET}"
+            echo -e "${THEME_DESC}    Warnings        : ${THEME_WARN}${warn_count}${C_RESET}"
             echo -e ""
             echo -e "${THEME_WARN} :: DAMAGE CONTROL REPORT ::${C_RESET}"
             echo -e "$report_lines"
         else
-            # 登入時的語音警告
-            _bot_say "warn" "Hull damage detected. ${error_count} micro-fractures found in logic gate."
+            # 登入時的語音警告 (只針對 Error)
+            if [ "$error_count" -gt 0 ]; then
+                _bot_say "warn" "Hull damage detected. ${error_count} micro-fractures found."
+            fi
         fi
         return 1
     else
