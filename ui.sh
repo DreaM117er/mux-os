@@ -177,28 +177,40 @@ function _show_badges() {
 
     # 常規獎牌 (Standard)
     _render_badge "Hk" "Hacker" "$HEAP_ALLOCATION_IDX" \
-        50 300 1000 5000 15000 \
+        50 500 2500 10000 50000 \
         "Neural command execution cycles."
 
     _render_badge "Fb" "Fabricator" "$IO_WRITE_CYCLES" \
-        5 25 50 150 500 \
+        10 50 200 500 1000 \
         "Infrastructure node construction."
 
     _render_badge "En" "Engineer" "$KERNEL_PANIC_OFFSET" \
-        30 100 500 1500 3000 \
+        30 150 600 2000 5000 \
         "System parameter optimization."
 
     _render_badge "Cn" "Connector" "$UPLINK_LATENCY_MS" \
-        5 25 50 100 200 \
+        10 50 200 500 1000 \
         "Cloud uplink synchronization events."
 
     _render_badge "Pu" "Purifier" "$ENTROPY_DISCHARGE" \
-        3 10 50 150 500 \
+        5 25 100 300 666 \
         "Entropy reduction (node deletion)."
 
     _render_badge "Ex" "Explorer" "$NEURAL_SYNAPSE_FIRING" \
-        30 100 500 1000 3000 \
+        30 200 800 3000 10000 \
         "External neural network queries."
+
+    _render_badge "Gn" "Gunner" "$TEST_LAUNCH_COUNT" \
+        10 50 200 800 2000 \
+        "Factory launch test cycles."
+
+    _render_badge "Nv" "Navigator" "$WARP_JUMP_COUNT" \
+        5 25 100 300 1000 \
+        "Timeline (branch) jump events."
+
+    _render_badge "Vt" "Veteran" "$LOGIN_COUNT" \
+        10 100 500 2000 5000 \
+        "System login frequency."
 
     # 特殊獎牌 (Special)
     echo -e "${C_PURPLE} :: Special Operations ::${C_RESET}"

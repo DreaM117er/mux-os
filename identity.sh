@@ -29,6 +29,9 @@ KERNEL_PANIC_OFFSET="${KERNEL_PANIC_OFFSET:-0}"
 UPLINK_LATENCY_MS="${UPLINK_LATENCY_MS:-0}"
 ENTROPY_DISCHARGE="${ENTROPY_DISCHARGE:-0}"
 NEURAL_SYNAPSE_FIRING="${NEURAL_SYNAPSE_FIRING:-0}"
+TEST_LAUNCH_COUNT="${TEST_LAUNCH_COUNT:-0}"
+WARP_JUMP_COUNT="${WARP_JUMP_COUNT:-0}"
+LOGIN_COUNT="${LOGIN_COUNT:-0}"
 EJECTION_COUNT="${EJECTION_COUNT:-0}"
 SUDO_ATTEMPT_COUNT="${SUDO_ATTEMPT_COUNT:-0}"
 HELP_ACCESS_COUNT="${HELP_ACCESS_COUNT:-0}"
@@ -61,6 +64,9 @@ if [ ! -f "$IDENTITY_FILE" ]; then
         SUDO_ATTEMPT_COUNT=0
         HELP_ACCESS_COUNT=0
         FACTORY_ABUSE_COUNT=0
+        TEST_LAUNCH_COUNT=0
+        WARP_JUMP_COUNT=0
+        LOGIN_COUNT=0
         
         _save_identity
         return
@@ -83,6 +89,9 @@ if [ ! -f "$IDENTITY_FILE" ]; then
         SUDO_ATTEMPT_COUNT=${SUDO_ATTEMPT_COUNT:-0}
         HELP_ACCESS_COUNT=${HELP_ACCESS_COUNT:-0}
         FACTORY_ABUSE_COUNT=${FACTORY_ABUSE_COUNT:-0}
+        TEST_LAUNCH_COUNT=${TEST_LAUNCH_COUNT:-0}
+        WARP_JUMP_COUNT=${WARP_JUMP_COUNT:-0}
+        LOGIN_COUNT=${LOGIN_COUNT:-0}
         
         save_required=true
     fi
@@ -398,6 +407,15 @@ function _grant_xp() {
         "GIT_PUSH")    _record_behavior "GIT_PUSH" ;;    # 核心部署 -> 上傳
         "NEURAL_LINK") _record_behavior "NEURAL_LINK" ;; # 連結/搜尋
         "WARP_JUMP")   _record_behavior "NEURAL_LINK" ;; # 切換分支 -> 視為連結
+        "TEST_OK"|"TEST_FAIL") 
+            TEST_LAUNCH_COUNT=$((TEST_LAUNCH_COUNT + 1)) 
+            ;;
+        "WARP_JUMP") 
+            WARP_JUMP_COUNT=$((WARP_JUMP_COUNT + 1)) 
+            ;;
+        "LOGIN") 
+            LOGIN_COUNT=$((LOGIN_COUNT + 1)) 
+            ;;
         *) ;;  # 其他行為不記錄
     esac
     
