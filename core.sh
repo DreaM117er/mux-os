@@ -131,6 +131,43 @@ function _mux_boot_sequence() {
     fi
 }
 
+# 狀態機更新器 (State Machine Updater)
+function _update_mux_state() {
+    local new_mode="$1"
+    local new_status="$2"
+    local new_entry="$3"
+    
+    # 1. 定義需要「持久化」的旗標清單
+    local persistence_keys=("FAC_EJMODE")
+    local preserved_data=""
+
+    # 2. 掃描舊狀態並備份
+    if [ -f "$MUX_ROOT/.mux_state" ]; then
+        for key in "${persistence_keys[@]}"; do
+            local val=$(grep "^$key=" "$MUX_ROOT/.mux_state")
+            if [ -n "$val" ]; then
+                preserved_data+="$val"$'\n'
+            fi
+        done
+    fi
+    
+    # 3. 寫入新狀態 (原子操作)
+    cat > "$MUX_ROOT/.mux_state" <<EOF
+MUX_MODE="$new_mode"
+MUX_STATUS="$new_status"
+EOF
+
+    # 4. 如果有 Entry Point 則寫入
+    if [ -n "$new_entry" ]; then
+        echo "MUX_ENTRY_POINT=\"$new_entry\"" >> "$MUX_ROOT/.mux_state"
+    fi
+
+    # 5. 補回持久化資料
+    if [ -n "$preserved_data" ]; then
+        echo -n "$preserved_data" >> "$MUX_ROOT/.mux_state"
+    fi
+}
+
 # 主程式初始化 (Main Initialization)
 function _mux_init() {
     _system_lock
@@ -1053,10 +1090,7 @@ function _mux_pre_login() {
     _core_system_scan "silent"
     
     # 寫入 LOGIN 狀態
-    cat > "$MUX_ROOT/.mux_state" <<EOF
-MUX_MODE="MUX"
-MUX_STATUS="LOGIN"
-EOF
+    _update_mux_state "MUX" "LOGIN"
 
     echo ""
     echo -e "${THEME_OK} :: $welcome_msg :: ${C_RESET}"
@@ -1104,10 +1138,7 @@ function _mux_set_logout() {
     echo ""
     echo -e "${THEME_WARN} :: SYSTEM OFFLINE :: See you space cowboy.${C_RESET}"
     
-    cat > "$MUX_ROOT/.mux_state" <<EOF
-MUX_MODE="MUX"
-MUX_STATUS="DEFAULT"
-EOF
+    _update_mux_state "MUX" "DEFAULT"
 
     MUX_STATUS="DEFAULT"
     sleep 1.9
@@ -1245,11 +1276,7 @@ function _core_pre_factory_auth() {
         entry_point="COCKPIT"
     fi
 
-    cat > "$MUX_ROOT/.mux_state" <<EOF
-MUX_MODE="FAC"
-MUX_STATUS="LOGIN"
-MUX_ENTRY_POINT="$entry_point"
-EOF
+    _update_mux_state "FAC" "LOGIN" "$entry_point"
 
     unset MUX_INITIALIZED
     exec bash
@@ -1309,10 +1336,7 @@ function _core_eject_sequence() {
     _bot_factory_personality "eject"
     sleep 1.9
 
-    cat > "$MUX_ROOT/.mux_state" <<EOF
-MUX_MODE="MUX"
-MUX_STATUS="DEFAULT"
-EOF
+    _update_mux_state "MUX" "DEFAULT"
 
     if command -v _ui_fake_gate &> /dev/null; then
         _ui_fake_gate "default"
@@ -1699,10 +1723,7 @@ case "$MUX_MODE" in
     *)
         if command -v _ui_fake_gate &> /dev/null; then _ui_fake_gate "core"; fi
         
-        cat > "$MUX_ROOT/.mux_state" <<EOF
-MUX_MODE="MUX"
-MUX_STATUS="LOGIN"
-EOF
+        _update_mux_state "MUX" "LOGIN"
 
         exec bash
         ;;

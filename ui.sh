@@ -233,6 +233,10 @@ function _show_badges() {
     _render_special "MAJOR_TOM"   "Ej" "Major Tom" \
         "Ejection limit exceeded. Ground control to Major Tom." \
         "${EJECTION_COUNT:-0}" "100"
+    
+    _render_special "MASOCHIST"   "dM" "Masochist" \
+        "Enjoying the pain of ejection. The Chief is worried about you." \
+        "${FACTORY_ABUSE_COUNT:-0}" "5"
 }
 
 # 繪製 Mux-OS Logo標誌

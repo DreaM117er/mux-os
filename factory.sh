@@ -764,164 +764,219 @@ function _factory_reset() {
 
 # 部署序列 (Deploy Sequence)
 function _factory_deploy_sequence() {
+    # 讀取環境參數
+    if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+    local abuse_lv="${FACTORY_ABUSE_COUNT:-0}"
+
+    local ej_mode="0"
+    if [ -f "$MUX_ROOT/.mux_state" ]; then
+        ej_mode=$(grep "FAC_EJMODE" "$MUX_ROOT/.mux_state" | cut -d'=' -f2 | tr -d '"')
+    fi
+
     unset __FAC_IO_STATE
     echo -ne "${THEME_WARN} :: Initiating Deployment Sequence...${C_RESET}"
     sleep 0.5
 
-    # QA & Stats & Migration
-    echo -e "\n${THEME_DESC} :: Running Final Quality Assurance (QA)...${C_RESET}"
-    
+    # 2. QA
     local target_file="$MUX_ROOT/app.csv.temp"
+    local prod_file="$MUX_ROOT/app.csv"
     local qa_file="${target_file}.qa"
     local stats_log="${target_file}.log"
+
+    echo -e "\n${THEME_DESC} :: Running Final Quality Assurance (QA)...${C_RESET}"
 
     awk -F, -v OFS=, '
         BEGIN { cn=0; cs=0; fail=0 }
         NR==1 { print; next }
-        
         {
             st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
-            
-            # 攔截非法狀態
             if (st == "E") { print "QA_FAIL:Active Draft (E)" > "/dev/stderr"; print $0; next }
             if (st == "B") { print "QA_FAIL:Stuck Backup (B)" > "/dev/stderr"; print $0; next }
             if (st == "F") { print "QA_FAIL:Broken Node (F)" > "/dev/stderr"; print $0; next }
             if (st == "C") { print "QA_FAIL:Glitch Node (C)" > "/dev/stderr"; print $0; next }
             
-            # 狀態轉換
-            # 1. S -> P
-            if (st == "S") {
-                cs++
-                $7 = "\"P\""
-            }
-            # 2. N -> P
-            else if (st == "N") {
-                cn++
-                $7 = "\"P\""
-            }
-            # 3. Empty (Old) -> P
-            else if (st == "") {
-                $7 = "\"P\""
-            }
-
+            if (st == "S" || st == "N" || st == "") { $7 = "\"P\"" }
             print $0
         }
-        END { print "STATS:" cn ":" cs > "/dev/stderr" }
     ' "$target_file" > "$qa_file" 2> "$stats_log"
 
-    # 解析 QA 結果
-    local qa_error=$(grep "QA_FAIL" "$stats_log")
-    local stats_line=$(grep "STATS" "$stats_log")
-
-    # 錯誤處理
-    if [ -n "$qa_error" ]; then
-        mv "$qa_file" "$target_file" # 寫回標記以便使用者檢查
-        rm "$stats_log"
+    if grep -q "QA_FAIL" "$stats_log"; then
+        mv "$qa_file" "$target_file"; rm "$stats_log"
         echo -e "${THEME_ERR} :: QA FAILED. Invalid nodes detected.${C_RESET}"
-        echo -e "${THEME_DESC}    Reason: $(echo "$qa_error" | cut -d: -f2 | head -n 1)${C_RESET}"
         return 1
     else
-        # QA 通過：應用轉正後的檔案 (P State applied)
-        mv "$qa_file" "$target_file"
-        rm "$stats_log"
+        mv "$qa_file" "$target_file"; rm "$stats_log"
         echo -e "${THEME_OK}    ›› QA Passed. State normalized to [P].${C_RESET}"
-        sleep 1.9
+        sleep 1.0
     fi
 
-    # Phase 1: 差異比對與確認 (Diff & Confirm)
+    # 差異比對
     clear
     _draw_logo "gray"
-    
     echo -e "${THEME_MAIN} :: MANIFEST CHANGES (Sandbox vs Production) ::${C_RESET}"
     echo ""
-    
     if command -v diff &> /dev/null; then
-        diff -U 0 "$MUX_ROOT/app.csv" "$MUX_ROOT/app.csv.temp" | \
-        grep -v "^---" | grep -v "^+++" | grep -v "^@" | head -n 20 | \
-        awk '
-            /^\+/ {print "\033[1;32m" $0 "\033[0m"; next}
-            /^-/ {print "\033[1;31m" $0 "\033[0m"; next}
-            {print}
-        '
-    else
-        echo -e "${THEME_WARN}    (Diff module unavailable. Changes hidden.)${C_RESET}"
+        diff -U 0 "$prod_file" "$target_file" | grep -v "^@" | head -n 20 | awk '/^\+/{print "\033[1;32m" $0 "\033[0m";next}/^-/{print "\033[1;31m" $0 "\033[0m";next}{print}'
     fi
     echo ""
-    
     _system_unlock
+
+    # 彈射分支
+    if [ "$ej_mode" == "1" ]; then
+        echo -e "${THEME_WARN} :: EJECTION PROTOCOL DETECTED ::${C_RESET}"
+        echo -e "${THEME_DESC}    Factory Chief is looking at you with concern...${C_RESET}"
+        echo ""
+        echo -ne "${THEME_ERR} :: Are you sure you want to EJECT (Commander)? [Y/n]: ${C_RESET}"
+        read choice
+        
+        if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+            echo ""
+            echo -ne "${THEME_ERR} :: TYPE 'CONFIRM' TO EXECUTE EJECTION: ${C_RESET}"
+            read confirm
+            
+            if [ "$confirm" == "CONFIRM" ]; then
+                echo ""
+                echo -e "${THEME_OK} :: EXECUTING DEPLOYMENT PROTOCOL...${C_RESET}"
+                
+                if [ -f "$target_file" ]; then
+                    mv "$target_file" "$prod_file"
+                fi
+                echo ""
+                echo -e "${THEME_OK} :: DEPLOYMENT SUCCESSFUL ::${C_RESET}"
+                
+                if command -v _grant_xp &> /dev/null; then _grant_xp 20 "FAC_DEPLOY"; fi
+                sleep 0.5
+
+                # 執行彈射
+                abuse_lv=$((abuse_lv + 1))
+                FACTORY_ABUSE_COUNT=$abuse_lv
+                if [ "$abuse_lv" -ge 5 ]; then
+                    if command -v _unlock_badge &> /dev/null; then 
+                        _unlock_badge "MASOCHIST" "Masochist" 
+                    fi
+                fi
+                EJECTION_COUNT=${EJECTION_COUNT:-0}
+                EJECTION_COUNT=$((EJECTION_COUNT + 1))
+                
+                if [ "$EJECTION_COUNT" -ge 100 ]; then
+                    if command -v _unlock_badge &> /dev/null; then _unlock_badge "MAJOR_TOM" "Major Tom"; fi
+                fi
+                _save_identity
+
+                # 整備長崩潰演出
+                echo ""
+                case "$abuse_lv" in
+                    1)
+                        _bot_say "warn" "Wait... what are you doing? Commander?!"
+                        sleep 1
+                        echo -e "${C_ORANGE} :: You deployed it... but why hit the button?!${C_RESET}"
+                        ;;
+                    2)
+                        _bot_say "error" "Again?! STOP IT!"
+                        sleep 1
+                        echo -e "${C_ORANGE} :: ...Do you think this is funny? The hydraulic repairs cost a fortune!${C_RESET}"
+                        ;;
+                    3)
+                        _bot_say "error" "I HATE YOU. I ACTUALLY HATE YOU."
+                        sleep 1
+                        echo -e "${C_ORANGE} :: ... My beautiful factory...${C_RESET}"
+                        ;;
+                    *)
+                        local crazy_msg=("Get out. Just get out. 🚮" "Whatever. Launch him. 🚬" "He likes the pain. 🩹" "Safety protocols? Deleted. 💀")
+                        _bot_say "eject" "${crazy_msg[$((RANDOM % ${#crazy_msg[@]}))]}"
+                        ;;
+                esac
+                
+                sleep 1.5
+                
+                # 呼叫彈射
+                if command -v _update_mux_state &> /dev/null; then
+                    _update_mux_state "MUX" "DEFAULT"
+                else
+                    cat > "$MUX_ROOT/.mux_state" <<EOF
+MUX_MODE="MUX"
+MUX_STATUS="DEFAULT"
+FAC_EJMODE="1"
+EOF
+                fi
+                
+                unset MUX_INITIALIZED
+                exec bash
+                return
+            else
+                echo -e "${THEME_DESC}    ›› Ejection Canceled.${C_RESET}"
+            fi
+        else
+            # 解除彈射
+            echo -e "${THEME_OK}    ›› Disarming Ejection Protocol...${C_RESET}"
+        fi
+    fi
+    
+    # 恢復理智
+    if [ "$abuse_lv" -gt 0 ]; then
+        FACTORY_ABUSE_COUNT=$((abuse_lv - 1))
+        _save_identity
+        echo -e "${C_ORANGE} :: You're acting normal today? Thank god...${C_RESET}"
+    fi
+    echo ""
     echo -ne "${THEME_WARN} :: Modifications verified? [Y/n]: ${C_RESET}"
     read choice
-    echo ""
     
     if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
         _fac_init
         echo -e ""
-        _bot_say "factory" "Deployment canceled. Sandbox state retained."
-        echo -e "${THEME_DESC}    ›› To discard changes: type 'fac reset'${C_RESET}"
-        echo -e "${THEME_DESC}    ›› To resume editing : type 'fac edit'${C_RESET}"
+        _bot_say "factory" "Deployment canceled."
         return
     fi
     
-    echo -e "${THEME_ERR} :: CRITICAL WARNING ::${C_RESET}"
-    echo -e "${THEME_SUB}    Sandbox will OVERWRITE Production.${C_RESET}"
-    echo -e "${THEME_SUB}    This action is irreversible via undo.${C_RESET}"
-    echo ""
     echo -ne "${THEME_ERR} :: TYPE 'CONFIRM' TO DEPLOY: ${C_RESET}"
     read confirm
-    echo ""
     
     if [ "$confirm" != "CONFIRM" ]; then
         _fac_init
-        _bot_say "error" "Confirmation failed. Deployment aborted."
+        _bot_say "error" "Confirmation failed."
         return
     fi
 
-    # Phase 2: 執行部署 (Execution)
+    # 執行正常寫入
     sleep 0.9
-    
-    local temp_file="$MUX_ROOT/app.csv.temp"
-    local prod_file="$MUX_ROOT/app.csv"
-
-    if [ -f "$temp_file" ]; then
-        mv "$temp_file" "$prod_file"
-        
-        if [ -f "$prod_file" ]; then
-            cp "$prod_file" "$temp_file"
-        fi
-    else
-         _bot_say "error" "Sandbox integrity failed."
-         sleep 1.4
-         return 1
+    if [ -f "$target_file" ]; then
+        mv "$target_file" "$prod_file"
+        cp "$prod_file" "$target_file"
     fi
-    
+    echo ""
     echo -e "${THEME_OK} :: DEPLOYMENT SUCCESSFUL ::${C_RESET}"
 
-    # 部署獎勵
-    if command -v _grant_xp &> /dev/null; then
-        _grant_xp 20 "FAC_DEPLOY"
-    fi
+    if command -v _grant_xp &> /dev/null; then _grant_xp 20 "FAC_DEPLOY"; fi
 
     sleep 1.4
 
+    # 決定返回路徑
     local next_status="DEFAULT"
     local gate_theme="default"
     
+    if [ -f "$MUX_ROOT/.mux_state" ]; then source "$MUX_ROOT/.mux_state"; fi 
+
     if [ "$MUX_ENTRY_POINT" == "COCKPIT" ]; then
         next_status="LOGIN"
         gate_theme="core"
     fi
 
-    # 啟動星門
     if command -v _ui_fake_gate &> /dev/null; then
         _ui_fake_gate "$gate_theme"
     fi
 
-    cat > "$MUX_ROOT/.mux_state" <<EOF
+    if command -v _update_mux_state &> /dev/null; then
+        _update_mux_state "MUX" "$next_status"
+    else
+        cat > "$MUX_ROOT/.mux_state" <<EOF
 MUX_MODE="MUX"
 MUX_STATUS="$next_status"
 EOF
+    fi
 
     unset MUX_INITIALIZED
+    unset __FAC_IO_STATE
     exec bash
 }
 
@@ -2428,6 +2483,63 @@ function fac() {
             _fac_sort_optimization
             _fac_matrix_defrag
             _factory_deploy_sequence
+            ;;
+        
+        "eject")
+            local current_mode="0"
+            if [ -f "$MUX_ROOT/.mux_state" ]; then
+                current_mode=$(grep "FAC_EJMODE" "$MUX_ROOT/.mux_state" | cut -d'=' -f2 | tr -d '"')
+            fi
+
+            
+            if [ "$current_mode" == "1" ]; then
+                echo -e "${THEME_WARN} :: Ejection Protocol is currently ${C_RED}ARMED${THEME_WARN}. ::${C_RESET}"
+                
+                # 整備長期待的眼神
+                echo -e "${C_ORANGE} :: You... want to put the pin back in?${C_RESET}"
+                
+                echo -ne "${THEME_DESC}    ›› Disarm Ejection Protocol? [Y/n]: ${C_RESET}"
+                read choice
+                echo ""
+                if [[ "$choice" == "y" || "$choice" == "Y" || -z "$choice" ]]; then
+                    # 執行關閉
+                    sed -i '/FAC_EJMODE/d' "$MUX_ROOT/.mux_state"
+                    echo ""
+                    _bot_say "success" "Safety Interlocks Engaged. Protocol Disarmed."
+                    sleep 0.5
+                    echo -e "${C_ORANGE} :: ... Good. No flying lessons today.${C_RESET}"
+                else
+                    echo ""
+                    _bot_say "warn" "Protocol remains ARMED. Watch your step."
+                fi
+            else
+                # 整備長困惑
+                _bot_say "warn" "Chief stops working and looks at you, confused."
+                sleep 0.5
+                echo -e "${C_ORANGE} :: Wait... why are you reaching for the red lever?${C_RESET}"
+                sleep 0.5
+                
+                echo -ne "${THEME_ERR}    ›› ARM EJECTION TRIGGER? [Y/n]: ${C_RESET}"
+                read choice
+                
+                if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+                    # 執行開啟
+                    if grep -q "FAC_EJMODE" "$MUX_ROOT/.mux_state"; then
+                        sed -i 's/FAC_EJMODE=.*/FAC_EJMODE="1"/' "$MUX_ROOT/.mux_state"
+                    else
+                        echo 'FAC_EJMODE="1"' >> "$MUX_ROOT/.mux_state"
+                    fi
+                    
+                    echo ""
+                    _bot_say "warn" "Ejection Protocol ARMED."
+                    echo -e "${C_ORANGE} :: ...Is there something wrong with the air conditioning? Why do you want to leave so badly?${C_RESET}"
+                    echo -e "${THEME_DESC} (Trigger set for next 'fac deploy')${C_RESET}"
+                else
+                    echo ""
+                    echo -e "${C_ORANGE} :: Just dusting it off? Okay. Don't scare me like that.${C_RESET}"
+                    echo -e "${THEME_DESC}    ›› Action Canceled.${C_RESET}"
+                fi
+            fi
             ;;
 
         "help")
