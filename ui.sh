@@ -198,9 +198,6 @@ function _show_badges() {
         echo ""
     fi
 
-    echo -e "${C_PURPLE} :: Mux-OS Hall of Fame ::${C_RESET}"
-    echo ""
-
     # 常規獎牌 (Standard)
     # [Hk] Hacker (50, 500, 2500, 10000, 50000)
     _render_badge "Hk" "Hacker" "$HEAP_ALLOCATION_IDX" 50 500 2500 10000 50000 "Neural command execution cycles."
