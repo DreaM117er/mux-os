@@ -2500,7 +2500,6 @@ function fac() {
                 
                 echo -ne "${THEME_DESC}    ›› Disarm Ejection Protocol? [Y/n]: ${C_RESET}"
                 read choice
-                echo ""
                 if [[ "$choice" == "y" || "$choice" == "Y" || -z "$choice" ]]; then
                     # 執行關閉
                     sed -i '/FAC_EJMODE/d' "$MUX_ROOT/.mux_state"
