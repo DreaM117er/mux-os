@@ -858,7 +858,7 @@ function _core_system_scan() {
                 level = ""
                 msg = ""
 
-                # 2. 既定狀態檢查 (Fire Control 讀取的就是這個)
+                # 2. 既定狀態檢查
                 if (st == "F") {
                     level = "ERR"
                     msg = "Node Locked (State: F)"
