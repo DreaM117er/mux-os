@@ -403,10 +403,10 @@ function _grant_xp() {
         "FAC_CREATE")  _record_behavior "FAC_CREATE" ;;  # 新增節點
         "FAC_EDIT")    _record_behavior "FAC_EDIT" ;;    # 修改參數
         "FAC_DEL")     _record_behavior "FAC_DEL" ;;     # 刪除節點
-        "FAC_DEPLOY")  _record_behavior "GIT_PUSH" ;;    # 工廠部署 -> 視為上傳 (Uplink)
-        "GIT_PUSH")    _record_behavior "GIT_PUSH" ;;    # 核心部署 -> 上傳
+        "FAC_DEPLOY")  _record_behavior "GIT_PUSH" ;;    # 工廠部署
+        "GIT_PUSH")    _record_behavior "GIT_PUSH" ;;    # 核心部署
         "NEURAL_LINK") _record_behavior "NEURAL_LINK" ;; # 連結/搜尋
-        "WARP_JUMP")   _record_behavior "NEURAL_LINK" ;; # 切換分支 -> 視為連結
+        "WARP_JUMP")   _record_behavior "NEURAL_LINK" ;; # 切換分支
         "TEST_OK"|"TEST_FAIL") 
             TEST_LAUNCH_COUNT=$((TEST_LAUNCH_COUNT + 1)) 
             ;;
@@ -420,6 +420,73 @@ function _grant_xp() {
     esac
     
     if [ "$MUX_XP" -ge "$MUX_NEXT_XP" ]; then
+        local promote_flag=1
+        local deny_reason=""
+        
+        # 1. 呼叫 UI 進行靜默統計
+        if [ -f "$UI_MOD" ]; then
+            source "$UI_MOD"
+            _show_badges "CALC"
+        fi
+
+        # 2. 定義審查標準 (The Gate)
+        # L7: 3 Bronze
+        if [ "$MUX_LEVEL" -eq 6 ]; then
+             if [ "${MEDAL_STATS_S1:-0}" -lt 3 ]; then promote_flag=0; deny_reason="3 Bronze Medals (Current: ${MEDAL_STATS_S1})"; fi
+        fi
+        # L8: 1 Silver
+        if [ "$MUX_LEVEL" -eq 7 ]; then
+             if [ "${MEDAL_STATS_S2:-0}" -lt 1 ]; then promote_flag=0; deny_reason="1 Silver Medal (Current: ${MEDAL_STATS_S2})"; fi
+        fi
+        # L9: 2 Silver
+        if [ "$MUX_LEVEL" -eq 8 ]; then
+             if [ "${MEDAL_STATS_S2:-0}" -lt 2 ]; then promote_flag=0; deny_reason="2 Silver Medals (Current: ${MEDAL_STATS_S2})"; fi
+        fi
+        # L10: 4 Silver
+        if [ "$MUX_LEVEL" -eq 9 ]; then
+             if [ "${MEDAL_STATS_S2:-0}" -lt 4 ]; then promote_flag=0; deny_reason="4 Silver Medals (Current: ${MEDAL_STATS_S2})"; fi
+        fi
+        # L11: 1 Gold
+        if [ "$MUX_LEVEL" -eq 10 ]; then
+             if [ "${MEDAL_STATS_S3:-0}" -lt 1 ]; then promote_flag=0; deny_reason="1 Gold Medal (Current: ${MEDAL_STATS_S3})"; fi
+        fi
+        # L12 (Elite): 2 Gold
+        if [ "$MUX_LEVEL" -eq 11 ]; then
+             if [ "${MEDAL_STATS_S3:-0}" -lt 2 ]; then promote_flag=0; deny_reason="2 Gold Medals (Current: ${MEDAL_STATS_S3})"; fi
+        fi
+        # L13: 4 Gold
+        if [ "$MUX_LEVEL" -eq 12 ]; then
+             if [ "${MEDAL_STATS_S3:-0}" -lt 4 ]; then promote_flag=0; deny_reason="4 Gold Medals (Current: ${MEDAL_STATS_S3})"; fi
+        fi
+        # L14: 1 Platinum
+        if [ "$MUX_LEVEL" -eq 13 ]; then
+             if [ "${MEDAL_STATS_S4:-0}" -lt 1 ]; then promote_flag=0; deny_reason="1 Platinum Medal (Current: ${MEDAL_STATS_S4})"; fi
+        fi
+        # L15: 3 Platinum
+        if [ "$MUX_LEVEL" -eq 14 ]; then
+             if [ "${MEDAL_STATS_S4:-0}" -lt 3 ]; then promote_flag=0; deny_reason="3 Platinum Medals (Current: ${MEDAL_STATS_S4})"; fi
+        fi
+        # L16 (Architect): 1 Obsidian
+        if [ "$MUX_LEVEL" -eq 15 ]; then
+             if [ "${MEDAL_STATS_S5:-0}" -lt 1 ]; then promote_flag=0; deny_reason="1 Obsidian Medal (Current: ${MEDAL_STATS_S5})"; fi
+        fi
+
+        # 3. 執行判決
+        if [ "$promote_flag" -eq 0 ]; then
+            # 鎖死 XP
+            MUX_XP=$((MUX_NEXT_XP - 1))
+            
+            # 隨機顯示阻擋訊息
+            if [ $((RANDOM % 3)) -eq 0 ]; then
+                echo ""
+                echo -e "\033[1;31m :: PROMOTION DENIED :: Clearance Level $MUX_LEVEL Locked.\033[0m"
+                echo -e "\033[1;30m    ›› Requirement: $deny_reason\033[0m"
+                echo -e "\033[1;30m    ›› Check 'hof' for details.\033[0m"
+            fi
+            _save_identity
+            return
+        fi
+
         MUX_LEVEL=$((MUX_LEVEL + 1))
         # 混合線性成長公式
         MUX_NEXT_XP=$(awk "BEGIN {print int($MUX_NEXT_XP * 1.5 + 2000)}")

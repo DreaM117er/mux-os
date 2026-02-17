@@ -2495,22 +2495,21 @@ function fac() {
                 current_mode=$(grep "FAC_EJMODE" "$MUX_ROOT/.mux_state" | cut -d'=' -f2 | tr -d '"')
             fi
 
-            
             if [ "$current_mode" == "1" ]; then
-                echo -e "${THEME_WARN} :: Ejection Protocol is currently ${C_RED}ARMED${THEME_WARN}. ::${C_RESET}"
-                
+                echo -e "${THEME_WARN} :: Ejection Protocol is currently ${C_RED}ARMED${THEME_WARN}.${C_RESET}"
+                echo ""
                 # 整備長期待的眼神
                 echo -e "${C_ORANGE} :: You... want to put the pin back in?${C_RESET}"
-                
                 echo -ne "${THEME_DESC}    ›› Disarm Ejection Protocol? [Y/n]: ${C_RESET}"
                 read choice
+
                 if [[ "$choice" == "y" || "$choice" == "Y" || -z "$choice" ]]; then
                     # 執行關閉
                     sed -i '/FAC_EJMODE/d' "$MUX_ROOT/.mux_state"
                     echo ""
                     _bot_say "success" "Safety Interlocks Engaged. Protocol Disarmed."
                     sleep 0.5
-                    echo -e "${C_ORANGE} :: ... Good. No flying lessons today.${C_RESET}"
+                    echo -e "${C_ORANGE} :: ...Good. No flying lessons today.${C_RESET}"
                 else
                     echo ""
                     _bot_say "warn" "Protocol remains ARMED. Watch your step."
@@ -2536,7 +2535,7 @@ function fac() {
                     echo ""
                     _bot_say "warn" "Ejection Protocol ARMED."
                     echo -e "${C_ORANGE} :: ...Is there something wrong with the air conditioning? Why do you want to leave so badly?${C_RESET}"
-                    echo -e "${THEME_DESC} (Trigger set for next 'fac deploy')${C_RESET}"
+                    echo -e "${THEME_DESC}    ›› Trigger set for next 'fac deploy'${C_RESET}"
                 else
                     echo ""
                     echo -e "${C_ORANGE} :: Just dusting it off? Okay. Don't scare me like that.${C_RESET}"
