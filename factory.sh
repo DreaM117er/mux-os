@@ -841,6 +841,7 @@ function _factory_deploy_sequence() {
                 if [ -f "$target_file" ]; then
                     mv "$target_file" "$prod_file"
                 fi
+                echo ""
                 echo -e "${THEME_OK} :: DEPLOYMENT SUCCESSFUL ::${C_RESET}"
                 
                 if command -v _grant_xp &> /dev/null; then _grant_xp 20 "FAC_DEPLOY"; fi
@@ -917,7 +918,7 @@ EOF
         _save_identity
         echo -e "${C_ORANGE} :: You're acting normal today? Thank god...${C_RESET}"
     fi
-
+    echo ""
     echo -ne "${THEME_WARN} :: Modifications verified? [Y/n]: ${C_RESET}"
     read choice
     
@@ -943,7 +944,7 @@ EOF
         mv "$target_file" "$prod_file"
         cp "$prod_file" "$target_file"
     fi
-    
+    echo ""
     echo -e "${THEME_OK} :: DEPLOYMENT SUCCESSFUL ::${C_RESET}"
 
     if command -v _grant_xp &> /dev/null; then _grant_xp 20 "FAC_DEPLOY"; fi
@@ -2499,7 +2500,7 @@ function fac() {
                 
                 echo -ne "${THEME_DESC}    ›› Disarm Ejection Protocol? [Y/n]: ${C_RESET}"
                 read choice
-                
+                echo ""
                 if [[ "$choice" == "y" || "$choice" == "Y" || -z "$choice" ]]; then
                     # 執行關閉
                     sed -i '/FAC_EJMODE/d' "$MUX_ROOT/.mux_state"
@@ -2532,7 +2533,7 @@ function fac() {
                     echo ""
                     _bot_say "warn" "Ejection Protocol ARMED."
                     echo -e "${C_ORANGE} :: ...Is there something wrong with the air conditioning? Why do you want to leave so badly?${C_RESET}"
-                    echo -e "${THEME_DESC}    (Trigger set for next 'fac deploy')${C_RESET}"
+                    echo -e "${THEME_DESC} (Trigger set for next 'fac deploy')${C_RESET}"
                 else
                     echo ""
                     echo -e "${C_ORANGE} :: Just dusting it off? Okay. Don't scare me like that.${C_RESET}"
