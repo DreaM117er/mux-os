@@ -239,6 +239,7 @@ function _check_active_buffs() {
 
 # 奇點審判庭 (Singularity Tribunal)
 function _check_singularity() {
+    # 1. 計算理論 XP
     local calc_req=2000
     for ((i=1; i<16; i++)); do
         calc_req=$(awk "BEGIN {print int($calc_req * 1.5 + 2000)}")
@@ -249,6 +250,7 @@ function _check_singularity() {
     local strike_reason=""
     local now_ts=$(date +%s)
 
+    # 2. XP 異常
     if [ "$MUX_XP" -gt "$l16_ceiling" ]; then
         strike_reason="Singularity: Mass Overflow (XP > Theoretical Cap)"
     fi
@@ -257,6 +259,7 @@ function _check_singularity() {
         strike_reason="Paradox Detected: False Ascension (Level != XP)"
     fi
 
+    # 3. 時間悖論
     local install_time="${MUX_DATE:-$now_ts}"
     local time_diff=$(( now_ts - install_time ))
     local min_time_required=43200 
@@ -265,6 +268,25 @@ function _check_singularity() {
         strike_reason="Temporal Violation: Speedrun Impossible (${time_diff}s)"
     fi
 
+    # 4. 勳章因果律
+    if [ -f "$UI_MOD" ]; then
+        source "$UI_MOD"
+        _show_badges "CALC"
+        
+        if [ "$MUX_LEVEL" -ge 8 ] && [ "${MEDAL_STATS_S2:-0}" -lt 1 ]; then
+             strike_reason="Paradox: Vanguard rank confirmed without Silver Merit."
+        fi
+
+        if [ "$MUX_LEVEL" -ge 12 ] && [ "${MEDAL_STATS_S3:-0}" -lt 2 ]; then
+             strike_reason="Paradox: Elite rank confirmed without Gold Merit."
+        fi
+
+        if [ "$MUX_LEVEL" -ge 16 ] && [ "${MEDAL_STATS_S5:-0}" -lt 1 ]; then
+             strike_reason="Causality Violation: Architect status requires Obsidian Merit."
+        fi
+    fi
+
+    # 5. 執行判決
     if [ -n "$strike_reason" ]; then
         _trigger_dimensional_strike "$strike_reason"
         return 1
@@ -290,7 +312,7 @@ function _trigger_dimensional_strike() {
     
     sleep 1
     echo -e "\033[1;31;5m :: INITIATING DUAL VECTOR FOIL ATTACK :: \033[0m"
-    sleep 2
+    sleep 1.8
     
     MUX_LEVEL=1
     MUX_XP=0
@@ -302,7 +324,7 @@ function _trigger_dimensional_strike() {
     _save_identity
     
     echo -e "\033[1;36m :: UNIVERSE REBOOTING... :: \033[0m"
-    sleep 2
+    sleep 2.4
     
     if command -v _mux_reload_kernel &> /dev/null; then
         _mux_reload_kernel
