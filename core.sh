@@ -1507,7 +1507,7 @@ function mux() {
             ;;
 
         # : Open Files & Links
-        "op"|"open")
+        "open"|"op")
             o "$2"
             ;;
 

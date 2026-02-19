@@ -2298,7 +2298,7 @@ function fac() {
             done
             ;;
         
-        # : Delete Command via Category (Filter Search)
+        # : Delete Command via Category
         "catd"|"catdel")
             local view_state="DEL"
 
