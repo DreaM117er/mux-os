@@ -357,6 +357,7 @@ function _grant_xp() {
                         "_fac_update_category_name"
                         "_fac_delete_node"
                         "_fac_rebak_wizard"
+                        "o"
                     )
     local authorized=false
     local stack_trace="${FUNCNAME[*]}"
