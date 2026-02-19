@@ -1361,7 +1361,7 @@ function o() {
     
     if [ -z "$target" ]; then
         _bot_say "error" "No target specified."
-        echo -e "${THEME_DESC}    ›› Usage: o <file/url>  OR  mux open <file/url>${C_RESET}"
+        echo -e "${THEME_DESC}    ›› Usage: 'mux open' [file/url]${C_RESET}"
         return 1
     fi
 
