@@ -530,8 +530,12 @@ function _fac_maintenance() {
             
             # 開始驗證有效性
             valid = 0
-            
-            if (type == "NA") {
+
+            com=$5; gsub(/^"|"$/, "", com)
+            if (com ~ /^(o|op|open|mux|fac|xum)$/) {
+                valid = 0
+            } 
+            else if (type == "NA") {
                 # NA 類型需要 PKG 和 TARGET
                 if (pkg != "" && tgt != "") valid = 1
             }
@@ -1310,8 +1314,10 @@ function _fac_edit_router() {
                     
                     read -e -p "    › " -i "$_VAL_COM" new_com
                     new_com=$(echo "$new_com" | sed 's/^[ \t]*//;s/[ \t]*$//')
-                    
-                    if [ -n "$new_com" ] && [ "$new_com" != "$_VAL_COM" ]; then
+
+                    if [[ "$new_com" =~ ^(o|op|open|mux|fac|xum)$ ]]; then
+                        _bot_say "error" "Reserved System Keyword. Request Denied." >&2
+                    elif [ -n "$new_com" ] && [ "$new_com" != "$_VAL_COM" ]; then
                         _fac_neural_write "$current_track_key" 5 "$new_com"
                         local old_sub="${_VAL_COM2}"
                         if [ -n "$old_sub" ]; then
@@ -1514,6 +1520,9 @@ function _fac_edit_router() {
             _fac_neural_read "$target_key"
             if [ -z "$_VAL_COM" ] || [ "$_VAL_COM" == "[Empty]" ]; then
                 _bot_say "error" "Command Name is required!" >&2
+                return 2
+            elif [[ "$_VAL_COM" =~ ^(o|op|open|mux|fac|xum)$ ]]; then
+                _bot_say "error" "System Keyword '$_VAL_COM' is forbidden." >&2
                 return 2
             else
                 _bot_say "success" "Node Validated." >&2
