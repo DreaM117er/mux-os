@@ -23,7 +23,7 @@ function _fac_neural_read() {
     unset _VAL_CATNO _VAL_COMNO _VAL_CATNAME _VAL_TYPE _VAL_COM \
           _VAL_COM2 _VAL_COM3 _VAL_HUDNAME _VAL_UINAME _VAL_PKG \
           _VAL_TARGET _VAL_IHEAD _VAL_IBODY _VAL_URI _VAL_MIME \
-          _VAL_CATE _VAL_FLAG _VAL_EX _VAL_EXTRA _VAL_ENGINE
+          _VAL_CATE _VAL_FLAG _VAL_EX _VAL_EXTRA _VAL_BOOLEN _VAL_ENGINE
 
     local target_key="$1"
     local target_file="${2:-$MUX_ROOT/app.csv.temp}"
@@ -91,9 +91,10 @@ function _fac_neural_read() {
         fields[17]="_VAL_FLAG"
         fields[18]="_VAL_EX"
         fields[19]="_VAL_EXTRA"
-        fields[20]="_VAL_ENGINE"
+        fields[20]="_VAL_BOOLEN"
+        fields[21]="_VAL_ENGINE"
 
-        for (i=1; i<=20; i++) {
+        for (i=1; i<=21; i++) {
             val = $i
             if (val ~ /^".*"$/) { val = substr(val, 2, length(val)-2) }
             gsub(/""/, "\"", val); gsub(/'\''/, "'\''\\'\'''\''", val)
@@ -338,7 +339,7 @@ function _factory_system_boot() {
     if [ -f "$MUX_ROOT/app.csv" ]; then
         cp "$MUX_ROOT/app.csv" "$MUX_ROOT/app.csv.temp"
     else
-        echo '"CATNO","COMNO","CATNAME","TYPE","COM","COM2","COM3","HUDNAME","UINAME","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE","FLAG","EX","EXTRA","ENGINE"' > "$MUX_ROOT/app.csv.temp"
+        echo '"CATNO","COMNO","CATNAME","TYPE","COM","COM2","COM3","HUDNAME","UINAME","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE","FLAG","EX","EXTRA","BOOLEN","ENGINE"' > "$MUX_ROOT/app.csv.temp"
     fi
 
     # 清除狀態 N 的指令
@@ -1013,7 +1014,8 @@ function _fac_generic_edit() {
         17) current_val="$_VAL_FLAG" ;;
         18) current_val="$_VAL_EX" ;;
         19) current_val="$_VAL_EXTRA" ;;
-        20) current_val="$_VAL_ENGINE" ;;
+        20) current_val="$_VAL_BOOLEN" ;;
+        21) current_val="$_VAL_ENGINE" ;;
         *) current_val="" ;;
     esac
     
@@ -1500,9 +1502,69 @@ function _fac_edit_router() {
 
                 elif echo "$choice" | grep -q "Confirm"; then
                     _fac_neural_write "$target_key" 14 "$edit_uri"
-                    _fac_neural_write "$target_key" 20 "$edit_engine"
+                    _fac_neural_write "$target_key" 21 "$edit_engine"
                     _bot_say "success" "URI/Engine Configuration Saved."
                     if command -v _grant_xp &> /dev/null; then _grant_xp 15 "FAC_EDIT"; fi
+                    return 2
+                fi
+            done
+            ;;
+
+        "ROOM_EXTRA")
+            while true; do
+                # 每次迴圈重新讀取最新寫入的資料
+                _fac_neural_read "$target_key"
+                
+                local disp_ex="${_VAL_EX:-[Empty]}"
+                local disp_extra="${_VAL_EXTRA:-[Empty]}"
+                local disp_boo="${_VAL_BOOLEN:-[Empty]}"
+                
+                local menu_list=$(
+                    echo -e " EX      \t$disp_ex"
+                    echo -e " EXTRA   \t$disp_extra"
+                    echo -e " BOOLEN  \t$disp_boo"
+                    echo -e "\033[1;30m----------\033[0m"
+                    echo -e "\033[1;32m[Confirm]\033[0m"
+                )
+
+                local choice=$(echo -e "$menu_list" | fzf --ansi \
+                    --height=8 \
+                    --layout=reverse \
+                    --border-label=" :: EDIT EXTRA PAYLOAD :: " \
+                    --border=bottom \
+                    --header=" :: Modify Extended Parameters ::" \
+                    --prompt=" :: Setting › " \
+                    --info=hidden \
+                    --pointer="››" \
+                    --delimiter="\t" \
+                    --with-nth=1,2 \
+                    --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                    --color=info:240,prompt:$prompt_color,pointer:red,marker:208,border:$border_color,header:240 \
+                    --bind="resize:clear-screen"
+                )
+
+                # 按下 ESC 取消時，直接回到上一層視圖
+                if [ -z "$choice" ]; then 
+                    return 2 
+                fi
+
+                local guide_text=""
+
+                # 嚴格使用 "^ EX" 避免與 "^ EXTRA" 產生匹配干擾
+                if echo "$choice" | grep -q "^ EX"; then
+                    guide_text="${THEME_DESC} :: Guide   : Type flag (e.g., --es, --ez, --ei, --eu).${C_RESET}"
+                    _fac_generic_edit "$target_key" 18 "Edit Extra Type (EX):" "$guide_text"
+                    
+                elif echo "$choice" | grep -q "^ EXTRA"; then
+                    guide_text="${THEME_DESC} :: Guide   : The key name (e.g., android.intent.extra.TEXT).${C_RESET}"
+                    _fac_generic_edit "$target_key" 19 "Edit Extra Key (EXTRA):" "$guide_text"
+                    
+                elif echo "$choice" | grep -q "^ BOOLEN"; then
+                    guide_text="${THEME_DESC} :: Guide   : The actual value (e.g., true, 7, \"Hello World\").${C_RESET}\n"
+                    guide_text+="${THEME_DESC} :: Note    : You can use \$query to bind dynamic user input.${C_RESET}"
+                    _fac_generic_edit "$target_key" 20 "Edit Extra Value (BOOLEN):" "$guide_text"
+                    
+                elif echo "$choice" | grep -q "Confirm"; then
                     return 2
                 fi
             done
@@ -1551,7 +1613,7 @@ function _fac_safe_edit_protocol() {
     _fac_neural_write "$target_key" 7 "B"
 
     # 引號處理
-    local draft_row="$_VAL_CATNO,$_VAL_COMNO,${_VAL_CATNAME:+\"$_VAL_CATNAME\"},${_VAL_TYPE:+\"$_VAL_TYPE\"},${_VAL_COM:+\"$_VAL_COM\"},${_VAL_COM2:+\"$_VAL_COM2\"},\"E\",${_VAL_HUDNAME:+\"$_VAL_HUDNAME\"},${_VAL_UINAME:+\"$_VAL_UINAME\"},${_VAL_PKG:+\"$_VAL_PKG\"},${_VAL_TARGET:+\"$_VAL_TARGET\"},${_VAL_IHEAD:+\"$_VAL_IHEAD\"},${_VAL_IBODY:+\"$_VAL_IBODY\"},${_VAL_URI:+\"$_VAL_URI\"},${_VAL_MIME:+\"$_VAL_MIME\"},${_VAL_CATE:+\"$_VAL_CATE\"},${_VAL_FLAG:+\"$_VAL_FLAG\"},${_VAL_EX:+\"$_VAL_EX\"},${_VAL_EXTRA:+\"$_VAL_EXTRA\"},${_VAL_ENGINE:+\"$_VAL_ENGINE\"}"
+    local draft_row="$_VAL_CATNO,$_VAL_COMNO,${_VAL_CATNAME:+\"$_VAL_CATNAME\"},${_VAL_TYPE:+\"$_VAL_TYPE\"},${_VAL_COM:+\"$_VAL_COM\"},${_VAL_COM2:+\"$_VAL_COM2\"},\"E\",${_VAL_HUDNAME:+\"$_VAL_HUDNAME\"},${_VAL_UINAME:+\"$_VAL_UINAME\"},${_VAL_PKG:+\"$_VAL_PKG\"},${_VAL_TARGET:+\"$_VAL_TARGET\"},${_VAL_IHEAD:+\"$_VAL_IHEAD\"},${_VAL_IBODY:+\"$_VAL_IBODY\"},${_VAL_URI:+\"$_VAL_URI\"},${_VAL_MIME:+\"$_VAL_MIME\"},${_VAL_CATE:+\"$_VAL_CATE\"},${_VAL_FLAG:+\"$_VAL_FLAG\"},${_VAL_EX:+\"$_VAL_EX\"},${_VAL_EXTRA:+\"$_VAL_EXTRA\"},${_VAL_BOOLEN:+\"$_VAL_BOOLEN\"},${_VAL_ENGINE:+\"$_VAL_ENGINE\"}"
     
     # 資料格式狀態
     echo "$draft_row" >> "$MUX_ROOT/app.csv.temp"
@@ -2094,10 +2156,10 @@ function fac() {
             # 指令模板
             case "$type_sel" in
                 "Command NA")
-                    new_row="${target_cat},${next_comno},${target_catname},\"NA\",\"${temp_cmd_name}\",,\"${com3_flag}\",\"Unknown\",\"Unknown\",,,,,,,,,,,"
+                    new_row="${target_cat},${next_comno},${target_catname},\"NA\",\"${temp_cmd_name}\",,\"${com3_flag}\",\"Unknown\",\"Unknown\",,,,,,,,,,,,"
                     ;;
                 "Command NB")
-                    new_row="${target_cat},${next_comno},${target_catname},\"NB\",\"${temp_cmd_name}\",,\"${com3_flag}\",\"Unknown\",\"Unknown\",,,\"android.intent.action\",\".VIEW\",\"$(echo '$__GO_TARGET')\",,,,,,\"$(echo '$SEARCH_GOOGLE')\""
+                    new_row="${target_cat},${next_comno},${target_catname},\"NB\",\"${temp_cmd_name}\",,\"${com3_flag}\",\"Unknown\",\"Unknown\",,,\"android.intent.action\",\".VIEW\",\"$(echo '$__GO_TARGET')\",,,,,,,\"$(echo '$SEARCH_GOOGLE')\""
                     ;;
                 *) 
                     return ;;

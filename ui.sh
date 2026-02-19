@@ -1137,7 +1137,7 @@ function _factory_fzf_detail_view() {
             report+=" ${C_LBL}URI    :${C_VAL} ${final_uri} ${S}ROOM_URI\n"
             report+=" ${C_LBL}Cate   :${C_VAL} ${_VAL_CATE:-[Empty]} ${S}ROOM_CATE\n"
             report+=" ${C_LBL}Mime   :${C_VAL} ${_VAL_MIME:-[Empty]} ${S}ROOM_MIME\n"
-            report+=" ${C_LBL}Extra  :${C_VAL} ${_VAL_EX:-[Empty]} ${_VAL_EXTRA} ${S}ROOM_EXTRA\n"
+            report+=" ${C_LBL}Extra  :${C_VAL} ${_VAL_EX:-[Empty]} ${_VAL_EXTRA} ${_VAL_BOOLEN} ${S}ROOM_EXTRA\n"
             report+=" ${C_LBL}Package:${C_VAL} ${d_pkg} ${S}ROOM_PKG\n"
             report+=" ${C_LBL}Target :${C_VAL} ${d_act} ${S}ROOM_ACT\n"
             report+="${C_LBL}${SEP}${C_RST}\n"
@@ -1159,7 +1159,7 @@ function _factory_fzf_detail_view() {
             report+=" ${C_LBL}URI    :${C_VAL} ${final_uri} ${S}ROOM_URI\n"
             report+=" ${C_LBL}Cate   :${C_VAL} ${_VAL_CATE:-[Empty]} ${S}ROOM_CATE\n"
             report+=" ${C_LBL}Mime   :${C_VAL} ${_VAL_MIME:-[Empty]} ${S}ROOM_MIME\n"
-            report+=" ${C_LBL}Extra  :${C_VAL} ${_VAL_EX:-[Empty]} ${_VAL_EXTRA} ${S}ROOM_EXTRA\n"
+            report+=" ${C_LBL}Extra  :${C_VAL} ${_VAL_EX:-[Empty]} ${_VAL_EXTRA} ${_VAL_BOOLEN} ${S}ROOM_EXTRA\n"
             report+=" ${C_LBL}Package:${C_VAL} ${d_pkg} ${S}ROOM_PKG\n"
             report+=" ${C_LBL}Target :${C_VAL} ${d_act} ${S}ROOM_ACT"
         else
