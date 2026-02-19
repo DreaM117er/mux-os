@@ -910,7 +910,10 @@ function _core_system_scan() {
                 }
 
                 # 3. 結構完整性預判 (Deep Scan)
-                # 即使狀態是 P (Pass)，如果資料空缺，一樣要報錯
+                if (com ~ /^(o|op|open|mux|fac|xum)$/) {
+                    level = "ERR"
+                    msg = "Reserved Keyword Violation (" com ")"
+                }
                 
                 if (type == "NA") {
                     # NA: PKG 與 TARGET 必須存在
@@ -1347,6 +1350,37 @@ function _core_eject_sequence() {
     exec bash
 }
 
+# 極速開啟捷徑 (Fast Open)
+function o() {
+    local target="$1"
+    
+    if [ "$MUX_STATUS" != "LOGIN" ]; then
+        _bot_say "error" "Core offline. Login required to execute files."
+        return 1
+    fi
+    
+    if [ -z "$target" ]; then
+        _bot_say "error" "No target specified."
+        echo -e "${THEME_DESC}    ›› Usage: o <file/url>  OR  mux open <file/url>${C_RESET}"
+        return 1
+    fi
+
+    if ! command -v termux-open &> /dev/null; then
+        _bot_say "error" "termux-open not found. Core function limited."
+        return 1
+    fi
+
+    _bot_say "system" "Opening: $target"
+    termux-open "$target" 2>/dev/null
+
+    if [ $? -eq 0 ]; then
+        if command -v _grant_xp &> /dev/null; then _grant_xp 2 "CMD_EXEC"; fi
+    else
+        _bot_say "error" "Failed to open target."
+        return 1
+    fi
+}
+
 
 # Mux-OS 指令入口 - Core Command Entry
 # === Mux ===
@@ -1457,6 +1491,11 @@ function mux() {
 
         "oldmenu"|"omenu")
             _show_menu_dashboard
+            ;;
+
+        # : Open Files & Links
+        "op"|"open")
+            o "$2"
             ;;
 
         # : Show Hall of Fame (Medals)
