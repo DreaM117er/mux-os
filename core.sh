@@ -1365,6 +1365,21 @@ function o() {
         return 1
     fi
 
+    if [[ ! "$target" =~ ^(https?|mailto|market|tel|file): ]] && [ ! -e "$target" ]; then
+        # 1. 檢查檔案/路徑是否存在
+        if [ ! -e "$target" ]; then
+            _bot_say "error" "Target does not exist: $target"
+            return 1
+        fi
+        
+        # 2. 檢查是否為資料夾
+        if [ -d "$target" ]; then
+            _bot_say "error" "Target is a directory, not a file."
+            echo -e "${THEME_DESC}    ›› To navigate into it, please use: ${C_GREEN}cd \"$target\"${C_RESET}"
+            return 1
+        fi
+    fi
+
     if ! command -v termux-open &> /dev/null; then
         _bot_say "error" "termux-open not found. Core function limited."
         return 1
