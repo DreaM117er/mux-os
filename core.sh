@@ -14,7 +14,7 @@ if command -v _init_identity &> /dev/null; then _init_identity; fi
 
 # 基礎路徑與版本定義
 export MUX_REPO="https://github.com/DreaM117er/mux-os"
-export MUX_VERSION="7.1.0"
+export MUX_VERSION="7.2.1"
 export MUX_ROOT="$HOME/mux-os"
 export BASE_DIR="$MUX_ROOT"
 export MUX_BAK="$MUX_ROOT/bak"
@@ -336,7 +336,7 @@ function _mux_neural_data() {
     unset _VAL_CATNO _VAL_COMNO _VAL_CATNAME _VAL_TYPE _VAL_COM \
           _VAL_COM2 _VAL_COM3 _VAL_HUDNAME _VAL_UINAME _VAL_PKG \
           _VAL_TARGET _VAL_IHEAD _VAL_IBODY _VAL_URI _VAL_MIME \
-          _VAL_CATE _VAL_FLAG _VAL_EX _VAL_EXTRA _VAL_ENGINE
+          _VAL_CATE _VAL_FLAG _VAL_EX _VAL_EXTRA _VAL_BOOLEN _VAL_ENGINE
 
     local target_com="$1"
     local target_sub="$2"
@@ -397,9 +397,10 @@ function _mux_neural_data() {
         fields[17]="_VAL_FLAG"
         fields[18]="_VAL_EX"
         fields[19]="_VAL_EXTRA"
-        fields[20]="_VAL_ENGINE"
+        fields[20]="_VAL_BOOLEN"
+        fields[21]="_VAL_ENGINE"
 
-        for (i=1; i<=20; i++) {
+        for (i=1; i<=21; i++) {
             val = $i
             if (val ~ /^".*"$/) { val = substr(val, 2, length(val)-2) }
             gsub(/""/, "\"", val)
@@ -482,6 +483,7 @@ function _launch_android_app() {
     if [ -n "$_VAL_FLAG" ];    then cmd_args="$cmd_args -f $_VAL_FLAG"; fi
     if [ -n "$_VAL_EX" ];      then cmd_args="$cmd_args $_VAL_EX"; fi
     if [ -n "$_VAL_EXTRA" ];   then cmd_args="$cmd_args $_VAL_EXTRA"; fi
+    if [ -n "$_VAL_BOOLEN" ]; then cmd_args="$cmd_args $_VAL_BOOLEN"; fi
 
     _bot_say "launch" "Target: '$name'"
     
@@ -674,6 +676,10 @@ function _mux_neural_fire_control() {
                     cmd="$cmd $injected_extra"
                 fi  
 
+                if [ -n "$_VAL_BOOLEN" ]; then
+                    cmd="$cmd $_VAL_BOOLEN"
+                fi
+
                 # FIRE THE COMMAND
                 local output=$(eval "$cmd" 2>&1)
 
@@ -726,6 +732,7 @@ function _mux_neural_fire_control() {
             if [ -n "$_VAL_FLAG" ]; then cmd="$cmd -f $_VAL_FLAG"; fi
             if [ -n "$_VAL_EX" ]; then cmd="$cmd $_VAL_EX"; fi
             if [ -n "$_VAL_EXTRA" ]; then cmd="$cmd $_VAL_EXTRA"; fi
+            if [ -n "$_VAL_BOOLEN" ]; then cmd="$cmd $_VAL_BOOLEN"; fi
             
             # FIRST FIRE THE COMMAND
             local output=$(eval "$cmd" 2>&1)
@@ -748,6 +755,7 @@ function _mux_neural_fire_control() {
                 if [ -n "$_VAL_FLAG" ]; then cmd_i="$cmd_i -f $_VAL_FLAG"; fi
                 if [ -n "$_VAL_EX" ]; then cmd_i="$cmd_i $_VAL_EX"; fi
                 if [ -n "$_VAL_EXTRA" ]; then cmd_i="$cmd_i $_VAL_EXTRA"; fi
+                if [ -n "$_VAL_BOOLEN" ]; then cmd="$cmd $_VAL_BOOLEN"; fi
 
                 # SECOND FIRE THE COMMAND
                 local output_i=$(eval "$cmd_i" 2>&1)
@@ -773,6 +781,7 @@ function _mux_neural_fire_control() {
                 if [ -n "$_VAL_FLAG" ]; then cmd_n="$cmd_n -f $_VAL_FLAG"; fi
                 if [ -n "$_VAL_EX" ]; then cmd_n="$cmd_n $_VAL_EX"; fi
                 if [ -n "$_VAL_EXTRA" ]; then cmd_n="$cmd_n $_VAL_EXTRA"; fi
+                if [ -n "$_VAL_BOOLEN" ]; then cmd="$cmd $_VAL_BOOLEN"; fi
 
                 _bot_say "launch" "Retrying ('n' mode): '$real_args'"
                 
@@ -813,6 +822,7 @@ function _mux_neural_fire_control() {
             # 5. 再看 ex & extra (擴充參數)
             if [ -n "$_VAL_EX" ]; then cmd="$cmd $_VAL_EX"; fi
             if [ -n "$_VAL_EXTRA" ]; then cmd="$cmd $_VAL_EXTRA"; fi
+            if [ -n "$_VAL_BOOLEN" ]; then cmd="$cmd $_VAL_BOOLEN"; fi
 
             # 6. 最後看 Flags (-f)
             if [ -n "$_VAL_FLAG" ]; then cmd="$cmd -f $_VAL_FLAG"; fi

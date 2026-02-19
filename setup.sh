@@ -158,7 +158,7 @@ function _install_protocol() {
         cp "$TARGET_PLUGIN" "$VENDOR_TARGET"
         echo "    ›› Vendor Identity: $BRAND (Module Loaded)"
     else
-        echo '"CATNO","COMNO","CATNAME","TYPE","COM","COM2","COM3","HUDNAME","UINAME","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE","FLAG","EX","EXTRA","ENGINE"' > "$VENDOR_TARGET"
+        echo '"CATNO","COMNO","CATNAME","TYPE","COM","COM2","COM3","HUDNAME","UINAME","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE","FLAG","EX","EXTRA","BOOLEN","ENGINE"' > "$VENDOR_TARGET"
         echo "    ›› Vendor Identity: Generic (Standard Protocol)"
     fi
     chmod 644 "$VENDOR_TARGET"
