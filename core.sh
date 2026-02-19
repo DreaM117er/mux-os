@@ -1361,23 +1361,21 @@ function o() {
     
     if [ -z "$target" ]; then
         _bot_say "error" "No target specified."
-        echo -e "${THEME_DESC}    ›› Usage: 'mux open' [file/url]${C_RESET}"
+        echo -e "${THEME_DESC}    ›› Usage: o <file/url>  OR  mux open <file/url>${C_RESET}"
         return 1
     fi
 
+    # 1. 攔截目錄
+    if [ -d "$target" ]; then
+        _bot_say "error" "Target is a directory."
+        echo -e "${THEME_DESC}    ›› Use 'cd $target' to navigate.${C_RESET}"
+        return 1
+    fi
+
+    # 2. 實體與協定驗證
     if [[ ! "$target" =~ ^(https?|mailto|market|tel|file): ]] && [ ! -e "$target" ]; then
-        # 1. 檢查檔案/路徑是否存在
-        if [ ! -e "$target" ]; then
-            _bot_say "error" "Target does not exist: $target"
-            return 1
-        fi
-        
-        # 2. 檢查是否為資料夾
-        if [ -d "$target" ]; then
-            _bot_say "error" "Target is a directory, not a file."
-            echo -e "${THEME_DESC}    ›› To navigate into it, please use: ${C_GREEN}cd \"$target\"${C_RESET}"
-            return 1
-        fi
+        _bot_say "error" "Target does not exist: $target"
+        return 1
     fi
 
     if ! command -v termux-open &> /dev/null; then
