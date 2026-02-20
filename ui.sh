@@ -421,7 +421,7 @@ function _show_hud() {
         kernel_ver_str="${kernel_ver_str:0:$content_limit}"
         mem_info="${mem_info:0:$content_limit}"
         
-        line1_k="H0\$T   "; line1_v="$host_str"
+        line1_k="H0\$T    "; line1_v="$host_str"
         line2_k="K3|2N3L "; line2_v="$kernel_ver_str"
         line3_k="M3M0|2Y "; line3_v="$mem_info"
     else
