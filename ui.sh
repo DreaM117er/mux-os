@@ -342,12 +342,12 @@ function _system_check() {
         C_CHECK="\033[1;31m✓\033[0m"
         local brand=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]')
         steps=(
-            "I|\|itializ!ng K3rn3l B|2idg3... [OC]"
-            "M0unt!ng V3nd0r [${brand:-UNK}]... [OC]"
-            "V3r!fy!ng T4ct!c4l L!nk (fzf)... [OC]"
-            "F0rc!ng C0|23 M3m0ry Dum¶... [OC]"
-            "Byp4ss!ng S4f3ty L4y3r... [OC-ACT]"
-            "E\$t4bl!\$h!ng XUM Upl!nk... [OC]"
+            "I|\\|itializ!ng K3rn3l B|2idg3..."
+            "M0unt!ng V3nd0r Ec0sy\$t3m [${brand:-UNKNOWN}]..."
+            "V3r!fy!ng T4ct!c4l L!nk (fzf)..."
+            "F0rc!ng C0|23 M3m0ry Dum¶..."
+            "Byp4ss!ng S4f3ty L4y3r..."
+            "E\$t4bl!\$h!ng XUM Upl!nk..."
         )
     else
         local brand=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]')
@@ -415,7 +415,7 @@ function _show_hud() {
         local kernel_ver=$(uname -r | awk -F- '{print $1}')
         
         # 確保變數為純文字，避免 printf 誤判寬度
-        local host_str="XUM-$model (A$android_ver) [OC]"
+        local host_str="XUM-$model (Andr0!d $android_ver)"
         local kernel_ver_str="OC_$kernel_ver"
         local mem_info="0V3RR!D3 / MAX"
         
