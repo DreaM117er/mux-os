@@ -1506,11 +1506,13 @@ function mux() {
     case "$cmd" in
         # : Login Sequence
         "login")
+            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "Interlock Active: Identity lock during Overclock."; return 1; fi
             _mux_pre_login
             ;;
 
         # : Logout Sequence
         "logout")
+            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "Interlock Active: Disengage Overclock protocol before disconnect."; return 1; fi
             _mux_set_logout
             ;;
 
@@ -1559,6 +1561,7 @@ function mux() {
 
         # : Install Dependencies
         "link")
+            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "System modification restricted during Overclock."; return 1; fi
             if command -v fzf &> /dev/null; then
                 echo -e "\n${C_GREEN} :: Neural Link (fzf) Status: ${C_WHITE}ONLINE${C_RESET} ✅"
                 _bot_say "success" "Link is stable, Commander."
@@ -1594,6 +1597,7 @@ function mux() {
         
         # : Neural Link Deploy
         "deploy")
+            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "External uplink locked during Overclock."; return 1; fi
             _neural_link_deploy
             ;;
 
@@ -1648,6 +1652,7 @@ function mux() {
 
         # : Multiverse Suit Drive
         "driveto"|"drive2")
+            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "Drive system offline: Cockpit is under Overclock load."; return 1; fi
             if [ "$MUX_STATUS" == "LOGIN" ]; then
                  _bot_say "error" "Interlock Active: Cockpit is sealed."
                  echo -e "${C_BLACK}    ›› Protocol Violation: Cannot switch unit while piloted.${C_RESET}"
@@ -1727,6 +1732,7 @@ function mux() {
 
         # : Enter the Arsenal (Factory Mode)
         "factory"|"tofac")
+            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "Factory access denied. Terminate XUM session first."; return 1; fi
             _core_pre_factory_auth
             ;;
 
@@ -1806,7 +1812,7 @@ case "$MUX_MODE" in
         if [ -f "$MUX_ROOT/eroc.sh" ]; then
             source "$MUX_ROOT/eroc.sh"
             
-            export PS1="\[${C_TAVIOLET}\]Xum\[${C_RESET}\] \w \033[5m›\033[0m "
+            export PS1="\[${C_TAVIOLET}\]Mux\[${C_RESET}\] \w \033[5m›\033[0m "
             
             if command -v _xum_system_boot &> /dev/null; then
                 _xum_system_boot

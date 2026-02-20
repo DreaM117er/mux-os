@@ -1,5 +1,5 @@
 #!/bin/bash
-# eroc.sh - Mux-OS 超頻模式 (Overclock Mode)
+# Mux-OS 超頻模式 (Overclock Mode)
 
 if [ -z "$MUX_ROOT" ]; then export MUX_ROOT="$HOME/mux-os"; fi
 export XUM_DB="$MUX_ROOT/xum.csv"
