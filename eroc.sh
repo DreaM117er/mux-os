@@ -115,7 +115,7 @@ function _xum_system_boot() {
     _system_check "xum"
     _show_hud "xum"
     _system_unlock
-    _bot_say "warn" "XUM 0V3|2CL0CK 4CT!V4T3D."
+    _bot_say "hello"
 }
 
 function xum() {

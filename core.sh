@@ -1803,15 +1803,16 @@ case "$MUX_MODE" in
 
     "XUM")
         THEME_MAIN="$C_TAVIOLET"
-        
         if [ -f "$MUX_ROOT/eroc.sh" ]; then
             source "$MUX_ROOT/eroc.sh"
+            
+            export PS1="\[${C_TAVIOLET}\]Xum\[${C_RESET}\] \w \033[5m›\033[0m "
+            
             if command -v _xum_system_boot &> /dev/null; then
                 _xum_system_boot
             fi
             return 0 2>/dev/null || exit 0
         fi
-        export PS1="\[${C_TAVIOLET}\]Xum\[${C_RESET}\] \w \033[5m›\033[0m "
         ;;
         
     *)

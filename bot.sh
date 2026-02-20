@@ -9,6 +9,7 @@ fi
 function _bot_say() {
     local mood="$1"
     local detail="$2"
+    local raw_msg=""
 
     if [ "$MUX_MODE" == "FAC" ]; then
         _bot_factory_personality "$mood" "$detail"
@@ -235,8 +236,22 @@ function _bot_say() {
     local rand_index=$(( RANDOM % ${#phrases[@]} ))
     local selected_phrase="${phrases[$rand_index]}"
 
+    if [ "$MUX_MODE" == "XUM" ]; then
+        color="$C_TAVIOLET"
+        icon="[0V3|2CL0CK] "
+        selected_phrase=$(echo "$selected_phrase" | sed 's/[eE]/3/g; s/[aA]/4/g; s/[iI]/!/g; s/[oO]/0/g; s/[sS]/\$/g')
+        if [ -n "$detail" ]; then
+            detail=$(echo "$detail" | sed 's/[eE]/3/g; s/[aA]/4/g; s/[iI]/!/g; s/[oO]/0/g; s/[sS]/\$/g')
+            detail_color="$C_TAVIOLET"
+        else
+            detail_color="$C_BLACK"
+        fi
+    else
+        detail_color="$C_BLACK"
+    fi
+
     echo -e "${color}${icon}${selected_phrase}${C_RESET}"
-    [ -n "$detail" ] && echo -e "   ${C_BLACK} ›› ${detail}${C_RESET}"
+    [ -n "$detail" ] && echo -e "   ${detail_color} ›› ${detail}${C_RESET}"
 }
 
 
