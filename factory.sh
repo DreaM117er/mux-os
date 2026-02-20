@@ -1799,6 +1799,7 @@ function _fac_launch_test() {
     _VAL_PKG="${_VAL_PKG//\$query/$raw_query}"
     _VAL_TARGET="${_VAL_TARGET//\$query/$raw_query}"
     _VAL_FLAG="${_VAL_FLAG//\$query/$raw_query}"
+    _VAL_BOOLEN="${_VAL_BOOLEN//\$query/$raw_query}"
     
     # 顯示詳細資訊
     # 共通欄位
@@ -1837,9 +1838,17 @@ function _fac_launch_test() {
 
     local ex_str=""
     local extra_str=""
+    local boolen_str=""
     [ -n "$_VAL_EX" ] && ex_str="    ${C_LBL}Extra  :${C_RST} ${C_VAL}$_VAL_EX${C_RST}"
     [ -n "$_VAL_EXTRA" ] && extra_str="${C_VAL}$_VAL_EXTRA${C_RST}"
-    if [ -n "$ex_str" ] || [ -n "$extra_str" ]; then echo -e "${ex_str} ${extra_str}"; fi
+    [ -n "$_VAL_BOOLEN" ] && boolen_str="${C_VAL}$_VAL_BOOLEN${C_RST}"
+    if [ -z "$ex_str" ] && [[ -n "$extra_str" || -n "$boolen_str" ]]; then
+        ex_str="    ${C_LBL}Extra  :${C_RST}"
+    fi
+
+    if [ -n "$ex_str" ] || [ -n "$extra_str" ] || [ -n "$boolen_str" ]; then 
+        echo -e "${ex_str} ${extra_str} ${boolen_str}"
+    fi
 
     # 3. 智慧網址解析
     local final_uri="$_VAL_URI"
@@ -1923,6 +1932,7 @@ function _fac_launch_test() {
     local mime="$_VAL_MIME"
     local ex="$_VAL_EX"
     local extra="$_VAL_EXTRA"
+    local boolen="$_VAL_BOOLEN"
 
     case "$fire_mode" in
         "MODE_T")
@@ -1941,6 +1951,7 @@ function _fac_launch_test() {
             [ -n "$cat" ] && final_cmd="$final_cmd -c \"android.intent.category.$cat\""
             [ -n "$ex" ]  && final_cmd="$final_cmd $ex"
             [ -n "$extra" ] && final_cmd="$final_cmd $extra"
+            [ -n "$boolen" ] && final_cmd="$final_cmd $boolen"
             ;;
 
         "MODE_N")
@@ -1955,6 +1966,7 @@ function _fac_launch_test() {
             [ -n "$flg" ] && final_cmd="$final_cmd -f $flg"
             [ -n "$ex" ]  && final_cmd="$final_cmd $ex"
             [ -n "$extra" ] && final_cmd="$final_cmd $extra"
+            [ -n "$boolen" ] && final_cmd="$final_cmd $boolen"
             ;;
 
         "MODE_P")
@@ -1969,6 +1981,7 @@ function _fac_launch_test() {
             [ -n "$flg" ] && final_cmd="$final_cmd -f $flg"
             [ -n "$ex" ]  && final_cmd="$final_cmd $ex"
             [ -n "$extra" ] && final_cmd="$final_cmd $extra"
+            [ -n "$boolen" ] && final_cmd="$final_cmd $boolen"
             ;;
 
         "MODE_I")
@@ -1981,6 +1994,7 @@ function _fac_launch_test() {
             [ -n "$flg" ] && final_cmd="$final_cmd -f $flg"
             [ -n "$ex" ]  && final_cmd="$final_cmd $ex"
             [ -n "$extra" ] && final_cmd="$final_cmd $extra"
+            [ -n "$boolen" ] && final_cmd="$final_cmd $boolen"
             ;;
 
         "SSL")
