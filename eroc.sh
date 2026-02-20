@@ -111,14 +111,11 @@ function _xum_system_boot() {
     fi
 
     clear
-    # 2. 執行超頻視覺效果
     _draw_logo "xum"
     _system_check "xum"
     _show_hud "xum"
-    
     _system_unlock
-    
-    _bot_say "warn" "XUM 0V3|2CL0CK 4CT!V4T3D. W3LC0M3, C0MM4ND3|2."
+    _bot_say "warn" "XUM 0V3|2CL0CK 4CT!V4T3D."
 }
 
 function xum() {

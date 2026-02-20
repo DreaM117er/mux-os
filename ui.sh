@@ -407,17 +407,19 @@ function _show_hud() {
         line3_k="STATUS "; line3_v="Unlocked"
     elif [ "$mode" == "xum" ]; then
         border_color="$C_TAVIOLET"
-        local lab_c="\033[1;31m" 
-        local val_c="${C_WHITE}"
+        local lab_c="\033[1;31m"  # 標籤紅
+        local val_c="${C_WHITE}"  # 內容白
         
         local android_ver=$(getprop ro.build.version.release)
         local model=$(getprop ro.product.model)
         local kernel_ver=$(uname -r | awk -F- '{print $1}')
         
-        local host_str="XUM-$model (Andr0!d $android_ver)"
+        # 確保變數為純文字，避免 printf 誤判寬度
+        local host_str="XUM-$model (A$android_ver) [OC]"
         local kernel_ver_str="OC_$kernel_ver"
         local mem_info="0V3RR!D3 / MAX"
         
+        # 強制裁切，確保不超過物理寬度
         line1_v="${host_str:0:$content_limit}"
         line2_v="${kernel_ver_str:0:$content_limit}"
         line3_v="${mem_info:0:$content_limit}"
@@ -439,8 +441,6 @@ function _show_hud() {
         line3_k="MEMORY "; line3_v="$mem_info"
     fi
 
-    local border_line=$(printf '═%.0s' $(seq 1 $((box_width - 2))))
-    
     echo -e "${border_color}╔${border_line}╗\033[0m"
     if [ "$mode" == "xum" ]; then
         printf "${border_color}║\033[0m ${lab_c}%s\033[0m: ${val_c}%-*s\033[0m ${border_color}║\033[0m\n" "$line1_k" $content_limit "$line1_v"
@@ -452,7 +452,6 @@ function _show_hud() {
         printf "${border_color}║\033[0m ${text_color}%s\033[0m: %-*s ${border_color}║\033[0m\n" "$line3_k" $content_limit "$line3_v"
     fi
     echo -e "${border_color}╚${border_line}╝\033[0m"
-    echo ""
 }
 
 # 顯示系統資訊詳情 - Display System Info Details
