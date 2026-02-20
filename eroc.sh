@@ -101,10 +101,9 @@ function _xum_system_boot() {
     _system_lock
     _safe_ui_calc
     
-    # 1. 檢查並自動生成基礎 xum.csv (如果檔案缺失)
+    # 自動生成基礎
     if [ ! -f "$XUM_DB" ]; then
         echo '"SLOT","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE1","CATE2","CATE3","EX1","TRA1","BOO1","EX2","TRA2","BOO2","EX3","TRA3","BOO3","EX4","TRA4","BOO4","EX5","TRA5","BOO5","FLAG","USER","RDY"' > "$XUM_DB"
-        # 預裝填 8 個空彈巢
         for i in {1..8}; do
             echo "$i,,,,,,,,,,,,,,,,,,,,,,,,\"$USER\",\"N\"" >> "$XUM_DB"
         done
@@ -169,6 +168,12 @@ function xum() {
             # [強制退膛與冷卻]
             # 用法: xum reset
             # 功能: 結束 XUM 模式，寫入實體雙重時間鎖 (2小時)，並清除快取
+            ;;
+
+        "mux")
+            _bot_say "success" "TERMINATING OVERCLOCK PROTOCOL. REVERTING TO KERNEL STANDARDS."
+            _update_mux_state "MUX" "LOGIN" "COCKPIT"
+            _mux_reload_kernel
             ;;
             
         *)
