@@ -413,12 +413,12 @@ function _show_hud() {
         local model=$(getprop ro.product.model)
         local kernel_ver=$(uname -r | awk -F- '{print $1}')
         
-        local host_str="XUM-$model (Andr0!d $android_ver) [0C]"
+        local host_str="$model (Andr0!d $android_ver)"
         local kernel_ver_str="0V3|2CL0CK_$kernel_ver"
         local mem_info="0V3|2|2!D3 / M4X L!M!T"
         
         [ ${#host_str} -gt $content_limit ] && host_str="${host_str:0:$((content_limit - 2))}.."
-        [ ${#kernel_ver_str} -gt $content_limit ] && kernel_ver_str="${kernel_ver_str:0:$((content_limit - 2))}.."
+        [ ${#kernel_ver} -gt $content_limit ] && kernel_ver="${kernel_ver:0:$((content_limit - 2))}.."
         
         line1_k="H0\$T   "; line1_v="$host_str"
         line2_k="K3|2N3L "; line2_v="$kernel_ver_str"
