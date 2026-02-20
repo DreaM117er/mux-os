@@ -407,7 +407,8 @@ function _show_hud() {
         line3_k="STATUS "; line3_v="Unlocked"
     elif [ "$mode" == "xum" ]; then
         border_color="$C_TAVIOLET"
-        text_color="\033[1;31m"      
+        local lab_c="\033[1;31m" 
+        local val_c="${C_WHITE}"
         
         local android_ver=$(getprop ro.build.version.release)
         local model=$(getprop ro.product.model)
@@ -417,13 +418,11 @@ function _show_hud() {
         local kernel_ver_str="OC_$kernel_ver"
         local mem_info="0V3RR!D3 / MAX"
         
-        host_str="${host_str:0:$content_limit}"
-        kernel_ver_str="${kernel_ver_str:0:$content_limit}"
-        mem_info="${mem_info:0:$content_limit}"
-        
-        line1_k="H0\$T    "; line1_v="$host_str"
-        line2_k="K3|2N3L "; line2_v="$kernel_ver_str"
-        line3_k="M3M0|2Y "; line3_v="$mem_info"
+        line1_v="${host_str:0:$content_limit}"
+        line2_v="${kernel_ver_str:0:$content_limit}"
+        line3_v="${mem_info:0:$content_limit}"
+
+        line1_k="H0\$T   "; line2_k="K3|2N3L "; line3_k="M3M0|2Y "
     else
         local android_ver=$(getprop ro.build.version.release)
         local brand_raw=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]' | cut -c1)$(getprop ro.product.brand | tr '[:upper:]' '[:lower:]' | cut -c2-)
