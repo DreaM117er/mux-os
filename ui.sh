@@ -424,7 +424,7 @@ function _show_hud() {
         line2_v="${kernel_ver_str:0:$content_limit}"
         line3_v="${mem_info:0:$content_limit}"
 
-        line1_k="H0\$T   "; line2_k="K3|2N3L "; line3_k="M3M0|2Y "
+        line1_k="H0\$T   "; line2_k="K3|2N3L"; line3_k="M3M0|2Y"
     else
         local android_ver=$(getprop ro.build.version.release)
         local brand_raw=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]' | cut -c1)$(getprop ro.product.brand | tr '[:upper:]' '[:lower:]' | cut -c2-)
