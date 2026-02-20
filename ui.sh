@@ -292,6 +292,11 @@ function _draw_logo() {
             label=":: Mux-OS v$MUX_VERSION Factory ::"
             if [ "$cols" -ge 52 ]; then label+=" Neural Forge ::"; fi
             ;;
+        "xum")
+            color_primary="$C_TAVIOLET"
+            label=":: Mux-OS v$MUX_VERSION XUM TACTICAL ::"
+            if [ "$cols" -ge 52 ]; then label+=" \033[5mS¥S ØV3RCL0CK\033[0m P|20T0C0L 4CT!V3 ::"; fi
+            ;;
         *)
             color_primary="$THEME_MAIN"
             label=":: Mux-OS v$MUX_VERSION Core ::"
@@ -331,6 +336,18 @@ function _system_check() {
             "Disabling Safety Interlocks..."
             "Mounting app.csv.temp (Write-Mode)..."
             "Establishing Factory Uplink..."
+        )
+    elif [ "$mode" == "xum" ]; then
+        C_PROC="${C_TAVIOLET}⟳\033[0m"
+        C_CHECK="\033[1;31m✓\033[0m"
+        local brand=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]')
+        steps=(
+            "I|\\|itializ!ng K3rn3l B|2idg3... [OC]"
+            "M0unt!ng V3nd0r Ec0sy\$t3m [${brand:-UNKNOWN}]... [OVERCLOCK]"
+            "V3r!fy!ng T4ct!c4l L!nk (fzf)... [OC]"
+            "F0rc!ng C0r3 M3m0ry Dump... [OVERCLOCK]"
+            "Byp4ss!ng S4f3ty L4y3r... [OC ACTIVATED]"
+            "E\$t4bl!\$h!ng XUM Upl!nk... [OC]"
         )
     else
         local brand=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]')
@@ -388,6 +405,24 @@ function _show_hud() {
         line1_k="HOST   "; line1_v="Commander"
         line2_k="TARGET "; line2_v="app.csv.temp"
         line3_k="STATUS "; line3_v="Unlocked"
+    elif [ "$mode" == "xum" ]; then
+        border_color="$C_TAVIOLET"
+        text_color="\033[1;31m"      
+        
+        local android_ver=$(getprop ro.build.version.release)
+        local model=$(getprop ro.product.model)
+        local kernel_ver=$(uname -r | awk -F- '{print $1}')
+        
+        local host_str="XUM-$model (Andr0!d $android_ver) [0C]"
+        local kernel_ver_str="0V3|2CL0CK_$kernel_ver"
+        local mem_info="0V3|2|2!D3 / M4X L!M!T"
+        
+        [ ${#host_str} -gt $content_limit ] && host_str="${host_str:0:$((content_limit - 2))}.."
+        [ ${#kernel_ver_str} -gt $content_limit ] && kernel_ver_str="${kernel_ver_str:0:$((content_limit - 2))}.."
+        
+        line1_k="H0\$T   "; line1_v="$host_str"
+        line2_k="K3|2N3L "; line2_v="$kernel_ver_str"
+        line3_k="M3M0|2Y "; line3_v="$mem_info"
     else
         local android_ver=$(getprop ro.build.version.release)
         local brand_raw=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]' | cut -c1)$(getprop ro.product.brand | tr '[:upper:]' '[:lower:]' | cut -c2-)
@@ -1328,8 +1363,13 @@ function _ui_fake_gate() {
             color_main="${C_RED}"
             gate_name="EJECTION POD"
             ;;
+        "xum")
+            color_main="${C_TAVIOLET}"
+            gate_name="XUM CH4MB3|2 OC"
+            ;;
     esac
 
+    # 15 字元內限制
     if [ ${#gate_name} -gt 15 ]; then gate_name="${gate_name:0:13}.."; fi
 
     local quotes=(
@@ -1350,7 +1390,6 @@ function _ui_fake_gate() {
     local footer_msg="${quotes[$(( RANDOM % ${#quotes[@]} ))]}"
     if [ ${#footer_msg} -gt 25 ]; then footer_msg="${footer_msg:0:22}..."; fi
 
-    tput civis
     clear
 
     local pct=0
@@ -1409,6 +1448,5 @@ function _ui_fake_gate() {
     done
     
     sleep 0.015
-    tput cnorm
     clear
 }

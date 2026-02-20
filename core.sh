@@ -46,6 +46,7 @@ export C_PURPLE="\033[1;35m"
 export C_CYAN="\033[1;36m"
 export C_WHITE="\033[1;37m"
 export C_ORANGE="\033[1;38;5;208m"
+export C_TAVIOLET="\033[38;5;54m"
 
 # 主題色彩定義 (Theme Colors)
 export THEME_MAIN="$C_CYAN"      # 主色調 (Core:藍 / Fac:橘)
@@ -212,6 +213,8 @@ function _mux_reload_kernel() {
     local gate_theme="core"
     if [ "$MUX_STATUS" == "DEFAULT" ]; then
         gate_theme="default"
+    elif [ "$MUX_MODE" == "XUM" ]; then
+        gate_theme="xum"
     fi
     
     if command -v _ui_fake_gate &> /dev/null; then
@@ -1727,6 +1730,14 @@ function mux() {
             _core_pre_factory_auth
             ;;
 
+        "xum")
+            _bot_say "warn" "WARNING: OVERCLOCK PROTOCOL DETECTED."
+            
+            _update_mux_state "XUM" "LOGIN" "COCKPIT"
+            
+            _mux_reload_kernel
+            ;;
+
         *)
             if command -v "$cmd" &> /dev/null; then "$cmd" "${@:2}"; return; fi
             echo -e "${C_YELLOW} :: Unknown Directive: '$cmd'.${C_RESET}"
@@ -1789,12 +1800,23 @@ case "$MUX_MODE" in
             export PROMPT_COMMAND="tput sgr0; echo -ne '\033[0m'"
         fi
         ;;
+
+    "XUM")
+        THEME_MAIN="$C_TAVIOLET"
+        
+        if [ -f "$MUX_ROOT/eroc.sh" ]; then
+            source "$MUX_ROOT/eroc.sh"
+            if command -v _xum_system_boot &> /dev/null; then
+                _xum_system_boot
+            fi
+            return 0 2>/dev/null || exit 0
+        fi
+        export PS1="\[${C_TAVIOLET}\]Xum\[${C_RESET}\] \w \033[5m›\033[0m "
+        ;;
         
     *)
         if command -v _ui_fake_gate &> /dev/null; then _ui_fake_gate "core"; fi
-        
         _update_mux_state "MUX" "LOGIN"
-
         exec bash
         ;;
 esac
