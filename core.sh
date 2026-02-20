@@ -46,7 +46,7 @@ export C_PURPLE="\033[1;35m"
 export C_CYAN="\033[1;36m"
 export C_WHITE="\033[1;37m"
 export C_ORANGE="\033[1;38;5;208m"
-export C_TAVIOLET="\033[38;5;54m"
+export C_TAVIOLET="\033[1;38;5;90m"
 
 # 主題色彩定義 (Theme Colors)
 export THEME_MAIN="$C_CYAN"      # 主色調 (Core:藍 / Fac:橘)

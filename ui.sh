@@ -295,7 +295,7 @@ function _draw_logo() {
         "xum")
             color_primary="$C_TAVIOLET"
             label=":: Mux-OS v$MUX_VERSION XUM TACTICAL ::"
-            if [ "$cols" -ge 52 ]; then label+=" ØV3RCL0CK P|20T0C0L 4CT!V3::"; fi
+            if [ "$cols" -ge 52 ]; then label+=" ØV3RCL0CK::"; fi
             ;;
         *)
             color_primary="$THEME_MAIN"
