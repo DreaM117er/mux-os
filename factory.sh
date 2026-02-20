@@ -1578,6 +1578,12 @@ function _fac_edit_router() {
             return 2
             ;;
 
+        "ROOM_MIME")
+            local guide_text="${THEME_DESC} :: Guide   : Enter Mime Type (e.g., text/plain, image/png, application/pdf).${C_RESET}"
+            _fac_generic_edit "$target_key" 15 "Edit Mime Type (MIME):" "$guide_text"
+            return 2
+            ;;
+
         "ROOM_CONFIRM")
             _fac_neural_read "$target_key"
             if [ -z "$_VAL_COM" ] || [ "$_VAL_COM" == "[Empty]" ]; then
