@@ -295,7 +295,7 @@ function _draw_logo() {
         "xum")
             color_primary="$C_TAVIOLET"
             label=":: Mux-OS v$MUX_VERSION XUM TACTICAL ::"
-            if [ "$cols" -ge 52 ]; then label+=" \033[5mS¥S ØV3RCL0CK\033[0m P|20T0C0L 4CT!V3 ::"; fi
+            if [ "$cols" -ge 52 ]; then label+=" \033[5mS¥S ØV3RCL0CK\033[0m::"; fi
             ;;
         *)
             color_primary="$THEME_MAIN"
@@ -343,7 +343,7 @@ function _system_check() {
         local brand=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]')
         steps=(
             "I|\\|itializ!ng K3rn3l B|2idg3... [OC]"
-            "M0unt!ng V3nd0r Ec0sy\$t3m [${brand:-UNKNOWN}]... [OVERCLOCK]"
+            "M0unt!ng V3nd0r Ec0sy\$t3m [${brand:-UNKNOWN}]..."
             "V3r!fy!ng T4ct!c4l L!nk (fzf)... [OC]"
             "F0rc!ng C0r3 M3m0ry Dump... [OVERCLOCK]"
             "Byp4ss!ng S4f3ty L4y3r... [OC ACTIVATED]"
