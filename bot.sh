@@ -242,7 +242,7 @@ function _bot_say() {
         selected_phrase=$(echo "$selected_phrase" | sed 's/[eE]/3/g; s/[aA]/4/g; s/[iI]/!/g; s/[oO]/0/g; s/[sS]/\$/g')
         if [ -n "$detail" ]; then
             detail=$(echo "$detail" | sed 's/[eE]/3/g; s/[aA]/4/g; s/[iI]/!/g; s/[oO]/0/g; s/[sS]/\$/g')
-            detail_color="$C_TAVIOLET"
+            detail_color="$C_BLACK"
         else
             detail_color="$C_BLACK"
         fi
