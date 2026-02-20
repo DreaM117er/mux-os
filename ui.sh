@@ -310,7 +310,7 @@ function _draw_logo() {
         echo "  ____   ___                  __  __ "
         echo " / ___| / _ \     __  ___   _|  \/  |"
         echo " \___ \/ | | |____\ \/ / | | | |\/| |"
-        echo "  ___) | | | |_____>  <| |_| | |  | |"
+        echo "  ___) | |_| |_____>  <| |_| | |  | |"
         echo " |____/ \___/     /_/\_\__,_/|_|  |_|"
     else
         echo "  __  __                  ___  ____  "
@@ -473,7 +473,10 @@ function _mux_show_info() {
     local header_color="$THEME_DESC"
     local logo_mode="gray"
 
-    if [ "$MUX_STATUS" == "LOGIN" ]; then
+    if [ "$MUX_MODE" == "XUM" ]; then
+        header_color="$C_TAVIOLET"
+        logo_mode="xum"
+    elif [ "$MUX_STATUS" == "LOGIN" ]; then
         header_color="$THEME_MAIN"
         logo_mode="core"
     fi
@@ -519,7 +522,9 @@ function _mux_show_info() {
 function _mux_dynamic_help_core() {
     local C_CMD=""
     
-    if [ "$MUX_STATUS" == "LOGIN" ]; then
+    if [ "$MUX_MODE" == "XUM" ]; then
+        C_CMD="$C_TAVIOLET"
+    elif [ "$MUX_STATUS" == "LOGIN" ]; then
         C_CMD="\033[1;36m" 
     else
         C_CMD="\033[1;30m" 

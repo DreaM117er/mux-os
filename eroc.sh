@@ -129,56 +129,32 @@ function xum() {
     # XUM 指令分流閘 (Command Switch)
     case "$cmd" in
         "slot")
-            # [切換彈巢]
-            # 用法: xum slot <1-8>
-            # 功能: 選擇並切換當前的子彈槽位
+            # 選擇彈巢 (1-8)
+            _xum_cmd_slot "$arg"
+            ;;
+            
+        "status"|"sts")
+            # [SPECIAL CASE] 戰術面板：檢查子彈狀態
+            _xum_ui_status_panel
             ;;
             
         "set")
-            # [火藥裝填]
-            # 用法: xum set
-            # 功能: 進入當前 Slot 的參數編輯模式 (支援 set done 退出)
+            # 裝填邏輯
+            _xum_cmd_set
             ;;
             
         "fire")
-            # [發射]
-            # 用法: xum fire
-            # 功能: 拼裝當前 Slot 的參數並執行 am start，計算發射次數
-            ;;
-            
-        "status")
-            # [戰術面板]
-            # 用法: xum status
-            # 功能: 呼叫 fzf 面板，顯示 1-8 號子彈的 RDY 狀態與內容
-            ;;
-            
-        "info")
-            # [機密資訊]
-            # 用法: xum info
-            # 功能: 顯示 XUM 模組版本與解鎖狀態
-            ;;
-            
-        "reload")
-            # [系統重載]
-            # 用法: xum reload
-            # 功能: 重新讀取環境變數與 csv 狀態，刷新終端機
+            # 發射邏輯
+            _xum_cmd_fire
             ;;
             
         "reset")
-            # [強制退膛與冷卻]
-            # 用法: xum reset
-            # 功能: 結束 XUM 模式，寫入實體雙重時間鎖 (2小時)，並清除快取
-            ;;
-
-        "mux")
-            _bot_say "success" "TERMINATING OVERCLOCK PROTOCOL. REVERTING TO KERNEL STANDARDS."
-            _update_mux_state "MUX" "LOGIN" "COCKPIT"
-            _mux_reload_kernel
+            # 強制退膛與 2 小時物理鎖
+            _xum_cmd_reset
             ;;
             
         *)
-            # [無效操作 / 亂碼屏障]
-            # 功能: 所有非預期指令皆被攔截，並回傳亂碼語音
+            _bot_say "error" "UNKNOWN XUM DIRECTIVE: $cmd"
             return 1
             ;;
     esac
