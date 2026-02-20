@@ -414,7 +414,7 @@ function _show_hud() {
         local model=$(getprop ro.product.model)
         local kernel_ver=$(uname -r | awk -F- '{print $1}')
         
-        local host_str="XUM-$model (A$android_ver) [OC]"
+        local host_str="XUM-$model (Andr0!d $android_ver)"
         local kernel_ver_str="OC_$kernel_ver"
         local mem_info="0V3RR!D3 / MAX"
         
@@ -441,12 +441,15 @@ function _show_hud() {
 
     local border_line=$(printf '═%.0s' $(seq 1 $((box_width - 2))))
     
-    echo -e "${border_color}╔${border_line}╗\033[0m"
-    printf "${border_color}║\033[0m ${text_color}%s\033[0m: %-*s ${border_color}║\033[0m\n" "$line1_k" $content_limit "$line1_v"
-    printf "${border_color}║\033[0m ${text_color}%s\033[0m: %-*s ${border_color}║\033[0m\n" "$line2_k" $content_limit "$line2_v"
-    printf "${border_color}║\033[0m ${text_color}%s\033[0m: %-*s ${border_color}║\033[0m\n" "$line3_k" $content_limit "$line3_v"
-    echo -e "${border_color}╚${border_line}╝\033[0m"
-    echo ""
+   if [ "$mode" == "xum" ]; then
+        printf "${border_color}║\033[0m ${lab_c}%s\033[0m: ${val_c}%-*s\033[0m ${border_color}║\033[0m\n" "$line1_k" $content_limit "$line1_v"
+        printf "${border_color}║\033[0m ${lab_c}%s\033[0m: ${val_c}%-*s\033[0m ${border_color}║\033[0m\n" "$line2_k" $content_limit "$line2_v"
+        printf "${border_color}║\033[0m ${lab_c}%s\033[0m: ${val_c}%-*s\033[0m ${border_color}║\033[0m\n" "$line3_k" $content_limit "$line3_v"
+    else
+        printf "${border_color}║\033[0m ${text_color}%s\033[0m: %-*s ${border_color}║\033[0m\n" "$line1_k" $content_limit "$line1_v"
+        printf "${border_color}║\033[0m ${text_color}%s\033[0m: %-*s ${border_color}║\033[0m\n" "$line2_k" $content_limit "$line2_v"
+        printf "${border_color}║\033[0m ${text_color}%s\033[0m: %-*s ${border_color}║\033[0m\n" "$line3_k" $content_limit "$line3_v"
+    fi
 }
 
 # 顯示系統資訊詳情 - Display System Info Details
