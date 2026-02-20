@@ -152,6 +152,12 @@ function xum() {
             # 強制退膛與 2 小時物理鎖
             _xum_cmd_reset
             ;;
+        
+        "mux")
+            _bot_say "success" "TERMINATING OVERCLOCK. REVERTING TO STANDARD CORE."
+            _update_mux_state "MUX" "LOGIN" "COCKPIT"
+            _mux_reload_kernel
+            ;;
             
         *)
             _bot_say "error" "UNKNOWN XUM DIRECTIVE: $cmd"
