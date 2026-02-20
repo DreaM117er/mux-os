@@ -238,7 +238,7 @@ function _bot_say() {
 
     if [ "$MUX_MODE" == "XUM" ]; then
         color="$C_TAVIOLET"
-        icon="[0V3|2CL0CK] "
+        icon=" ::"
         selected_phrase=$(echo "$selected_phrase" | sed 's/[eE]/3/g; s/[aA]/4/g; s/[iI]/!/g; s/[oO]/0/g; s/[sS]/\$/g')
         if [ -n "$detail" ]; then
             detail=$(echo "$detail" | sed 's/[eE]/3/g; s/[aA]/4/g; s/[iI]/!/g; s/[oO]/0/g; s/[sS]/\$/g')
