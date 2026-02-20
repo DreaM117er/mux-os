@@ -295,7 +295,7 @@ function _draw_logo() {
         "xum")
             color_primary="$C_TAVIOLET"
             label=":: Mux-OS v$MUX_VERSION Core ::"
-            if [ "$cols" -ge 52 ]; then label+=" ØV3RCL0CK ::"; fi
+            if [ "$cols" -ge 52 ]; then label+=" S¥ST3M ØV3RCL0CK ::"; fi
             ;;
         *)
             color_primary="$THEME_MAIN"
@@ -342,11 +342,11 @@ function _system_check() {
         C_CHECK="\033[1;31m✓\033[0m"
         local brand=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]')
         steps=(
-            "I|\\|itializ!ng K3rn3l B|2idg3... [OC]"
-            "M0unt!ng V3nd0r Ec0sy\$t3m [${brand:-UNKNOWN}]..."
+            "I|\|itializ!ng K3rn3l B|2idg3... [OC]"
+            "M0unt!ng V3nd0r [${brand:-UNK}]... [OC]"
             "V3r!fy!ng T4ct!c4l L!nk (fzf)... [OC]"
-            "F0rc!ng C0r3 M3m0ry Dump... [OVERCLOCK]"
-            "Byp4ss!ng S4f3ty L4y3r... [OC ACTIVATED]"
+            "F0rc!ng C0|23 M3m0ry Dum¶... [OC]"
+            "Byp4ss!ng S4f3ty L4y3r... [OC-ACT]"
             "E\$t4bl!\$h!ng XUM Upl!nk... [OC]"
         )
     else
@@ -413,12 +413,13 @@ function _show_hud() {
         local model=$(getprop ro.product.model)
         local kernel_ver=$(uname -r | awk -F- '{print $1}')
         
-        local host_str="$model (Andr0!d $android_ver)"
-        local kernel_ver_str="0V3|2CL0CK_$kernel_ver"
-        local mem_info="0V3|2|2!D3 / M4X L!M!T"
+        local host_str="XUM-$model (A$android_ver) [OC]"
+        local kernel_ver_str="OC_$kernel_ver"
+        local mem_info="0V3RR!D3 / MAX"
         
-        [ ${#host_str} -gt $content_limit ] && host_str="${host_str:0:$((content_limit - 2))}.."
-        [ ${#kernel_ver} -gt $content_limit ] && kernel_ver="${kernel_ver:0:$((content_limit - 2))}.."
+        host_str="${host_str:0:$content_limit}"
+        kernel_ver_str="${kernel_ver_str:0:$content_limit}"
+        mem_info="${mem_info:0:$content_limit}"
         
         line1_k="H0\$T   "; line1_v="$host_str"
         line2_k="K3|2N3L "; line2_v="$kernel_ver_str"
