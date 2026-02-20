@@ -441,7 +441,8 @@ function _show_hud() {
 
     local border_line=$(printf '═%.0s' $(seq 1 $((box_width - 2))))
     
-   if [ "$mode" == "xum" ]; then
+    echo -e "${border_color}╔${border_line}╗\033[0m"
+    if [ "$mode" == "xum" ]; then
         printf "${border_color}║\033[0m ${lab_c}%s\033[0m: ${val_c}%-*s\033[0m ${border_color}║\033[0m\n" "$line1_k" $content_limit "$line1_v"
         printf "${border_color}║\033[0m ${lab_c}%s\033[0m: ${val_c}%-*s\033[0m ${border_color}║\033[0m\n" "$line2_k" $content_limit "$line2_v"
         printf "${border_color}║\033[0m ${lab_c}%s\033[0m: ${val_c}%-*s\033[0m ${border_color}║\033[0m\n" "$line3_k" $content_limit "$line3_v"
@@ -450,6 +451,8 @@ function _show_hud() {
         printf "${border_color}║\033[0m ${text_color}%s\033[0m: %-*s ${border_color}║\033[0m\n" "$line2_k" $content_limit "$line2_v"
         printf "${border_color}║\033[0m ${text_color}%s\033[0m: %-*s ${border_color}║\033[0m\n" "$line3_k" $content_limit "$line3_v"
     fi
+    echo -e "${border_color}╚${border_line}╝\033[0m"
+    echo ""
 }
 
 # 顯示系統資訊詳情 - Display System Info Details
