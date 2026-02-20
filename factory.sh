@@ -824,7 +824,6 @@ function _factory_deploy_sequence() {
         diff -U 0 "$prod_file" "$target_file" | grep -v "^@" | head -n 20 | awk '/^\+/{print "\033[1;32m" $0 "\033[0m";next}/^-/{print "\033[1;31m" $0 "\033[0m";next}{print}'
     fi
     echo ""
-    _system_unlock
 
     # 彈射分支
     if [ "$ej_mode" == "1" ]; then

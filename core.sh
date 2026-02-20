@@ -68,11 +68,17 @@ export __GO_MODE=""
 
 # 系統輸入鎖定與解鎖 (System Input Lock/Unlock)
 function _system_lock() {
-    if [ -t 0 ]; then stty -echo; fi
+if [ -t 0 ]; then 
+        stty -echo
+        tput civis
+    fi
 }
 
 function _system_unlock() {
-    if [ -t 0 ]; then stty echo; fi
+if [ -t 0 ]; then 
+        stty echo
+        tput cnorm
+    fi
 }
 
 # 安全介面寬度計算 (Safe UI Width Calculation)
@@ -1292,6 +1298,7 @@ function _core_pre_factory_auth() {
     _update_mux_state "FAC" "LOGIN" "$entry_point"
 
     unset MUX_INITIALIZED
+    _system_unlock
     exec bash
 }
 
@@ -1357,6 +1364,7 @@ function _core_eject_sequence() {
 
     _safe_ui_calc
     unset MUX_INITIALIZED
+    _system_unlock
     exec bash
 }
 
