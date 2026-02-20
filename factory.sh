@@ -1528,7 +1528,7 @@ function _fac_edit_router() {
                 )
 
                 local choice=$(echo -e "$menu_list" | fzf --ansi \
-                    --height=8 \
+                    --height=9 \
                     --layout=reverse \
                     --border-label=" :: EDIT EXTRA PAYLOAD :: " \
                     --border=bottom \
@@ -1543,15 +1543,10 @@ function _fac_edit_router() {
                     --bind="resize:clear-screen"
                 )
 
-                # 按下 ESC 取消時，直接回到上一層視圖
-                if [ -z "$choice" ]; then 
-                    return 2 
-                fi
+                if [ -z "$choice" ]; then return 2; fi
 
                 local guide_text=""
-
-                # 嚴格使用 "^ EX" 避免與 "^ EXTRA" 產生匹配干擾
-                if echo "$choice" | grep -q "^ EX"; then
+                if echo "$choice" | grep -q "^ EX "; then
                     guide_text="${THEME_DESC} :: Guide   : Type flag (e.g., --es, --ez, --ei, --eu).${C_RESET}"
                     _fac_generic_edit "$target_key" 18 "Edit Extra Type (EX):" "$guide_text"
                     
