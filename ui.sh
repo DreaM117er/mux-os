@@ -622,7 +622,7 @@ function _show_menu_dashboard() {
     if [ "$MUX_MODE" == "XUM" ]; then
         status="\033[1;35m[OVERCLOCK]\033[0m"
         c_accent="$C_TAVIOLET"
-        C_CAT="$C_TAVIOLET"
+        C_COM="$C_TAVIOLET"
     elif [ "$MUX_STATUS" == "LOGIN" ]; then
         status="\033[1;36m[ACTIVE]\033[0m"
         c_accent="$THEME_DESC"
