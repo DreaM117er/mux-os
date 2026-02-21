@@ -32,6 +32,27 @@ fi
 if [ -z "$MUX_ROOT" ]; then export MUX_ROOT="$HOME/mux-os"; fi
 export XUM_DB="$MUX_ROOT/xum.csv"
 
+# 超頻系統啟動器 (Overclock System Bootloader)
+function _xum_system_boot() {
+    _system_lock
+    _safe_ui_calc
+    
+    # 自動生成基礎
+    if [ ! -f "$XUM_DB" ]; then
+        echo '"SLOT","CBR","STS","USER","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE1","CATE2","CATE3","EX1","TRA1","BOO1","EX2","TRA2","BOO2","EX3","TRA3","BOO3","EX4","TRA4","BOO4","EX5","TRA5","BOO5","FLAG"' > "$XUM_DB"
+        for i in {1..8}; do
+            echo "$i,,\"E\",,,,,,,,,,,,,,,,,,,,,,,,,," >> "$XUM_DB"
+        done
+    fi
+
+    clear
+    _draw_logo "xum"
+    _system_check "xum"
+    _show_hud "xum"
+    _system_unlock
+    _bot_say "hello"
+}
+
 # 超頻讀取器 (Chamber Reader)
 function _xum_neural_read() {
     unset _XUM_SLOT _XUM_CBR _XUM_STS _XUM_USER _XUM_PKG _XUM_TARGET \
@@ -113,27 +134,6 @@ function _xum_neural_write() {
     return 0
 }
 
-# 超頻系統啟動器 (Overclock System Bootloader)
-function _xum_system_boot() {
-    _system_lock
-    _safe_ui_calc
-    
-    # 自動生成基礎
-    if [ ! -f "$XUM_DB" ]; then
-        echo '"SLOT","CBR","STS","USER","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE1","CATE2","CATE3","EX1","TRA1","BOO1","EX2","TRA2","BOO2","EX3","TRA3","BOO3","EX4","TRA4","BOO4","EX5","TRA5","BOO5","FLAG"' > "$XUM_DB"
-        for i in {1..8}; do
-            echo "$i,,\"E\",,,,,,,,,,,,,,,,,,,,,,,,,," >> "$XUM_DB"
-        done
-    fi
-
-    clear
-    _draw_logo "xum"
-    _system_check "xum"
-    _show_hud "xum"
-    _system_unlock
-    _bot_say "hello"
-}
-
 # 輔助函數：修改指定 Slot 的 CBR 狀態 (物理槍機)
 function _xum_update_cbr() {
     local slot="$1"
@@ -147,8 +147,6 @@ function _xum_update_cbr() {
             row_slot = $1
             gsub(/^"|"$/, "", row_slot)
             
-            # [全局防呆] 排他性焦點處理：
-            # 如果我們現在要寫入的是 "F" (Focus)，則先將其他彈巢的 "F" 強制洗空
             if (c == "F" && row_slot != s) {
                 if ($2 == "\"F\"") {
                     $2 = ""
@@ -158,9 +156,9 @@ function _xum_update_cbr() {
             # [目標寫入] 處理指定的 Slot
             if (row_slot == s) {
                 if (c == "") {
-                    $2 = ""             # 清空狀態 (如 unset 時使用)
+                    $2 = ""
                 } else {
-                    $2 = "\"" c "\""    # 寫入 F 或 L
+                    $2 = "\"" c "\""
                 }
             }
             print $0
@@ -187,34 +185,6 @@ function _xum_update_sts() {
             print $0
         }
     ' "$XUM_DB" > "$tmp_file" && mv "$tmp_file" "$XUM_DB"
-}
-
-function _xum_cmd_set() {
-    local slot="$XUM_CURRENT_SLOT"
-    if [ -z "$slot" ]; then
-        _bot_say "error" "NO CHAMBER FOCUSED. Execute 'xum slot <n>' first."
-        return 1
-    fi
-    
-    _xum_update_cbr "$slot" "L"
-    _bot_say "success" "CHAMBER [$slot] LOCKED (L). READY TO FIRE."
-}
-
-# 退開保險並解除鎖定 (Clear CBR & Focus)
-function _xum_cmd_unset() {
-    local slot="$XUM_CURRENT_SLOT"
-    if [ -z "$slot" ]; then
-        _bot_say "error" "NO CHAMBER FOCUSED."
-        return 1
-    fi
-    
-    # 洗空 CBR 狀態
-    _xum_update_cbr "$slot" ""
-    
-    # 物理退開，解除彈巢焦點
-    export XUM_CURRENT_SLOT=""
-    
-    _bot_say "warn" "CHAMBER [$slot] UNLOCKED. FOCUS CLEARED."
 }
 
 # 選擇並握住彈巢 (Slot Focus -> CBR: F)
@@ -256,6 +226,118 @@ function _xum_cmd_slot() {
         fi
     done
     echo ""
+}
+
+# 參數掃描器 (Payload Scanner & STS Validator)
+function _xum_cmd_check() {
+    local slot="$XUM_CURRENT_SLOT"
+    if [ -z "$slot" ]; then
+        _bot_say "error" "NO CHAMBER FOCUSED. Execute 'xum slot <n>' first."
+        return 1
+    fi
+
+    # 1. 讀取最新記憶體
+    _xum_neural_read "$slot"
+
+    # 2. 絕對物理防呆：只能在 CBR 為 F 時執行
+    if [ "$_XUM_CBR" != "F" ]; then
+        local current_cbr="${_XUM_CBR:-EMPTY}"
+        _bot_say "error" "SCAN DENIED. Chamber must be focused (F). Current CBR: [$current_cbr]."
+        return 1
+    fi
+
+    echo -e "${C_TAVIOLET} :: CHAMBER [$slot] PAYLOAD SCANNING... ::${C_RESET}"
+
+    # 3. 判斷是否為「絕對空彈 (E)」
+    local action="${_XUM_IHEAD}${_XUM_IBODY}"
+    local is_empty=true
+    
+    # 掃描所有有效負載欄位
+    local check_fields=("$action" "$_XUM_PKG" "$_XUM_TARGET" "$_XUM_URI" "$_XUM_MIME" "$_XUM_CATE1" "$_XUM_CATE2" "$_XUM_CATE3" "$_XUM_FLAG")
+    for val in "${check_fields[@]}"; do
+        if [ -n "$val" ]; then is_empty=false; break; fi
+    done
+    for i in {1..5}; do
+        local ex="_XUM_EX${i}"; local tra="_XUM_TRA${i}"; local boo="_XUM_BOO${i}"
+        if [ -n "${!ex}" ] || [ -n "${!tra}" ] || [ -n "${!boo}" ]; then is_empty=false; break; fi
+    done
+
+    # 若為空彈，維持 E 並提早結束
+    if [ "$is_empty" == true ]; then
+        _xum_update_sts "$slot" "E"
+        echo -e "  \033[1;30m›› No payload detected. Chamber is empty.\033[0m"
+        _bot_say "warn" "SCAN COMPLETE. STS REMAINS [E]."
+        return 0
+    fi
+
+    # 4. 瑕疵判定邏輯 (N vs R)
+    local is_defective=false
+    local defective_reason=""
+    local has_core=false
+
+    [ -n "$action" ] || [ -n "$_XUM_URI" ] || [ -n "$_XUM_PKG" ] && has_core=true
+
+    # 規則 A: 沒有核心路由
+    if [ "$has_core" == false ]; then
+        is_defective=true
+        defective_reason="Missing core routing (PKG, ACTION, or URI)."
+    fi
+
+    # 規則 B: 有 TARGET 但沒有 PKG
+    if [ -n "$_XUM_TARGET" ] && [ -z "$_XUM_PKG" ]; then
+        is_defective=true
+        defective_reason="TARGET specified but PKG is missing."
+    fi
+
+    # 規則 C: EX 擴充參數缺少 Key (TRA)
+    for i in {1..5}; do
+        local ex_var="_XUM_EX${i}"; local tra_var="_XUM_TRA${i}"
+        if [ -n "${!ex_var}" ] && [ -z "${!tra_var}" ]; then
+            is_defective=true
+            defective_reason="EX$i specified but missing Key (TRA$i)."
+            break
+        fi
+    done
+
+    # 5. 寫入狀態與輸出報告
+    if [ "$is_defective" == true ]; then
+        _xum_update_sts "$slot" "N"
+        echo -e "  \033[1;31m›› Defect detected : $defective_reason\033[0m"
+        _bot_say "error" "PAYLOAD DEFECTIVE. STS UPDATED TO [N]."
+    else
+        _xum_update_sts "$slot" "R"
+        echo -e "  \033[1;32m›› All structural checks passed.\033[0m"
+        _bot_say "success" "PAYLOAD VERIFIED. STS UPDATED TO [R]."
+    fi
+}
+
+# 槍機鎖定
+function _xum_cmd_set() {
+    local slot="$XUM_CURRENT_SLOT"
+    if [ -z "$slot" ]; then
+        _bot_say "error" "NO CHAMBER FOCUSED. Execute 'xum slot <n>' first."
+        return 1
+    fi
+    
+    _xum_update_cbr "$slot" "L"
+    _bot_say "success" "CHAMBER [$slot] LOCKED (L). READY TO FIRE."
+}
+
+# 退開保險並解除鎖定 (Clear CBR & Focus)
+function _xum_cmd_unset() {
+    local slot="$XUM_CURRENT_SLOT"
+    if [ -z "$slot" ]; then
+        _bot_say "error" "NO CHAMBER FOCUSED."
+        return 1
+    fi
+    
+    # 洗空 CBR 狀態
+    _xum_update_cbr "$slot" ""
+    
+    # 物理退開，解除彈巢焦點
+    export XUM_CURRENT_SLOT=""
+    
+    _bot_say "warn" "CHAMBER [$slot] UNLOCKED. FOCUS CLEARED."
 }
 
 # 槍管擊發、戰鬥報告與退殼機制 (Fire, Report & Eject)
@@ -437,6 +519,11 @@ function xum() {
         # : Discharge the loaded Payload
         "fire")
             _xum_cmd_fire
+            ;;
+
+        # : Slot Scanner
+        "check")
+            _xum_cmd_check
             ;;
             
         # : Terminate Overclock & return to Core
