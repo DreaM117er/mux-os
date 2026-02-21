@@ -622,6 +622,7 @@ function _show_menu_dashboard() {
     if [ "$MUX_MODE" == "XUM" ]; then
         status="\033[1;35m[OVERCLOCK]\033[0m"
         c_accent="$C_TAVIOLET"
+        C_CAT="$C_TAVIOLET"
     elif [ "$MUX_STATUS" == "LOGIN" ]; then
         status="\033[1;36m[ACTIVE]\033[0m"
         c_accent="$THEME_DESC"
@@ -739,7 +740,7 @@ function _mux_fuzzy_menu() {
     local fzf_color="info:240,prompt:38,pointer:red,marker:38,border:38,header:240"
 
     if [ "$MUX_MODE" == "XUM" ]; then
-        fzf_color="info:240,prompt:54,pointer:red,marker:54,border:54,header:240"
+        fzf_color="info:240,prompt:90,pointer:red,marker:90,border:90,header:240"
     fi
 
     local cmd_list=$(
