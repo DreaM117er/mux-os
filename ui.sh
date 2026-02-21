@@ -1451,6 +1451,7 @@ function _ui_fake_gate() {
     if [ ${#footer_msg} -gt 25 ]; then footer_msg="${footer_msg:0:22}..."; fi
 
     clear
+    tput civis
 
     local pct=0
     local mem_val=$(( RANDOM % 65535 ))
@@ -1508,5 +1509,6 @@ function _ui_fake_gate() {
     done
     
     sleep 0.015
+    tput cnorm
     clear
 }

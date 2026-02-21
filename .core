@@ -39,15 +39,16 @@ function _xum_neural_read() {
     if [ -z "$raw_data" ]; then return 1; fi
 
     eval $(echo "$raw_data" | awk -v FPAT='([^,]*)|("[^"]+")' '{
-        fields[1]="_XUM_SLOT"; fields[2]="_XUM_PKG"; fields[3]="_XUM_TARGET"
-        fields[4]="_XUM_IHEAD"; fields[5]="_XUM_IBODY"; fields[6]="_XUM_URI"
-        fields[7]="_XUM_MIME"; fields[8]="_XUM_CATE1"; fields[9]="_XUM_CATE2"; fields[10]="_XUM_CATE3"
-        fields[11]="_XUM_EX1"; fields[12]="_XUM_TRA1"; fields[13]="_XUM_BOO1"
-        fields[14]="_XUM_EX2"; fields[15]="_XUM_TRA2"; fields[16]="_XUM_BOO2"
-        fields[17]="_XUM_EX3"; fields[18]="_XUM_TRA3"; fields[19]="_XUM_BOO3"
-        fields[20]="_XUM_EX4"; fields[21]="_XUM_TRA4"; fields[22]="_XUM_BOO4"
-        fields[23]="_XUM_EX5"; fields[24]="_XUM_TRA5"; fields[25]="_XUM_BOO5"
-        fields[26]="_XUM_FLAG"; fields[27]="_XUM_USER"; fields[28]="_XUM_RDY"
+        fields[1]="_XUM_SLOT"; fields[2]="_XUM_RDY"; fields[3]="_XUM_USER"
+        fields[4]="_XUM_PKG"; fields[5]="_XUM_TARGET"; fields[6]="_XUM_IHEAD"
+        fields[7]="_XUM_IBODY"; fields[8]="_XUM_URI"; fields[9]="_XUM_MIME"
+        fields[10]="_XUM_CATE1"; fields[11]="_XUM_CATE2"; fields[12]="_XUM_CATE3"
+        fields[13]="_XUM_EX1"; fields[14]="_XUM_TRA1"; fields[15]="_XUM_BOO1"
+        fields[16]="_XUM_EX2"; fields[17]="_XUM_TRA2"; fields[18]="_XUM_BOO2"
+        fields[19]="_XUM_EX3"; fields[20]="_XUM_TRA3"; fields[21]="_XUM_BOO3"
+        fields[22]="_XUM_EX4"; fields[23]="_XUM_TRA4"; fields[24]="_XUM_BOO4"
+        fields[25]="_XUM_EX5"; fields[26]="_XUM_TRA5"; fields[27]="_XUM_BOO5"
+        fields[28]="_XUM_FLAG"
 
         for (i=1; i<=28; i++) {
             val = $i
@@ -109,9 +110,9 @@ function _xum_system_boot() {
     
     # 自動生成基礎
     if [ ! -f "$XUM_DB" ]; then
-        echo '"SLOT","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE1","CATE2","CATE3","EX1","TRA1","BOO1","EX2","TRA2","BOO2","EX3","TRA3","BOO3","EX4","TRA4","BOO4","EX5","TRA5","BOO5","FLAG","USER","RDY"' > "$XUM_DB"
+        echo '"SLOT","RDY","USER","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE1","CATE2","CATE3","EX1","TRA1","BOO1","EX2","TRA2","BOO2","EX3","TRA3","BOO3","EX4","TRA4","BOO4","EX5","TRA5","BOO5","FLAG"' > "$XUM_DB"
         for i in {1..8}; do
-            echo "$i,,,,,,,,,,,,,,,,,,,,,,,,\"$USER\",\"N\"" >> "$XUM_DB"
+            echo "$i,\"N\",,,,,,,,,,,,,,,,,,,,,,,,,," >> "$XUM_DB"
         done
     fi
 
@@ -129,15 +130,17 @@ function _xum_update_rdy() {
     local new_rdy="$2"
     local tmp_file=$(mktemp)
     
-    awk -v s="$slot" -v r="$new_rdy" '
-        BEGIN { FS=","; OFS="," }
+    awk -v FPAT='([^,]*)|("[^"]+")' -v s="$slot" -v r="$new_rdy" '
+        BEGIN { OFS="," }
         NR == 1 { print $0; next }
-        $1 == s {
-            $28 = "\"" r "\""
+        {
+            row_slot = $1
+            gsub(/^"|"$/, "", row_slot)
+            if (row_slot == s) {
+                $2 = "\"" r "\""
+            }
             print $0
-            next
         }
-        { print $0 }
     ' "$XUM_DB" > "$tmp_file" && mv "$tmp_file" "$XUM_DB"
 }
 
@@ -334,18 +337,20 @@ Output: $output"
 
     # 8. 物理退殼 (清空 CSV 該 Slot 內的所有資料，並重置為 N)
     local tmp_file=$(mktemp)
-    awk -v s="$slot" '
-        BEGIN { FS=","; OFS="," }
+    awk -v FPAT='([^,]*)|("[^"]+")' -v s="$slot" '
+        BEGIN { OFS="," }
         NR == 1 { print $0; next }
-        $1 == s {
-            # 將第 2 到第 27 欄全部清空
-            for(i=2; i<=27; i++) $i = ""
-            # 第 28 欄 (RDY) 設為 N
-            $28 = "\"N\""
+        {
+            row_slot = $1
+            gsub(/^"|"$/, "", row_slot)
+            if (row_slot == s) {
+                $2 = "\"N\""
+                for(i=3; i<=28; i++) {
+                    $i = ""
+                }
+            }
             print $0
-            next
         }
-        { print $0 }
     ' "$XUM_DB" > "$tmp_file" && mv "$tmp_file" "$XUM_DB"
     
     # 解除焦點鎖定並宣告退殼
@@ -361,6 +366,10 @@ function _xum_cmd_reset() {
     # [預留位置]：未來將在此處寫入 Unix 時間戳記 (2小時物理鎖)
     # --------------------------------------------------
 
+    if [ -f "$XUM_DB" ]; then
+        rm -f "$XUM_DB"
+        echo -e "${C_BLACK}  ›› [SECURE WIPE]: Chamber database permanently destroyed.${C_RESET}"
+    fi
     _bot_say "success" "TERMINATING OVERCLOCK PROTOCOL. REVERTING TO KERNEL STANDARDS."
     
     _update_mux_state "MUX" "LOGIN" "COCKPIT"
