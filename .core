@@ -212,19 +212,12 @@ function _xum_cmd_slot() {
 function _xum_cmd_set() {
     local slot="$XUM_CURRENT_SLOT"
     if [ -z "$slot" ]; then
-        _bot_say "error" "NO SLOT FOCUSED. Execute 'xum slot <n>' first."
+        _bot_say "error" "NO SLOT FOCUSED."
         return 1
     fi
-    
-    _xum_neural_read "$slot"
-    
-    if [ "$_XUM_RDY" == "N" ]; then
-        _bot_say "error" "CHAMBER [$slot] IS INCOMPLETE. CANNOT BE ARMED."
-        return 1
-    fi
-
-    _xum_update_rdy "$slot" "L"
-    _bot_say "success" "PAYLOAD [$slot] ARMED (L). READY TO FIRE."
+    _xum_update_rdy "$slot" "R"
+    export XUM_CURRENT_SLOT=""
+    _bot_say "warn" "PAYLOAD [$slot] DISARMED (R). SLOT UNLOCKED."
 }
 
 # 關閉保險 (L -> R)
