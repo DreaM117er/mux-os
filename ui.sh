@@ -532,7 +532,7 @@ function _mux_dynamic_help_core() {
 
     local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "Unknown")
 
-    echo -e "\033[1;35m :: Mux-OS Core v$MUX_VERSION Protocols :: @$current_branch :: ${C_RESET}"
+    echo -e "${C_PURPLE} :: Mux-OS Core v$MUX_VERSION Protocols :: @$current_branch :: ${C_RESET}"
     
     awk -v cmd_color="$C_CMD" '
     /function mux\(\) \{/ { inside_mux=1; next }
@@ -557,7 +557,7 @@ function _mux_dynamic_help_core() {
 
 # 動態Help Factory選單檢測 - Dynamic Help Factory Detection
 function _mux_dynamic_help_factory() {
-echo -e "\033[1;35m :: Mux-OS Factory Protocols ::${C_RESET}"
+echo -e "${C_PURPLE} :: Mux-OS Factory Protocols ::${C_RESET}"
     
     awk '
     /function fac\(\) \{/ { inside_fac=1; next }
@@ -576,18 +576,18 @@ echo -e "\033[1;35m :: Mux-OS Factory Protocols ::${C_RESET}"
             }
         }
     }
-    ' "$MUX_ROOT/factory.sh"
+    ' "$FAC_MOD"
 }
 
 # 動態Help Xum選單 - Dynamic Help Overclock Detection
 function _xum_dynamic_help() {
     local C_CMD="$C_TAVIOLET" 
-    
+
     [ "$MUX_MODE" == "XUM" ] && head_c="$C_TAVIOLET"
 
-    echo -e "\033[1;35m :: S0-xuM v$MUX_VERSION Tactical Protocols :: [OVERCLOCK] :: ${C_RESET}"
+    echo -e "${C_PURPLE} :: S0-xuM v$MUX_VERSION Tactical Protocols :: [OVERCLOCK] :: ${C_RESET}"
     
-    awk -v c_cmd="$C_CMD" -v c_desc="$C_WHITE" -v c_reset="$C_RESET" -v c_syntax="\033[1;30m" '
+    awk -v c_cmd="$C_CMD" -v c_desc="$C_BLACK" -v c_reset="$C_RESET" -v c_syntax="\033[1;30m" '
         /^[ \t]*# :/ {
             desc = substr($0, match($0, /:/) + 2)
             getline
@@ -597,11 +597,14 @@ function _xum_dynamic_help() {
                 gsub(/"\)$/, "", cmd)
                 gsub(/\|/, ", ", cmd)
                 gsub(/"/, "", cmd)
-                printf "  %s%-12s%s : %s%s%s\n", c_cmd, cmd, c_reset, c_desc, desc, c_reset
+                
+                # [修正 1] %-12s 精準對齊
+                # [修正 2] 移除冒號
+                # [修正 3] 描述使用 c_desc ($C_BLACK 一般灰度)
+                printf "  %s%-12s%s %s%s%s\n", c_cmd, cmd, c_reset, c_desc, desc, c_reset
             }
         }
     ' "$OC_MOD"
-    echo ""
 }
 
 # 顯示指令選單儀表板 - Display Command Menu Dashboard
