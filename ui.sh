@@ -598,10 +598,7 @@ function _xum_dynamic_help() {
                 gsub(/\|/, ", ", cmd)
                 gsub(/"/, "", cmd)
                 
-                # [修正 1] %-12s 精準對齊
-                # [修正 2] 移除冒號
-                # [修正 3] 描述使用 c_desc ($C_BLACK 一般灰度)
-                printf "  %s%-12s%s %s%s%s\n", c_cmd, cmd, c_reset, c_desc, desc, c_reset
+                printf "    %s%-10s%s %s%s%s\n", c_cmd, cmd, c_reset, c_desc, desc, c_reset
             }
         }
     ' "$OC_MOD"
