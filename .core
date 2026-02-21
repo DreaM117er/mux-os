@@ -123,12 +123,128 @@ function _xum_system_boot() {
     _bot_say "hello"
 }
 
-# 槍管擊發機制 (The Chamber Fire Mechanism)
-function _xum_cmd_fire() {
-    # 1. 確認當前彈巢是否已上膛
-    local slot="${XUM_CURRENT_SLOT:-1}"
+# 保險裝置 (Ready to Chcek)
+function _xum_update_rdy() {
+    local slot="$1"
+    local new_rdy="$2"
+    local tmp_file=$(mktemp)
     
-    # 2. 讀取該槽位參數到記憶體
+    awk -v s="$slot" -v r="$new_rdy" '
+        BEGIN { FS=","; OFS="," }
+        NR == 1 { print $0; next }
+        $1 == s {
+            $28 = "\"" r "\""
+            print $0
+            next
+        }
+        { print $0 }
+    ' "$XUM_DB" > "$tmp_file" && mv "$tmp_file" "$XUM_DB"
+}
+
+# 選擇並檢驗彈巢 (Slot & Validate)
+function _xum_cmd_slot() {
+    local slot="$1"
+    if [[ ! "$slot" =~ ^[1-8]$ ]]; then
+        _bot_say "error" "INVALID CHAMBER: $slot. Provide 1-8."
+        return 1
+    fi
+
+    # 1. 讀取記憶體
+    _xum_neural_read "$slot"
+
+    echo -e "${C_TAVIOLET} :: CHAMBER [$slot] PAYLOAD SCAN ::${C_RESET}"
+    echo -e "${C_BLACK} -------------------------------------------${C_RESET}"
+
+    # 2. 印出有值的參數 (過濾空值)
+    local fields=("PKG" "TARGET" "IHEAD" "IBODY" "URI" "MIME" "FLAG" "USER")
+    for f in "${fields[@]}"; do
+        local val_var="_XUM_$f"
+        [ -n "${!val_var}" ] && echo -e "  $f : \033[1;36m${!val_var}\033[0m"
+    done
+    
+    # 印出 Extras
+    for i in {1..5}; do
+        local ex="_XUM_EX${i}"; local tra="_XUM_TRA${i}"; local boo="_XUM_BOO${i}"
+        if [ -n "${!ex}" ]; then
+            echo -e "  EX$i : \033[1;36m${!ex} \"${!tra}\" \"${!boo}\"\033[0m"
+        fi
+    done
+    echo -e "${C_BLACK} -------------------------------------------${C_RESET}"
+
+    # 3. 模擬組裝 am 指令 (檢驗)
+    local cmd="am start"
+    [ -n "$_XUM_USER" ] && cmd="$cmd --user $_XUM_USER"
+    local action="${_XUM_IHEAD}${_XUM_IBODY}"
+    [ -n "$action" ] && cmd="$cmd -a \"$action\""
+    [ -n "$_XUM_URI" ] && cmd="$cmd -d \"$_XUM_URI\""
+    [ -n "$_XUM_MIME" ] && cmd="$cmd -t \"$_XUM_MIME\""
+    [ -n "$_XUM_PKG" ] && cmd="$cmd -p \"$_XUM_PKG\""
+    # (此處為初步檢驗，省略完整 CATE/EX 組裝以保持快速)
+
+    # 4. 判定是否為可執行狀態 (至少要有 Action, URI, 或 PKG)
+    local is_valid=false
+    if [ -n "$action" ] || [ -n "$_XUM_URI" ] || [ -n "$_XUM_PKG" ]; then
+        is_valid=true
+    fi
+
+    # 5. 狀態機轉換 (N -> R)
+    if [ "$is_valid" == true ]; then
+        echo -e "${C_BLACK}  ›› [TEST_PAYLOAD]: $cmd${C_RESET}"
+        if [ "$_XUM_RDY" == "N" ]; then
+            _xum_update_rdy "$slot" "R"
+            _XUM_RDY="R"
+            echo -e "  \033[1;32m›› Parameter validation passed. Status: (N -> R)\033[0m"
+        fi
+    else
+        echo -e "  \033[1;30m›› Chamber empty or incomplete. Status remains (N).\033[0m"
+    fi
+
+    # 6. 鎖定 Slot 焦點
+    export XUM_CURRENT_SLOT="$slot"
+    echo ""
+    echo -e " ${C_TAVIOLET} ›› slot \"$slot\" locked.${C_RESET}"
+}
+
+# 解除保險 (R -> L)
+function _xum_cmd_set() {
+    local slot="$XUM_CURRENT_SLOT"
+    if [ -z "$slot" ]; then
+        _bot_say "error" "NO SLOT FOCUSED. Execute 'xum slot <n>' first."
+        return 1
+    fi
+    
+    _xum_neural_read "$slot"
+    
+    if [ "$_XUM_RDY" == "N" ]; then
+        _bot_say "error" "CHAMBER [$slot] IS INCOMPLETE. CANNOT BE ARMED."
+        return 1
+    fi
+
+    _xum_update_rdy "$slot" "L"
+    _bot_say "success" "PAYLOAD [$slot] ARMED (L). READY TO FIRE."
+}
+
+# 關閉保險 (L -> R)
+function _xum_cmd_unset() {
+    local slot="$XUM_CURRENT_SLOT"
+    if [ -z "$slot" ]; then
+        _bot_say "error" "NO SLOT FOCUSED."
+        return 1
+    fi
+    
+    _xum_update_rdy "$slot" "R"
+    _bot_say "warn" "PAYLOAD [$slot] DISARMED (R)."
+}
+
+# 槍管擊發、戰鬥報告與退殼機制 (Fire, Report & Eject)
+function _xum_cmd_fire() {
+    local slot="$XUM_CURRENT_SLOT"
+    if [ -z "$slot" ]; then
+        _bot_say "error" "NO SLOT FOCUSED. Execute 'xum slot <n>' first."
+        return 1
+    fi
+
+    # 1. 讀取記憶體
     _xum_neural_read "$slot"
     
     if [ $? -ne 0 ]; then
@@ -136,45 +252,35 @@ function _xum_cmd_fire() {
         return 1
     fi
 
-    # 3. 檢查保險栓
-    if [ "$_XUM_RDY" != "Y" ]; then
-        _bot_say "error" "CLICK! Chamber [$slot] is empty or not ready (RDY=N)."
+    # 2. 絕對保險檢查 (必須是 L)
+    if [ "$_XUM_RDY" != "L" ]; then
+        _bot_say "error" "CLICK! Chamber [$slot] is not armed. Status is [$_XUM_RDY], requires [L]."
         return 1
     fi
 
-    _bot_say "system" "IGNITION SEQUENCE START. ASSEMBLING PAYLOAD..."
+    _bot_say "system" "IGNITION SEQUENCE START. DISCHARGING PAYLOAD..."
 
-    # 4. 動態組裝
+    # 3. 動態組裝 am start 指令
     local cmd="am start"
-
-    if [ -n "$_XUM_USER" ]; then cmd="$cmd --user $_XUM_USER"; fi
-
+    [ -n "$_XUM_USER" ] && cmd="$cmd --user $_XUM_USER"
     local action="${_XUM_IHEAD}${_XUM_IBODY}"
-    if [ -n "$action" ]; then cmd="$cmd -a \"$action\""; fi
-
-    if [ -n "$_XUM_URI" ]; then cmd="$cmd -d \"$_XUM_URI\""; fi
-
-    if [ -n "$_XUM_MIME" ]; then cmd="$cmd -t \"$_XUM_MIME\""; fi
-
+    [ -n "$action" ] && cmd="$cmd -a \"$action\""
+    [ -n "$_XUM_URI" ] && cmd="$cmd -d \"$_XUM_URI\""
+    [ -n "$_XUM_MIME" ] && cmd="$cmd -t \"$_XUM_MIME\""
+    
     for cate in "$_XUM_CATE1" "$_XUM_CATE2" "$_XUM_CATE3"; do
-        if [ -n "$cate" ]; then cmd="$cmd -c \"android.intent.category.$cate\""; fi
+        [ -n "$cate" ] && cmd="$cmd -c \"android.intent.category.$cate\""
     done
-
-    if [ -n "$_XUM_FLAG" ]; then cmd="$cmd -f $_XUM_FLAG"; fi
+    
+    [ -n "$_XUM_FLAG" ] && cmd="$cmd -f $_XUM_FLAG"
 
     for i in {1..5}; do
-        local ex_var="_XUM_EX${i}"
-        local tra_var="_XUM_TRA${i}"
-        local boo_var="_XUM_BOO${i}"
-        
-        local ex_val="${!ex_var}"
-        local tra_val="${!tra_var}"
-        local boo_val="${!boo_var}"
-        
+        local ex_var="_XUM_EX${i}"; local tra_var="_XUM_TRA${i}"; local boo_var="_XUM_BOO${i}"
+        local ex_val="${!ex_var}"; local tra_val="${!tra_var}"; local boo_val="${!boo_var}"
         if [ -n "$ex_val" ]; then
             cmd="$cmd $ex_val"
-            if [ -n "$tra_val" ]; then cmd="$cmd \"$tra_val\""; fi
-            if [ -n "$boo_val" ]; then cmd="$cmd \"$boo_val\""; fi
+            [ -n "$tra_val" ] && cmd="$cmd \"$tra_val\""
+            [ -n "$boo_val" ] && cmd="$cmd \"$boo_val\""
         fi
     done
 
@@ -184,22 +290,67 @@ function _xum_cmd_fire() {
         cmd="$cmd -p \"$_XUM_PKG\""
     fi
 
-    # 5. FIRE IN THE HOLE
-    _bot_say "launch" "FIRE IN THE HOLE! [SLOT:$slot]"
-    echo -e "${C_BLACK}    ›› Playload: $cmd${C_RESET}"
-    
+    # 4. 擊發並捕捉結果
     local output
     output=$(eval "$cmd" 2>&1)
 
-    # 6. 後座力判定 (Result Validation)
+    # 5. 判定結果狀態
+    local fire_status="Success"
     if [[ "$output" == *"Error"* ]] || [[ "$output" == *"does not exist"* ]] || [[ "$output" == *"unable to resolve"* ]]; then
-        _bot_say "error" "MISFIRE DETECTED. Payload failed to detonate."
-        echo -e "${C_BLACK}    ›› [ERROR]: $output${C_RESET}"
-        return 1
+        fire_status="Failure"
+        _bot_say "error" "MISFIRE DETECTED."
     else
         _bot_say "success" "TARGET HIT."
-        return 0
     fi
+
+    # 6. 產出戰鬥報告 (AAR)
+    local report_time=$(date +"%Y.%m.%d.%H:%M:%S")
+    local report_file="$MUX_ROOT/report.txt"
+    
+    # 建立多行報告字串
+    local report_content="-----
+Time: $report_time
+Playload: $cmd
+Status: $fire_status
+Output: $output"
+
+    # 寫入實體檔案 (附加模式)
+    echo "$report_content" >> "$report_file"
+
+    # 7. 印出報告給使用者
+    echo -e "${C_TAVIOLET} :: AFTER ACTION REPORT ::${C_RESET}"
+    echo "$report_content" | while read -r line; do
+        if [[ "$line" == "Status: Success" ]]; then
+            echo -e "  \033[1;32m$line\033[0m"
+        elif [[ "$line" == "Status: Failure" ]]; then
+            echo -e "  \033[1;31m$line\033[0m"
+        elif [[ "$line" == "-----" ]]; then
+            echo -e "${C_BLACK}  $line${C_RESET}"
+        else
+            echo -e "  $line"
+        fi
+    done
+    echo ""
+
+    # 8. 物理退殼 (清空 CSV 該 Slot 內的所有資料，並重置為 N)
+    local tmp_file=$(mktemp)
+    awk -v s="$slot" '
+        BEGIN { FS=","; OFS="," }
+        NR == 1 { print $0; next }
+        $1 == s {
+            # 將第 2 到第 27 欄全部清空
+            for(i=2; i<=27; i++) $i = ""
+            # 第 28 欄 (RDY) 設為 N
+            $28 = "\"N\""
+            print $0
+            next
+        }
+        { print $0 }
+    ' "$XUM_DB" > "$tmp_file" && mv "$tmp_file" "$XUM_DB"
+    
+    # 解除焦點鎖定並宣告退殼
+    export XUM_CURRENT_SLOT=""
+    _bot_say "system" "CHAMBER [$slot] EJECTED. SLOT RESET TO (N)."
 }
 
 # 槍管退膛與系統降壓 (Chamber Eject & System Cooldown)
@@ -227,7 +378,7 @@ function xum() {
 
     # XUM 指令分流閘 (Command Switch)
     case "$cmd" in
-        # : Select and engage Ammo Chamber
+        # : Select Ammo Chamber
         "slot")
             _xum_cmd_slot "$arg"
             ;;
@@ -237,9 +388,14 @@ function xum() {
             _xum_ui_status_panel
             ;;
             
-        # : Assemble and inject Payload parameters
+        # : Inject Payload parameters
         "set")
             _xum_cmd_set
+            ;;
+        
+        # : Disarm the loaded Payload
+        "unset")
+            _xum_cmd_unset
             ;;
             
         # : Discharge the loaded Payload
@@ -247,7 +403,7 @@ function xum() {
             _xum_cmd_fire
             ;;
             
-        # : Terminate Overclock and return to Core
+        # : Terminate Overclock & return to Core
         "reset")
             _xum_cmd_reset
             ;;
