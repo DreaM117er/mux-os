@@ -131,6 +131,35 @@ function _xum_update_rdy() {
     ' "$XUM_DB" > "$tmp_file" && mv "$tmp_file" "$XUM_DB"
 }
 
+function _xum_cmd_set() {
+    local slot="$XUM_CURRENT_SLOT"
+    if [ -z "$slot" ]; then
+        _bot_say "error" "NO SLOT FOCUSED. Execute 'xum slot <n>' first."
+        return 1
+    fi
+    
+    # 不再檢查是否為 N，直接將狀態推至 L
+    _xum_update_rdy "$slot" "L"
+    _bot_say "success" "CHAMBER [$slot] LOCKED (L). READY TO FIRE."
+}
+
+# 關閉保險並解除鎖定 (L -> U, Clear Focus)
+function _xum_cmd_unset() {
+    local slot="$XUM_CURRENT_SLOT"
+    if [ -z "$slot" ]; then
+        _bot_say "error" "NO SLOT FOCUSED."
+        return 1
+    fi
+    
+    # 狀態機轉移至 U (Unlock)
+    _xum_update_rdy "$slot" "U"
+    
+    # 物理退開，解除彈巢焦點
+    export XUM_CURRENT_SLOT=""
+    
+    _bot_say "warn" "CHAMBER [$slot] UNLOCKED (U). FOCUS CLEARED."
+}
+
 # 選擇並檢驗彈巢 (Slot & Validate)
 function _xum_cmd_slot() {
     local slot="$1"
