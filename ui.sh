@@ -587,7 +587,7 @@ function _xum_dynamic_help() {
 
     echo -e "${C_PURPLE} :: S0-xuM v$MUX_VERSION Tactical Protocols :: [OVERCLOCK] :: ${C_RESET}"
     
-    awk -v c_cmd="$C_CMD" -v c_desc="$C_BLACK" -v c_reset="$C_RESET" -v c_syntax="\033[1;30m" '
+    awk -v c_cmd="$C_CMD" -v c_desc="\033[0;37m" -v c_reset="$C_RESET" -v c_syntax="\033[1;30m" '
         /^[ \t]*# :/ {
             desc = substr($0, match($0, /:/) + 2)
             getline
@@ -598,7 +598,7 @@ function _xum_dynamic_help() {
                 gsub(/\|/, ", ", cmd)
                 gsub(/"/, "", cmd)
                 
-                printf "    %s%-10s%s %s%s%s\n", c_cmd, cmd, c_reset, c_desc, desc, c_reset
+                printf "    %s%-9s%s %s%s%s\n", c_cmd, cmd, c_reset, c_desc, desc, c_reset
             }
         }
     ' "$OC_MOD"
