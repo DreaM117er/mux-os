@@ -737,7 +737,7 @@ function _mux_fuzzy_menu() {
         return 1
     fi
 
-    local fzf_color="info:240,prompt:38,pointer:red,marker:38,border:38,header:240"
+    local fzf_color="info:yellow,prompt:cyan,pointer:red,marker:green,border:blue,header:240"
 
     if [ "$MUX_MODE" == "XUM" ]; then
         fzf_color="info:240,prompt:90,pointer:red,marker:90,border:90,header:240"
