@@ -311,6 +311,99 @@ function _xum_cmd_check() {
     fi
 }
 
+# 互動式裝填工作檯 (Interactive Payload Workbench)
+function _xum_cmd_input() {
+    local slot="$XUM_CURRENT_SLOT"
+    if [ -z "$slot" ]; then
+        _bot_say "error" "NO CHAMBER FOCUSED. Execute 'xum slot <n>' first."
+        return 1
+    fi
+
+    # 1. 物理保險掃描 (必須為 F)
+    _xum_neural_read "$slot"
+    if [ "$_XUM_CBR" != "F" ]; then
+        local current_cbr="${_XUM_CBR:-EMPTY}"
+        _bot_say "error" "WORKBENCH LOCKED. Chamber must be focused (F). Current: [$current_cbr]."
+        return 1
+    fi
+
+    # 進入裝填無限迴圈
+    while true; do
+        # 每次迴圈重新讀取記憶體，確保選單顯示最新狀態
+        _xum_neural_read "$slot"
+        
+        # 2. 構建主選單 (Dashboard)
+        local menu_items=""
+        menu_items+="PKG    : ${_XUM_PKG}\n"
+        menu_items+="TARGET : ${_XUM_TARGET}\n"
+        menu_items+="IHEAD  : ${_XUM_IHEAD}\n"
+        menu_items+="IBODY  : ${_XUM_IBODY}\n"
+        menu_items+="URI    : ${_XUM_URI}\n"
+        menu_items+="MIME   : ${_XUM_MIME}\n"
+        menu_items+="FLAG   : ${_XUM_FLAG}\n"
+        menu_items+="----------\n"
+        menu_items+="Confirm"
+
+        # 呼叫 fzf
+        local selection=$(echo -e "$menu_items" | fzf --prompt="[CHAMBER $slot WORKBENCH] SELECT FIELD > ")
+        
+        # 若按 ESC 取消，則跳回主選單重選
+        if [ -z "$selection" ]; then continue; fi 
+        
+        # 萃取欄位名稱 (擷取冒號前面的單字)
+        local field=$(echo "$selection" | awk '{print $1}')
+        
+        # 3. 離開條件：Confirm
+        if [ "$field" == "Confirm" ]; then
+            echo -e "${C_GRAY}  ›› Workbench closed. Initiating safety scan...${C_RESET}"
+            _xum_cmd_check
+            break
+        fi
+        
+        # 略過分隔線
+        if [ "$field" == "----------" ]; then
+            continue
+        fi
+
+        # 4. 構建子選單 (Ammo Box)
+        local sub_opts=""
+        local col_idx=""
+        
+        # 根據 29 欄結構定義寫入目標，並載入預設選單
+        case "$field" in
+            "PKG")    sub_opts="com.android.chrome\ncom.google.android.youtube\ncom.termux\n"; col_idx=5 ;;
+            "TARGET") sub_opts=".MainActivity\n.HomeActivity\nnull\n"; col_idx=6 ;;
+            "IHEAD")  sub_opts="android.intent.action\nandroid.intent.action.MAIN\nandroid.intent.action.VIEW\n"; col_idx=7 ;;
+            "IBODY")  sub_opts=".MAIN\n.VIEW\n.SEARCH\n"; col_idx=8 ;;
+            "URI")    sub_opts="https://www.google.com/search?q=\nhttps://www.youtube.com/results?search_query=\n"; col_idx=9 ;;
+            "MIME")   sub_opts="text/plain\ntext/html\nimage/*\n"; col_idx=10 ;;
+            "FLAG")   sub_opts="--user 0\n--grant-read-uri-permission\n"; col_idx=29 ;;
+            *) continue ;;
+        esac
+        
+        # 附加特權選項
+        sub_opts+="[Manual Input]\n[Clear]"
+        
+        # 呼叫子 fzf
+        local sub_sel=$(echo -e "$sub_opts" | fzf --prompt="[$field] SELECT PAYLOAD > ")
+        
+        if [ -z "$sub_sel" ]; then continue; fi
+        
+        # 5. 處理輸入與寫入
+        local final_val="$sub_sel"
+        if [ "$sub_sel" == "[Clear]" ]; then
+            final_val=""
+        elif [ "$sub_sel" == "[Manual Input]" ]; then
+            read -p "  [KEYBOARD] Enter value for $field: " final_val
+        fi
+        
+        # 呼叫防呆寫入探針，並標記 STS 為 S
+        _xum_neural_write "$slot" "$col_idx" "$final_val"
+        _xum_update_sts "$slot" "S"
+        
+    done
+}
+
 # 槍機鎖定
 function _xum_cmd_set() {
     local slot="$XUM_CURRENT_SLOT"
@@ -501,9 +594,9 @@ function xum() {
             _xum_cmd_slot "$arg"
             ;;
             
-        # : Open Tactical Status Panel
-        "status"|"sts")
-            _xum_ui_status_panel
+        # : Interactive Payload
+        "input")
+            _xum_cmd_input
             ;;
             
         # : Inject Payload parameters
@@ -531,6 +624,11 @@ function xum() {
             _xum_cmd_reset
             ;;
 
+        # : Open Tactical Status Panel
+        "status"|"sts")
+            _xum_ui_status_panel
+            ;;
+
         "help")
             _xum_dynamic_help
             return 0
@@ -542,30 +640,3 @@ function xum() {
             ;;
     esac
 }
-
-# 測試函式：驗證讀寫功能
-# 僅在直接執行此腳本時運行，如果被 source 則忽略
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    echo ":: [PROJECT XUM] I/O Test Sequence Initiated ::"
-    
-    # 測試寫入：將 Slot 1 的 PKG (第 2 欄) 寫入 "com.test.xum"
-    echo "› Writing to Slot 1 (Column 2)..."
-    _xum_neural_write "1" 2 "com.test.xum"
-    
-    # 測試寫入：將 Slot 1 的 EX1 (第 11 欄) 寫入 "--es"
-    echo "› Writing to Slot 1 (Column 11)..."
-    _xum_neural_write "1" 11 "--es"
-    
-    # 測試讀取：讀出 Slot 1 驗證
-    echo "› Reading from Slot 1..."
-    _xum_neural_read "1"
-    
-    echo "---------------------------"
-    echo "SLOT : $_XUM_SLOT"
-    echo "PKG  : $_XUM_PKG"
-    echo "EX1  : $_XUM_EX1"
-    echo "RDY  : $_XUM_RDY"
-    echo "---------------------------"
-    echo ":: Test Complete ::"
-fi
-
