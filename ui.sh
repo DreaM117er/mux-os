@@ -532,7 +532,7 @@ function _mux_dynamic_help_core() {
 
     local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "Unknown")
 
-    echo -e "${C_PURPLE} :: Mux-OS Core v$MUX_VERSION Protocols :: @$current_branch :: ${C_RESET}"
+    echo -e "${C_PURPLE} :: Mux-OS Core Protocols :: @$current_branch :: ${C_RESET}"
     
     awk -v cmd_color="$C_CMD" '
     /function mux\(\) \{/ { inside_mux=1; next }
@@ -585,7 +585,7 @@ function _xum_dynamic_help() {
 
     [ "$MUX_MODE" == "XUM" ] && head_c="$C_TAVIOLET"
 
-    echo -e "${C_PURPLE} :: S0-xuM v$MUX_VERSION Tactical Protocols :: [OVERCLOCK] :: ${C_RESET}"
+    echo -e "${C_PURPLE} :: Mux-OS Core OC :: Chamber System ::${C_RESET}"
     
     awk -v c_cmd="$C_CMD" -v c_desc="\033[0;37m" -v c_reset="$C_RESET" -v c_syntax="\033[1;30m" '
         /^[ \t]*# :/ {
@@ -619,7 +619,13 @@ function _show_menu_dashboard() {
     local C_WARN="\033[1;31m"
     local C_RST="\033[0m"
 
-    if [ "$MUX_MODE" == "FAC" ]; then
+    if [ "$MUX_MODE" == "XUM" ]; then
+        status="\033[1;35m[OVERCLOCK]\033[0m"
+        c_accent="$C_TAVIOLET"
+    elif [ "$MUX_STATUS" == "LOGIN" ]; then
+        status="\033[1;36m[ACTIVE]\033[0m"
+        c_accent="$THEME_DESC"
+    elif [ "$MUX_MODE" == "FAC" ]; then
         title_text=":: Factory Sandbox Manifest ::"
         C_TITLE="\033[1;35m"
         C_CAT="\033[1;31m"
@@ -730,6 +736,12 @@ function _mux_fuzzy_menu() {
         return 1
     fi
 
+    local fzf_color="info:240,prompt:38,pointer:red,marker:38,border:38,header:240"
+
+    if [ "$MUX_MODE" == "XUM" ]; then
+        fzf_color="info:240,prompt:54,pointer:red,marker:54,border:54,header:240"
+    fi
+
     local cmd_list=$(
         {
             echo "0,0,Core,SYS,mux,,,Core Command Entry"
@@ -767,7 +779,7 @@ function _mux_fuzzy_menu() {
         --info=hidden \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:yellow,prompt:cyan,pointer:red,marker:green,border:blue,header:240 \
+        --color="$fzf_color" \
         --bind="resize:clear-screen"
     )
 
