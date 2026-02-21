@@ -579,6 +579,31 @@ echo -e "\033[1;35m :: Mux-OS Factory Protocols ::${C_RESET}"
     ' "$MUX_ROOT/factory.sh"
 }
 
+# 動態Help Xum選單 - Dynamic Help Overclock Detection
+function _xum_dynamic_help() {
+    local C_CMD="$C_TAVIOLET" 
+    
+    [ "$MUX_MODE" == "XUM" ] && head_c="$C_TAVIOLET"
+
+    echo -e "\033[1;35m :: S0-xuM v$MUX_VERSION Tactical Protocols :: [OVERCLOCK] :: ${C_RESET}"
+    
+    awk -v c_cmd="$C_CMD" -v c_desc="$C_WHITE" -v c_reset="$C_RESET" -v c_syntax="\033[1;30m" '
+        /^[ \t]*# :/ {
+            desc = substr($0, match($0, /:/) + 2)
+            getline
+            if ($0 ~ /^[ \t]*"[a-zA-Z0-9|]+"\)/) {
+                cmd = $1
+                gsub(/^[ \t]*"/, "", cmd)
+                gsub(/"\)$/, "", cmd)
+                gsub(/\|/, ", ", cmd)
+                gsub(/"/, "", cmd)
+                printf "  %s%-12s%s : %s%s%s\n", c_cmd, cmd, c_reset, c_desc, desc, c_reset
+            }
+        }
+    ' "$OC_MOD"
+    echo ""
+}
+
 # 顯示指令選單儀表板 - Display Command Menu Dashboard
 function _show_menu_dashboard() {
     local search_filter="$1"

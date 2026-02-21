@@ -22,6 +22,8 @@ export __MUX_CORE_ACTIVE=true
 
 # 載入核心模組
 export CORE_MOD="$MUX_ROOT/core.sh"
+export OC_MOD="$MUX_ROOT/.core"
+export FAC_MOD="$MUX_ROOT/factory.sh"
 export BOT_MOD="$MUX_ROOT/bot.sh"
 export UI_MOD="$MUX_ROOT/ui.sh"
 export IDENTITY_MOD="$MUX_ROOT/identity.sh"
@@ -30,7 +32,7 @@ export VENDOR_MOD="$MUX_ROOT/vendor.csv"
 export APP_MOD="$MUX_ROOT/app.csv"
 
 # 模組註冊表 (Module Registry)
-MODULES=("$BOT_MOD" "$UI_MOD" "$IDENTITY_MOD")
+MODULES=("$BOT_MOD" "$UI_MOD" "$IDENTITY_MOD" "$FAC_MOD" "$OC_MOD")
 for mod in "${MODULES[@]}"; do
     if [ -f "$mod" ]; then source "$mod"; fi
 done
@@ -188,7 +190,7 @@ function _mux_init() {
     _draw_logo "core"
     
     if command -v _system_check &> /dev/null; then
-        _system_check # 這個函式需要改動
+        _system_check
     fi
     
     if command -v _show_hud &> /dev/null; then
@@ -1775,10 +1777,10 @@ fi
 
 case "$MUX_MODE" in
     "FAC")
-        if [ -f "$MUX_ROOT/factory.sh" ]; then
+        if [ -f "$FAC_MOD" ]; then
             THEME_MAIN="$C_ORANGE"
 
-            source "$MUX_ROOT/factory.sh"
+            source "$FAC_MOD"
 
             if command -v _factory_system_boot &> /dev/null; then
                 _factory_system_boot
@@ -1809,8 +1811,8 @@ case "$MUX_MODE" in
 
     "XUM")
         THEME_MAIN="$C_TAVIOLET"
-        if [ -f "$MUX_ROOT/eroc.sh" ]; then
-            source "$MUX_ROOT/eroc.sh"
+        if [ -f "$OC_MOD" ]; then
+            source "$OC_MOD"
             
             export PS1="\[${C_TAVIOLET}\]Mux\[${C_RESET}\] \w \033[5m›\033[0m "
             

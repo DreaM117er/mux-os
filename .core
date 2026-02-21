@@ -1,6 +1,12 @@
 #!/bin/bash
 # Mux-OS 超頻模式 (Overclock Mode)
 
+# 安全檢測
+if [ -z "$MUX_ROOT" ] || [ ! -f "$MUX_ROOT/.mux_state" ]; then
+    echo -e "\033[1;35m[SO-xuM: FATAL] Core environment missing. Execution aborted.\033[0m"
+    return 1 2>/dev/null || exit 1 
+fi
+
 if [ -z "$MUX_ROOT" ]; then export MUX_ROOT="$HOME/mux-os"; fi
 export XUM_DB="$MUX_ROOT/xum.csv"
 
@@ -117,6 +123,99 @@ function _xum_system_boot() {
     _bot_say "hello"
 }
 
+# 槍管擊發機制 (The Chamber Fire Mechanism)
+function _xum_cmd_fire() {
+    # 1. 確認當前彈巢是否已上膛
+    local slot="${XUM_CURRENT_SLOT:-1}"
+    
+    # 2. 讀取該槽位參數到記憶體
+    _xum_neural_read "$slot"
+    
+    if [ $? -ne 0 ]; then
+        _bot_say "error" "MISFIRE: Chamber mechanism jammed."
+        return 1
+    fi
+
+    # 3. 檢查保險栓
+    if [ "$_XUM_RDY" != "Y" ]; then
+        _bot_say "error" "CLICK! Chamber [$slot] is empty or not ready (RDY=N)."
+        return 1
+    fi
+
+    _bot_say "system" "IGNITION SEQUENCE START. ASSEMBLING PAYLOAD..."
+
+    # 4. 動態組裝
+    local cmd="am start"
+
+    if [ -n "$_XUM_USER" ]; then cmd="$cmd --user $_XUM_USER"; fi
+
+    local action="${_XUM_IHEAD}${_XUM_IBODY}"
+    if [ -n "$action" ]; then cmd="$cmd -a \"$action\""; fi
+
+    if [ -n "$_XUM_URI" ]; then cmd="$cmd -d \"$_XUM_URI\""; fi
+
+    if [ -n "$_XUM_MIME" ]; then cmd="$cmd -t \"$_XUM_MIME\""; fi
+
+    for cate in "$_XUM_CATE1" "$_XUM_CATE2" "$_XUM_CATE3"; do
+        if [ -n "$cate" ]; then cmd="$cmd -c \"android.intent.category.$cate\""; fi
+    done
+
+    if [ -n "$_XUM_FLAG" ]; then cmd="$cmd -f $_XUM_FLAG"; fi
+
+    for i in {1..5}; do
+        local ex_var="_XUM_EX${i}"
+        local tra_var="_XUM_TRA${i}"
+        local boo_var="_XUM_BOO${i}"
+        
+        local ex_val="${!ex_var}"
+        local tra_val="${!tra_var}"
+        local boo_val="${!boo_var}"
+        
+        if [ -n "$ex_val" ]; then
+            cmd="$cmd $ex_val"
+            if [ -n "$tra_val" ]; then cmd="$cmd \"$tra_val\""; fi
+            if [ -n "$boo_val" ]; then cmd="$cmd \"$boo_val\""; fi
+        fi
+    done
+
+    if [ -n "$_XUM_PKG" ] && [ -n "$_XUM_TARGET" ]; then
+        cmd="$cmd -n \"$_XUM_PKG/$_XUM_TARGET\""
+    elif [ -n "$_XUM_PKG" ]; then
+        cmd="$cmd -p \"$_XUM_PKG\""
+    fi
+
+    # 5. FIRE IN THE HOLE
+    _bot_say "launch" "FIRE IN THE HOLE! [SLOT:$slot]"
+    echo -e "${C_BLACK}    ›› Playload: $cmd${C_RESET}"
+    
+    local output
+    output=$(eval "$cmd" 2>&1)
+
+    # 6. 後座力判定 (Result Validation)
+    if [[ "$output" == *"Error"* ]] || [[ "$output" == *"does not exist"* ]] || [[ "$output" == *"unable to resolve"* ]]; then
+        _bot_say "error" "MISFIRE DETECTED. Payload failed to detonate."
+        echo -e "${C_BLACK}    ›› [ERROR]: $output${C_RESET}"
+        return 1
+    else
+        _bot_say "success" "TARGET HIT."
+        return 0
+    fi
+}
+
+# 槍管退膛與系統降壓 (Chamber Eject & System Cooldown)
+function _xum_cmd_reset() {
+    _bot_say "warn" "INITIATING CORE COOLDOWN SEQUENCE..."
+    
+    # --------------------------------------------------
+    # [預留位置]：未來將在此處寫入 Unix 時間戳記 (2小時物理鎖)
+    # --------------------------------------------------
+
+    _bot_say "success" "TERMINATING OVERCLOCK PROTOCOL. REVERTING TO KERNEL STANDARDS."
+    
+    _update_mux_state "MUX" "LOGIN" "COCKPIT"
+    _mux_reload_kernel
+}
+
 function xum() {
     local cmd="$1"
     local arg="$2"
@@ -128,35 +227,34 @@ function xum() {
 
     # XUM 指令分流閘 (Command Switch)
     case "$cmd" in
+        # : Select and engage Ammo Chamber
         "slot")
-            # 選擇彈巢 (1-8)
             _xum_cmd_slot "$arg"
             ;;
             
+        # : Open Tactical Status Panel
         "status"|"sts")
-            # [SPECIAL CASE] 戰術面板：檢查子彈狀態
             _xum_ui_status_panel
             ;;
             
+        # : Assemble and inject Payload parameters
         "set")
-            # 裝填邏輯
             _xum_cmd_set
             ;;
             
+        # : Discharge the loaded Payload
         "fire")
-            # 發射邏輯
             _xum_cmd_fire
             ;;
             
+        # : Terminate Overclock and return to Core
         "reset")
-            # 強制退膛與 2 小時物理鎖
             _xum_cmd_reset
             ;;
-        
-        "mux")
-            _bot_say "success" "TERMINATING OVERCLOCK. REVERTING TO STANDARD CORE."
-            _update_mux_state "MUX" "LOGIN" "COCKPIT"
-            _mux_reload_kernel
+
+        "help")
+            _xum_dynamic_help
+            return 0
             ;;
             
         *)
