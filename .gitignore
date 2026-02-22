@@ -4,6 +4,8 @@
 .mux_identity
 .mux_state
 vendor.csv
+xum.csv
+.core
 
 # :: System Backups
 bak/
