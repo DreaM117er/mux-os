@@ -386,9 +386,9 @@ function _xum_cmd_import() {
                 sub(/\.csv$/, "", file_name)
                 
                 if (sub_cmd != "") {
-                    printf "%s|%s|\033[1;36m%-2s\033[0m %-10s \033[1;30m%s\033[0m\n", cmd, sub_cmd, cmd, sub_cmd, file_name
+                    printf "%s|%s|\033[1;36m%-7s\033[0m %-7s \033[1;30m%s\033[0m\n", cmd, sub_cmd, cmd, sub_cmd, file_name
                 } else {
-                    printf "%s|%s|\033[1;36m%-2s\033[0m %-10s \033[1;30m%s\033[0m\n", cmd, "", cmd, "", file_name
+                    printf "%s|%s|\033[1;36m%-7s\033[0m %-7s \033[1;30m%s\033[0m\n", cmd, "", cmd, "", file_name
                 }
             }
         }
@@ -418,7 +418,7 @@ function _xum_cmd_import() {
     )
 
     if [ -z "$selection" ]; then
-        echo -e "${C_GRAY}  ›› Import aborted.${C_RESET}"
+        echo -e "${C_GRAY}    ›› Import aborted.${C_RESET}"
         return 0
     fi
 
