@@ -373,22 +373,21 @@ function _xum_cmd_import() {
     local border_color="90" # 90號紫色
 
     # 2. 啟動 AWK 雷達掃描三大 CSV 彈藥庫
-    # 格式：隱藏指令|隱藏子指令|高亮指令(15格) 子指令(15格) 灰色來源檔名
     local raw_list=$(awk -v FPAT='([^,]*)|("[^"]+")' '
         FNR > 1 && !/^#/ {
             cmd = $5; gsub(/^"|"$/, "", cmd); gsub(/^[ \t]+|[ \t]+$/, "", cmd)
             sub_cmd = $6; gsub(/^"|"$/, "", sub_cmd); gsub(/^[ \t]+|[ \t]+$/, "", sub_cmd)
             
             if (cmd != "") {
-                # 擷取檔名並去後綴 (例如 /home/.../app.csv -> app)
+                # 擷取檔名並去後綴 (例如 app.csv -> app)
                 n = split(FILENAME, path_parts, "/")
                 file_name = path_parts[n]
                 sub(/\.csv$/, "", file_name)
                 
                 if (sub_cmd != "") {
-                    printf "%s|%s|\033[1;36m%-15s\033[0m %-15s \033[1;30m%s\033[0m\n", cmd, sub_cmd, cmd, sub_cmd, file_name
+                    printf "%s|%s|\033[1;36m%-12s\033[0m %-10s \033[1;30m%s\033[0m\n", cmd, sub_cmd, cmd, sub_cmd, file_name
                 } else {
-                    printf "%s|%s|\033[1;36m%-15s\033[0m %-15s \033[1;30m%s\033[0m\n", cmd, "", cmd, "", file_name
+                    printf "%s|%s|\033[1;36m%-12s\033[0m %-10s \033[1;30m%s\033[0m\n", cmd, "", cmd, "", file_name
                 }
             }
         }
@@ -401,7 +400,7 @@ function _xum_cmd_import() {
 
     local total_nodes=$(echo -e "$raw_list" | wc -l)
 
-    # 3. 呼叫 FZF 選單 (利用 --delimiter 與 --with-nth 完美隱藏真實參數)
+    # 3. 呼叫 FZF 選單 (隱藏真實指令，只顯示高亮排版)
     local selection=$(echo -e "$raw_list" | fzf --ansi \
         --delimiter='\|' --with-nth=3.. \
         --height=15 \
@@ -431,28 +430,43 @@ function _xum_cmd_import() {
     # 5. 呼叫核心神經元讀取並寫入
     _mux_neural_data "$i_cmd" "$i_sub"
     if [ $? -eq 0 ]; then
+        # 綁定當前駕駛員
+        _xum_neural_write "$slot" 4 "$MUX_ID"
+        
+        # 寫入核心參數
         _xum_neural_write "$slot" 5 "$_VAL_PKG"
         _xum_neural_write "$slot" 6 "$_VAL_TARGET"
         _xum_neural_write "$slot" 7 "$_VAL_IHEAD"
         _xum_neural_write "$slot" 8 "$_VAL_IBODY"
-        _xum_neural_write "$slot" 9 "$_VAL_URI"
+        
+        # 處理 URI 轉譯邏輯 ($__GO_TARGET -> ENGINE 網址)
+        local final_uri="$_VAL_URI"
+        if [[ "$final_uri" == *"\$__GO_TARGET"* ]] && [ -n "$_VAL_ENGINE" ]; then
+            local expanded_engine=$(eval echo "$_VAL_ENGINE")
+            final_uri="${final_uri//\$__GO_TARGET/$expanded_engine}"
+        fi
+        _xum_neural_write "$slot" 9 "$final_uri"
+        
         _xum_neural_write "$slot" 10 "$_VAL_MIME"
-        _xum_neural_write "$slot" 11 "$_VAL_CATE"
+        
+        # [精準對接] 依據架構師定義寫入
+        _xum_neural_write "$slot" 11 "$_VAL_CATE"     # CATE -> CATE1
         _xum_neural_write "$slot" 12 "" 
         _xum_neural_write "$slot" 13 ""
-        _xum_neural_write "$slot" 14 "$_VAL_EX"
-        _xum_neural_write "$slot" 15 "$_VAL_EXTRA"
-        _xum_neural_write "$slot" 16 "$_VAL_BOOLEN"
+        _xum_neural_write "$slot" 14 "$_VAL_EX"       # EX -> EX1
+        _xum_neural_write "$slot" 15 "$_VAL_EXTRA"    # EXTRA -> TRA1
+        _xum_neural_write "$slot" 16 "$_VAL_BOOLEN"   # BOOLEN -> BOO1
         
-        # 洗空後面的擴充槽，避免物理干涉
+        # 洗空後續 4 組擴充槽 (17~28)，避免前一發子彈的殘留火藥干涉
         for c in {17..28}; do _xum_neural_write "$slot" "$c" ""; done
         
         _xum_neural_write "$slot" 29 "$_VAL_FLAG"
         
+        # 狀態標記為 [Saved]
         _xum_update_sts "$slot" "S"
         _bot_say "success" "Core Payload [\033[1;36m$i_cmd $i_sub\033[0m] Injected to Chamber $slot."
         
-        # 匯入成功後，自動呼叫面板展示最新狀態
+        # 匯入成功後，呼叫面板展示最新狀態
         _xum_ui_status_panel "$slot"
     else
         _bot_say "error" "Import Failed: Core Node [$i_cmd $i_sub] Not Found."
