@@ -795,6 +795,19 @@ function _xum_cmd_input() {
     done
 }
 
+# 上膛解鎖 (CBR: F -> L)
+function _xum_cmd_set() {
+    local slot="$XUM_CURRENT_SLOT"
+    if [ -z "$slot" ]; then
+        _bot_say "error" "NO CHAMBER FOCUSED. Execute 'xum slot <n>' first."
+        return 1
+    fi
+    
+    # 物理推至 L (Locked)
+    _xum_update_cbr "$slot" "L"
+    _bot_say "success" "CHAMBER [$slot] LOCKED (L). READY TO FIRE."
+}
+
 # 退開保險並解除鎖定 (Clear CBR & Focus)
 function _xum_cmd_unset() {
     local slot="$XUM_CURRENT_SLOT"
