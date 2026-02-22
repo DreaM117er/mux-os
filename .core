@@ -227,7 +227,7 @@ function _xum_ui_status_panel() {
 
     echo -e "${C_PURPLE} :: Mux-OS Core OC Status ::${C_RESET}"
     echo -e "${C_BLACK}  ----------${C_RESET}"
-    echo -e "   CHAMBER : [$slot]"
+    echo -e "   CHAMBER : ${C_TAVIOLET}[$slot]${C_RESET}"
     echo -e "   STATUS  : $cbr_disp"
     echo -e "   PAYLOAD : $sts_disp"
     echo -e "${C_BLACK}  ----------${C_RESET}"
@@ -386,9 +386,9 @@ function _xum_cmd_import() {
                 sub(/\.csv$/, "", file_name)
                 
                 if (sub_cmd != "") {
-                    printf "%s|%s|\033[1;36m%-7s\033[0m %-7s \033[1;30m%s\033[0m\n", cmd, sub_cmd, cmd, sub_cmd, file_name
+                    printf "%s|%s|\033[1;36m%-9s\033[0m %-9s \033[1;30m%s\033[0m\n", cmd, sub_cmd, cmd, sub_cmd, file_name
                 } else {
-                    printf "%s|%s|\033[1;36m%-7s\033[0m %-7s \033[1;30m%s\033[0m\n", cmd, "", cmd, "", file_name
+                    printf "%s|%s|\033[1;36m%-9s\033[0m %-9s \033[1;30m%s\033[0m\n", cmd, "", cmd, "", file_name
                 }
             }
         }
@@ -426,7 +426,7 @@ function _xum_cmd_import() {
     local i_cmd=$(echo "$selection" | cut -d'|' -f1)
     local i_sub=$(echo "$selection" | cut -d'|' -f2)
 
-    echo -e "${C_GRAY}  ›› Extracting Core Node [$i_cmd $i_sub]...${C_RESET}"
+    echo -e "${C_GRAY}    ›› Extracting Core Node [$i_cmd $i_sub]...${C_RESET}"
     
     # 5. 呼叫核心神經元讀取並寫入
     _mux_neural_data "$i_cmd" "$i_sub"
@@ -499,20 +499,21 @@ function _xum_cmd_input() {
     while true; do
         _xum_neural_read "$slot"
         
-        # 2. 構建主選單 (動態瀑布流)
+        # 2. 構建主選單 (動態瀑布流 + 全域色彩封裝按鈕)
         local menu_items=""
+        menu_items+="\033[1;33m[IMPORT]\033[0m\t\033[1;30m(Fetch Core Payload)\033[0m\n"
+        menu_items+="\033[1;30m----------\033[0m\n"
         menu_items+="\033[1;37mUSER\033[0m\t\033[1;36m${_XUM_USER}\033[0m\n"
         menu_items+="\033[1;37mPKG\033[0m\t\033[1;36m${_XUM_PKG}\033[0m\n"
         menu_items+="\033[1;37mTARGET\033[0m\t\033[1;36m${_XUM_TARGET}\033[0m\n"
         
-        # [封裝邏輯] INTENT 合併顯示
         local intent_disp="${_XUM_IHEAD}${_XUM_IBODY}"
         menu_items+="\033[1;37mINTENT\033[0m\t\033[1;36m${intent_disp}\033[0m\n"
         
         menu_items+="\033[1;37mURI\033[0m\t\033[1;36m${_XUM_URI}\033[0m\n"
         menu_items+="\033[1;37mMIME\033[0m\t\033[1;36m${_XUM_MIME}\033[0m\n"
         
-        # [動態邏輯] CATE 瀑布流
+        # [動態邏輯] CATE 瀑布流 (自動組裝前綴)
         local prefix_cate="android.intent.category."
         local disp_cate1=""; [ -n "$_XUM_CATE1" ] && disp_cate1="${prefix_cate}${_XUM_CATE1}"
         local disp_cate2=""; [ -n "$_XUM_CATE2" ] && disp_cate2="${prefix_cate}${_XUM_CATE2}"
@@ -544,12 +545,12 @@ function _xum_cmd_input() {
         done
         
         menu_items+="\033[1;37mFLAG\033[0m\t\033[1;36m${_XUM_FLAG}\033[0m\n"
-        menu_items+="\033[1;30m----------\033[0m\n" # 灰色分隔線
-        menu_items+="\033[1;32m[\033[0mConfirm\033[1;32m]\033[0m" # 綠色括號
+        menu_items+="\033[1;30m----------\033[0m\n"
+        menu_items+="\033[1;32m[Confirm]\033[0m" # 全封裝綠色
 
         local total_main=$(echo -e "$menu_items" | grep -c "^")
         local selection=$(echo -e "$menu_items" | fzf --ansi \
-            --height=15 \
+            --height=16 \
             --layout=reverse \
             --border-label=" :: CHAMBER $slot WORKBENCH :: " \
             --border=bottom \
@@ -563,18 +564,71 @@ function _xum_cmd_input() {
             --bind="resize:clear-screen"
         )
         
-        if [ -z "$selection" ]; then continue; fi 
+        if [ -z "$selection" ]; then 
+            echo -e "${C_GRAY}    ›› Workbench closed. Initiating safety scan...${C_RESET}"
+            _xum_cmd_check
+            break
+        fi 
+        
+        # 洗掉 ANSI 色碼，還原乾淨的字串用於判斷
         local field=$(echo "$selection" | sed $'s/\033\\[[0-9;]*m//g' | awk '{print $1}')
         
         if [ "$field" == "[Confirm]" ]; then
-            echo -e "${C_GRAY}  ›› Workbench closed. Initiating safety scan...${C_RESET}"
+            echo -e "${C_GRAY}    ›› Workbench closed. Initiating safety scan...${C_RESET}"
             _xum_cmd_check
             break
         fi
         if [[ "$field" == *"----------"* ]]; then continue; fi
 
         # ==========================================
-        # 巢狀迴圈：INTENT 擴充艙 (Sub-Workbench)
+        # 核心匯入注射器
+        # ==========================================
+        if [ "$field" == "[IMPORT]" ]; then
+            echo -e "\033[38;5;${border_color}m :: TARGET (e.g., sys wifi) › \033[0m\c"
+            read import_query
+            local i_cmd=$(echo "$import_query" | awk '{print $1}')
+            local i_sub=$(echo "$import_query" | awk '{print $2}')
+            
+            if [ -n "$i_cmd" ]; then
+                _mux_neural_data "$i_cmd" "$i_sub"
+                if [ $? -eq 0 ]; then
+                    _xum_neural_write "$slot" 4 ""
+                    _xum_neural_write "$slot" 5 "$_VAL_PKG"
+                    _xum_neural_write "$slot" 6 "$_VAL_TARGET"
+                    _xum_neural_write "$slot" 7 "$_VAL_IHEAD"
+                    _xum_neural_write "$slot" 8 "$_VAL_IBODY"
+                    
+                    local final_uri="$_VAL_URI"
+                    if [[ "$final_uri" == *"\$__GO_TARGET"* ]] && [ -n "$_VAL_ENGINE" ]; then
+                        local expanded_engine=$(eval echo "$_VAL_ENGINE")
+                        final_uri="${final_uri//\$__GO_TARGET/$expanded_engine}"
+                    fi
+                    _xum_neural_write "$slot" 9 "$final_uri"
+                    
+                    _xum_neural_write "$slot" 10 "$_VAL_MIME"
+                    _xum_neural_write "$slot" 11 "$_VAL_CATE"     
+                    _xum_neural_write "$slot" 12 "" 
+                    _xum_neural_write "$slot" 13 ""
+                    _xum_neural_write "$slot" 14 "$_VAL_EX"       
+                    _xum_neural_write "$slot" 15 "$_VAL_EXTRA"    
+                    _xum_neural_write "$slot" 16 "$_VAL_BOOLEN"   
+                    
+                    for c in {17..28}; do _xum_neural_write "$slot" "$c" ""; done
+                    _xum_neural_write "$slot" 29 "$_VAL_FLAG"
+                    
+                    _xum_update_sts "$slot" "S"
+                    echo -e "${C_GREEN}    ›› Core Payload Injected Successfully.${C_RESET}"
+                    sleep 0.8
+                else
+                    echo -e "${C_RED}    ›› Core Node Not Found.${C_RESET}"
+                    sleep 0.8
+                fi
+            fi
+            continue
+        fi
+
+        # ==========================================
+        # 巢狀迴圈：INTENT 擴充艙
         # ==========================================
         if [ "$field" == "INTENT" ]; then
             while true; do
@@ -583,7 +637,7 @@ function _xum_cmd_input() {
                 sub_menu+="\033[1;37mIHEAD\033[0m\t\033[1;36m${_XUM_IHEAD}\033[0m\n"
                 sub_menu+="\033[1;37mIBODY\033[0m\t\033[1;36m${_XUM_IBODY}\033[0m\n"
                 sub_menu+="\033[1;30m----------\033[0m\n"
-                sub_menu+="\033[1;32m[\033[0mConfirm\033[1;32m]\033[0m"
+                sub_menu+="\033[1;32m[Confirm]\033[0m"
 
                 local sub_sel=$(echo -e "$sub_menu" | fzf --ansi \
                     --height=8 \
@@ -599,7 +653,8 @@ function _xum_cmd_input() {
                     --bind="resize:clear-screen"
                 )
                 
-                if [ -z "$sub_sel" ]; then continue; fi
+                if [ -z "$sub_sel" ]; then break; fi
+                
                 local sub_field=$(echo "$sub_sel" | sed $'s/\033\\[[0-9;]*m//g' | awk '{print $1}')
                 
                 if [ "$sub_field" == "[Confirm]" ]; then break; fi
@@ -607,29 +662,43 @@ function _xum_cmd_input() {
                 
                 local intent_opts=""
                 local intent_col=""
+                
                 if [ "$sub_field" == "IHEAD" ]; then
-                    intent_opts="android.intent.action\nandroid.intent.action.MAIN\nandroid.intent.action.VIEW\n"
+                    local ex_ihead=$(awk -F',' 'NR>1 {gsub(/"/,"",$12); if($12!="") print $12}' "$MUX_ROOT"/{app,system,vendor}.csv 2>/dev/null | sort -u)
+                    [ -z "$ex_ihead" ] && ex_ihead="android.intent.action\nandroid.settings"
+                    intent_opts=$(echo -e "$ex_ihead" | awk 'NF {printf "%s\\n", $0}')
                     intent_col=7
                 elif [ "$sub_field" == "IBODY" ]; then
-                    intent_opts=".MAIN\n.VIEW\n.SEARCH\n"
+                    local ex_ibody=$(awk -F',' 'NR>1 {gsub(/"/,"",$13); if($13!="") print $13}' "$MUX_ROOT"/{app,system,vendor}.csv 2>/dev/null)
+                    local std_ibody=".MAIN\n.VIEW\n.SEARCH\n.SEND\n.DIAL\n.CALL\n.WEB_SEARCH\n.VOICE_COMMAND\n.BATTERY_CHANGED\n.BOOT_COMPLETED\n.APP_GAMES\n.APP_MUSIC\n.APP_BROWSER"
+                    intent_opts=$(echo -e "${ex_ibody}\n${std_ibody}" | sort -u | awk 'NF {printf "%s\\n", $0}')
                     intent_col=8
                 fi
-                intent_opts+="[Manual Input]\n[Clear]"
+                
+                intent_opts+="\n\033[1;33m[Custom]\033[0m\n\033[1;31m[Clear]\033[0m"
                 
                 local final_sel=$(echo -e "$intent_opts" | fzf --ansi \
-                    --height=10 --layout=reverse --border-label=" :: [$sub_field] PAYLOAD :: " \
-                    --border=bottom --prompt=" :: INPUT › " --info=hidden --pointer="››" \
+                    --height=12 \
+                    --layout=reverse \
+                    --border-label=" :: [$sub_field] PAYLOAD :: " \
+                    --border=bottom \
+                    -prompt=" :: INPUT › " \
+                    --info=hidden \
+                    --pointer="››" \
                     --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-                    --color=info:240,prompt:$border_color,pointer:red,marker:208,border:$border_color
+                    --color=info:240,prompt:$border_color,pointer:red,marker:208,border:$border_color \
+                    --bind="resize:clear-screen"
                 )
                 
                 if [ -z "$final_sel" ]; then continue; fi
                 
-                local final_val="$final_sel"
-                if [ "$final_sel" == "[Clear]" ]; then
+                local final_val_clean=$(echo "$final_sel" | sed $'s/\033\\[[0-9;]*m//g')
+                local final_val="$final_val_clean"
+                
+                if [ "$final_val_clean" == "[Clear]" ]; then 
                     final_val=""
-                elif [ "$final_sel" == "[Manual Input]" ]; then
-                    echo -e "\033[38;5;${border_color}m :: [$sub_field] MANUAL INPUT › \033[0m\c"
+                elif [ "$final_val_clean" == "[Custom]" ]; then
+                    echo -e "\033[38;5;${border_color}m :: [$sub_field] CUSTOM INPUT › \033[0m\c"
                     read final_val
                 fi
                 
@@ -640,7 +709,7 @@ function _xum_cmd_input() {
         fi
 
         # ==========================================
-        # 巢狀迴圈：EXTRA 擴充艙 (Sub-Workbench)
+        # 巢狀迴圈：EXTRA 擴充艙 
         # ==========================================
         if [[ "$field" =~ ^EXTRA([1-5])$ ]]; then
             local n="${BASH_REMATCH[1]}"
@@ -653,7 +722,7 @@ function _xum_cmd_input() {
                 sub_menu+="\033[1;37mTRA${n}\033[0m\t\033[1;36m${!tra_var}\033[0m\n"
                 sub_menu+="\033[1;37mBOO${n}\033[0m\t\033[1;36m${!boo_var}\033[0m\n"
                 sub_menu+="\033[1;30m----------\033[0m\n"
-                sub_menu+="\033[1;32m[\033[0mConfirm\033[1;32m]\033[0m"
+                sub_menu+="\033[1;32m[Confirm]\033[0m"
 
                 local sub_sel=$(echo -e "$sub_menu" | fzf --ansi \
                     --height=10 \
@@ -669,7 +738,8 @@ function _xum_cmd_input() {
                     --bind="resize:clear-screen"
                 )
                 
-                if [ -z "$sub_sel" ]; then continue; fi
+                if [ -z "$sub_sel" ]; then break; fi # ESC 退回主選單
+                
                 local sub_field=$(echo "$sub_sel" | sed $'s/\033\\[[0-9;]*m//g' | awk '{print $1}')
                 
                 if [ "$sub_field" == "[Confirm]" ]; then break; fi 
@@ -687,7 +757,7 @@ function _xum_cmd_input() {
                     ex_opts="true\nfalse\n"
                     ex_col=$(( 16 + (n - 1) * 3 ))
                 fi
-                ex_opts+="[Manual Input]\n[Clear]"
+                ex_opts+="\033[1;33m[Custom]\033[0m\n\033[1;31m[Clear]\033[0m" # 色彩封裝
                 
                 local final_sel=$(echo -e "$ex_opts" | fzf --ansi \
                     --height=10 \
@@ -695,19 +765,22 @@ function _xum_cmd_input() {
                     --border-label=" :: [$sub_field] PAYLOAD :: " \
                     --border=bottom \
                     --prompt=" :: INPUT › " \
-                    --info=hidden --pointer="››" \
+                    --info=hidden \
+                    --pointer="››" \
                     --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
                     --color=info:240,prompt:$border_color,pointer:red,marker:208,border:$border_color \
                     --bind="resize:clear-screen"
                 )
                 
-                if [ -z "$final_sel" ]; then continue; fi
+                if [ -z "$final_sel" ]; then continue; fi # ESC 退回子選單
                 
-                local final_val="$final_sel"
-                if [ "$final_sel" == "[Clear]" ]; then
+                local final_val_clean=$(echo "$final_sel" | sed $'s/\033\\[[0-9;]*m//g')
+                local final_val="$final_val_clean"
+                
+                if [ "$final_val_clean" == "[Clear]" ]; then 
                     final_val=""
-                elif [ "$final_sel" == "[Manual Input]" ]; then
-                    echo -e "\033[38;5;${border_color}m :: [$sub_field] MANUAL INPUT › \033[0m\c"
+                elif [ "$final_val_clean" == "[Custom]" ]; then
+                    echo -e "\033[38;5;${border_color}m :: [$sub_field] CUSTOM INPUT › \033[0m\c"
                     read final_val
                 fi
                 
@@ -726,7 +799,12 @@ function _xum_cmd_input() {
             "USER")   sub_opts="0\ncurrent\nall\n10\n"; col_idx=4 ;;
             "PKG")    sub_opts="com.android.chrome\ncom.google.android.youtube\ncom.termux\n"; col_idx=5 ;;
             "TARGET") sub_opts=".MainActivity\n.HomeActivity\nnull\n"; col_idx=6 ;;
-            "URI")    sub_opts="https://www.google.com/search?q=\nhttps://www.youtube.com/results?search_query=\n"; col_idx=9 ;;
+            "URI")    
+                local uri_list=$(grep "^export SEARCH_" "$MUX_ROOT/core.sh" | awk -F'=' '{gsub(/^export /, ""); print "$" $1}')
+                local std_urls="https://www.google.com/search?q=\nhttps://www.youtube.com/results?search_query="
+                sub_opts=$(echo -e "${uri_list}\n${std_urls}" | awk 'NF {printf "%s\\n", $0}')
+                col_idx=9 
+                ;;
             "MIME")   sub_opts="text/plain\ntext/html\nimage/*\n"; col_idx=10 ;;
             "CATE1")  sub_opts="DEFAULT\nBROWSABLE\nLAUNCHER\nAPP_MARKET\nAPP_BROWSER\nHOME\nINFO\n"; col_idx=11 ;;
             "CATE2")  sub_opts="DEFAULT\nBROWSABLE\nLAUNCHER\nAPP_MARKET\nAPP_BROWSER\nHOME\nINFO\n"; col_idx=12 ;;
@@ -735,30 +813,27 @@ function _xum_cmd_input() {
             *) continue ;;
         esac
         
-        sub_opts+="[Manual Input]\n[Clear]"
+        sub_opts+="\n\033[1;33m[Custom]\033[0m\n\033[1;31m[Clear]\033[0m" # 色彩封裝
         local total_sub=$(echo -e "$sub_opts" | grep -c "^")
         
         local sub_sel=$(echo -e "$sub_opts" | fzf --ansi \
-            --height=12 \
-            --layout=reverse \
-            --border-label=" :: [$field] PAYLOAD :: " \
-            --border=bottom \
-            --prompt=" :: INPUT › " \
-            --header=" :: Nodes: [$total_sub] ::" \
-            --info=hidden \
-            --pointer="››" \
+            --height=12 --layout=reverse --border-label=" :: [$field] PAYLOAD :: " \
+            --border=bottom --prompt=" :: INPUT › " --header=" :: Nodes: [$total_sub] ::" \
+            --info=hidden --pointer="››" \
             --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
             --color=info:240,prompt:$border_color,pointer:red,marker:208,border:$border_color,header:240 \
             --bind="resize:clear-screen"
         )
         
-        if [ -z "$sub_sel" ]; then continue; fi
+        if [ -z "$sub_sel" ]; then continue; fi # ESC 退回主選單
         
-        local final_val="$sub_sel"
-        if [ "$sub_sel" == "[Clear]" ]; then
+        local final_val_clean=$(echo "$sub_sel" | sed $'s/\033\\[[0-9;]*m//g')
+        local final_val="$final_val_clean"
+        
+        if [ "$final_val_clean" == "[Clear]" ]; then 
             final_val=""
-        elif [ "$sub_sel" == "[Manual Input]" ]; then
-            echo -e "\033[38;5;${border_color}m :: [$field] MANUAL INPUT › \033[0m\c"
+        elif [ "$final_val_clean" == "[Custom]" ]; then
+            echo -e "\033[38;5;${border_color}m :: [$field] CUSTOM INPUT › \033[0m\c"
             read final_val
         fi
         
@@ -766,18 +841,6 @@ function _xum_cmd_input() {
         _xum_update_sts "$slot" "S"
         
     done
-}
-
-# 槍機鎖定
-function _xum_cmd_set() {
-    local slot="$XUM_CURRENT_SLOT"
-    if [ -z "$slot" ]; then
-        _bot_say "error" "NO CHAMBER FOCUSED. Execute 'xum slot <n>' first."
-        return 1
-    fi
-    
-    _xum_update_cbr "$slot" "L"
-    _bot_say "success" "CHAMBER [$slot] LOCKED (L). READY TO FIRE."
 }
 
 # 退開保險並解除鎖定 (Clear CBR & Focus)
@@ -933,7 +996,7 @@ function _xum_cmd_reset() {
 
     if [ -f "$XUM_DB" ]; then
         rm -f "$XUM_DB"
-        echo -e "${C_BLACK}  ›› [SECURE WIPE]: Chamber database permanently destroyed.${C_RESET}"
+        echo -e "${C_BLACK}    ›› [SECURE WIPE]: Chamber database permanently destroyed.${C_RESET}"
     fi
     _bot_say "success" "TERMINATING OVERCLOCK PROTOCOL. REVERTING TO KERNEL STANDARDS."
     
