@@ -579,31 +579,6 @@ echo -e "${C_PURPLE} :: Mux-OS Factory Protocols ::${C_RESET}"
     ' "$FAC_MOD"
 }
 
-# 動態Help Xum選單 - Dynamic Help Overclock Detection
-function _xum_dynamic_help() {
-    local C_CMD="$C_TAVIOLET" 
-
-    [ "$MUX_MODE" == "XUM" ] && head_c="$C_TAVIOLET"
-
-    echo -e "${C_PURPLE} :: Mux-OS Core OC :: Chamber System ::${C_RESET}"
-    
-    awk -v c_cmd="$C_CMD" -v c_desc="\033[0;37m" -v c_reset="$C_RESET" -v c_syntax="\033[1;30m" '
-        /^[ \t]*# :/ {
-            desc = substr($0, match($0, /:/) + 2)
-            getline
-            if ($0 ~ /^[ \t]*"[a-zA-Z0-9|]+"\)/) {
-                cmd = $1
-                gsub(/^[ \t]*"/, "", cmd)
-                gsub(/"\)$/, "", cmd)
-                gsub(/\|/, ", ", cmd)
-                gsub(/"/, "", cmd)
-                
-                printf "    %s%-9s%s %s%s%s\n", c_cmd, cmd, c_reset, c_desc, desc, c_reset
-            }
-        }
-    ' "$OC_MOD"
-}
-
 # 顯示指令選單儀表板 - Display Command Menu Dashboard
 function _show_menu_dashboard() {
     local search_filter="$1"
@@ -1134,7 +1109,7 @@ function _factory_fzf_cmd_in_cat() {
         --header=" :: Enter to Select, Esc to Return ::" \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:red,marker:208,border:$border_color,header:240 \
+        --color=info:240,prompt:$border_color,pointer:red,marker:208,border:$border_color,header:240 \
         --bind="resize:clear-screen"
     )
 

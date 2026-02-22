@@ -36,7 +36,13 @@ export XUM_DB="$MUX_ROOT/xum.csv"
 function _xum_system_boot() {
     _system_lock
     _safe_ui_calc
-    
+
+    # --------------------------------------------------
+    # [預留位置]：未來將在此處寫入等級限制鎖
+    # --------------------------------------------------
+    # 1. 等級系統介入後，等級從L8開始，自動生成的 xum.csv 預設只會有 3 槽的欄位（ Max slot=3 ）
+    # 2. 隨着等級增加，槽位+1；當到達 L12 的時候，會全面開放到 8 槽
+
     # 自動生成基礎
     if [ ! -f "$XUM_DB" ]; then
         echo '"SLOT","CBR","STS","USER","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE1","CATE2","CATE3","EX1","TRA1","BOO1","EX2","TRA2","BOO2","EX3","TRA3","BOO3","EX4","TRA4","BOO4","EX5","TRA5","BOO5","FLAG"' > "$XUM_DB"
@@ -327,6 +333,8 @@ function _xum_cmd_input() {
         return 1
     fi
 
+    local border_color="90" # 90號紫色
+
     # 進入裝填無限迴圈
     while true; do
         # 每次迴圈重新讀取記憶體，確保選單顯示最新狀態
@@ -344,8 +352,24 @@ function _xum_cmd_input() {
         menu_items+="----------\n"
         menu_items+="Confirm"
 
-        # 呼叫 fzf
-        local selection=$(echo -e "$menu_items" | fzf --prompt="[CHAMBER $slot WORKBENCH] SELECT FIELD > ")
+        # 計算主選單節點數 (扣除最後一行空白)
+        local total_main=$(echo -e "$menu_items" | grep -c "^")
+        
+        # 呼叫全新 UI 的主選單 fzf
+        local selection=$(echo -e "$menu_items" | fzf --ansi \
+            --height=12 \
+            --layout=reverse \
+            --border-label=" :: CHAMBER $slot WORKBENCH :: " \
+            --border=bottom \
+            --tabstop=1 \
+            --prompt=" :: SELECT FIELD › " \
+            --header=" :: Nodes: [$total_main] ::" \
+            --info=hidden \
+            --pointer="››" \
+            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+            --color=info:240,prompt:$border_color,pointer:red,marker:208,border:$border_color,header:240 \
+            --bind="resize:clear-screen"
+        )
         
         # 若按 ESC 取消，則跳回主選單重選
         if [ -z "$selection" ]; then continue; fi 
@@ -383,9 +407,25 @@ function _xum_cmd_input() {
         
         # 附加特權選項
         sub_opts+="[Manual Input]\n[Clear]"
+
+        # 計算子選單節點數
+        local total_sub=$(echo -e "$sub_opts" | grep -c "^")
         
-        # 呼叫子 fzf
-        local sub_sel=$(echo -e "$sub_opts" | fzf --prompt="[$field] SELECT PAYLOAD > ")
+        # 呼叫全新 UI 的子選單 fzf
+        local sub_sel=$(echo -e "$sub_opts" | fzf --ansi \
+            --height=12 \
+            --layout=reverse \
+            --border-label=" :: [$field] PAYLOAD :: " \
+            --border=bottom \
+            --tabstop=1 \
+            --prompt=" :: INPUT › " \
+            --header=" :: Nodes: [$total_sub] ::" \
+            --info=hidden \
+            --pointer="››" \
+            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+            --color=info:240,prompt:$border_color,pointer:red,marker:208,border:$border_color,header:240 \
+            --bind="resize:clear-screen"
+        )
         
         if [ -z "$sub_sel" ]; then continue; fi
         
@@ -394,7 +434,9 @@ function _xum_cmd_input() {
         if [ "$sub_sel" == "[Clear]" ]; then
             final_val=""
         elif [ "$sub_sel" == "[Manual Input]" ]; then
-            read -p "  [KEYBOARD] Enter value for $field: " final_val
+            # 若選用手動輸入，給予紫色的輸入提示
+            echo -e "\033[38;5;${border_color}m :: [$field] MANUAL INPUT › \033[0m\c"
+            read final_val
         fi
         
         # 呼叫防呆寫入探針，並標記 STS 為 S
@@ -513,7 +555,7 @@ Output: Barrel clear. Firing mechanism nominal."
             _bot_say "success" "TARGET HIT."
         fi
 
-        report_content="-----
+        report_content="----------
 Time: $report_time
 Playload: $cmd
 Status: $fire_status
@@ -525,18 +567,18 @@ Output: $output"
     echo -e "${C_TAVIOLET} :: AFTER ACTION REPORT ::${C_RESET}"
     echo "$report_content" | while read -r line; do
         if [[ "$line" == "Status: Success"* ]]; then
-            echo -e "  \033[1;32m$line\033[0m"
+            echo -e "    \033[1;32m$line\033[0m"
         elif [[ "$line" == "Status: Failure" ]]; then
-            echo -e "  \033[1;31m$line\033[0m"
+            echo -e "    \033[1;31m$line\033[0m"
         elif [[ "$line" == "-----" ]]; then
-            echo -e "${C_BLACK}  $line${C_RESET}"
+            echo -e "${C_BLACK}    $line${C_RESET}"
         else
-            echo -e "  $line"
+            echo -e "    $line"
         fi
     done
-    echo ""
+    echo -e "${C_BLACK}  ----------${C_RESET}"
 
-    # 5. 物理退殼 (洗空 CBR, 重置 STS 為 E, 洗空 USER~FLAG)
+    # 5. 物理退殼
     local tmp_file=$(mktemp)
     awk -v FPAT='([^,]*)|("[^"]+")' -v s="$slot" '
         BEGIN { OFS="," }
@@ -578,16 +620,49 @@ function _xum_cmd_reset() {
     _mux_reload_kernel
 }
 
+# 動態Help Xum選單 - Dynamic Help Overclock Detection
+function _xum_dynamic_help() {
+    local C_CMD="$C_TAVIOLET" 
+
+    [ "$MUX_MODE" == "XUM" ] && head_c="$C_TAVIOLET"
+
+    echo -e "${C_PURPLE} :: Mux-OS Core OC :: Chamber System ::${C_RESET}"
+    
+    awk -v c_cmd="$C_CMD" -v c_desc="\033[0;37m" -v c_reset="$C_RESET" -v c_syntax="\033[1;30m" '
+        /^[ \t]*# :/ {
+            desc = substr($0, match($0, /:/) + 2)
+            getline
+            if ($0 ~ /^[ \t]*"[a-zA-Z0-9|]+"\)/) {
+                cmd = $1
+                gsub(/^[ \t]*"/, "", cmd)
+                gsub(/"\)$/, "", cmd)
+                gsub(/\|/, ", ", cmd)
+                gsub(/"/, "", cmd)
+                
+                printf "    %s%-9s%s %s%s%s\n", c_cmd, cmd, c_reset, c_desc, desc, c_reset
+            }
+        }
+    ' "$OC_MOD"
+}
+
+
+# Mux-OS 指令入口 - Overclock Command Entry
+# === Xum ===
+
+# : Overclock Command Entry
 function xum() {
     local cmd="$1"
     local arg="$2"
 
-    # 若無指令，預設的視覺回饋或亂碼擋板
+    if [ "$MUX_MODE" == "MUX" ]; then
+        echo "bash: xum: command not found" >&2
+        return 127
+    fi
+
     if [ -z "$cmd" ]; then
         return 0
     fi
 
-    # XUM 指令分流閘 (Command Switch)
     case "$cmd" in
         # : Select Ammo Chamber
         "slot")
@@ -635,7 +710,7 @@ function xum() {
             ;;
             
         *)
-            _bot_say "error" "UNKNOWN XUM DIRECTIVE: $cmd"
+            echo -e "${C_YELLOW} :: Unknown Directive: '$cmd'.${C_RESET}"
             return 1
             ;;
     esac
