@@ -243,9 +243,10 @@ function _xum_ui_status_panel() {
     [ -n "$_XUM_URI" ]    && printf "   %-7s : \033[1;36m%s\033[0m\n" "URI" "$_XUM_URI"
     [ -n "$_XUM_MIME" ]   && printf "   %-7s : \033[1;36m%s\033[0m\n" "MIME" "$_XUM_MIME"
     
-    [ -n "$_XUM_CATE1" ]  && printf "   %-7s : \033[1;36m%s\033[0m\n" "CATE1" "$_XUM_CATE1"
-    [ -n "$_XUM_CATE2" ]  && printf "   %-7s : \033[1;36m%s\033[0m\n" "CATE2" "$_XUM_CATE2"
-    [ -n "$_XUM_CATE3" ]  && printf "   %-7s : \033[1;36m%s\033[0m\n" "CATE3" "$_XUM_CATE3"
+    local prefix_cate="android.intent.category."
+    [ -n "$_XUM_CATE1" ]  && printf "   %-7s : \033[1;36m%s\033[0m\n" "CATE1" "${prefix_cate}${_XUM_CATE1}"
+    [ -n "$_XUM_CATE2" ]  && printf "   %-7s : \033[1;36m%s\033[0m\n" "CATE2" "${prefix_cate}${_XUM_CATE2}"
+    [ -n "$_XUM_CATE3" ]  && printf "   %-7s : \033[1;36m%s\033[0m\n" "CATE3" "${prefix_cate}${_XUM_CATE3}"
     
     for i in {1..5}; do
         local ex_var="_XUM_EX${i}"; local tra_var="_XUM_TRA${i}"; local boo_var="_XUM_BOO${i}"
@@ -385,9 +386,9 @@ function _xum_cmd_import() {
                 sub(/\.csv$/, "", file_name)
                 
                 if (sub_cmd != "") {
-                    printf "%s|%s|\033[1;36m%-12s\033[0m %-10s \033[1;30m%s\033[0m\n", cmd, sub_cmd, cmd, sub_cmd, file_name
+                    printf "%s|%s|\033[1;36m %s\033[0m %-10s \033[1;30m%s\033[0m\n", cmd, sub_cmd, cmd, sub_cmd, file_name
                 } else {
-                    printf "%s|%s|\033[1;36m%-12s\033[0m %-10s \033[1;30m%s\033[0m\n", cmd, "", cmd, "", file_name
+                    printf "%s|%s|\033[1;36m %s\033[0m %-10s \033[1;30m%s\033[0m\n", cmd, "", cmd, "", file_name
                 }
             }
         }
@@ -431,7 +432,7 @@ function _xum_cmd_import() {
     _mux_neural_data "$i_cmd" "$i_sub"
     if [ $? -eq 0 ]; then
         # 綁定當前駕駛員
-        _xum_neural_write "$slot" 4 "$MUX_ID"
+        _xum_neural_write "$slot" 4 ""
         
         # 寫入核心參數
         _xum_neural_write "$slot" 5 "$_VAL_PKG"
@@ -512,12 +513,17 @@ function _xum_cmd_input() {
         menu_items+="\033[1;37mMIME\033[0m\t\033[1;36m${_XUM_MIME}\033[0m\n"
         
         # [動態邏輯] CATE 瀑布流
-        menu_items+="\033[1;37mCATE1\033[0m\t\033[1;36m${_XUM_CATE1}\033[0m\n"
+        local prefix_cate="android.intent.category."
+        local disp_cate1=""; [ -n "$_XUM_CATE1" ] && disp_cate1="${prefix_cate}${_XUM_CATE1}"
+        local disp_cate2=""; [ -n "$_XUM_CATE2" ] && disp_cate2="${prefix_cate}${_XUM_CATE2}"
+        local disp_cate3=""; [ -n "$_XUM_CATE3" ] && disp_cate3="${prefix_cate}${_XUM_CATE3}"
+
+        menu_items+="\033[1;37mCATE1\033[0m\t\033[1;36m${disp_cate1}\033[0m\n"
         if [ -n "$_XUM_CATE1" ] || [ -n "$_XUM_CATE2" ]; then
-            menu_items+="\033[1;37mCATE2\033[0m\t\033[1;36m${_XUM_CATE2}\033[0m\n"
+            menu_items+="\033[1;37mCATE2\033[0m\t\033[1;36m${disp_cate2}\033[0m\n"
         fi
         if [ -n "$_XUM_CATE2" ] || [ -n "$_XUM_CATE3" ]; then
-            menu_items+="\033[1;37mCATE3\033[0m\t\033[1;36m${_XUM_CATE3}\033[0m\n"
+            menu_items+="\033[1;37mCATE3\033[0m\t\033[1;36m${disp_cate3}\033[0m\n"
         fi
         
         # [動態邏輯] EXTRA 瀑布流與封裝
@@ -717,15 +723,15 @@ function _xum_cmd_input() {
         local sub_opts=""
         local col_idx=""
         case "$field" in
-            "USER")   sub_opts="\$MUX_ID\nUnknown\n"; col_idx=4 ;;
+            "USER")   sub_opts="0\ncurrent\nall\n10\n"; col_idx=4 ;;
             "PKG")    sub_opts="com.android.chrome\ncom.google.android.youtube\ncom.termux\n"; col_idx=5 ;;
             "TARGET") sub_opts=".MainActivity\n.HomeActivity\nnull\n"; col_idx=6 ;;
             "URI")    sub_opts="https://www.google.com/search?q=\nhttps://www.youtube.com/results?search_query=\n"; col_idx=9 ;;
             "MIME")   sub_opts="text/plain\ntext/html\nimage/*\n"; col_idx=10 ;;
-            "CATE1")  sub_opts="android.intent.category.LAUNCHER\nandroid.intent.category.BROWSABLE\nandroid.intent.category.DEFAULT\n"; col_idx=11 ;;
-            "CATE2")  sub_opts="android.intent.category.LAUNCHER\nandroid.intent.category.BROWSABLE\nandroid.intent.category.DEFAULT\n"; col_idx=12 ;;
-            "CATE3")  sub_opts="android.intent.category.LAUNCHER\nandroid.intent.category.BROWSABLE\nandroid.intent.category.DEFAULT\n"; col_idx=13 ;;
-            "FLAG")   sub_opts="--user 0\n--grant-read-uri-permission\n"; col_idx=29 ;;
+            "CATE1")  sub_opts="DEFAULT\nBROWSABLE\nLAUNCHER\nAPP_MARKET\nAPP_BROWSER\nHOME\nINFO\n"; col_idx=11 ;;
+            "CATE2")  sub_opts="DEFAULT\nBROWSABLE\nLAUNCHER\nAPP_MARKET\nAPP_BROWSER\nHOME\nINFO\n"; col_idx=12 ;;
+            "CATE3")  sub_opts="DEFAULT\nBROWSABLE\nLAUNCHER\nAPP_MARKET\nAPP_BROWSER\nHOME\nINFO\n"; col_idx=13 ;;
+            "FLAG")   sub_opts="0x10000000\n0x04000000\n0x20000000\n0x08000000\n0x00000001\n0x00000002\n"; col_idx=29 ;;
             *) continue ;;
         esac
         
