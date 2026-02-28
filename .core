@@ -678,12 +678,12 @@ function _xum_cmd_input() {
                 local intent_col=""
                 
                 if [ "$sub_field" == "IHEAD" ]; then
-                    local ex_ihead=$(awk -F',' 'NR>1 {gsub(/"/,"",$12); if($12!="") print $12}' "$MUX_ROOT"/{app,system,vendor}.csv 2>/dev/null | sort -u)
+                    local ex_ihead=$(awk -F',' 'FNR>1 {gsub(/"/,"",$12); if($12!="") print $12}' "$MUX_ROOT"/{app,system,vendor}.csv 2>/dev/null | sort -u)
                     [ -z "$ex_ihead" ] && ex_ihead="android.intent.action\nandroid.settings"
                     intent_opts=$(echo -e "$ex_ihead" | awk 'NF {printf "%s\\n", $0}')
                     intent_col=7
                 elif [ "$sub_field" == "IBODY" ]; then
-                    local ex_ibody=$(awk -F',' 'NR>1 {gsub(/"/,"",$13); if($13!="") print $13}' "$MUX_ROOT"/{app,system,vendor}.csv 2>/dev/null)
+                    local ex_ibody=$(awk -F',' 'FNR>1 {gsub(/"/,"",$13); if($13!="") print $13}' "$MUX_ROOT"/{app,system,vendor}.csv 2>/dev/null)
                     local std_ibody=".MAIN\n.VIEW\n.SEARCH\n.SEND\n.DIAL\n.CALL\n.WEB_SEARCH\n.VOICE_COMMAND\n.SET_ALARM\n.SET_TIMER\n.SHOW_ALARMS\n.WIFI_SETTINGS\n.BLUETOOTH_SETTINGS\n.DISPLAY_SETTINGS\n.DATE_SETTINGS"
                     intent_opts=$(echo -e "${ex_ibody}\n${std_ibody}" | sort -u | awk 'NF {printf "%s\\n", $0}')
                     intent_col=8
@@ -818,7 +818,7 @@ function _xum_cmd_input() {
         local col_idx=""
         case "$field" in
             "USER")
-                sub_opts="0\ncurrent\nall\n10\n"
+                sub_opts="0\ncurrent\nall\n10"
                 col_idx=4
                 ;;
             "PKG")
@@ -826,7 +826,7 @@ function _xum_cmd_input() {
                 col_idx=5 
                 ;;
             "TARGET")
-                sub_opts=".MainActivity\n.HomeActivity\nnull\n"
+                sub_opts=".MainActivity\n.HomeActivity\nnull"
                 col_idx=6
                 ;;
             "URI")    
@@ -837,29 +837,29 @@ function _xum_cmd_input() {
             "MIME")   
                 sub_opts="*/*\n"
                 # 文本與代碼
-                sub_opts+="text/plain\ntext/html\ntext/xml\ntext/csv\ntext/x-vcard\n"
+                sub_opts+="text/plain\ntext/html\ntext/xml\ntext/csv\ntext/x-vcard"
                 # 圖片
-                sub_opts+="image/*\nimage/jpeg\nimage/png\nimage/gif\nimage/webp\nimage/svg+xml\n"
+                sub_opts+="image/*\nimage/jpeg\nimage/png\nimage/gif\nimage/webp\nimage/svg+xml"
                 # 影片
-                sub_opts+="video/*\nvideo/mp4\nvideo/x-matroska\nvideo/webm\n"
+                sub_opts+="video/*\nvideo/mp4\nvideo/x-matroska\nvideo/webm"
                 # 音訊
-                sub_opts+="audio/*\naudio/mpeg\naudio/mp4\naudio/ogg\naudio/wav\n"
+                sub_opts+="audio/*\naudio/mpeg\naudio/mp4\naudio/ogg\naudio/wav"
                 # 應用程式與封裝檔
-                sub_opts+="application/vnd.android.package-archive\n" # APK 安裝包
-                sub_opts+="application/pdf\napplication/zip\napplication/json\n"
+                sub_opts+="application/vnd.android.package-archive" # APK 安裝包
+                sub_opts+="application/pdf\napplication/zip\napplication/json"
                 # 微軟 Office 文件
-                sub_opts+="application/msword\napplication/vnd.openxmlformats-officedocument.wordprocessingml.document\n" # Word
-                sub_opts+="application/vnd.ms-excel\napplication/vnd.openxmlformats-officedocument.spreadsheetml.sheet\n" # Excel
-                sub_opts+="application/vnd.ms-powerpoint\napplication/vnd.openxmlformats-officedocument.presentationml.presentation\n" # PPT
+                sub_opts+="application/msword\napplication/vnd.openxmlformats-officedocument.wordprocessingml.document" # Word
+                sub_opts+="application/vnd.ms-excel\napplication/vnd.openxmlformats-officedocument.spreadsheetml.sheet" # Excel
+                sub_opts+="application/vnd.ms-powerpoint\napplication/vnd.openxmlformats-officedocument.presentationml.presentation" # PPT
                 col_idx=10 
                 ;;
             "CATE1"|"CATE2"|"CATE3")  
                 # 核心與系統層級 (Core & System)
-                sub_opts="DEFAULT\nBROWSABLE\nLAUNCHER\nHOME\nINFO\nOPENABLE\nTYPED_OPENABLE\nPREFERENCE\nTAB\nALTERNATIVE\nSELECTED_ALTERNATIVE\nTEST\nCAR_DOCK\nDESK_DOCK\nLEANBACK_LAUNCHER\n"
+                sub_opts="DEFAULT\nBROWSABLE\nLAUNCHER\nHOME\nINFO\nOPENABLE\nTYPED_OPENABLE\nPREFERENCE\nTAB\nALTERNATIVE\nSELECTED_ALTERNATIVE\nTEST\nCAR_DOCK\nDESK_DOCK\nLEANBACK_LAUNCHER"
                 # 應用程式類型 (App Types - Primary)
-                sub_opts+="APP_MARKET\nAPP_BROWSER\nAPP_CALCULATOR\nAPP_CALENDAR\nAPP_CONTACTS\nAPP_EMAIL\nAPP_GALLERY\nAPP_MAPS\nAPP_MESSAGING\nAPP_MUSIC\nAPP_SETTINGS\nAPP_FILES\nAPP_CAMERA\nAPP_CLOCK\nAPP_WEATHER\nAPP_NOTES\nAPP_VOICE_RECORDER\n"
+                sub_opts+="APP_MARKET\nAPP_BROWSER\nAPP_CALCULATOR\nAPP_CALENDAR\nAPP_CONTACTS\nAPP_EMAIL\nAPP_GALLERY\nAPP_MAPS\nAPP_MESSAGING\nAPP_MUSIC\nAPP_SETTINGS\nAPP_FILES\nAPP_CAMERA\nAPP_CLOCK\nAPP_WEATHER\nAPP_NOTES\nAPP_VOICE_RECORDER"
                 # 應用程式類型 (App Types - Extended)
-                sub_opts+="APP_NEWS\nAPP_PRODUCTIVITY\nAPP_SOCIAL\nAPP_GAMES\nAPP_BOOKS\nAPP_VIDEO\nAPP_PODCASTS\nAPP_HEALTH_FITNESS\nAPP_TRAVEL_LOCAL\nAPP_FINANCE\nAPP_SHOPPING\nAPP_FOOD_DRINK\nAPP_ENTERTAINMENT\nAPP_LIFESTYLE\nAPP_EDUCATION\nAPP_BUSINESS\nAPP_TOOLS\nAPP_COMMUNICATION\nAPP_PERSONALIZATION\nAPP_AUTO_AND_VEHICLES\nAPP_BEAUTY\nAPP_COMICS\nAPP_DATING\nAPP_EVENTS\nAPP_HOUSE_HOME\nAPP_MEDICAL\nAPP_PARENTING\nAPP_PHOTOGRAPHY\nAPP_SPORTS\n"
+                sub_opts+="APP_NEWS\nAPP_PRODUCTIVITY\nAPP_SOCIAL\nAPP_GAMES\nAPP_BOOKS\nAPP_VIDEO\nAPP_PODCASTS\nAPP_HEALTH_FITNESS\nAPP_TRAVEL_LOCAL\nAPP_FINANCE\nAPP_SHOPPING\nAPP_FOOD_DRINK\nAPP_ENTERTAINMENT\nAPP_LIFESTYLE\nAPP_EDUCATION\nAPP_BUSINESS\nAPP_TOOLS\nAPP_COMMUNICATION\nAPP_PERSONALIZATION\nAPP_AUTO_AND_VEHICLES\nAPP_BEAUTY\nAPP_COMICS\nAPP_DATING\nAPP_EVENTS\nAPP_HOUSE_HOME\nAPP_MEDICAL\nAPP_PARENTING\nAPP_PHOTOGRAPHY\nAPP_SPORTS"
                 
                 if [ "$field" == "CATE1" ]; then col_idx=11
                 elif [ "$field" == "CATE2" ]; then col_idx=12
@@ -867,7 +867,7 @@ function _xum_cmd_input() {
                 fi
                 ;;
             "FLAG")
-                sub_opts="0x10000000\n0x04000000\n0x20000000\n0x08000000\n0x00000001\n0x00000002\n--activity-clear-top\n--activity-single-top\n--activity-no-history\n--activity-previous-is-top\n--activity-clear-task\n"
+                sub_opts="0x10000000\n0x04000000\n0x20000000\n0x08000000\n0x00000001\n0x00000002\n--activity-clear-top\n--activity-single-top\n--activity-no-history\n--activity-previous-is-top\n--activity-clear-task"
                 col_idx=29
                 ;;
             *) continue ;;
