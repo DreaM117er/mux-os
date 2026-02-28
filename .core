@@ -689,7 +689,7 @@ function _xum_cmd_input() {
                     intent_col=8
                 fi
                 
-                intent_opts+="\n\033[1;33m[Custom]\033[0m\n\033[1;31m[Clear]\033[0m"
+                intent_opts+="\033[1;33m[Custom]\033[0m\n\033[1;31m[Clear]\033[0m"
                 
                 local final_sel=$(echo -e "$intent_opts" | fzf --ansi \
                     --height=12 \
