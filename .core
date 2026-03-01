@@ -185,6 +185,35 @@ function _xum_update_sts() {
     ' "$XUM_DB" > "$tmp_file" && mv "$tmp_file" "$XUM_DB"
 }
 
+# 動態神經負載引擎 (Neural Load & Glitch Calculator)
+function _xum_update_glitch_rate() {
+    # 系統負載 10%
+    if [ "$MUX_MODE" != "XUM" ] || [ -z "$XUM_CURRENT_SLOT" ] || [ ! -f "$XUM_DB" ]; then
+        export MUX_GLITCH_RATE=10
+        return
+    fi
+    
+    local filled_params=$(awk -v s="$XUM_CURRENT_SLOT" -v FPAT='([^,]*)|("[^"]+")' '
+        NR == s + 1 {
+            count = 0
+            # 從第 4 欄 (USER) 開始計算，跳過 SLOT, CBR, STS
+            for(i=4; i<=NF; i++) {
+                val = $i; gsub(/^"|"$/, "", val); gsub(/^[ \t]+|[ \t]+$/, "", val)
+                if (val != "") count++
+            }
+            print count
+        }
+    ' "$XUM_DB" 2>/dev/null)
+    
+    # 乘載公式：基礎 10% + (每格 * 4.5% -> 以整數 4 計算)
+    local current_glitch=$(( 10 + (filled_params * 4) ))
+    
+    # 物理上限鎖在 99%，保留最後一絲理智
+    [ "$current_glitch" -gt 99 ] && current_glitch=99
+    
+    export MUX_GLITCH_RATE=$current_glitch
+}
+
 # 全域戰術雷達 (Global Chamber Radar)
 function _xum_ui_status_all() {
     echo -e "${C_PURPLE} :: Mux-OS Core OC :: CHAMBER RADAR ::${C_RESET}"
@@ -351,6 +380,7 @@ function _xum_cmd_slot() {
     _xum_update_cbr "$slot" "F"
     export XUM_CURRENT_SLOT="$slot"
 
+    _xum_update_glitch_rate
     _xum_ui_status_panel "$slot"
 }
 
@@ -567,6 +597,7 @@ function _xum_cmd_import() {
         _bot_say "success" "Core Payload [$i_cmd $i_sub] Injected to Chamber $slot."
         
         _xum_ui_status_panel "$slot"
+        _xum_update_glitch_rate
     else
         _bot_say "error" "Import Failed: Core Node [$i_cmd $i_sub] Not Found."
         return 1
@@ -1016,6 +1047,7 @@ function _xum_cmd_input() {
             # 執行寫入，然後跳出子迴圈，回到 Main Workbench
             _xum_neural_write "$slot" "$col_idx" "$final_val"
             _xum_update_sts "$slot" "S"
+            _xum_update_glitch_rate
             break
         done
     done
@@ -1075,6 +1107,7 @@ function _xum_cmd_clear() {
         
         _bot_say "warn" "CHAMBER [$slot] PAYLOAD PURGED."
         _xum_ui_status_panel "$slot"
+        _xum_update_glitch_rate
     else
         # STS Unset: Clear report.txt
         local report_file="$MUX_ROOT/report.txt"

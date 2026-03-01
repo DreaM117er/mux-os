@@ -240,13 +240,19 @@ function _bot_say() {
         if [ "$color" == "$C_CYAN" ]; then
             color="$C_TAVIOLET"
         fi
-
         icon=" ::"
-        selected_phrase=$(echo "$selected_phrase" | sed 's/[eE]/3/g; s/[aA]/4/g; s/[iI]/!/g; s/[oO]/0/g; s/[sS]/\$/g')
         
-        if [ -n "$detail" ]; then
-            detail=$(echo "$detail" | sed 's/[eE]/3/g; s/[aA]/4/g; s/[iI]/!/g; s/[oO]/0/g; s/[sS]/\$/g')
+        local glitch_threshold=${MUX_GLITCH_RATE:-10}
+        local rng=$(( RANDOM % 100 ))
+        
+        if [ "$rng" -lt "$glitch_threshold" ]; then
+            selected_phrase=$(echo "$selected_phrase" | sed 's/[eE]/3/g; s/[aA]/4/g; s/[iI]/!/g; s/[oO]/0/g; s/[sS]/\$/g')
+            
+            if [ -n "$detail" ]; then
+                detail=$(echo "$detail" | sed 's/[eE]/3/g; s/[aA]/4/g; s/[iI]/!/g; s/[oO]/0/g; s/[sS]/\$/g')
+            fi
         fi
+        
         detail_color="$C_BLACK"
     else
         detail_color="$C_BLACK"
