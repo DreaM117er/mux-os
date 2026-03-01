@@ -349,9 +349,9 @@ function _xum_cmd_slot() {
             --info=hidden \
             --layout=reverse \
             --header=" :: Enter to Select, Esc to Return ::" \
-            --border-label=" :: SELECT CHAMBER :: " \
+            --border-label=" :: FIRE CONTROL :: " \
             --border=bottom \
-            --prompt=":: SLOT › " \
+            --prompt=":: CHAMBER › " \
             --pointer="››" \
             --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
             --color=info:240,prompt:90,pointer:red,marker:208,border:90,header:240 \
