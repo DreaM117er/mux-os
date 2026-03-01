@@ -1,28 +1,6 @@
 #!/bin/bash
 # Mux-OS 超頻模式 (Overclock Mode)
 
-# ==============================================================================
-# [PROJECT XUM] DUAL-AXIS STATE MACHINE DEFINITION (雙軸狀態機定義)
-# ==============================================================================
-# 
-# AXIS 1: CBR (Chamber State - 物理槍機狀態) -> 位於 CSV 第 2 欄 ($2)
-# 描述操作者對實體彈巢的干涉程度。
-#   - [Empty] : 預設空值。未被觸碰。
-#   - [F]     : Focus (手握住)。執行 `xum slot n` 時寫入。寫入前需全局洗空其他彈巢的 F。
-#               * 所有的 `xum input` (資料寫入) 只能在 F 狀態下執行。
-#   - [L]     : Locked (上膛解鎖)。執行 `xum set` 時寫入。
-#               * `xum fire` 唯一允許擊發的物理狀態。
-#   - (解除)  : 執行 `xum unset` 時，清空該欄位 (拔除 F 或 L)。
-#
-# AXIS 2: STS (Payload Status - 資料健康度狀態) -> 位於 CSV 第 3 欄 ($3)
-# 描述該發子彈內部的火藥參數是否完整。
-#   - [E]     : Empty (空彈)。預設狀態，無任何參數。
-#   - [S]     : Saved (已儲存)。透過 `xum input` 寫入參數後掛上。
-#   - [N]     : Not Ready (瑕疵彈)。經過 check 掃描後，發現必要參數不齊全。
-#   - [R]     : Ready (完美彈)。經過 check 掃描後，確認可組裝為有效指令。
-#               * 允許 L 狀態下強行擊發 E 或 N，作為測試槍管或超載射擊。
-# ==============================================================================
-
 # 安全檢測
 if [ -z "$MUX_ROOT" ] || [ ! -f "$MUX_ROOT/.mux_state" ]; then
     echo -e "\033[1;35m[SO-xuM: FATAL] Core environment missing. Execution aborted.\033[0m"
@@ -67,6 +45,7 @@ function _xum_system_boot() {
     _show_hud "xum"
     _system_unlock
     _bot_say "hello"
+    echo -e "${C_TAVIOLET} :: Thermal Limit : ${C_RED}${MUX_FIRECOUNT:-0} Rounds Remaining.${C_RESET}"
 }
 
 # 超頻讀取器 (Chamber Reader)
@@ -173,7 +152,6 @@ function _xum_update_cbr() {
                 }
             }
             
-            # [目標寫入] 處理指定的 Slot
             if (row_slot == s) {
                 if (c == "") {
                     $2 = ""
@@ -241,6 +219,7 @@ function _xum_ui_status_all() {
     ' "$XUM_DB"
     
     echo -e "${C_BLACK}  ----------${C_RESET}"
+    echo -e "${C_TAVIOLET} :: Thermal Limit : ${C_RED}${MUX_FIRECOUNT:-0} Rounds Remaining.${C_RESET}"
 }
 
 # 戰術狀態面板 (Tactical Status Panel)
@@ -280,6 +259,8 @@ function _xum_ui_status_panel() {
     echo -e "   CHAMBER : ${C_TAVIOLET}[$slot]${C_RESET}"
     echo -e "   STATUS  : $cbr_disp"
     echo -e "   PAYLOAD : $sts_disp"
+    echo -e "${C_BLACK}  ----------${C_RESET}"
+    echo -e "${C_TAVIOLET}   Thermal Limit : ${C_RED}${MUX_FIRECOUNT}${C_RESET}"
     echo -e "${C_BLACK}  ----------${C_RESET}"
     
     # 依序印出實體參數
@@ -1231,7 +1212,8 @@ Status: $fire_status
 Output: $output"
     fi
 
-    # 結算系統
+    # 結算系統:
+    # XP = ((B*10) + (S*5)) * (1 + S*0.1) * Q * V
     if [ "$is_empty" == false ]; then
         if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
         
@@ -1262,7 +1244,7 @@ Output: $output"
         if [ "$has_query" == true ]; then Q=1.2; fi
 
         local V=1.0
-        if [ "$fire_status" == "FAILED" ]; then V=0.5; fi
+        if [ "$fire_status" == "Failure" ]; then V=0.5; fi
 
         local calc_xp=$(awk -v b="$B" -v s="$S" -v q="$Q" -v v="$V" 'BEGIN {
             base = (b * 10) + (s * 5)
@@ -1272,7 +1254,7 @@ Output: $output"
         }')
 
         echo -e "${THEME_OK} :: PAYLOAD COMPLEXITY : B[$B] S[$S] Q[$Q] V[$V] ::${C_RESET}"
-        echo -e "${THEME_WARN} :: THERMAL LIMIT UPDATE : ${C_RED}${MUX_FIRECOUNT} Rounds Remaining.${C_RESET}"
+        echo -e "${C_TAVIOLET} :: Thermal Limit : ${C_RED}${MUX_FIRECOUNT} Rounds Remaining.${C_RESET}"
         
         if command -v _grant_xp &> /dev/null; then
             _grant_xp "$calc_xp" "CMD_EXEC"
@@ -1318,11 +1300,14 @@ Output: $output"
     _bot_say "system" "CHAMBER [$slot] EJECTED & RESET."
 
     # 6. 彈藥耗盡
-    if [ "$is_empty" == false ] && [ "$MUX_FIRECOUNT" -le 0 ]; then
-        echo ""
-        echo -e "${C_RED} :: THERMAL LIMIT CRITICAL :: BARREL MELTDOWN IMMINENT ::${C_RESET}"
-        sleep 1.9
-        _xum_cmd_reset
+    if [ "$is_empty" == false ]; then
+        echo -e "${C_TAVIOLET}    ›› Current Thermal Limit: ${C_RED}${MUX_FIRECOUNT} Rounds${C_RESET}"
+        if [ "$MUX_FIRECOUNT" -le 0 ]; then
+            echo ""
+            echo -e "${C_RED} :: THERMAL LIMIT CRITICAL :: BARREL MELTDOWN IMMINENT ::${C_RESET}"
+            sleep 1.9
+            _xum_cmd_reset
+        fi
     fi
 }
 
