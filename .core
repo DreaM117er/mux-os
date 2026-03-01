@@ -1408,8 +1408,6 @@ function _xum_cmd_reset() {
     
     _update_mux_state "MUX" "LOGIN" "COOLDOWN"
     MUX_STATUS="LOGIN"
-    unset MUX_INITIALIZED
-
     _mux_reload_kernel
 }
 

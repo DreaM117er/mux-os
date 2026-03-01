@@ -223,6 +223,8 @@ function _mux_reload_kernel() {
         _ui_fake_gate "$gate_theme"
     fi
 
+
+
     _system_unlock
     exec bash
 }
