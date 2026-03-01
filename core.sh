@@ -230,7 +230,7 @@ function _mux_reload_kernel() {
     fi
 
     if command -v _ui_fake_gate &> /dev/null; then
-        _ui_fake_gate "$gate_theme"
+        _ui_fake_gate "$gate_theme" "$current_entry"
     fi
 
     _system_unlock
