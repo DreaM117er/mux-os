@@ -1407,6 +1407,9 @@ function _xum_cmd_reset() {
     _bot_say "success" "TERMINATING OVERCLOCK PROTOCOL. REVERTING TO KERNEL STANDARDS."
     
     _update_mux_state "MUX" "LOGIN" "COOLDOWN"
+    MUX_STATUS="LOGIN"
+    unset MUX_INITIALIZED
+
     _mux_reload_kernel
 }
 

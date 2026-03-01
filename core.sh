@@ -223,17 +223,6 @@ function _mux_reload_kernel() {
         _ui_fake_gate "$gate_theme"
     fi
 
-    if [ -f "$MUX_ROOT/.mux_state" ]; then
-        local current_entry=$(grep "^MUX_ENTRY_POINT=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2 | tr -d '\r\n ')
-        
-        if [[ "$current_entry" == "OVERCLOCK" || "$current_entry" == "COOLDOWN" ]]; then
-            local safe_mode=$(grep "^MUX_MODE=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2 | tr -d '\r\n ')
-            local safe_status=$(grep "^MUX_STATUS=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2 | tr -d '\r\n ')
-            
-            _update_mux_state "$safe_mode" "$safe_status"
-        fi
-    fi
-
     _system_unlock
     exec bash
 }
@@ -1875,6 +1864,7 @@ function mux() {
             # 3. 放行啟動
             _bot_say "warn" "WARNING: OVERCLOCK PROTOCOL DETECTED."
             _update_mux_state "XUM" "LOGIN" "OVERCLOCK"
+            MUX_STATUS="LOGIN"
             _mux_reload_kernel
             ;;
 
