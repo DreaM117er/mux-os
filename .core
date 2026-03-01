@@ -37,19 +37,29 @@ function _xum_system_boot() {
     _system_lock
     _safe_ui_calc
 
-    # ----------
-    # [預留位置]：未來將在此處寫入等級限制鎖
-    # ----------
-    # 1. 等級系統介入後，等級從L8開始，自動生成的 xum.csv 預設只會有 3 槽的欄位（ Max slot=3 ）
-    # 2. 隨着等級增加，槽位+1；當到達 L12 的時候，會全面開放到 8 槽
+    # 讀取身份資料
+    if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
 
-    # 自動生成基礎
+    # 1. 等級鎖
+    local max_slots=3
+    if [ "$MUX_LEVEL" -ge 12 ]; then
+        max_slots=8
+    elif [ "$MUX_LEVEL" -ge 8 ]; then
+        max_slots=$(( MUX_LEVEL - 5 ))
+    fi
+
+    # 2. 自動生成實體彈巢
     if [ ! -f "$XUM_DB" ]; then
         echo '"SLOT","CBR","STS","USER","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE1","CATE2","CATE3","EX1","TRA1","BOO1","EX2","TRA2","BOO2","EX3","TRA3","BOO3","EX4","TRA4","BOO4","EX5","TRA5","BOO5","FLAG"' > "$XUM_DB"
-        for i in {1..8}; do
+        for i in $(seq 1 $max_slots); do
             echo "$i,,\"E\",,,,,,,,,,,,,,,,,,,,,,,,,," >> "$XUM_DB"
         done
     fi
+
+    # 3. 發射次數與啟動時間
+    MUX_FIRECOUNT=$max_slots
+    MUX_OCDATE=$(date +%s)
+    _save_identity
 
     clear
     _draw_logo "xum"
@@ -303,8 +313,38 @@ function _xum_ui_status_panel() {
 # 選擇並握住彈巢 (Slot Focus -> CBR: F)
 function _xum_cmd_slot() {
     local slot="$1"
-    if [[ ! "$slot" =~ ^[1-8]$ ]]; then
-        _bot_say "error" "INVALID CHAMBER: $slot. Provide 1-8."
+    
+    # 動態抓取實體槽位數量
+    local current_max=8
+    if [ -f "$XUM_DB" ]; then
+        current_max=$(awk 'END {print NR-1}' "$XUM_DB")
+    fi
+
+    if [ -z "$slot" ]; then
+        local menu_items=$(awk -v max="$current_max" -v FPAT='([^,]*)|("[^"]+")' '
+            NR > 1 && NR <= max + 1 {
+                s = $1; gsub(/^"|"$/, "", s); gsub(/^[ \t]+|[ \t]+$/, "", s)
+                sts = $3; gsub(/^"|"$/, "", sts); gsub(/^[ \t]+|[ \t]+$/, "", sts)
+                
+                sts_disp = "\033[1;30m[Empty]\033[0m"
+                if (sts == "S") sts_disp = "\033[1;33m[Saved]\033[0m"
+                if (sts == "N") sts_disp = "\033[1;31m[Not Ready]\033[0m"
+                if (sts == "R") sts_disp = "\033[1;32m[Ready]\033[0m"
+                
+                printf "%s | %s › %s\n", s, sts, sts_disp
+            }
+        ' "$XUM_DB" 2>/dev/null)
+        
+        local fzf_h=$(( current_max + 4 ))
+        local sel=$(echo -e "$menu_items" | fzf --ansi --height=${fzf_h} --layout=reverse \
+            --border-label=" :: SELECT CHAMBER :: " --prompt=" › " --pointer="››" )
+        
+        if [ -z "$sel" ]; then return 0; fi
+        slot=$(echo "$sel" | awk '{print $1}')
+    fi
+
+    if [[ ! "$slot" =~ ^[0-9]+$ ]] || [ "$slot" -lt 1 ] || [ "$slot" -gt "$current_max" ]; then
+        _bot_say "error" "INVALID CHAMBER: $slot. Available: 1-$current_max."
         return 1
     fi
 
@@ -1175,6 +1215,53 @@ Status: $fire_status
 Output: $output"
     fi
 
+    # 結算系統
+    if [ "$is_empty" == false ]; then
+        if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+        
+        # 扣除發射次數
+        MUX_FIRECOUNT=$(( MUX_FIRECOUNT - 1 ))
+        _save_identity
+        
+        local B=0
+        [ -n "$_XUM_USER" ] && [ "$_XUM_USER" != "0" ] && B=$((B + 1))
+        [ -n "$_XUM_PKG" ] && B=$((B + 1))
+        [ -n "$_XUM_TARGET" ] && [ "$_XUM_TARGET" != "null" ] && B=$((B + 1))
+        if [ -n "$_XUM_IHEAD" ] || [ -n "$_XUM_IBODY" ]; then B=$((B + 1)); fi
+        if [ -n "$_XUM_FLAG" ] || [ -n "$_XUM_MIME" ]; then B=$((B + 1)); fi
+
+        local S=0
+        [ -n "$_XUM_URI" ] && S=$((S + 1))
+        [ -n "$_XUM_CATE1" ] && S=$((S + 1))
+        [ -n "$_XUM_CATE2" ] && S=$((S + 1))
+        [ -n "$_XUM_CATE3" ] && S=$((S + 1))
+        for i in {1..5}; do
+            local ex_var="_XUM_EX${i}"; local tra_var="_XUM_TRA${i}"; local boo_var="_XUM_BOO${i}"
+            [ -n "${!ex_var}" ] && S=$((S + 1))
+            [ -n "${!tra_var}" ] && S=$((S + 1))
+            [ -n "${!boo_var}" ] && S=$((S + 1))
+        done
+
+        local Q=1.0
+        if [ "$has_query" == true ]; then
+            Q=1.2
+        fi
+
+        local calc_xp=$(awk -v b="$B" -v s="$S" -v q="$Q" 'BEGIN {
+            base = (b * 10) + (s * 5)
+            mult = 1 + (s * 0.1)
+            final = base * mult * q
+            print int(final)
+        }')
+
+        echo -e "${THEME_OK} :: PAYLOAD COMPLEXITY : B[$B] S[$S] Q[$Q] ::${C_RESET}"
+        echo -e "${THEME_WARN} :: THERMAL LIMIT UPDATE : ${C_RED}${MUX_FIRECOUNT} Rounds Remaining.${C_RESET}"
+        
+        if command -v _grant_xp &> /dev/null; then
+            _grant_xp "$calc_xp" "CMD_EXEC"
+        fi
+    fi
+
     # 4. 寫入與輸出報告
     echo "$report_content" >> "$report_file"
     echo -e "${C_TAVIOLET} :: AFTER ACTION REPORT ::${C_RESET}"
@@ -1212,6 +1299,14 @@ Output: $output"
     
     export XUM_CURRENT_SLOT=""
     _bot_say "system" "CHAMBER [$slot] EJECTED & RESET."
+
+    # 彈藥耗盡
+    if [ "$is_empty" == false ] && [ "$MUX_FIRECOUNT" -le 0 ]; then
+        echo ""
+        echo -e "${C_RED} :: THERMAL LIMIT CRITICAL :: BARREL MELTDOWN IMMINENT ::${C_RESET}"
+        sleep 1.9
+        _xum_cmd_reset
+    fi
 }
 
 # 槍管退膛與系統降壓 (Chamber Eject & System Cooldown)
@@ -1221,6 +1316,11 @@ function _xum_cmd_reset() {
     # ----------
     # [預留位置]：未來將在此處寫入 Unix 時間戳記 (2小時物理鎖)
     # ----------
+
+    # 寫入關閉時間
+    if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+    MUX_CDDATE=$(date +%s)
+    _save_identity
 
     if [ -f "$XUM_DB" ]; then
         rm -f "$XUM_DB"

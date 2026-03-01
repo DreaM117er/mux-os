@@ -575,6 +575,47 @@ function _mux_security_gate() {
     return 0
 }
 
+# 潘朵拉之盒 (Pandora's Box)
+function _check_pandoras_box() {
+    local cmd="$1"
+    shift
+    local args="$*"
+    
+    # 計數器更新
+    if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+    case "$cmd" in
+        "cd")    CMD_CD_COUNT=$((CMD_CD_COUNT + 1)) ;;
+        "nano")  CMD_NANO_COUNT=$((CMD_NANO_COUNT + 1)) ;;
+        "cp")    CMD_CP_COUNT=$((CMD_CP_COUNT + 1)) ;;
+        "sed")   CMD_SED_COUNT=$((CMD_SED_COUNT + 1)) ;;
+        "micro") CMD_MICRO_COUNT=$((CMD_MICRO_COUNT + 1)) ;;
+    esac
+    _save_identity
+    
+    # 後綴字串掃描
+    if [[ "$args" == *".mux_identity"* ]] || [[ "$args" == *".mux_state"* ]]; then
+        _system_lock
+        echo ""
+        echo -e "${C_GREEN} :: PANDORA'S BOX OPENED ::${C_RESET}"
+        sleep 1
+        echo -e "${C_BLACK}    ›› Unauthorized tampering with Reality Core detected.${C_RESET}"
+        sleep 1
+        
+        if command -v _unlock_badge &> /dev/null; then _unlock_badge "PB" "Pandora's Box"; fi
+        echo ""
+        echo "echo -e '${C_RED} :: DIMENSIONAL LOCK ACTIVE :: Reality Core Compromised. ${C_RESET}\n'" >> "$HOME/.bashrc"
+        echo "exit" >> "$HOME/.bashrc"
+        
+        if command -v _trigger_dimensional_strike &> /dev/null; then
+            _trigger_dimensional_strike "Fatal breach. Sealing terminal permanently."
+        fi
+        
+        _system_unlock
+        return 1
+    fi
+    return 0
+}
+
 # 神經火控系統 - Neural Fire Control
 function _mux_neural_fire_control() {
     # 0. 狀態檢查
@@ -1739,10 +1780,33 @@ function mux() {
             ;;
 
         "xum")
+            # 確保讀取最新身份資料
+            if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+            
+            # 1. 等級鎖 (Level Gate)：未滿 L8 禁止進入
+            if [ "$MUX_LEVEL" -lt 8 ]; then
+                _bot_say "error" "ACCESS DENIED. Clearance Level 8 required for Overclock."
+                return 1
+            fi
+
+            # 2. 物理冷卻鎖 (Thermal Cooldown)：2 小時 (7200 秒)
+            local now_ts=$(date +%s)
+            local cd_elapsed=$(( now_ts - MUX_CDDATE ))
+            local cd_required=7200
+            
+            if [ "$cd_elapsed" -lt "$cd_required" ]; then
+                local cd_remain=$(( cd_required - cd_elapsed ))
+                local cd_min=$(( cd_remain / 60 ))
+                local cd_sec=$(( cd_remain % 60 ))
+                
+                _bot_say "error" "OVERCLOCK PROTOCOL LOCKED. CORE COOLING IN PROGRESS."
+                echo -e "${THEME_DESC}    ›› Time remaining: ${THEME_ERR}${cd_min}m ${cd_sec}s${C_RESET}"
+                return 1
+            fi
+
+            # 3. 放行啟動
             _bot_say "warn" "WARNING: OVERCLOCK PROTOCOL DETECTED."
-            
             _update_mux_state "XUM" "LOGIN" "COCKPIT"
-            
             _mux_reload_kernel
             ;;
 
