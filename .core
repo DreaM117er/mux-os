@@ -45,7 +45,7 @@ function _xum_system_boot() {
     _show_hud "xum"
     _system_unlock
     _bot_say "hello"
-    echo -e "${C_TAVIOLET} :: Thermal Limit : ${C_RED}${MUX_FIRECOUNT:-0} Rounds Remaining.${C_RESET}"
+    echo -e "${THEME_DESC}    ›› Thermal Limit : ${C_RED}${MUX_FIRECOUNT:-0} ${THEME_DESC}Rounds.${C_RESET}"
 }
 
 # 超頻讀取器 (Chamber Reader)
@@ -219,7 +219,7 @@ function _xum_ui_status_all() {
     ' "$XUM_DB"
     
     echo -e "${C_BLACK}  ----------${C_RESET}"
-    echo -e "${C_TAVIOLET} :: Thermal Limit : ${C_RED}${MUX_FIRECOUNT:-0} Rounds Remaining.${C_RESET}"
+    echo -e "${C_TAVIOLET} :: Thermal Limit : ${C_RED}${MUX_FIRECOUNT:-0} ${THEME_DESC}Rounds${C_RESET}"
 }
 
 # 戰術狀態面板 (Tactical Status Panel)
@@ -1254,7 +1254,7 @@ Output: $output"
         }')
 
         echo -e "${THEME_OK} :: PAYLOAD COMPLEXITY : B[$B] S[$S] Q[$Q] V[$V] ::${C_RESET}"
-        echo -e "${C_TAVIOLET} :: Thermal Limit : ${C_RED}${MUX_FIRECOUNT} Rounds Remaining.${C_RESET}"
+        echo -e "${C_TAVIOLET} :: Thermal Limit : ${C_RED}${MUX_FIRECOUNT} ${C_TAVIOLET}Rounds Remaining.${C_RESET}"
         
         if command -v _grant_xp &> /dev/null; then
             _grant_xp "$calc_xp" "CMD_EXEC"
@@ -1301,10 +1301,10 @@ Output: $output"
 
     # 6. 彈藥耗盡
     if [ "$is_empty" == false ]; then
-        echo -e "${C_TAVIOLET}    ›› Current Thermal Limit: ${C_RED}${MUX_FIRECOUNT} Rounds${C_RESET}"
+        echo -e "${THEME_DESC}    ›› Current Thermal Limit: ${C_RED}${MUX_FIRECOUNT} ${THEME_DESC}Rounds.${C_RESET}"
         if [ "$MUX_FIRECOUNT" -le 0 ]; then
             echo ""
-            echo -e "${C_RED} :: THERMAL LIMIT CRITICAL :: BARREL MELTDOWN IMMINENT ::${C_RESET}"
+            echo -e "${C_RED} :: CRITICAL :: BARREL MELTDOWN IMMINENT ::${C_RESET}"
             sleep 1.9
             _xum_cmd_reset
         fi
