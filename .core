@@ -236,7 +236,7 @@ function _xum_ui_status_all() {
             if (sts == "R") sts_disp = c_rdy "[R]" c_rst
             
             # 輸出極簡陣列
-            printf "   SLOT %s: %s › %s\n", slot, cbr_disp, sts_disp
+            printf "   CHAMBER [%s]: %s › %s\n", slot, cbr_disp, sts_disp
         }
     ' "$XUM_DB"
     
