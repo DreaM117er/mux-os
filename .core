@@ -35,8 +35,10 @@ function _xum_system_boot() {
     fi
 
     # 3. 發射次數與啟動時間
-    MUX_FIRECOUNT=$max_slots
-    MUX_OCDATE=$(date +%s)
+    if [ -z "$MUX_FIRECOUNT" ]; then
+        export MUX_FIRECOUNT=$max_slots
+        export MUX_OCDATE=$(date +%s)
+    fi
     _save_identity
 
     clear
@@ -205,10 +207,10 @@ function _xum_update_glitch_rate() {
         }
     ' "$XUM_DB" 2>/dev/null)
     
-    # 乘載公式：基礎 10% + (每格 * 4.5% -> 以整數 4 計算)
-    local current_glitch=$(( 10 + (filled_params * 4) ))
+    # 基礎 10%
+    local current_glitch=$(( 10 + (filled_params * 12) ))
     
-    # 物理上限鎖在 99%，保留最後一絲理智
+    # 物理上限 99%
     [ "$current_glitch" -gt 99 ] && current_glitch=99
     
     export MUX_GLITCH_RATE=$current_glitch
