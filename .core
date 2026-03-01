@@ -331,7 +331,7 @@ function _xum_cmd_slot() {
                 if (sts == "N") sts_disp = "\033[1;31m[Not Ready]\033[0m"
                 if (sts == "R") sts_disp = "\033[1;32m[Ready]\033[0m"
                 
-                printf "[%s]: [%s] › %s\n", s, sts, sts_disp
+                printf "%s | %s › %s\n", s, sts, sts_disp
             }
         ' "$XUM_DB" 2>/dev/null)
         
