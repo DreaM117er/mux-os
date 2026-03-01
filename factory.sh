@@ -2555,6 +2555,10 @@ function fac() {
             
         # : Reset Factory Change
         "reset")
+            if command -v _check_singularity &> /dev/null; then
+                _check_singularity
+                if [ $? -ne 0 ]; then return; fi 
+            fi
             _factory_reset
             ;;
 

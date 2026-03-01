@@ -229,6 +229,10 @@ function _mux_reload_kernel() {
 # 強制同步系統狀態
 function _mux_force_reset() {
     _system_lock
+    if command -v _check_singularity &> /dev/null; then
+        _check_singularity
+        if [ $? -ne 0 ]; then return; fi 
+    fi
     _voice_dispatch "system" "Protocol Override: Force Syncing Timeline..." "cmd"
     echo -e "${C_RED} :: WARNING: Obliterating all local modifications.${C_RESET}"
     echo ""
@@ -257,6 +261,10 @@ function _mux_force_reset() {
 # 系統更新檢測與執行
 function _mux_update_system() {
     _system_lock
+    if command -v _check_singularity &> /dev/null; then
+        _check_singularity
+        if [ $? -ne 0 ]; then return; fi 
+    fi
     echo -e "${C_YELLOW} :: Checking for updates...${C_RESET}"
     cd "$BASE_DIR" || return
     git fetch origin
@@ -581,13 +589,10 @@ function _check_pandoras_box() {
     shift
     local args="$*"
     
-    # 計數器更新
+    # 紀錄編輯器使用次數
     if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
     case "$cmd" in
-        "cd")    CMD_CD_COUNT=$((CMD_CD_COUNT + 1)) ;;
         "nano")  CMD_NANO_COUNT=$((CMD_NANO_COUNT + 1)) ;;
-        "cp")    CMD_CP_COUNT=$((CMD_CP_COUNT + 1)) ;;
-        "sed")   CMD_SED_COUNT=$((CMD_SED_COUNT + 1)) ;;
         "micro") CMD_MICRO_COUNT=$((CMD_MICRO_COUNT + 1)) ;;
     esac
     _save_identity
@@ -595,28 +600,55 @@ function _check_pandoras_box() {
     # 後綴字串掃描
     if [[ "$args" == *".mux_identity"* ]] || [[ "$args" == *".mux_state"* ]]; then
         _system_lock
-        echo ""
-        echo -e "${C_GREEN} :: PANDORA'S BOX OPENED ::${C_RESET}"
-        sleep 1
-        echo -e "${C_BLACK}    ›› Unauthorized tampering with Reality Core detected.${C_RESET}"
-        sleep 1
-        
-        if command -v _unlock_badge &> /dev/null; then _unlock_badge "PB" "Pandora's Box"; fi
-        echo ""
-        echo "echo -e '${C_RED} :: DIMENSIONAL LOCK ACTIVE :: Reality Core Compromised. ${C_RESET}\n'" >> "$HOME/.bashrc"
-        echo "exit" >> "$HOME/.bashrc"
-        
-        if command -v _trigger_dimensional_strike &> /dev/null; then
-            _trigger_dimensional_strike "Fatal breach. Sealing terminal permanently."
-        fi
-        
+        _trigger_pandoras_curse
         _system_unlock
         return 1
     fi
     return 0
 }
 
-# 神經火控系統 - Neural Fire Control
+# 潘朵拉詛咒 (Pandora's Curse)
+function _trigger_pandoras_curse() {
+    echo ""
+    echo -e "${C_RED} :: PANDORA'S BOX OPENED :: ${C_RESET}"
+    sleep 1
+    echo -e "${C_BLACK}    ›› Unauthorized tampering with Reality Core detected.${C_RESET}"
+    sleep 1
+    echo -e "${C_PURPLE} :: REALITY COLLAPSE INITIATED :: ${C_RESET}"
+    sleep 1.8
+    
+    # 1. 剝奪一切
+    MUX_LEVEL=1
+    MUX_XP=0
+    MUX_BADGES="PB" 
+    
+    # 2. 施加因果律詛咒
+    MUX_NEXT_XP=20000
+    
+    MUX_DATE=$(date +%s)
+    MUX_LF=$MUX_DATE
+    MUX_LB=""
+    
+    _save_identity
+    
+    echo -e "${C_RED} :: CAUSALITY CURSE APPLIED :: ${C_RESET}"
+    echo -e "${C_BLACK}    ›› Ascension requires 10x XP. Your path will be suffering.${C_RESET}"
+    sleep 2.4
+    
+    if command -v _mux_reload_kernel &> /dev/null; then
+        _mux_reload_kernel
+    else
+        exec bash
+    fi
+}
+
+# 覆寫系統原生編輯器
+function nano()  { _check_pandoras_box "nano" "$@" || return 1; command nano "$@"; }
+function micro() { _check_pandoras_box "micro" "$@" || return 1; command micro "$@"; }
+function vim()   { _check_pandoras_box "vim" "$@" || return 1; command vim "$@"; }
+function vi()    { _check_pandoras_box "vi" "$@" || return 1; command vi "$@"; }
+
+# 神經火控系統 (Neural Fire Control)
 function _mux_neural_fire_control() {
     # 0. 狀態檢查
     if [ "$MUX_STATUS" != "LOGIN" ]; then return 127; fi
@@ -912,7 +944,7 @@ function _mux_neural_fire_control() {
     return 0
 }
 
-# 直接鎖定系統 ROOT 指令
+# 鎖定系統 ROOT 指令
 function su()     { _mux_security_gate "su" "$@"; return 1; }
 function tsu()    { _mux_security_gate "tsu" "$@"; return 1; }
 function sudo()   { _mux_security_gate "sudo" "$@"; return 1; }
@@ -1777,6 +1809,30 @@ function mux() {
         "factory"|"tofac")
             if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "Factory access denied. Terminate XUM session first."; return 1; fi
             _core_pre_factory_auth
+            ;;
+
+        "reborn")
+            if [ "$MUX_LEVEL" -lt 16 ]; then
+                echo -e "${C_YELLOW} :: Unknown Directive: 'reborn'.${C_RESET}"
+                return 1
+            fi
+            
+            echo -e "${THEME_WARN} :: ARCHITECT ASCENSION PROTOCOL ::${C_RESET}"
+            echo -e "${THEME_DESC}    This action will trigger a controlled Dimensional Collapse.${C_RESET}"
+            echo -e "${THEME_DESC}    1. Clearance Level resets to L1.${C_RESET}"
+            echo -e "${THEME_DESC}    2. XP curve requirement increases by 1.5x (Iteration: ${MUX_REBORN_COUNT:-0} -> $(( ${MUX_REBORN_COUNT:-0} + 1 ))).${C_RESET}"
+            echo -e "${THEME_DESC}    3. All badges and tactical records are preserved.${C_RESET}"
+            echo ""
+            echo -ne "${THEME_ERR} :: Initiate Rebirth? [Y/n]: ${C_RESET}"
+            read choice
+            
+            if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+                if command -v _trigger_reborn &> /dev/null; then
+                    _trigger_reborn
+                fi
+            else
+                echo -e "${THEME_DESC}    ›› Ascension aborted. Maintaining Architect status.${C_RESET}"
+            fi
             ;;
 
         "xum")

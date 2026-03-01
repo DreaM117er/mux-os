@@ -163,7 +163,11 @@ function _render_special() {
     fi
 
     # 渲染
-    if [ "$is_unlocked" -eq 1 ]; then
+    if [ "$tag" == "PB" ] && [ "$is_unlocked" -eq 1 ]; then
+        echo -e " ${C_TAVIOLET}[${abbr}]${C_RESET}${C_BLACK}-\033[0;35m${name}${C_RESET}"
+        echo -e " ${C_TAVIOLET}[Curse]${C_RESET}${C_BLACK}[∞]${C_RESET}"
+        echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
+    elif [ "$is_unlocked" -eq 1 ]; then
         echo -e " ${C_RED}[${abbr}]${C_BLACK}-${C_WHITE}${name}${C_RESET}"
         echo -e " ${C_RED}[Stage C]${C_BLACK}${count_display}${C_RESET}"
         echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
@@ -237,7 +241,6 @@ function _show_badges() {
     echo ""
 
     # 1. 標籤型 - 只有 4 個參數
-    _render_special "DSTRIKE"     "Ds" "Dimensional Strike" "Survivor of Dimensional Collapse."
     _render_special "ANCIENT_ONE" "Le" "The Ancient One"    "System uptime exceeds one solar cycle."
     _render_special "LOST_TIME"   "44" "Lost in Time"       "Login detected on a phantom date."
     _render_special "OUROBOROS"   "O4" "Ouroboros"          "Tried to contain the container (Core)."
@@ -245,6 +248,8 @@ function _show_badges() {
     _render_special "TEAPOT"      "Ct" "Protocol 418"       "I'm a teapot."
     _render_special "SCHIZO"      "Sh" "Schizophrenia"      "Conversations with the internal monologue."
     _render_special "PHOENIX"     "Px" "Phoenix"            "Rose from the ashes of dimensional collapse."
+    _render_special "DSTRIKE"     "Ds" "Dimensional Strike" "Survivor of Dimensional Collapse."
+    _render_special "PB"          "Pb" "Pandora's Box"      "Bore the curse of causality."
 
     # 2. 計數器型 - 傳入 6 個參數
     _render_special "FALSE_IDOL"  "Rt" "False Idol" \

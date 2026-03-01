@@ -26,6 +26,7 @@ MUX_LB="${MUX_LB}"
 MUX_FIRECOUNT="${MUX_FIRECOUNT:-0}"
 MUX_OCDATE="${MUX_OCDATE:-0}"
 MUX_CDDATE="${MUX_CDDATE:-0}"
+MUX_REBORN_COUNT="${MUX_REBORN_COUNT:-0}"
 HEAP_ALLOCATION_IDX="${HEAP_ALLOCATION_IDX:-0}"
 IO_WRITE_CYCLES="${IO_WRITE_CYCLES:-0}"
 KERNEL_PANIC_OFFSET="${KERNEL_PANIC_OFFSET:-0}"
@@ -65,6 +66,7 @@ if [ ! -f "$IDENTITY_FILE" ]; then
         MUX_FIRECOUNT=0
         MUX_OCDATE=0
         MUX_CDDATE=0
+        MUX_REBORN_COUNT=0
         HEAP_ALLOCATION_IDX=0
         IO_WRITE_CYCLES=0
         KERNEL_PANIC_OFFSET=0
@@ -98,6 +100,7 @@ if [ ! -f "$IDENTITY_FILE" ]; then
         MUX_FIRECOUNT=0
         MUX_OCDATE=0
         MUX_CDDATE=0
+        MUX_REBORN_COUNT="${MUX_REBORN_COUNT:-0}"
         HEAP_ALLOCATION_IDX=${HEAP_ALLOCATION_IDX:-0}
         IO_WRITE_CYCLES=${IO_WRITE_CYCLES:-0}
         KERNEL_PANIC_OFFSET=${KERNEL_PANIC_OFFSET:-0}
@@ -265,11 +268,16 @@ function _check_active_buffs() {
 function _check_singularity() {
     # 1. 計算理論 XP
     local calc_req=2000
+    if [ "${MUX_REBORN_COUNT:-0}" -gt 0 ]; then
+        start_base=$(awk -v r="$MUX_REBORN_COUNT" 'BEGIN { print int(2000 * (1.5 ^ r)) }')
+    fi
+    
+    local calc_req=$start_base
     for ((i=1; i<16; i++)); do
-        calc_req=$(awk "BEGIN {print int($calc_req * 1.5 + 2000)}")
+        calc_req=$(awk -v req="$calc_req" 'BEGIN {print int(req * 1.5 + 2000)}')
     done
     local l16_floor=$calc_req
-    local l16_ceiling=$(( l16_floor + 5000 )) 
+    local l16_ceiling=$(( l16_floor + 5000 + (MUX_REBORN_COUNT * 20000) )) 
 
     local strike_reason=""
     local now_ts=$(date +%s)
@@ -312,42 +320,63 @@ function _check_singularity() {
 
     # 5. 執行判決
     if [ -n "$strike_reason" ]; then
-        _trigger_dimensional_strike "$strike_reason"
+        echo ""
+        echo -e "\033[1;31m :: WARNING: SINGULARITY THRESHOLD EXCEEDED ::\033[0m"
+        echo -e "\033[1;30m    ›› Analysis: $strike_reason\033[0m"
+        sleep 1
+        
+        # 呼叫潘朵拉的因果律詛咒
+        if command -v _trigger_pandoras_curse &> /dev/null; then
+            _trigger_pandoras_curse
+        else
+            # 備用懲罰
+            echo -e "\033[1;35m :: REALITY COLLAPSE INITIATED :: \033[0m"
+            MUX_LEVEL=1; MUX_XP=0; MUX_BADGES="PB"; MUX_NEXT_XP=20000; _save_identity
+            exec bash
+        fi
         return 1
     fi
     
     return 0
 }
 
-# 審判執行 (Execute Force)
-function _trigger_dimensional_strike() {
-    local reason="$1"
-    
+# 飛昇轉生協議 (Ascension / Reborn Protocol)
+function _trigger_reborn() {
     echo ""
-    echo -e "\033[1;31m :: WARNING: SINGULARITY THRESHOLD EXCEEDED ::\033[0m"
-    echo -e "\033[1;30m    ›› Analysis: $reason\033[0m"
-    sleep 0.5
-    echo -e "\033[1;30m    ›› System Entropy: CRITICAL\033[0m"
-    sleep 0.5
+    echo -e "\033[1;36m :: INITIATING ARCHITECT ASCENSION ::\033[0m"
+    sleep 1
+    echo -e "\033[1;30m    ›› Collapsing current reality matrix...\033[0m"
+    sleep 1
     
+    # 給予降維打擊的榮耀印記 (保留 DSTRIKE 作為榮耀)
     if command -v _unlock_badge &> /dev/null; then
         _unlock_badge "DSTRIKE" "Dimensional Strike"
     fi
     
     sleep 1
-    echo -e "\033[1;31;5m :: INITIATING DUAL VECTOR FOIL ATTACK :: \033[0m"
+    echo -e "\033[1;31;5m :: DUAL VECTOR FOIL DEPLOYED :: \033[0m"
     sleep 1.8
     
+    # 1. 更新轉生次數
+    if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+    MUX_REBORN_COUNT=$(( ${MUX_REBORN_COUNT:-0} + 1 ))
+    
+    # 2. 保留勳章，重置等級與 XP
     MUX_LEVEL=1
     MUX_XP=0
-    MUX_NEXT_XP=2000
+    
+    # 3. 核心公式：2000 * 1.5^N (每次轉生基礎需求 * 1.5)
+    local new_base=$(awk -v r="$MUX_REBORN_COUNT" 'BEGIN { print int(2000 * (1.5 ^ r)) }')
+    MUX_NEXT_XP=$new_base
+    
     MUX_DATE=$(date +%s)
     MUX_LF=$MUX_DATE
     MUX_LB=""
     
     _save_identity
     
-    echo -e "\033[1;36m :: UNIVERSE REBOOTING... :: \033[0m"
+    echo -e "\033[1;35m :: UNIVERSE REBOOTING (ITERATION ${MUX_REBORN_COUNT}) :: \033[0m"
+    echo -e "\033[1;30m    ›› Gravity adjusted. XP curve increased by 1.5x.\033[0m"
     sleep 2.4
     
     if command -v _mux_reload_kernel &> /dev/null; then
@@ -561,6 +590,51 @@ function _grant_xp() {
         fi
     fi
     _save_identity
+}
+
+# 飛昇轉生協議 (Ascension / Reborn Protocol)
+function _trigger_reborn() {
+    echo ""
+    echo -e "\033[1;36m :: INITIATING ARCHITECT ASCENSION ::\033[0m"
+    sleep 1
+    echo -e "\033[1;30m    ›› Collapsing current reality matrix...\033[0m"
+    sleep 1
+    
+    # 給予降維打擊的榮耀印記
+    if command -v _unlock_badge &> /dev/null; then
+        _unlock_badge "DSTRIKE" "Dimensional Strike"
+    fi
+    
+    sleep 1
+    echo -e "\033[1;31;5m :: DUAL VECTOR FOIL DEPLOYED :: \033[0m"
+    sleep 1.8
+    
+    # 1. 更新轉生次數
+    MUX_REBORN_COUNT=$((MUX_REBORN_COUNT + 1))
+    
+    # 2. 保留勳章，重置等級與 XP
+    MUX_LEVEL=1
+    MUX_XP=0
+    
+    # 3. 核心公式：2000 * 1.5^N (每次轉生基礎需求 * 1.5)
+    local new_base=$(awk -v r="$MUX_REBORN_COUNT" 'BEGIN { print int(2000 * (1.5 ^ r)) }')
+    MUX_NEXT_XP=$new_base
+    
+    MUX_DATE=$(date +%s)
+    MUX_LF=$MUX_DATE
+    MUX_LB=""
+    
+    _save_identity
+    
+    echo -e "\033[1;35m :: UNIVERSE REBOOTING (ITERATION ${MUX_REBORN_COUNT}) :: \033[0m"
+    echo -e "\033[1;30m    ›› Gravity adjusted. XP curve increased by 1.5x.\033[0m"
+    sleep 2.4
+    
+    if command -v _mux_reload_kernel &> /dev/null; then
+        _mux_reload_kernel
+    else
+        exec bash
+    fi
 }
 
 # Git/GitHub 連結設定 (Uplink Setup)
