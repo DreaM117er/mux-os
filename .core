@@ -248,7 +248,7 @@ function _xum_ui_status_panel() {
     local slot="${1:-$XUM_CURRENT_SLOT}"
     
     if [ -z "$slot" ]; then
-        _bot_say "error" "NO CHAMBER FOCUSED. Execute 'xum slot <n>' first."
+        _bot_say "error" "NO CHAMBER FOCUSED. Execute 'xum slot' first."
         return 1
     fi
 
@@ -336,8 +336,19 @@ function _xum_cmd_slot() {
         ' "$XUM_DB" 2>/dev/null)
         
         local fzf_h=$(( current_max + 4 ))
-        local sel=$(echo -e "$menu_items" | fzf --ansi --height=${fzf_h} --layout=reverse \
-            --border-label=" :: SELECT CHAMBER :: " --prompt=" › " --pointer="››" )
+        local sel=$(echo -e "$menu_items" | fzf --ansi \
+            --height=${fzf_h} \
+            --info=hidden \
+            --layout=reverse \
+            --header=" :: Enter to Select, Esc to Return ::" \
+            --border-label=" :: SELECT CHAMBER :: " \
+            --border=bottom \
+            --prompt=":: SLOT › " \
+            --pointer="››" \
+            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+            --color=info:240,prompt:$border_color,pointer:red,marker:208,border:$border_color,header:240 \
+            --bind="resize:clear-screen"
+            )
         
         if [ -z "$sel" ]; then return 0; fi
         slot=$(echo "$sel" | awk '{print $1}')
@@ -358,7 +369,7 @@ function _xum_cmd_slot() {
 function _xum_cmd_check() {
     local slot="$XUM_CURRENT_SLOT"
     if [ -z "$slot" ]; then
-        _bot_say "error" "NO CHAMBER FOCUSED. Execute 'xum slot <n>' first."
+        _bot_say "error" "NO CHAMBER FOCUSED. Execute 'xum slot' first."
         return 1
     fi
 
@@ -441,7 +452,7 @@ function _xum_cmd_check() {
 function _xum_cmd_import() {
     local slot="$XUM_CURRENT_SLOT"
     if [ -z "$slot" ]; then
-        _bot_say "error" "NO CHAMBER FOCUSED. Execute 'xum slot <n>' first."
+        _bot_say "error" "NO CHAMBER FOCUSED. Execute 'xum slot' first."
         return 1
     fi
 
@@ -577,7 +588,7 @@ function _xum_cmd_import() {
 function _xum_cmd_input() {
     local slot="$XUM_CURRENT_SLOT"
     if [ -z "$slot" ]; then
-        _bot_say "error" "NO CHAMBER FOCUSED. Execute 'xum slot <n>' first."
+        _bot_say "error" "NO CHAMBER FOCUSED. Execute 'xum slot' first."
         return 1
     fi
 
@@ -1025,7 +1036,7 @@ function _xum_cmd_input() {
 function _xum_cmd_set() {
     local slot="$XUM_CURRENT_SLOT"
     if [ -z "$slot" ]; then
-        _bot_say "error" "NO CHAMBER FOCUSED. Execute 'xum slot <n>' first."
+        _bot_say "error" "NO CHAMBER FOCUSED. Execute 'xum slot' first."
         return 1
     fi
     
@@ -1094,7 +1105,7 @@ function _xum_cmd_clear() {
 function _xum_cmd_fire() {
     local slot="$XUM_CURRENT_SLOT"
     if [ -z "$slot" ]; then
-        _bot_say "error" "NO CHAMBER FOCUSED. Execute 'xum slot <n>' first."
+        _bot_say "error" "NO CHAMBER FOCUSED. Execute 'xum slot' first."
         return 1
     fi
 
@@ -1375,7 +1386,7 @@ function xum() {
         if [ -n "$XUM_CURRENT_SLOT" ]; then
             _xum_ui_status_panel "$XUM_CURRENT_SLOT"
         else
-            _bot_say "warn" "NO CHAMBER FOCUSED. Execute 'xum slot <n>' first."
+            _bot_say "warn" "NO CHAMBER FOCUSED. Execute 'xum slot' first."
         fi
         return 0
     fi
