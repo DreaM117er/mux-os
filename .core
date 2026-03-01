@@ -214,6 +214,37 @@ function _xum_update_glitch_rate() {
     export MUX_GLITCH_RATE=$current_glitch
 }
 
+# 全域文字亂碼渲染器 (Global Text Glitch Renderer)
+function _xum_glitch_text() {
+    local input_str="$1"
+    
+    if [ "$MUX_MODE" != "XUM" ]; then
+        echo "$input_str"
+        return
+    fi
+
+    local glitch_threshold=${MUX_GLITCH_RATE:-10}
+    local out_str=""
+    
+    for (( i=0; i<${#input_str}; i++ )); do
+        local char="${input_str:$i:1}"
+        if [[ "$char" =~ [eEaAiIoOsS] ]]; then
+            if [ $(( RANDOM % 100 )) -lt "$glitch_threshold" ]; then
+                case "$char" in
+                    e|E) char="3" ;;
+                    a|A) char="4" ;;
+                    i|I) char="!" ;;
+                    o|O) char="0" ;;
+                    s|S) char="\$" ;;
+                esac
+            fi
+        fi
+        out_str="${out_str}${char}"
+    done
+    
+    echo "$out_str"
+}
+
 # 全域戰術雷達 (Global Chamber Radar)
 function _xum_ui_status_all() {
     echo -e "${C_PURPLE} :: Mux-OS Core OC :: CHAMBER RADAR ::${C_RESET}"
@@ -525,8 +556,10 @@ function _xum_cmd_import() {
         --bind="resize:clear-screen"
     )
 
+    local title_txt=""
     if [ -z "$selection" ]; then
-        echo -e "${C_GRAY}    ›› Import aborted.${C_RESET}"
+        title_txt=$(_xum_glitch_text "Import aborted.")
+        echo -e "${C_GRAY}    ›› ${title_txt}${C_RESET}"
         return 0
     fi
 
@@ -537,7 +570,8 @@ function _xum_cmd_import() {
     local node_disp="$i_cmd"
     [ -n "$i_sub" ] && node_disp="$i_cmd $i_sub"
 
-    echo -e "${C_GRAY}    ›› Extracting Core Node [$node_disp]...${C_RESET}"
+    title_txt=$(_xum_glitch_text "Extracting Core Node")
+    echo -e "${C_GRAY}    ›› ${title_txt} [$node_disp]...${C_RESET}"
     
     # 呼叫核心神經元讀取並寫入
     _mux_neural_data "$i_cmd" "$i_sub"
@@ -695,8 +729,10 @@ function _xum_cmd_input() {
             --bind="resize:clear-screen"
         )
         
+        local title_txt=""
         if [ -z "$selection" ]; then 
-            echo -e "${C_GRAY}    ›› Workbench closed. Initiating safety scan...${C_RESET}"
+            title_txt=$(_xum_glitch_text "Workbench closed. Initiating safety scan")
+            echo -e "${C_GRAY}    ›› ${title_txt}...${C_RESET}"
             _xum_cmd_check
             break
         fi 
@@ -705,7 +741,7 @@ function _xum_cmd_input() {
         local field=$(echo "$selection" | sed $'s/\033\\[[0-9;]*m//g' | awk '{print $1}')
         
         if [ "$field" == "[Confirm]" ]; then
-            echo -e "${C_GRAY}    ›› Workbench closed. Initiating safety scan...${C_RESET}"
+            echo -e "${C_GRAY}    ›› ${title_txt}...${C_RESET}"
             _xum_cmd_check
             break
         fi
@@ -965,7 +1001,8 @@ function _xum_cmd_input() {
                     expanded_url="${expanded_url}\$query"
                 fi
                 final_val="$expanded_url"
-                echo -e "${C_GRAY}    ›› Auto-expanded to: $final_val${C_RESET}"
+                title_txt=$(_xum_glitch_text "Auto-expanded to")
+                echo -e "${C_GRAY}    ›› ${title_txt}: $final_val${C_RESET}"
 
             elif [ "$final_val_clean" == "[Custom]" ]; then
                 local current_val=""
@@ -1039,7 +1076,8 @@ function _xum_cmd_input() {
             # 外部環境探測 (apklist)
             elif [ "$final_val_clean" == "[Run 'apklist']" ]; then
                 apklist
-                echo -e "${THEME_DESC}(Press 'Enter' to return to Workbench...)${C_RESET}"
+                title_txt=$(_xum_glitch_text "Press 'Enter' to return to Workbench")
+                echo -e "${THEME_DESC}(${title_txt}...)${C_RESET}"
                 read
                 continue
             fi
@@ -1086,6 +1124,7 @@ function _xum_cmd_unset() {
 # 智慧排氣閥與報告銷毀機制 (Payload Purge & Report Wipe)
 function _xum_cmd_clear() {
     local slot="$XUM_CURRENT_SLOT"
+    local title_txt=""
     if [ -n "$slot" ]; then
         # F & Clear Slot
         local tmp_file=$(mktemp)
@@ -1111,14 +1150,16 @@ function _xum_cmd_clear() {
     else
         # STS Unset: Clear report.txt
         local report_file="$MUX_ROOT/report.txt"
-        echo -ne "${C_YELLOW} :: WARNING: Purge Action Report? [Y/n]: ${C_RESET}"
+        title_txt=$(_xum_glitch_text "WARNING: Purge Action Report?")
+        echo -ne "${C_YELLOW} :: ${title_txt} [Y/n]: ${C_RESET}"
         read choice
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
             rm -f "$report_file"
             touch "$report_file"
             _bot_say "success" "ACTION REPORT OBLITERATED."
         else
-            echo -e "${C_BLACK}    ›› Purge aborted.${C_RESET}"
+            title_txt=$(_xum_glitch_text "Purge aborted")
+            echo -e "${C_BLACK}    ›› ${title_txt}.${C_RESET}"
         fi
     fi
 }
@@ -1126,6 +1167,7 @@ function _xum_cmd_clear() {
 # 槍管擊發、戰鬥報告與退殼機制 (Fire, Report & Eject)
 function _xum_cmd_fire() {
     local slot="$XUM_CURRENT_SLOT"
+    local title_txt
     if [ -z "$slot" ]; then
         _bot_say "error" "NO CHAMBER FOCUSED. Execute 'xum slot' first."
         return 1
@@ -1152,9 +1194,11 @@ function _xum_cmd_fire() {
     done
 
     if [ "$has_query" == true ]; then
+        title_txt=$(_xum_glitch_text "DYNAMIC PAYLOAD DETECTED")
         echo ""
-        echo -e "${C_YELLOW} :: DYNAMIC PAYLOAD DETECTED ::${C_RESET}"
-        echo -e "${C_BLACK}    ›› Payload requires a '\$query' variable to proceed.${C_RESET}"
+        echo -e "${C_YELLOW} :: ${title_txt} ::${C_RESET}"
+        title_txt=$(_xum_glitch_text "Payload requires a '\$query' variable to proceed")
+        echo -e "${C_BLACK}    ›› ${title_txt}.${C_RESET}"
         local q_input=""
         read -e -p "$(echo -e "${C_TAVIOLET} :: INPUT \$query › ${C_RESET}")" q_input
         
@@ -1188,7 +1232,8 @@ function _xum_cmd_fire() {
 
     if [ "$is_empty" == true ]; then
         # 空彈擊發
-        echo -e "${C_GRAY}    ›› Chamber payload is empty. Testing barrel mechanism...${C_RESET}"
+        title_txt=$(_xum_glitch_text "Chamber payload is empty. Testing barrel mechanism")
+        echo -e "${C_GRAY}    ›› ${title_txt}...${C_RESET}"
         report_content="-----
 Time: $report_time
 Playload: [EMPTY CHAMBER / DRY FIRE]
@@ -1286,7 +1331,8 @@ Output: $output"
             print int(final)
         }')
 
-        echo -e "${THEME_OK} :: PAYLOAD COMPLEXITY : B[$B] S[$S] Q[$Q] V[$V] ::${C_RESET}"
+        title_txt=$(_xum_glitch_text "PAYLOAD COMPLEXITY")
+        echo -e "${THEME_OK} :: ${title_txt} : B[$B] S[$S] Q[$Q] V[$V] ::${C_RESET}"
         echo -e "${C_TAVIOLET} :: Thermal Limit : ${C_RED}${MUX_FIRECOUNT} ${C_TAVIOLET}Rounds Remaining.${C_RESET}"
         
         if command -v _grant_xp &> /dev/null; then
@@ -1296,7 +1342,8 @@ Output: $output"
 
     # 4. 寫入與輸出報告
     echo "$report_content" >> "$report_file"
-    echo -e "${C_TAVIOLET} :: AFTER ACTION REPORT ::${C_RESET}"
+    title_txt=$(_xum_glitch_text "AFTER ACTION REPORT")
+    echo -e "${C_TAVIOLET} :: ${title_txt} ::${C_RESET}"
     echo "$report_content" | while read -r line; do
         if [[ "$line" == "Status: Success"* ]]; then
             echo -e "    ${C_GREEN}$line${C_RESET}"
@@ -1359,11 +1406,11 @@ function _xum_cmd_reset() {
 
     if [ -f "$XUM_DB" ]; then
         rm -f "$XUM_DB"
-        echo -e "${C_BLACK}    ›› [SECURE WIPE]: Chamber database permanently destroyed.${C_RESET}"
+        echo -e "${C_BLACK}    ›› Chamber database permanently destroyed.${C_RESET}"
     fi
     _bot_say "success" "TERMINATING OVERCLOCK PROTOCOL. REVERTING TO KERNEL STANDARDS."
     
-    _update_mux_state "MUX" "LOGIN" "COCKPIT"
+    _update_mux_state "MUX" "LOGIN" "COOLDOWN"
     _mux_reload_kernel
 }
 

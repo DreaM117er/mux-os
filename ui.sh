@@ -1385,6 +1385,7 @@ function _ui_fake_gate() {
     local color_main="${C_CYAN}"
     local gate_name="SYSTEM CORE"
     local c_border="${C_WHITE}" 
+    local entry_point=$(grep "^MUX_ENTRY_POINT=" "$MUX_ROOT/.mux_state" 2>/dev/null | cut -d'"' -f2)
     
     case "$theme" in
         "factory")
@@ -1405,9 +1406,26 @@ function _ui_fake_gate() {
             ;;
         "xum")
             color_main="${C_TAVIOLET}"
-            gate_name="XUM CH4MB3|2 OC"
+            gate_name="XUM CHAMBER OC"
             ;;
     esac
+
+    if [ "$MUX_MODE" == "XUM" ] || [ "$entry_point" == "OVERCLOCK" ]; then
+        local glitch_rates=(0 25 50 75 100)
+        local g_rate=${glitch_rates[$((RANDOM % 5))]}
+        local glitched_name=""
+        
+        for (( i=0; i<${#gate_name}; i++ )); do
+            local char="${gate_name:$i:1}"
+            if [[ "$char" =~ [eEaAiIoOsS] ]] && [ $((RANDOM % 100)) -lt "$g_rate" ]; then
+                case "$char" in
+                    e|E) char="3" ;; a|A) char="4" ;; i|I) char="!" ;; o|O) char="0" ;; s|S) char="\$" ;;
+                esac
+            fi
+            glitched_name="${glitched_name}${char}"
+        done
+        gate_name="$glitched_name"
+    fi
 
     # 15 字元內限制
     if [ ${#gate_name} -gt 15 ]; then gate_name="${gate_name:0:13}.."; fi
@@ -1442,6 +1460,24 @@ function _ui_fake_gate() {
 
     while [ $pct -le 100 ]; do
         local current_color="$color_main"
+        
+        if [ "$entry_point" == "OVERCLOCK" ]; then
+            local gap=$(( (100 - pct) / 6 + 1 ))
+            if [ $(( (pct / gap) % 2 )) -eq 0 ]; then
+                current_color="${C_CYAN}"
+            else
+                current_color="${C_TAVIOLET}"
+            fi
+        elif [ "$entry_point" == "COOLDOWN" ]; then
+            local gap=$(( pct / 6 + 1 ))
+            if [ $(( (pct / gap) % 2 )) -eq 0 ]; then
+                current_color="${C_TAVIOLET}"
+            else
+                current_color="${C_CYAN}"
+            fi
+        fi
+
+        # 死亡陷阱判定
         local is_stalled="false"
         local mem_display=""
         if [ "$should_trap" == "true" ] && [ "$pct" -ge 98 ] && [ "$pct" -lt 100 ]; then
@@ -1454,21 +1490,22 @@ function _ui_fake_gate() {
 
         local filled_len=$(( (pct * bar_total) / 100 ))
         local empty_len=$(( bar_total - filled_len ))
-        # Line 1: Header
+        
+        # 渲染畫面
         tput cup $start_row $start_col
         echo -ne "${c_border}╔ ${C_BLACK}GATE TO ${current_color}${gate_name}${C_RESET}" 
-        # Line 2: Bar
+        
         tput cup $((start_row + 1)) $start_col
         echo -ne "${c_border}║${current_color}"
         if [ "$filled_len" -gt 0 ]; then printf "█%.0s" $(seq 1 "$filled_len"); fi
         if [ "$empty_len" -gt 0 ]; then printf "${C_BLACK}░%.0s" $(seq 1 "$empty_len"); fi
         echo -ne "${c_border}║${C_RESET}"
-        # Line 3: Info
+        
         tput cup $((start_row + 2)) $start_col
         echo -ne "${c_border}╠ ${C_BLACK}MEM: ${current_color}${mem_display}${c_border} ╣${current_color}"
         printf "%3d%%" "$pct"
         echo -ne "${c_border}║${C_RESET}"
-        # Line 4: Footer
+        
         tput cup $((start_row + 3)) $start_col
         echo -ne "${c_border}╚ ${C_BLACK}${footer_msg}${C_RESET}"
 

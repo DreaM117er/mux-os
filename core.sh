@@ -1862,7 +1862,7 @@ function mux() {
 
             # 3. 放行啟動
             _bot_say "warn" "WARNING: OVERCLOCK PROTOCOL DETECTED."
-            _update_mux_state "XUM" "LOGIN" "COCKPIT"
+            _update_mux_state "XUM" "LOGIN" "OVERCLOCK"
             _mux_reload_kernel
             ;;
 
