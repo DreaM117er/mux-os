@@ -243,14 +243,35 @@ function _bot_say() {
         icon=" ::"
         
         local glitch_threshold=${MUX_GLITCH_RATE:-10}
-        local rng=$(( RANDOM % 100 ))
+
+        # 亂碼處理器
+        _apply_glitch() {
+            local input_str="$1"
+            local out_str=""
+            for (( i=0; i<${#input_str}; i++ )); do
+                local char="${input_str:$i:1}"
+                # 攔截字元
+                if [[ "$char" =~ [eEaAiIoOsS] ]]; then
+                    if [ $(( RANDOM % 100 )) -lt "$glitch_threshold" ]; then
+                        case "$char" in
+                            e|E) char="3" ;;
+                            a|A) char="4" ;;
+                            i|I) char="!" ;;
+                            o|O) char="0" ;;
+                            s|S) char="\$" ;;
+                        esac
+                    fi
+                fi
+                out_str="${out_str}${char}"
+            done
+            echo "$out_str"
+        }
+
+        # 漸進式渲染
+        selected_phrase=$(_apply_glitch "$selected_phrase")
         
-        if [ "$rng" -lt "$glitch_threshold" ]; then
-            selected_phrase=$(echo "$selected_phrase" | sed 's/[eE]/3/g; s/[aA]/4/g; s/[iI]/!/g; s/[oO]/0/g; s/[sS]/\$/g')
-            
-            if [ -n "$detail" ]; then
-                detail=$(echo "$detail" | sed 's/[eE]/3/g; s/[aA]/4/g; s/[iI]/!/g; s/[oO]/0/g; s/[sS]/\$/g')
-            fi
+        if [ -n "$detail" ]; then
+            detail=$(_apply_glitch "$detail")
         fi
         
         detail_color="$C_BLACK"
