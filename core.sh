@@ -627,7 +627,7 @@ function _trigger_pandoras_curse() {
     
     MUX_DATE=$(date +%s)
     MUX_LF=$MUX_DATE
-    MUX_LB=""
+    MUX_BF=$MUX_DATE
     
     _save_identity
     

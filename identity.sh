@@ -292,12 +292,19 @@ function _check_singularity() {
     fi
 
     # 3. 時間悖論
+    local now_ts=$(date +%s)
     local install_time="${MUX_DATE:-$now_ts}"
-    local time_diff=$(( now_ts - install_time ))
-    local min_time_required=43200 
+    local total_time_diff=$(( now_ts - install_time ))
 
-    if [ "$MUX_LEVEL" -ge 16 ] && [ "$time_diff" -lt "$min_time_required" ]; then
-        strike_reason="Temporal Violation: Speedrun Impossible (${time_diff}s)"
+    if [ "$MUX_LEVEL" -ge 16 ] && [ "$total_time_diff" -lt 43200 ]; then
+        strike_reason="Temporal Violation: Speedrun Impossible (${total_time_diff}s)"
+    fi
+
+    if [ -n "$MUX_BF" ] && [ -n "$MUX_LF" ] && [ "$MUX_BF" -ne "$MUX_LF" ]; then
+        local interval=$(( MUX_BF - MUX_LF ))
+        if [ "$interval" -lt 43200 ] && [ "$MUX_LEVEL" -ge 8 ]; then
+            strike_reason="Temporal Paradox: Consecutive Ascension too fast (${interval}s)"
+        fi
     fi
 
     # 4. 勳章因果律
@@ -371,7 +378,7 @@ function _trigger_reborn() {
     
     MUX_DATE=$(date +%s)
     MUX_LF=$MUX_DATE
-    MUX_LB=""
+    MUX_BF=$MUX_DATE
     
     _save_identity
     
@@ -568,10 +575,8 @@ function _grant_xp() {
         MUX_NEXT_XP=$(awk "BEGIN {print int($MUX_NEXT_XP * 1.5 + 2000)}")
 
         local now_ts=$(date +%s)
-        MUX_LB=$now_ts
-        # local duration=$(( MUX_LB - MUX_LF )) # 計算該等級滯留時間
-        MUX_LF=$MUX_LB
-        MUX_LB=""
+        MUX_LF=${MUX_BF:-$now_ts} 
+        MUX_BF=$now_ts
         
         echo ""
         if command -v _bot_say &> /dev/null; then
@@ -622,7 +627,7 @@ function _trigger_reborn() {
     
     MUX_DATE=$(date +%s)
     MUX_LF=$MUX_DATE
-    MUX_LB=""
+    MUX_BF=$MUX_DATE
     
     _save_identity
     
