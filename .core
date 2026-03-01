@@ -193,53 +193,44 @@ function _xum_update_sts() {
                 $3 = "\"" st "\""  # 寫入 E, S, N, R
             }
             print $0
-        }
+        }_xum_ui_status_all
     ' "$XUM_DB" > "$tmp_file" && mv "$tmp_file" "$XUM_DB"
 }
 
 # 全域戰術雷達 (Global Chamber Radar)
 function _xum_ui_status_all() {
     echo -e "${C_PURPLE} :: Mux-OS Core OC :: CHAMBER RADAR ::${C_RESET}"
-    echo -e "${C_BLACK}    ----------${C_RESET}"
+    echo -e "${C_BLACK}  ----------${C_RESET}"
     
     awk -v FPAT='([^,]*)|("[^"]+")' \
         -v c_foc="\033[1;33m" -v c_loc="\033[1;31m" \
         -v c_emp="\033[1;30m" -v c_sav="\033[1;33m" \
         -v c_err="\033[1;31m" -v c_rdy="\033[1;32m" \
-        -v c_rst="\033[0m" -v c_id="\033[1;36m" '
+        -v c_rst="\033[0m" '
         NR > 1 {
             slot = $1; gsub(/^"|"$/, "", slot); gsub(/^[ \t]+|[ \t]+$/, "", slot)
             cbr = $2; gsub(/^"|"$/, "", cbr); gsub(/^[ \t]+|[ \t]+$/, "", cbr)
             sts = $3; gsub(/^"|"$/, "", sts); gsub(/^[ \t]+|[ \t]+$/, "", sts)
-            pkg = $5; gsub(/^"|"$/, "", pkg);
-            uri = $9; gsub(/^"|"$/, "", uri); 
             
             if (slot == "") next;
 
-            # CBR (Chamber) 實體狀態
-            cbr_disp = "      "
-            if (cbr == "F") cbr_disp = c_foc "[FOC] " c_rst
-            if (cbr == "L") cbr_disp = c_loc "[LOCK]" c_rst
+            # CBR (Chamber) 實體狀態 (預設為 E)
+            cbr_disp = c_emp "[E]" c_rst
+            if (cbr == "F") cbr_disp = c_foc "[F]" c_rst
+            if (cbr == "L") cbr_disp = c_loc "[L]" c_rst
 
-            # STS (Payload) 參數健康度
+            # STS (Payload) 參數健康度 (預設為 E)
             sts_disp = c_emp "[E]" c_rst
             if (sts == "S") sts_disp = c_sav "[S]" c_rst
             if (sts == "N") sts_disp = c_err "[N]" c_rst
             if (sts == "R") sts_disp = c_rdy "[R]" c_rst
             
-            # Payload 內容預覽
-            preview = ""
-            if (pkg != "") preview = pkg
-            else if (uri != "") preview = uri
-            else preview = "---"
-            
-            if (length(preview) > 22) preview = substr(preview, 1, 19) "..."
-
-            printf "   SLOT %s | %s | %s | %s%s%s\n", slot, cbr_disp, sts_disp, c_id, preview, c_rst
+            # 輸出極簡陣列
+            printf "   SLOT %s: %s › %s\n", slot, cbr_disp, sts_disp
         }
     ' "$XUM_DB"
     
-    echo -e "${C_BLACK}    ----------${C_RESET}"
+    echo -e "${C_BLACK}  ----------${C_RESET}"
 }
 
 # 戰術狀態面板 (Tactical Status Panel)
@@ -282,7 +273,9 @@ function _xum_ui_status_panel() {
     echo -e "${C_BLACK}  ----------${C_RESET}"
     
     # 依序印出實體參數
-    [ -n "$_XUM_USER" ]   && printf "   %-7s : \033[1;36m%s\033[0m\n" "USER" "$_XUM_USER"
+    if [ -n "$_XUM_USER" ] && [ "$_XUM_USER" != "0" ]; then
+        printf "   %-7s : \033[1;36m%s\033[0m\n" "USER" "$_XUM_USER"
+    fi
     [ -n "$_XUM_PKG" ]    && printf "   %-7s : \033[1;36m%s\033[0m\n" "PKG" "$_XUM_PKG"
     [ -n "$_XUM_TARGET" ] && printf "   %-7s : \033[1;36m%s\033[0m\n" "TARGET" "$_XUM_TARGET"
     
@@ -563,7 +556,14 @@ function _xum_cmd_input() {
         
         # 主選單
         local menu_items=""
-        menu_items+="\033[1;37mUSER\033[0m\t\033[1;36m${_XUM_USER}\033[0m\n"
+        
+        local disp_user="${_XUM_USER}"
+        if [ -z "$disp_user" ] || [ "$disp_user" == "0" ]; then
+            disp_user="\033[1;30m[Default]\033[0m"
+        else
+            disp_user="\033[1;36m${disp_user}\033[0m"
+        fi
+        menu_items+="\033[1;37mUSER\033[0m\t${disp_user}\n"
         menu_items+="\033[1;37mPKG\033[0m\t\033[1;36m${_XUM_PKG}\033[0m\n"
         menu_items+="\033[1;37mTARGET\033[0m\t\033[1;36m${_XUM_TARGET}\033[0m\n"
         
@@ -817,182 +817,167 @@ function _xum_cmd_input() {
         fi
 
         # 常規欄位參數
-        local sub_opts=""
-        local col_idx=""
-        case "$field" in
-            "USER")
-                sub_opts="0\ncurrent\nall\n10"
-                col_idx=4
-                ;;
-            "PKG")
-                sub_opts="\033[1;36m[Import from Core]\033[0m\n\033[1;32m[Run 'apklist']\033[0m"
-                col_idx=5 
-                ;;
-            "TARGET")
-                sub_opts=".MainActivity\n.HomeActivity\nnull"
-                col_idx=6
-                ;;
-            "URI")    
-                sub_opts=""
-                for var in $(grep "^export SEARCH_" "$MUX_ROOT/core.sh" | awk -F'=' '{print $1}' | sed 's/export //'); do
-                    sub_opts+="\$${var}\n"
-                done
-                col_idx=9
-                ;;
-            "MIME")   
-                sub_opts="*/*\n"
-                # 文本與代碼
-                sub_opts+="text/plain\ntext/html\ntext/xml\ntext/csv\ntext/x-vcard"
-                # 圖片
-                sub_opts+="image/*\nimage/jpeg\nimage/png\nimage/gif\nimage/webp\nimage/svg+xml"
-                # 影片
-                sub_opts+="video/*\nvideo/mp4\nvideo/x-matroska\nvideo/webm"
-                # 音訊
-                sub_opts+="audio/*\naudio/mpeg\naudio/mp4\naudio/ogg\naudio/wav"
-                # 應用程式與封裝檔
-                sub_opts+="application/vnd.android.package-archive" # APK 安裝包
-                sub_opts+="application/pdf\napplication/zip\napplication/json"
-                # 微軟 Office 文件
-                sub_opts+="application/msword\napplication/vnd.openxmlformats-officedocument.wordprocessingml.document" # Word
-                sub_opts+="application/vnd.ms-excel\napplication/vnd.openxmlformats-officedocument.spreadsheetml.sheet" # Excel
-                sub_opts+="application/vnd.ms-powerpoint\napplication/vnd.openxmlformats-officedocument.presentationml.presentation" # PPT
-                col_idx=10 
-                ;;
-            "CATE1"|"CATE2"|"CATE3")  
-                # 核心與系統層級 (Core & System)
-                sub_opts="DEFAULT\nBROWSABLE\nLAUNCHER\nHOME\nINFO\nOPENABLE\nTYPED_OPENABLE\nPREFERENCE\nTAB\nALTERNATIVE\nSELECTED_ALTERNATIVE\nTEST\nCAR_DOCK\nDESK_DOCK\nLEANBACK_LAUNCHER"
-                # 應用程式類型 (App Types - Primary)
-                sub_opts+="APP_MARKET\nAPP_BROWSER\nAPP_CALCULATOR\nAPP_CALENDAR\nAPP_CONTACTS\nAPP_EMAIL\nAPP_GALLERY\nAPP_MAPS\nAPP_MESSAGING\nAPP_MUSIC\nAPP_SETTINGS\nAPP_FILES\nAPP_CAMERA\nAPP_CLOCK\nAPP_WEATHER\nAPP_NOTES\nAPP_VOICE_RECORDER"
-                # 應用程式類型 (App Types - Extended)
-                sub_opts+="APP_NEWS\nAPP_PRODUCTIVITY\nAPP_SOCIAL\nAPP_GAMES\nAPP_BOOKS\nAPP_VIDEO\nAPP_PODCASTS\nAPP_HEALTH_FITNESS\nAPP_TRAVEL_LOCAL\nAPP_FINANCE\nAPP_SHOPPING\nAPP_FOOD_DRINK\nAPP_ENTERTAINMENT\nAPP_LIFESTYLE\nAPP_EDUCATION\nAPP_BUSINESS\nAPP_TOOLS\nAPP_COMMUNICATION\nAPP_PERSONALIZATION\nAPP_AUTO_AND_VEHICLES\nAPP_BEAUTY\nAPP_COMICS\nAPP_DATING\nAPP_EVENTS\nAPP_HOUSE_HOME\nAPP_MEDICAL\nAPP_PARENTING\nAPP_PHOTOGRAPHY\nAPP_SPORTS"
-                
-                if [ "$field" == "CATE1" ]; then col_idx=11
-                elif [ "$field" == "CATE2" ]; then col_idx=12
-                elif [ "$field" == "CATE3" ]; then col_idx=13
-                fi
-                ;;
-            "FLAG")
-                sub_opts="0x10000000\n0x04000000\n0x20000000\n0x08000000\n0x00000001\n0x00000002\n--activity-clear-top\n--activity-single-top\n--activity-no-history\n--activity-previous-is-top\n--activity-clear-task"
-                col_idx=29
-                ;;
-            *) continue ;;
-        esac
-        sub_opts="${sub_opts%\\n}"
-        sub_opts+="\n\033[1;33m[Custom]\033[0m\n\033[1;31m[Clear]\033[0m"
-
-        local total_sub=$(echo -e "$sub_opts" | grep -c "^")
-        
-        local sub_sel=$(echo -e "$sub_opts" | fzf --ansi \
-            --height=12 \
-            --layout=reverse \
-            --border-label=" :: [$field] PAYLOAD :: " \
-            --header=" :: Enter to Select, Esc to Return ::" \
-            --border=bottom \
-            --prompt=" :: INPUT › " \
-            --header=" :: Nodes: [$total_sub] ::" \
-            --info=hidden \
-            --pointer="››" \
-            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-            --color=info:240,prompt:$border_color,pointer:red,marker:208,border:$border_color,header:240 \
-            --bind="resize:clear-screen"
-        )
-        if [ -z "$sub_sel" ]; then continue; fi
-        
-        local final_val_clean=$(echo "$sub_sel" | sed $'s/\033\\[[0-9;]*m//g')
-        local final_val="$final_val_clean"
-        
-        if [ "$final_val_clean" == "[Clear]" ]; then 
-            final_val=""
-        elif [[ "$final_val_clean" == '$SEARCH_'* ]]; then
-            local expanded_url=$(eval echo "$final_val_clean")
-            # 自動補上引信
-            if [[ "$expanded_url" != *"\$query"* ]]; then
-                expanded_url="${expanded_url}\$query"
-            fi
-            read -e -p "$(echo -e "\033[38;5;${border_color}m :: [$field] CUSTOM INPUT › \033[0m")" -i "$expanded_url" final_val
-
-        elif [ "$final_val_clean" == "[Custom]" ]; then
-            local current_val=""
+        while true; do
+            local sub_opts=""
+            local col_idx=""
             case "$field" in
-                "USER") current_val="$_XUM_USER" ;;
-                "PKG") current_val="$_XUM_PKG" ;;
-                "TARGET") current_val="$_XUM_TARGET" ;;
-                "URI") current_val="$_XUM_URI" ;;
-                "MIME") current_val="$_XUM_MIME" ;;
-                "CATE1") current_val="$_XUM_CATE1" ;;
-                "CATE2") current_val="$_XUM_CATE2" ;;
-                "CATE3") current_val="$_XUM_CATE3" ;;
-                "FLAG") current_val="$_XUM_FLAG" ;;
+                "USER")
+                    sub_opts="0\ncurrent\nall\n10"
+                    col_idx=4 ;;
+                "PKG")
+                    sub_opts="\033[1;36m[Import from Core]\033[0m\n\033[1;32m[Run 'apklist']\033[0m"
+                    col_idx=5 ;;
+                "TARGET")
+                    sub_opts=".MainActivity\n.HomeActivity\nnull"
+                    col_idx=6 ;;
+                "URI")    
+                    sub_opts=""
+                    for var in $(grep "^export SEARCH_" "$MUX_ROOT/core.sh" | awk -F'=' '{print $1}' | sed 's/export //'); do
+                        sub_opts+="\$${var}\n"
+                    done
+                    col_idx=9 ;;
+                "MIME")   
+                    sub_opts="*/*\ntext/plain\ntext/html\ntext/xml\ntext/csv\ntext/x-vcard\nimage/*\nimage/jpeg\nimage/png\nimage/gif\nimage/webp\nimage/svg+xml\nvideo/*\nvideo/mp4\nvideo/x-matroska\nvideo/webm\naudio/*\naudio/mpeg\naudio/mp4\naudio/ogg\naudio/wav\napplication/vnd.android.package-archive\napplication/pdf\napplication/zip\napplication/json\napplication/msword\napplication/vnd.openxmlformats-officedocument.wordprocessingml.document\napplication/vnd.ms-excel\napplication/vnd.openxmlformats-officedocument.spreadsheetml.sheet\napplication/vnd.ms-powerpoint\napplication/vnd.openxmlformats-officedocument.presentationml.presentation"
+                    col_idx=10 ;;
+                "CATE1"|"CATE2"|"CATE3")  
+                    sub_opts="DEFAULT\nBROWSABLE\nLAUNCHER\nHOME\nINFO\nOPENABLE\nTYPED_OPENABLE\nPREFERENCE\nTAB\nALTERNATIVE\nSELECTED_ALTERNATIVE\nTEST\nCAR_DOCK\nDESK_DOCK\nLEANBACK_LAUNCHER\nAPP_MARKET\nAPP_BROWSER\nAPP_CALCULATOR\nAPP_CALENDAR\nAPP_CONTACTS\nAPP_EMAIL\nAPP_GALLERY\nAPP_MAPS\nAPP_MESSAGING\nAPP_MUSIC\nAPP_SETTINGS\nAPP_FILES\nAPP_CAMERA\nAPP_CLOCK\nAPP_WEATHER\nAPP_NOTES\nAPP_VOICE_RECORDER\nAPP_NEWS\nAPP_PRODUCTIVITY\nAPP_SOCIAL\nAPP_GAMES\nAPP_BOOKS\nAPP_VIDEO\nAPP_PODCASTS\nAPP_HEALTH_FITNESS\nAPP_TRAVEL_LOCAL\nAPP_FINANCE\nAPP_SHOPPING\nAPP_FOOD_DRINK\nAPP_ENTERTAINMENT\nAPP_LIFESTYLE\nAPP_EDUCATION\nAPP_BUSINESS\nAPP_TOOLS\nAPP_COMMUNICATION\nAPP_PERSONALIZATION\nAPP_AUTO_AND_VEHICLES\nAPP_BEAUTY\nAPP_COMICS\nAPP_DATING\nAPP_EVENTS\nAPP_HOUSE_HOME\nAPP_MEDICAL\nAPP_PARENTING\nAPP_PHOTOGRAPHY\nAPP_SPORTS"
+                    if [ "$field" == "CATE1" ]; then col_idx=11
+                    elif [ "$field" == "CATE2" ]; then col_idx=12
+                    elif [ "$field" == "CATE3" ]; then col_idx=13
+                    fi ;;
+                "FLAG")
+                    sub_opts="0x10000000\n0x04000000\n0x20000000\n0x08000000\n0x00000001\n0x00000002\n--activity-clear-top\n--activity-single-top\n--activity-no-history\n--activity-previous-is-top\n--activity-clear-task"
+                    col_idx=29 ;;
+                *) break ;;
             esac
-            read -e -p "$(echo -e "\033[38;5;${border_color}m :: [$field] CUSTOM INPUT › \033[0m")" -i "$current_val" final_val
             
-        # 核心節點 PKG 萃取
-        elif [ "$final_val_clean" == "[Import from Core]" ]; then
-            local raw_list=$(awk -v FPAT='([^,]*)|("[^"]+")' '
-                FNR > 1 && !/^#/ {
-                    cmd = $5; gsub(/^"|"$/, "", cmd); gsub(/^[ \t]+|[ \t]+$/, "", cmd)
-                    sub_cmd = $6; gsub(/^"|"$/, "", sub_cmd); gsub(/^[ \t]+|[ \t]+$/, "", sub_cmd)
-                    if (cmd != "") {
-                        n = split(FILENAME, path_parts, "/")
-                        file_name = path_parts[n]
-                        sub(/\.csv$/, "", file_name)
-                        if (sub_cmd != "") {
-                            printf "%s|%s|\033[1;36m%-9s\033[0m %-9s \033[1;30m%s\033[0m\n", cmd, sub_cmd, cmd, sub_cmd, file_name
-                        } else {
-                            printf "%s|%s|\033[1;36m%-9s\033[0m %-9s \033[1;30m%s\033[0m\n", cmd, "", cmd, "", file_name
-                        }
-                    }
-                }
-            ' "$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD" 2>/dev/null)
+            sub_opts="${sub_opts%\\n}"
+            sub_opts+="\n\033[1;33m[Custom]\033[0m\n\033[1;31m[Clear]\033[0m"
 
+            local total_sub=$(echo -e "$sub_opts" | grep -c "^")
+            
+            # 動態高度計算：精準適配選項數量
             local term_h=$(tput lines)
-            local fzf_h=$(( term_h - 18 ))
-            if [ "$fzf_h" -lt 12 ]; then 
-                fzf_h=12
-            fi
-
-            local selection=$(echo -e "$raw_list" | fzf --ansi \
-                --delimiter='\|' \
-                --with-nth=3.. \
+            local max_h=$(( term_h - 18 ))
+            [ "$max_h" -lt 7 ] && max_h=7
+            
+            local fzf_h=$(( total_sub + 4 ))
+            [ "$fzf_h" -gt 12 ] && fzf_h=12
+            [ "$fzf_h" -gt "$max_h" ] && fzf_h=$max_h
+            
+            local sub_sel=$(echo -e "$sub_opts" | fzf --ansi \
                 --height=${fzf_h} \
-                --info=hidden \
                 --layout=reverse \
-                --header=" :: Enter to Select, Esc to Return ::" \
-                --border-label=" :: CORE PKG EXTRACTOR :: " \
+                --border-label=" :: [$field] PAYLOAD :: " \
+                --header=" :: Nodes: [$total_sub] | Enter to Select, Esc to Return ::" \
                 --border=bottom \
-                --prompt=" :: Select Node › " \
+                --prompt=" :: INPUT › " \
+                --info=hidden \
                 --pointer="››" \
                 --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
                 --color=info:240,prompt:$border_color,pointer:red,marker:208,border:$border_color,header:240 \
                 --bind="resize:clear-screen"
-                )
+            )
             
-            if [ -n "$selection" ]; then
-                local i_cmd=$(echo "$selection" | cut -d'|' -f1)
-                local i_sub=$(echo "$selection" | cut -d'|' -f2)
-                _mux_neural_data "$i_cmd" "$i_sub"
+            # 觸發 ESC，跳出子迴圈，回到主迴圈
+            if [ -z "$sub_sel" ]; then break; fi
+            
+            local final_val_clean=$(echo "$sub_sel" | sed $'s/\033\\[[0-9;]*m//g')
+            local final_val="$final_val_clean"
+            
+            if [ "$final_val_clean" == "[Clear]" ]; then 
+                final_val=""
                 
-                if [ $? -eq 0 ] && [ -n "$_VAL_PKG" ]; then
-                    final_val="$_VAL_PKG"
-                    _bot_say "success" "PKG Extracted: $final_val"
+            elif [[ "$final_val_clean" == '$SEARCH_'* ]]; then
+                local expanded_url=$(eval echo "$final_val_clean")
+                if [[ "$expanded_url" != *"\$query"* ]]; then
+                    expanded_url="${expanded_url}\$query"
+                fi
+                final_val="$expanded_url"
+                echo -e "${C_GRAY}    ›› Auto-expanded to: $final_val${C_RESET}"
+
+            elif [ "$final_val_clean" == "[Custom]" ]; then
+                local current_val=""
+                case "$field" in
+                    "USER") current_val="$_XUM_USER" ;;
+                    "PKG") current_val="$_XUM_PKG" ;;
+                    "TARGET") current_val="$_XUM_TARGET" ;;
+                    "URI") current_val="$_XUM_URI" ;;
+                    "MIME") current_val="$_XUM_MIME" ;;
+                    "CATE1") current_val="$_XUM_CATE1" ;;
+                    "CATE2") current_val="$_XUM_CATE2" ;;
+                    "CATE3") current_val="$_XUM_CATE3" ;;
+                    "FLAG") current_val="$_XUM_FLAG" ;;
+                esac
+                read -e -p "$(echo -e "\033[38;5;${border_color}m :: [$field] CUSTOM INPUT › \033[0m")" -i "$current_val" final_val
+                
+            # 核心節點 PKG 萃取
+            elif [ "$final_val_clean" == "[Import from Core]" ]; then
+                local raw_list=$(awk -v FPAT='([^,]*)|("[^"]+")' '
+                    FNR > 1 && !/^#/ {
+                        cmd = $5; gsub(/^"|"$/, "", cmd); gsub(/^[ \t]+|[ \t]+$/, "", cmd)
+                        sub_cmd = $6; gsub(/^"|"$/, "", sub_cmd); gsub(/^[ \t]+|[ \t]+$/, "", sub_cmd)
+                        if (cmd != "") {
+                            n = split(FILENAME, path_parts, "/")
+                            file_name = path_parts[n]
+                            sub(/\.csv$/, "", file_name)
+                            if (sub_cmd != "") {
+                                printf "%s|%s|\033[1;36m%-9s\033[0m %-9s \033[1;30m%s\033[0m\n", cmd, sub_cmd, cmd, sub_cmd, file_name
+                            } else {
+                                printf "%s|%s|\033[1;36m%-9s\033[0m %-9s \033[1;30m%s\033[0m\n", cmd, "", cmd, "", file_name
+                            }
+                        }
+                    }
+                ' "$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD" 2>/dev/null)
+
+                local ext_fzf_h=$(( term_h - 18 ))
+                [ "$ext_fzf_h" -lt 12 ] && ext_fzf_h=12
+
+                local selection=$(echo -e "$raw_list" | fzf --ansi \
+                    --delimiter='\|' \
+                    --with-nth=3.. \
+                    --height=${ext_fzf_h} \
+                    --info=hidden \
+                    --layout=reverse \
+                    --header=" :: Enter to Select, Esc to Return ::" \
+                    --border-label=" :: CORE PKG EXTRACTOR :: " \
+                    --border=bottom \
+                    --prompt=" :: Select Node › " \
+                    --pointer="››" \
+                    --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                    --color=info:240,prompt:$border_color,pointer:red,marker:208,border:$border_color,header:240 \
+                    --bind="resize:clear-screen"
+                )
+                
+                if [ -n "$selection" ]; then
+                    local i_cmd=$(echo "$selection" | cut -d'|' -f1)
+                    local i_sub=$(echo "$selection" | cut -d'|' -f2)
+                    _mux_neural_data "$i_cmd" "$i_sub"
+                    
+                    if [ $? -eq 0 ] && [ -n "$_VAL_PKG" ]; then
+                        final_val="$_VAL_PKG"
+                        _bot_say "success" "PKG Extracted: $final_val"
+                    else
+                        _bot_say "warn" "No PKG binding found in node [$i_cmd $i_sub]."
+                        continue
+                    fi
                 else
-                    _bot_say "warn" "No PKG binding found in node [$i_cmd $i_sub]."
                     continue
                 fi
-            else
+
+            # 外部環境探測 (apklist)
+            elif [ "$final_val_clean" == "[Run 'apklist']" ]; then
+                apklist
+                echo -e "${THEME_DESC}(Press 'Enter' to return to Workbench...)${C_RESET}"
+                read
                 continue
             fi
-
-        # 外部環境探測 (apklist)
-        elif [ "$final_val_clean" == "[Run 'apklist']" ]; then
-            apklist
-            echo -e "\033[1;30m(Press 'Enter' to return to Workbench...)\033[0m"
-            read
-            continue
-        fi
-        _xum_neural_write "$slot" "$col_idx" "$final_val"
-        _xum_update_sts "$slot" "S"
-    done
+            
+            # 執行寫入，然後跳出子迴圈，回到 Main Workbench
+            _xum_neural_write "$slot" "$col_idx" "$final_val"
+            _xum_update_sts "$slot" "S"
+            break
+        done
 }
 
 # 上膛解鎖 (CBR: F -> L)
