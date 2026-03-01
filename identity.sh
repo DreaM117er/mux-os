@@ -417,6 +417,7 @@ function _grant_xp() {
                         "_fac_update_category_name"
                         "_fac_delete_node"
                         "_fac_rebak_wizard"
+                        "_xum_cmd_fire"
                         "o"
                     )
     local authorized=false
