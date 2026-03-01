@@ -212,17 +212,6 @@ function _mux_reload_kernel() {
         if [ $? -ne 0 ]; then return; fi 
     fi
 
-    local gate_theme="core"
-    if [ "$MUX_STATUS" == "DEFAULT" ]; then
-        gate_theme="default"
-    elif [ "$MUX_MODE" == "XUM" ]; then
-        gate_theme="xum"
-    fi
-    
-    if command -v _ui_fake_gate &> /dev/null; then
-        _ui_fake_gate "$gate_theme"
-    fi
-
     if [ -f "$MUX_ROOT/.mux_state" ]; then
         local current_entry=$(grep "^MUX_ENTRY_POINT=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2 | tr -d '\r\n ')
         
@@ -231,6 +220,17 @@ function _mux_reload_kernel() {
             local safe_status=$(grep "^MUX_STATUS=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2 | tr -d '\r\n ')
             _update_mux_state "$safe_mode" "$safe_status"
         fi
+    fi
+
+    local gate_theme="core"
+    if [ "$MUX_STATUS" == "DEFAULT" ]; then
+        gate_theme="default"
+    elif [ "$MUX_MODE" == "XUM" ]; then
+        gate_theme="xum"
+    fi
+
+    if command -v _ui_fake_gate &> /dev/null; then
+        _ui_fake_gate "$gate_theme"
     fi
 
     _system_unlock

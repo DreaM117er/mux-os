@@ -1373,6 +1373,8 @@ function _factory_fzf_add_type_menu() {
 # 星門 - UI Mask / Fake Gate
 function _ui_fake_gate() {
     local theme="$1"
+    local entry_point="$2"
+    
     local bar_total=25
     local full_width=$(( bar_total + 2 ))
     local screen_lines=$(tput lines)
@@ -1385,7 +1387,6 @@ function _ui_fake_gate() {
     local color_main="${C_CYAN}"
     local gate_name="SYSTEM CORE"
     local c_border="${C_WHITE}" 
-    local entry_point=$(grep "^MUX_ENTRY_POINT=" "$MUX_ROOT/.mux_state" 2>/dev/null | cut -d'"' -f2)
     
     case "$theme" in
         "factory")
