@@ -1874,7 +1874,6 @@ function mux() {
             # 3. 放行啟動
             _bot_say "warn" "WARNING: OVERCLOCK PROTOCOL DETECTED."
             _update_mux_state "XUM" "LOGIN" "OVERCLOCK"
-            MUX_STATUS="LOGIN"
             _mux_reload_kernel
             ;;
 
