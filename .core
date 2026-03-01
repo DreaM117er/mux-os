@@ -1394,10 +1394,6 @@ Output: $output"
 # 槍管退膛與系統降壓 (Chamber Eject & System Cooldown)
 function _xum_cmd_reset() {
     _bot_say "warn" "INITIATING CORE COOLDOWN SEQUENCE..."
-    
-    # ----------
-    # [預留位置]：未來將在此處寫入 Unix 時間戳記 (2小時物理鎖)
-    # ----------
 
     # 寫入關閉時間
     if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi

@@ -222,6 +222,16 @@ function _mux_reload_kernel() {
     if command -v _ui_fake_gate &> /dev/null; then
         _ui_fake_gate "$gate_theme"
     fi
+
+    if [ -f "$MUX_ROOT/.mux_state" ]; then
+        local current_entry=$(grep "^MUX_ENTRY_POINT=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2)
+        if [ "$current_entry" == "OVERCLOCK" ]; then
+            _update_mux_state "XUM" "LOGIN"
+        elif [ "$current_entry" == "COOLDOWN" ]; then
+            _update_mux_state "MUX" "LOGIN"
+        fi
+    fi
+
     _system_unlock
     exec bash
 }
