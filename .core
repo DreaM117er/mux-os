@@ -193,7 +193,7 @@ function _xum_update_sts() {
                 $3 = "\"" st "\""  # 寫入 E, S, N, R
             }
             print $0
-        }_xum_ui_status_all
+        }
     ' "$XUM_DB" > "$tmp_file" && mv "$tmp_file" "$XUM_DB"
 }
 
@@ -524,7 +524,7 @@ function _xum_cmd_import() {
         
         # 狀態標記轉換
         _xum_update_sts "$slot" "S"
-        _bot_say "success" "Core Payload [\033[1;36m$i_cmd $i_sub\033[0m] Injected to Chamber $slot."
+        _bot_say "success" "Core Payload [$i_cmd $i_sub] Injected to Chamber $slot."
         
         _xum_ui_status_panel "$slot"
     else
@@ -978,6 +978,7 @@ function _xum_cmd_input() {
             _xum_update_sts "$slot" "S"
             break
         done
+    done
 }
 
 # 上膛解鎖 (CBR: F -> L)
@@ -1065,6 +1066,41 @@ function _xum_cmd_fire() {
         local current_cbr="${_XUM_CBR:-EMPTY}"
         _bot_say "error" "CLICK! Chamber [$slot] is not locked. CBR is [$current_cbr], requires [L]."
         return 1
+    fi
+
+    # 3. 掃描 $query 引信並填入參數
+    local has_query=false
+    if [[ "$_XUM_URI" == *"\$query"* ]] || [[ "$_XUM_FLAG" == *"\$query"* ]]; then has_query=true; fi
+    for i in {1..5}; do
+        local ex_var="_XUM_EX${i}"; local tra_var="_XUM_TRA${i}"; local boo_var="_XUM_BOO${i}"
+        if [[ "${!ex_var}" == *"\$query"* ]] || [[ "${!tra_var}" == *"\$query"* ]] || [[ "${!boo_var}" == *"\$query"* ]]; then
+            has_query=true; break
+        fi
+    done
+
+    if [ "$has_query" == true ]; then
+        echo ""
+        echo -e "${C_YELLOW} :: DYNAMIC PAYLOAD DETECTED ::${C_RESET}"
+        echo -e "${C_BLACK}    ›› Payload requires a '\$query' variable to proceed.${C_RESET}"
+        local q_input=""
+        read -e -p "$(echo -e "${C_TAVIOLET} :: INPUT \$query › ${C_RESET}")" q_input
+        
+        # 實體化替換 (URI 處理空格轉 + 號，其餘保持原樣)
+        local safe_q="${q_input// /+}"
+        
+        # 僅在本次發射的「記憶體」中替換，不回寫 CSV，維持槍膛的純粹性
+        _XUM_URI="${_XUM_URI//\$query/$safe_q}"
+        _XUM_FLAG="${_XUM_FLAG//\$query/$q_input}"
+        
+        for i in {1..5}; do
+            local ex_var="_XUM_EX${i}"; local tra_var="_XUM_TRA${i}"; local boo_var="_XUM_BOO${i}"
+            local ex_val="${!ex_var}"; local tra_val="${!tra_var}"; local boo_val="${!boo_var}"
+            
+            # 更新區域變數 (在記憶體中實體化)
+            if [[ "$ex_val" == *"\$query"* ]]; then eval "$ex_var=\"\${ex_val//\\\$query/$q_input}\""; fi
+            if [[ "$tra_val" == *"\$query"* ]]; then eval "$tra_var=\"\${tra_val//\\\$query/$q_input}\""; fi
+            if [[ "$boo_val" == *"\$query"* ]]; then eval "$boo_var=\"\${boo_val//\\\$query/$q_input}\""; fi
+        done
     fi
 
     _bot_say "system" "IGNITION SEQUENCE START. DISCHARGING PAYLOAD..."
