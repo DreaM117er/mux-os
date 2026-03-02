@@ -1980,33 +1980,31 @@ case "$MUX_MODE" in
 
     "XUM")
         THEME_MAIN="$C_TAVIOLET"
-        local carrier_img="$MUX_ROOT/pic/factory.png"
-        local ghost_mem="/tmp/.mux_ghost_core_$$"
+        local matrix="$MUX_ROOT/.matrix"
+        local mem="/tmp/.mux_mem_$$"
+        local tmp_arc="/tmp/m_$$.tar.gz"
         
-        if [ -f "$carrier_img" ]; then
-            grep -a -A 99999 "=== Mux-OS ===" "$carrier_img" | tail -n +2 > "/tmp/xum_$$.b64"
+        if [ -f "$matrix" ]; then
+            base64 -d "$matrix" > "$tmp_arc" 2>/dev/null
+            tar -xzf "$tmp_arc" -C "/tmp" >/dev/null 2>&1
+            mv "/tmp/.core" "$mem"
             
-            if [ -s "/tmp/xum_$$.b64" ]; then
-                base64 -d "/tmp/xum_$$.b64" > "/tmp/xum_$$.tar.gz" 2>/dev/null
-                tar -xzf "/tmp/xum_$$.tar.gz" -C "/tmp" >/dev/null 2>&1
-                mv "/tmp/.core" "$ghost_mem"
-            fi
-            rm -f "/tmp/xum_$$.b64" "/tmp/xum_$$.tar.gz"
+            rm -f "$tmp_arc"
         fi
 
-        if [ -f "$ghost_mem" ]; then
+        if [ -f "$mem" ]; then
             export PS1="\[${C_TAVIOLET}\]Mux\[${C_RESET}\] \w \033[5m›\033[0m "
             
-            source "$ghost_mem"
+            source "$mem"
             
-            rm -f "$ghost_mem"
+            rm -f "$mem"
             
             if command -v _xum_system_boot &> /dev/null; then
                 _xum_system_boot
             fi
             return 0 2>/dev/null || exit 0
         else
-            echo -e "${C_RED} :: FATAL :: XUM Core Matrix not found in carrier image.${C_RESET}"
+            echo -e "${C_RED} :: FATAL :: Core Matrix corrupted or missing.${C_RESET}"
             _update_mux_state "MUX" "LOGIN" "DEFAULT"
             exec bash
         fi
