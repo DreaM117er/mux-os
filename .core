@@ -878,7 +878,7 @@ function _xum_cmd_input() {
                     [ "$sub_field" == "IBODY" ] && current_val="$_XUM_IBODY"
                     
                     # 熱載入現有變數至輸入框
-                    read -e -p "$(echo -e "\033[38;5;${border_color}m :: [$sub_field] CUSTOM INPUT › \033[0m")" -i "$current_val" final_val
+                    read -e -p "$(echo -e "${C_TAVIOLET} :: [$sub_field] CUSTOM INPUT ${C_WHITE}› ${C_RESET}")" -i "$current_val" final_val
                 fi
                 
                 _xum_neural_write "$slot" "$intent_col" "$final_val"
@@ -965,7 +965,7 @@ function _xum_cmd_input() {
                     [ "$sub_field" == "BOO${n}" ] && current_val="${!boo_var}"
                     
                     # 熱重載探針
-                    read -e -p "$(echo -e "\033[38;5;${border_color}m :: [$sub_field] CUSTOM INPUT › \033[0m")" -i "$current_val" final_val
+                    read -e -p "$(echo -e "${C_TAVIOLET} :: [$sub_field] CUSTOM INPUT ${C_WHITE}› ${C_RESET}")" -i "$current_val" final_val
                 fi
                 
                 _xum_neural_write "$slot" "$ex_col" "$final_val"
@@ -1068,7 +1068,7 @@ function _xum_cmd_input() {
                     "CATE3") current_val="$_XUM_CATE3" ;;
                     "FLAG") current_val="$_XUM_FLAG" ;;
                 esac
-                read -e -p "$(echo -e "\033[38;5;${border_color}m :: [$field] CUSTOM INPUT › \033[0m")" -i "$current_val" final_val
+                read -e -p "$(echo -e "${C_TAVIOLET} :: [$field] CUSTOM INPUT${C_WHITE} › ${C_RESET}")" -i "$current_val" final_val
                 
             # 核心節點 PKG 萃取
             elif [ "$final_val_clean" == "[Import from Core]" ]; then
@@ -1250,12 +1250,11 @@ function _xum_cmd_fire() {
 
     if [ "$has_query" == true ]; then
         title_txt=$(_xum_glitch_text "DYNAMIC PAYLOAD DETECTED")
-        echo ""
         echo -e "${C_YELLOW} :: ${title_txt} ::${C_RESET}"
         title_txt=$(_xum_glitch_text "Payload requires a '\$query' variable to proceed")
         echo -e "${C_BLACK}    ›› ${title_txt}.${C_RESET}"
         local q_input=""
-        read -e -p "$(echo -e "${C_TAVIOLET} :: INPUT \$query › ${C_RESET}")" q_input
+        read -e -p "$(echo -e "${C_TAVIOLET} :: INPUT \$query ${C_WHITE}› ${C_RESET}")" q_input
         
         local safe_q="${q_input// /+}"
         
