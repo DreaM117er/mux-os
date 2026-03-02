@@ -448,6 +448,7 @@ function _xum_cmd_check() {
     done
 
     local has_payload=false
+    local delay_counter=1
     for item in "${scan_items[@]}"; do
         local key="${item%%:*}"
         local val="${item#*:}"
@@ -455,14 +456,17 @@ function _xum_cmd_check() {
             has_payload=true
             local title_txt=$(_xum_glitch_text "Probing Node [$key]")
             echo -e "${C_BLACK}    ›› ${title_txt}...${C_RESET}"
-            sleep 0.15
+            
+            local delay=$(awk -v n=$delay_counter 'BEGIN {print n * 0.1}')
+            sleep $delay
+            delay_counter=$((delay_counter + 1))
         fi
     done
     
     if [ "$has_payload" == true ]; then
         local title_txt=$(_xum_glitch_text "Cross-referencing logic gates")
         echo -e "${C_BLACK}    ›› ${title_txt}...${C_RESET}"
-        sleep 0.4
+        sleep 0.2
     fi
 
     # 3. 判斷是否為「絕對空彈 [E]」
@@ -614,13 +618,17 @@ function _xum_cmd_import() {
             "EXTRA:$_VAL_EX$_VAL_EXTRA$_VAL_BOOLEN" "FLAG:$_VAL_FLAG"
         )
         
+        local delay_counter=1
         for item in "${inject_items[@]}"; do
             local key="${item%%:*}"
             local val="${item#*:}"
             if [ -n "$val" ]; then
                 local title_txt=$(_xum_glitch_text "Injecting [$key]")
                 echo -e "${C_BLACK}    ›› ${title_txt}...${C_RESET}"
-                sleep 0.2
+                
+                local delay=$(awk -v n=$delay_counter 'BEGIN {print n * 0.1}')
+                sleep $delay
+                delay_counter=$((delay_counter + 1))
             fi
         done
         
@@ -1292,16 +1300,17 @@ function _xum_cmd_fire() {
         local val="${item#*:}"
         if [ -n "$val" ] && [ "$val" != "0" ]; then
             loaded_count=$((loaded_count + 1))
-            title_txt=$(_xum_glitch_text "Pressurizing [$key]")
+            local title_txt=$(_xum_glitch_text "Pressurizing [$key]")
             
             local c_press="${C_BLACK}"
             if [ "$loaded_count" -ge 8 ]; then c_press="${C_RED}"
             elif [ "$loaded_count" -ge 4 ]; then c_press="${C_ORANGE}"
             else c_press="${C_YELLOW}"
             fi
-            
             echo -e "${c_press}    ›› ${title_txt}...${C_RESET}"
-            sleep 0.15
+            
+            local delay=$(awk -v n=$loaded_count 'BEGIN {print n * 0.025}')
+            sleep $delay
         fi
     done
     
