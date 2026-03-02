@@ -1846,37 +1846,6 @@ function mux() {
             fi
             ;;
 
-        "xum")
-            # 確保讀取最新身份資料
-            if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
-            
-            # 1. 等級鎖 (Level Gate)：未滿 L8 禁止進入
-            if [ "$MUX_LEVEL" -lt 8 ]; then
-                _bot_say "error" "ACCESS DENIED. Clearance Level 8 required for Overclock."
-                return 1
-            fi
-
-            # 2. 物理冷卻鎖 (Thermal Cooldown)：2 小時 (7200 秒)
-            local now_ts=$(date +%s)
-            local cd_elapsed=$(( now_ts - MUX_CDDATE ))
-            local cd_required=7200
-            
-            if [ "$cd_elapsed" -lt "$cd_required" ]; then
-                local cd_remain=$(( cd_required - cd_elapsed ))
-                local cd_min=$(( cd_remain / 60 ))
-                local cd_sec=$(( cd_remain % 60 ))
-                
-                _bot_say "error" "OVERCLOCK PROTOCOL LOCKED. CORE COOLING IN PROGRESS."
-                echo -e "${THEME_DESC}    ›› Time remaining: ${THEME_ERR}${cd_min}m ${cd_sec}s${C_RESET}"
-                return 1
-            fi
-
-            # 3. 放行啟動
-            _bot_say "warn" "WARNING: OVERCLOCK PROTOCOL DETECTED."
-            _update_mux_state "XUM" "LOGIN" "OVERCLOCK"
-            _mux_reload_kernel
-            ;;
-
         *)
             if command -v "$cmd" &> /dev/null; then "$cmd" "${@:2}"; return; fi
             echo -e "${C_YELLOW} :: Unknown Directive: '$cmd'.${C_RESET}"

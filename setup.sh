@@ -32,6 +32,7 @@ fi
 
 # 輔助函式：Banner
 function _banner() {
+    local mode="$1"
     clear
     echo -e "${C_GRAY}"
     cat << "EOF"
@@ -42,7 +43,12 @@ function _banner() {
  |_|  |_|\__,_/_/\_\     \___/|____/ 
 EOF
     echo -e "${C_RESET}"
-    echo -e " ${C_GRAY}:: Lifecycle Manager :: v3.6.0 ::${C_RESET}"
+
+    if [[ "$mode" == "core" ]]; then
+        echo -e " ${C_GRAY}:: SYSTEM CORE INSIDE ::${C_RESET}"
+    else
+        echo -e " ${C_GRAY}:: Lifecycle Manager :: v3.6.0 ::${C_RESET}"
+    fi
     echo ""
 }
 
@@ -74,6 +80,34 @@ function _reauth_protocol() {
     sleep 1
     
     _exit_protocol
+}
+
+# 系統核心暗門
+function _passcode_rec() {
+    _banner "core"
+    
+    echo -e "${C_YELLOW}    (Hint: Answers are case-insensitive. No punctuation required.)${C_RESET}"
+    echo ""
+    
+    read -e -p " ›› ID: " p_id
+    read -e -p " ›› Before a system takes physical form, where does the true structure reside? " p_q1
+    read -e -p " ›› With what do we anchor our theories into reality? " p_q2
+    read -e -p " ›› Why did we strip the engine of all its bloat? " p_q3
+    read -e -p " ›› Why do we forge the physical constraints of the state machine? " p_q4
+    
+    # 靜默寫入
+    cat > "$MUX_ROOT/.passcode" <<EOF
+$p_id
+$p_q1
+$p_q2
+$p_q3
+$p_q4
+EOF
+
+    echo ""
+    echo -e "${C_GRAY}    ›› Input accepted. Returning to Core...${C_RESET}"
+    sleep 1
+    exec bash
 }
 
 # 安裝協議
@@ -194,6 +228,11 @@ EOF
         __MUX_CORE_ACTIVE=true bash "$MUX_ROOT/identity.sh"
     fi
 
+    if [ -f "$MUX_ROOT/.mux_identity" ]; then source "$MUX_ROOT/.mux_identity"; fi
+    if [ "${MUX_LEVEL:-1}" -ge 8 ] && [ ! -f "$MUX_ROOT/.passcode" ]; then
+        _passcode_rec
+    fi
+
     echo ""
     echo -e "${C_GREEN} :: System Ready. Returning to Core...${C_RESET}"
     sleep 1
@@ -259,14 +298,31 @@ if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
     echo " [2] Reset Identity (Re-auth)"
     echo " [3] Uninstall (Self-Destruct)"
     echo " [4] Cancel (Reload Core)"
+    
+    if [ -f "$MUX_ROOT/.mux_identity" ]; then source "$MUX_ROOT/.mux_identity"; fi
+    show_ghost=0
+    if [ "${MUX_LEVEL:-1}" -ge 8 ] && [ ! -f "$MUX_ROOT/.passcode" ]; then
+        if [ $((RANDOM % 3)) -eq 0 ]; then
+            show_ghost=1
+            echo -e "${C_TAVIOLET} [5] System Core Override${C_RESET}"
+        fi
+    fi
     echo ""
-    echo -ne "${C_CYAN} :: Select Protocol [1-4]: ${C_RESET}"
+    echo -ne "${C_CYAN} :: Select Protocol: ${C_RESET}"
     read choice
 
     case "$choice" in
         1) _install_protocol ;;
         2) _reauth_protocol ;;
         3) _uninstall_protocol ;;
+        4) _exit_protocol ;;
+        5) 
+            if [ "${MUX_LEVEL:-1}" -ge 8 ]; then
+                _passcode_rec
+            else
+                _exit_protocol
+            fi
+            ;;
         *) _exit_protocol ;;
     esac
 

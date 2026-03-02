@@ -471,6 +471,77 @@ function _show_hud() {
     echo ""
 }
 
+# 系統審判儀式 (System Protocol)
+function _mux_awakening_protocol() {
+    local a1=$(sed -n '2p' "$MUX_ROOT/.passcode" | tr '[:upper:]' '[:lower:]' | tr -d '[:punct:]' | xargs)
+    local a2=$(sed -n '3p' "$MUX_ROOT/.passcode" | tr '[:upper:]' '[:lower:]' | tr -d '[:punct:]' | xargs)
+    local a3=$(sed -n '4p' "$MUX_ROOT/.passcode" | tr '[:upper:]' '[:lower:]' | tr -d '[:punct:]' | xargs)
+    local a4=$(sed -n '5p' "$MUX_ROOT/.passcode" | tr '[:upper:]' '[:lower:]' | tr -d '[:punct:]' | xargs)
+
+    if [ "$a1" == "logic in mind" ] && [ "$a2" == "hardware in hand" ] && \
+       [ "$a3" == "designed for efficiency" ] && [ "$a4" == "built for control" ]; then
+        
+        echo ""
+        _bot_say "system" "ACCESS GRANTED. DECRYPTING CORE PHILOSOPHY..."
+        sleep 1
+        
+        local s1="Logic in mind, Hardware in hand."
+        local s2="Designed for efficiency, built for control."
+        
+        echo -ne "${C_TAVIOLET}    "
+        for (( i=0; i<${#s1}; i++ )); do echo -ne "${s1:$i:1}"; sleep 0.05; done; echo ""
+        sleep 0.5
+        echo -ne "    "
+        for (( i=0; i<${#s2}; i++ )); do echo -ne "${s2:$i:1}"; sleep 0.05; done; echo -e "${C_RESET}"
+        sleep 1.5
+        
+        local max_slots=3
+        if [ "${MUX_LEVEL:-1}" -ge 12 ]; then max_slots=8
+        elif [ "${MUX_LEVEL:-1}" -ge 8 ]; then max_slots=$(( MUX_LEVEL - 5 )); fi
+
+        echo ""
+        echo -e "${C_RED} :: OVERCLOCK PROTOCOL RULES ::${C_RESET}"
+        echo -e "${C_BLACK}    1. Mux-OS is a two-sided mirror. ${C_CYAN}MUX${C_BLACK} is the face, ${C_TAVIOLET}XUM${C_BLACK} is the shadow.${C_RESET}"
+        echo -e "${C_BLACK}    2. They do not intersect. ${C_TAVIOLET}XUM ${C_BLACK}commands ${C_CYAN}MUX${C_BLACK}, but ${C_RED}CANNOT${C_BLACK} enter the Factory.${C_RESET}"
+        echo -e "${C_BLACK}    3. WARNING: Entering Overclock mode will cause severe system instability.${C_RESET}"
+        echo -e "${C_BLACK}    4. Fire Control Limit: ${C_RED}${max_slots} Rounds${C_BLACK} authorized.${C_RESET}"
+        echo -e "${C_BLACK}    5. Thermal Cooldown: ${C_RED}2 Hours${C_BLACK} upon termination.${C_RESET}"
+        echo ""
+        
+        while true; do
+            echo -ne "${C_RED} :: Are you ready to start building your world? [CONFIRM]: ${C_RESET}"
+            read final_confirm
+            
+            if [ "$final_confirm" == "CONFIRM" ]; then
+                echo -e "${C_TAVIOLET} :: Awaiting execution command...${C_RESET}"
+                while true; do
+                    echo -ne "${C_BLACK} › ${C_RESET}"
+                    read force_cmd
+                    if [ "$force_cmd" == "xum start" ]; then’
+                        # 這裡我會將啓動方式變成這裡唯一
+                        echo -e "${C_RED} :: INITIATING OVERCLOCK... ::${C_RESET}"
+                        sleep 1
+                        _update_mux_state "XUM" "LOGIN" "OVERCLOCK"
+                        _mux_reload_kernel
+                        return
+                    else
+                        echo -e "${C_RED}    ›› Invalid. Command 'xum start' is required to proceed.${C_RESET}"
+                    fi
+                done
+            else
+                echo -e "${C_BLACK}    ›› Awaiting confirmation...${C_RESET}"
+            fi
+        done
+
+    else
+        rm -f "$MUX_ROOT/.passcode"
+        echo ""
+        echo -e "${C_RED} :: You are not ready. Try again.${C_RESET}"
+        sleep 2
+        exec bash
+    fi
+}
+
 # 顯示系統資訊詳情 - Display System Info Details
 function _mux_show_info() {
     clear
@@ -498,7 +569,7 @@ function _mux_show_info() {
     echo ""
     echo -e " ${header_color}:: PHILOSOPHY ::${C_RESET}"
     echo -e "  ${THEME_DESC}\"Logic in mind, Hardware in hand.\"${C_RESET}"
-    echo -e "  ${THEME_DESC}Designed for efficiency, built for control.${C_RESET}"
+    echo -e "  ${THEME_DESC}Designed for efficiency, Built for control.${C_RESET}"
     echo ""
     echo -e " ${header_color}:: SOURCE CONTROL ::${C_RESET}"
     echo -e "  ${THEME_DESC}Repo       :${C_RESET} ${THEME_SUB}$MUX_REPO${C_RESET}"
@@ -515,10 +586,51 @@ function _mux_show_info() {
         fi
     else
         echo ""
-        if [ "$MUX_STATUS" == "LOGIN" ]; then
-            _voice_dispatch "system"
-        else
-            _commander_voice "system"
+        local trigger_normal="true"
+        
+        if [ -f "$MUX_ROOT/.passcode" ]; then
+            local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "Unknown")
+            local p_id=$(sed -n '1p' "$MUX_ROOT/.passcode")
+            
+            if [[ "${current_branch,,}" == "${p_id,,}" ]]; then
+                local id_file="${IDENTITY_FILE:-$MUX_ROOT/.mux_identity}"
+                if [ -f "$id_file" ]; then source "$id_file"; fi
+                
+                if [ "${MUX_LEVEL:-1}" -lt 8 ]; then
+                    _bot_say "error" "ACCESS DENIED. Clearance Level 8 required for Overclock."
+                    return 1
+                fi
+
+                local now_ts=$(date +%s)
+                local cd_elapsed=$(( now_ts - ${MUX_CDDATE:-0} ))
+                local cd_required=7200
+                
+                if [ "$cd_elapsed" -lt "$cd_required" ]; then
+                    local cd_remain=$(( cd_required - cd_elapsed ))
+                    local cd_min=$(( cd_remain / 60 ))
+                    local cd_sec=$(( cd_remain % 60 ))
+                    
+                    _bot_say "error" "OVERCLOCK PROTOCOL LOCKED. CORE COOLING IN PROGRESS."
+                    echo -e "${THEME_DESC}    ›› Time remaining: ${C_RED}${cd_min}m ${cd_sec}s${C_RESET}"
+                    return 1
+                fi
+
+                echo -ne " ${THEME_WARN}:: Are you ready to start building your world? [Y/n]: ${C_RESET}"
+                read ready_choice
+                if [[ "$ready_choice" == "y" || "$ready_choice" == "Y" ]]; then
+                    trigger_normal="false"
+                    _mux_awakening_protocol
+                    return
+                fi
+            fi
+        fi
+
+        if [ "$trigger_normal" == "true" ]; then
+            if [ "$MUX_STATUS" == "LOGIN" ]; then
+                _voice_dispatch "system"
+            else
+                _commander_voice "system"
+            fi
         fi
     fi
 }
@@ -1374,7 +1486,7 @@ function _factory_fzf_add_type_menu() {
 function _ui_fake_gate() {
     local theme="$1"
     local entry_point="$2"
-    
+
     local bar_total=25
     local full_width=$(( bar_total + 2 ))
     local screen_lines=$(tput lines)
