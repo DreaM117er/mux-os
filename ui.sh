@@ -517,7 +517,7 @@ function _mux_awakening_protocol() {
                 while true; do
                     echo -ne "${C_BLACK} › ${C_RESET}"
                     read force_cmd
-                    if [ "$force_cmd" == "xum start" ]; then’
+                    if [ "$force_cmd" == "xum start" ]; then
                         # 這裡我會將啓動方式變成這裡唯一
                         echo -e "${C_RED} :: INITIATING OVERCLOCK... ::${C_RESET}"
                         sleep 1
