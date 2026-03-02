@@ -1133,7 +1133,7 @@ function _core_system_scan() {
             _bot_say "success" "All systems green. Ready for combat."
             echo ""
             echo -e "${C_YELLOW} :: ANOMALY PERSISTS: Deep scan required. ::${C_RESET}"
-            echo -e "${C_GRAY}    ›› Execute '${C_WHITE}mux check${C_GRAY}' again.${C_RESET}"
+            echo -e "${C_BLACK}    ›› Execute '${C_WHITE}mux check${C_BLACK}' again.${C_RESET}"
             return 0
             
         elif [ "$MUX_CHECK" -eq 2 ]; then
@@ -1145,7 +1145,7 @@ function _core_system_scan() {
             _bot_say "warn" "M3M0RY C0RRUPT!0N D3T3CT3D."
             echo ""
             echo -e "${C_RED} :: F4T4L 3RR0R !MM!N3NT. ::${C_RESET}"
-            echo -e "${C_GRAY}    ›› 3x3cut3 '${C_WHITE}mux check${C_GRAY}' N0W.${C_RESET}"
+            echo -e "${C_BLACK}    ›› 3x3cut3 '${C_WHITE}mux check${C_BLACK}' N0W.${C_RESET}"
             return 0
             
         elif [ "$MUX_CHECK" -ge 3 ]; then
