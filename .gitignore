@@ -5,6 +5,7 @@
 .mux_state
 vendor.csv
 xum.csv
+.passcode
 .core
 
 # :: System Backups
