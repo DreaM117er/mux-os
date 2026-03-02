@@ -471,6 +471,83 @@ function _show_hud() {
     echo ""
 }
 
+# 安全文字亂碼濾鏡 (Safe Glitch Filter)
+function _mux_glitch_filter() {
+    local rate="$1"
+    awk -v rate="$rate" '
+        BEGIN { srand() }
+        {
+            in_ansi = 0
+            split($0, chars, "")
+            for (i=1; i<=length($0); i++) {
+                c = chars[i]
+                if (c == "\033") in_ansi = 1
+                if (in_ansi) {
+                    printf "%s", c
+                    if (c == "m") in_ansi = 0
+                    continue
+                }
+                if (c ~ /[eEaAiIoOsS]/ && (rand() * 100) < rate) {
+                    if (c == "e" || c == "E") c = "3"
+                    else if (c == "a" || c == "A") c = "4"
+                    else if (c == "i" || c == "I") c = "!"
+                    else if (c == "o" || c == "O") c = "0"
+                    else if (c == "s" || c == "S") c = "$"
+                }
+                printf "%s", c
+            }
+            print ""
+        }
+    '
+}
+
+# 系統核心覺醒問卷 (System Core Awakening Questionnaire)
+function _mux_awakening_questionnaire() {
+    clear
+    echo -e "${C_BLACK}"
+    cat << "EOF"
+  __  __                  ___  ____  
+ |  \/  |_   ___  __     / _ \/ ___| 
+ | |\/| | | | \ \/ /____| | | \___ \ 
+ | |  | | |_| |>  <_____| |_| |___) |
+ |_|  |_|\__,_/_/\_\     \___/|____/ 
+EOF
+    echo -e "${C_RESET}"
+    echo -e " ${C_BLACK}:: SYSTEM CORE INSIDE ::${C_RESET}"
+    echo ""
+    echo -e "${C_YELLOW}    (Hint: Answers are case-insensitive. No punctuation required.)${C_RESET}"
+    echo ""
+    
+    echo -e "${C_CYAN} [ID] Commander Identification:${C_RESET}"
+    read -e -p "$(echo -e "${C_WHITE}  › ${C_RESET}")" p_id
+    echo ""
+    echo -e "${C_CYAN} [Q1] Before a system takes physical form, where does the true structure reside?${C_RESET}"
+    read -e -p "$(echo -e "${C_WHITE}  › ${C_RESET}")" p_q1
+    echo ""
+    echo -e "${C_CYAN} [Q2] With what do we anchor our theories into reality?${C_RESET}"
+    read -e -p "$(echo -e "${C_WHITE}  › ${C_RESET}")" p_q2
+    echo ""
+    echo -e "${C_CYAN} [Q3] Why did we strip the engine of all its bloat?${C_RESET}"
+    read -e -p "$(echo -e "${C_WHITE}  › ${C_RESET}")" p_q3
+    echo ""
+    echo -e "${C_CYAN} [Q4] Why do we forge the physical constraints of the state machine?${C_RESET}"
+    read -e -p "$(echo -e "${C_WHITE}  › ${C_RESET}")" p_q4
+    echo ""
+    
+    cat > "$MUX_ROOT/.passcode" <<EOF
+$p_id
+$p_q1
+$p_q2
+$p_q3
+$p_q4
+EOF
+
+    echo ""
+    echo -e "${C_BLACK}    ›› Input accepted. Returning to Core...${C_RESET}"
+    sleep 1.9
+    exec bash
+}
+
 # 系統審判儀式 (System Protocol)
 function _mux_awakening_protocol() {
     local a1=$(sed -n '2p' "$MUX_ROOT/.passcode" | tr '[:upper:]' '[:lower:]' | tr -d '[:punct:]' | xargs)
@@ -517,15 +594,14 @@ function _mux_awakening_protocol() {
                 while true; do
                     echo -ne "${C_BLACK} › ${C_RESET}"
                     read force_cmd
-                    if [ "$force_cmd" == "xum start" ]; then
-                        # 這裡我會將啓動方式變成這裡唯一
+                    if [ "$force_cmd" == "mux reload" ]; then
                         echo -e "${C_RED} :: INITIATING OVERCLOCK... ::${C_RESET}"
                         sleep 1
                         _update_mux_state "XUM" "LOGIN" "OVERCLOCK"
                         _mux_reload_kernel
                         return
                     else
-                        echo -e "${C_RED}    ›› Invalid. Command 'xum start' is required to proceed.${C_RESET}"
+                        echo -e "${C_RED}    ›› Invalid. Command 'mux reload' is required to proceed.${C_RESET}"
                     fi
                 done
             else
@@ -535,6 +611,8 @@ function _mux_awakening_protocol() {
 
     else
         rm -f "$MUX_ROOT/.passcode"
+        MUX_CHECK=0
+        _save_identity
         echo ""
         echo -e "${C_RED} :: You are not ready. Try again.${C_RESET}"
         sleep 2
@@ -588,11 +666,12 @@ function _mux_show_info() {
         echo ""
         local trigger_normal="true"
         
-        if [ -f "$MUX_ROOT/.passcode" ]; then
+        if [ -f "$MUX_ROOT/.passcode" ] && [ "$MUX_MODE" == "MUX" ] && [ "$MUX_STATUS" == "LOGIN" ]; then
             local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "Unknown")
             local p_id=$(sed -n '1p' "$MUX_ROOT/.passcode")
             
             if [[ "${current_branch,,}" == "${p_id,,}" ]]; then
+                
                 local id_file="${IDENTITY_FILE:-$MUX_ROOT/.mux_identity}"
                 if [ -f "$id_file" ]; then source "$id_file"; fi
                 

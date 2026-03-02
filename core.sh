@@ -200,6 +200,16 @@ function _mux_init() {
     export MUX_INITIALIZED="true"
     _system_unlock
     _bot_say "hello"
+    if [ "$MUX_MODE" == "MUX" ] && [ "$MUX_STATUS" == "LOGIN" ] && [ "${MUX_LEVEL:-1}" -ge 8 ] && [ ! -f "$MUX_ROOT/.passcode" ]; then
+        if [ "${MUX_CHECK:-0}" -ge 3 ]; then
+            if command -v _mux_awakening_questionnaire &> /dev/null; then
+                _mux_awakening_questionnaire
+            fi
+        else
+            echo -e "${C_RED} :: WARNING: Quantum anomaly detected in core memory. ::${C_RESET}"
+            echo -e "${C_BLACK}    ›› Execute '${C_WHITE}mux check${C_BLACK}' to diagnose.${C_RESET}"
+        fi
+    fi
 }
 
 # 重新載入核心模組
@@ -1073,34 +1083,77 @@ function _core_system_scan() {
 
     # 結果回饋邏輯
     local total_issues=$(( error_count + warn_count ))
+    local scan_output=""
 
     if [ "$total_issues" -gt 0 ]; then
-        # [異常狀態]
+        # [異常狀態] 暫存輸出字串
         if [ "$mode" == "manual" ]; then
-            echo -e "${THEME_ERR} :: SYSTEM INTEGRITY COMPROMISED ::${C_RESET}"
-            echo -e "${THEME_DESC}    Critical Faults : ${THEME_ERR}${error_count}${C_RESET}"
-            echo -e "${THEME_DESC}    Warnings        : ${THEME_WARN}${warn_count}${C_RESET}"
-            echo -e ""
-            echo -e "${THEME_WARN} :: DAMAGE CONTROL REPORT ::${C_RESET}"
-            echo -e "$report_lines"
+            scan_output="${THEME_ERR} :: SYSTEM INTEGRITY COMPROMISED ::${C_RESET}\n"
+            scan_output+="${THEME_DESC}    Critical Faults : ${THEME_ERR}${error_count}${C_RESET}\n"
+            scan_output+="${THEME_DESC}    Warnings        : ${THEME_WARN}${warn_count}${C_RESET}\n\n"
+            scan_output+="${THEME_WARN} :: DAMAGE CONTROL REPORT ::${C_RESET}\n"
+            scan_output+="$report_lines"
         else
-            # 登入時的語音警告 (只針對 Error)
-            if [ "$error_count" -gt 0 ]; then
-                _bot_say "warn" "Hull damage detected. ${error_count} micro-fractures found."
-            fi
+            if [ "$error_count" -gt 0 ]; then _bot_say "warn" "Hull damage detected. ${error_count} micro-fractures found."; fi
         fi
-        return 1
     else
-        # [正常狀態]
+        # [正常狀態] 暫存輸出字串
         if [ "$mode" == "manual" ]; then
-            echo -e "${THEME_OK} :: SYSTEM DIAGNOSTIC COMPLETE ::${C_RESET}"
-            echo -e "${THEME_DESC}    Neural Integrity: 100%${C_RESET}"
-            echo -e "${THEME_DESC}    Logic Gates: Stable${C_RESET}"
-            echo -e ""
+            scan_output="${THEME_OK} :: SYSTEM DIAGNOSTIC COMPLETE ::${C_RESET}\n"
+            scan_output+="${THEME_DESC}    Neural Integrity: 100%${C_RESET}\n"
+            scan_output+="${THEME_DESC}    Logic Gates: Stable${C_RESET}\n\n"
+        fi
+    fi
+
+    local is_anomaly=false
+    if [ "$mode" == "manual" ] && [ "$MUX_MODE" == "MUX" ] && [ "$MUX_STATUS" == "LOGIN" ] && [ "${MUX_LEVEL:-1}" -ge 8 ] && [ ! -f "$MUX_ROOT/.passcode" ]; then
+        is_anomaly=true
+        if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+        MUX_CHECK=$(( ${MUX_CHECK:-0} + 1 ))
+        _save_identity
+
+        if [ "$MUX_CHECK" -eq 1 ]; then
+            echo -e "$scan_output"
+            _bot_say "success" "All systems green. Ready for combat."
+            echo ""
+            echo -e "${C_YELLOW} :: ANOMALY PERSISTS: Deep scan required. ::${C_RESET}"
+            echo -e "${C_GRAY}    ›› Execute '${C_WHITE}mux check${C_GRAY}' again.${C_RESET}"
+            return 0
+            
+        elif [ "$MUX_CHECK" -eq 2 ]; then
+            if command -v _mux_glitch_filter &> /dev/null; then
+                echo -e "$scan_output" | _mux_glitch_filter 50
+            else
+                echo -e "$scan_output"
+            fi
+            _bot_say "warn" "M3M0RY C0RRUPT!0N D3T3CT3D."
+            echo ""
+            echo -e "${C_RED} :: F4T4L 3RR0R !MM!N3NT. ::${C_RESET}"
+            echo -e "${C_GRAY}    ›› 3x3cut3 '${C_WHITE}mux check${C_GRAY}' N0W.${C_RESET}"
+            return 0
+            
+        elif [ "$MUX_CHECK" -ge 3 ]; then
+            if command -v _mux_glitch_filter &> /dev/null; then
+                echo -e "$scan_output" | _mux_glitch_filter 100
+            else
+                echo -e "$scan_output"
+            fi
+            echo ""
+            echo -e "${C_PURPLE} :: REALITY MATRIX COLLAPSED ::${C_RESET}"
+            sleep 2
+            exit 0
+        fi
+    fi
+
+    # 正常輸出
+    if [ "$is_anomaly" == false ] && [ "$mode" == "manual" ]; then
+        echo -e "$scan_output"
+        if [ "$total_issues" -eq 0 ]; then
             _bot_say "success" "All systems green. Ready for combat."
         fi
-        return 0
     fi
+
+    if [ "$total_issues" -gt 0 ]; then return 1; else return 0; fi
 }
 
 # 登入系統 - Commander Login
