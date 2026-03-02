@@ -198,7 +198,6 @@ function _xum_update_glitch_rate() {
     local filled_params=$(awk -v s="$XUM_CURRENT_SLOT" -v FPAT='([^,]*)|("[^"]+")' '
         NR == s + 1 {
             count = 0
-            # 從第 4 欄 (USER) 開始計算，跳過 SLOT, CBR, STS
             for(i=4; i<=NF; i++) {
                 val = $i; gsub(/^"|"$/, "", val); gsub(/^[ \t]+|[ \t]+$/, "", val)
                 if (val != "") count++
@@ -435,7 +434,36 @@ function _xum_cmd_check() {
         return 1
     fi
 
+    # 動態參數注入
     echo -e "${C_TAVIOLET} :: CHAMBER [$slot] PAYLOAD SCANNING... ::${C_RESET}"
+    sleep 0.2
+    local scan_items=(
+        "USER:$_XUM_USER" "PKG:$_XUM_PKG" "TARGET:$_XUM_TARGET" 
+        "INTENT:$_XUM_IHEAD$_XUM_IBODY" "URI:$_XUM_URI" "MIME:$_XUM_MIME" 
+        "CATE1:$_XUM_CATE1" "CATE2:$_XUM_CATE2" "CATE3:$_XUM_CATE3" "FLAG:$_XUM_FLAG"
+    )
+    for i in {1..5}; do
+        local ex="_XUM_EX${i}"; local tra="_XUM_TRA${i}"; local boo="_XUM_BOO${i}"
+        scan_items+=("EXTRA${i}:${!ex}${!tra}${!boo}")
+    done
+
+    local has_payload=false
+    for item in "${scan_items[@]}"; do
+        local key="${item%%:*}"
+        local val="${item#*:}"
+        if [ -n "$val" ] && [ "$val" != "0" ]; then
+            has_payload=true
+            local title_txt=$(_xum_glitch_text "Probing Node [$key]")
+            echo -e "${C_GRAY}    ›› ${title_txt}...${C_RESET}"
+            sleep 0.15
+        fi
+    done
+    
+    if [ "$has_payload" == true ]; then
+        local title_txt=$(_xum_glitch_text "Cross-referencing logic gates")
+        echo -e "${C_GRAY}    ›› ${title_txt}...${C_RESET}"
+        sleep 0.4
+    fi
 
     # 3. 判斷是否為「絕對空彈 (E)」
     local action="${_XUM_IHEAD}${_XUM_IBODY}"
@@ -572,12 +600,33 @@ function _xum_cmd_import() {
     local node_disp="$i_cmd"
     [ -n "$i_sub" ] && node_disp="$i_cmd $i_sub"
 
-    title_txt=$(_xum_glitch_text "Extracting Core Node")
-    echo -e "${C_GRAY}    ›› ${title_txt} [$node_disp]...${C_RESET}"
     
     # 呼叫核心神經元讀取並寫入
     _mux_neural_data "$i_cmd" "$i_sub"
     if [ $? -eq 0 ]; then
+        echo -e "${C_TAVIOLET} :: INJECTING CORE NODES ::${C_RESET}"
+        sleep 0.2
+        
+        local inject_items=(
+            "PKG:$_VAL_PKG" "TARGET:$_VAL_TARGET" "INTENT:$_VAL_IHEAD$_VAL_IBODY" 
+            "URI:$_VAL_URI" "MIME:$_VAL_MIME" "CATE:$_VAL_CATE" 
+            "EXTRA:$_VAL_EX$_VAL_EXTRA$_VAL_BOOLEN" "FLAG:$_VAL_FLAG"
+        )
+        
+        for item in "${inject_items[@]}"; do
+            local key="${item%%:*}"
+            local val="${item#*:}"
+            if [ -n "$val" ]; then
+                local title_txt=$(_xum_glitch_text "Injecting [$key]")
+                echo -e "${C_GRAY}    ›› ${title_txt}...${C_RESET}"
+                sleep 0.2
+            fi
+        done
+        
+        title_txt=$(_xum_glitch_text "Locking parameters to Chamber $slot")
+        echo -e "${C_GRAY}    ›› ${title_txt}...${C_RESET}"
+        sleep 0.4
+
         # 綁定當前駕駛員
         _xum_neural_write "$slot" 4 ""
         
@@ -743,6 +792,7 @@ function _xum_cmd_input() {
         local field=$(echo "$selection" | sed $'s/\033\\[[0-9;]*m//g' | awk '{print $1}')
         
         if [ "$field" == "[Confirm]" ]; then
+            title_txt=$(_xum_glitch_text "Workbench closed. Initiating safety scan")
             echo -e "${C_GRAY}    ›› ${title_txt}...${C_RESET}"
             _xum_cmd_check
             break
@@ -1083,6 +1133,10 @@ function _xum_cmd_input() {
                 read
                 continue
             fi
+
+            title_txt=$(_xum_glitch_text "Injecting manual payload to [$field]")
+            echo -e "${C_GRAY}    ›› ${title_txt}...${C_RESET}"
+            sleep 0.25
             
             # 執行寫入，然後跳出子迴圈，回到 Main Workbench
             _xum_neural_write "$slot" "$col_idx" "$final_val"
@@ -1169,7 +1223,7 @@ function _xum_cmd_clear() {
 # 槍管擊發、戰鬥報告與退殼機制 (Fire, Report & Eject)
 function _xum_cmd_fire() {
     local slot="$XUM_CURRENT_SLOT"
-    local title_txt
+    local title_txt=""
     if [ -z "$slot" ]; then
         _bot_say "error" "NO CHAMBER FOCUSED. Execute 'xum slot' first."
         return 1
@@ -1220,6 +1274,42 @@ function _xum_cmd_fire() {
     fi
 
     _bot_say "system" "IGNITION SEQUENCE START. DISCHARGING PAYLOAD..."
+    sleep 0.4
+
+    local fire_items=(
+        "USER:$_XUM_USER" "PKG:$_XUM_PKG" "TARGET:$_XUM_TARGET" 
+        "INTENT:$_XUM_IHEAD$_XUM_IBODY" "URI:$_XUM_URI" "MIME:$_XUM_MIME" 
+        "CATE1:$_XUM_CATE1" "CATE2:$_XUM_CATE2" "CATE3:$_XUM_CATE3" "FLAG:$_XUM_FLAG"
+    )
+    for i in {1..5}; do
+        local ex="_XUM_EX${i}"; local tra="_XUM_TRA${i}"; local boo="_XUM_BOO${i}"
+        fire_items+=("EXTRA${i}:${!ex}${!tra}${!boo}")
+    done
+
+    local loaded_count=0
+    for item in "${fire_items[@]}"; do
+        local key="${item%%:*}"
+        local val="${item#*:}"
+        if [ -n "$val" ] && [ "$val" != "0" ]; then
+            loaded_count=$((loaded_count + 1))
+            title_txt=$(_xum_glitch_text "Pressurizing [$key]")
+            
+            local c_press="${C_GRAY}"
+            if [ "$loaded_count" -ge 8 ]; then c_press="${C_RED}"
+            elif [ "$loaded_count" -ge 4 ]; then c_press="${C_ORANGE}"
+            else c_press="${C_YELLOW}"
+            fi
+            
+            echo -e "${c_press}    ›› ${title_txt}...${C_RESET}"
+            sleep 0.15
+        fi
+    done
+    
+    if [ "$loaded_count" -gt 0 ]; then
+        title_txt=$(_xum_glitch_text "All valves open. Firing mechanism engaged")
+        echo -e "${C_RED}    ›› ${title_txt}!${C_RESET}"
+        sleep 0.3
+    fi
 
     local report_time=$(date +"%Y.%m.%d.%H:%M:%S")
     local report_file="$MUX_ROOT/report.txt"
@@ -1380,6 +1470,10 @@ Output: $output"
     
     export XUM_CURRENT_SLOT=""
     _bot_say "system" "CHAMBER [$slot] EJECTED & RESET."
+    echo -e "${C_GRAY}    ›› Venting thermal exhaust...${C_RESET}"
+    sleep 0.7
+    
+    local tmp_file=$(mktemp)
 
     # 6. 彈藥耗盡
     if [ "$is_empty" == false ]; then
