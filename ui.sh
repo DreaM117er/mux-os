@@ -542,10 +542,9 @@ $p_q3
 $p_q4
 EOF
 
-    echo ""
     echo -e "${C_BLACK}    ›› Input accepted. Returning to Core...${C_RESET}"
     sleep 1.9
-    exec bash
+    _mux_reload_kernel
 }
 
 # 系統審判儀式 (System Protocol)
@@ -586,16 +585,22 @@ function _mux_awakening_protocol() {
         echo ""
         
         while true; do
-            echo -ne "${C_RED} :: Are you ready to start building your world? [CONFIRM]: ${C_RESET}"
+            echo -e "${C_RED} :: Are you ready to start building your world?${C_RESET}"
+            echo -ne "${C_RED} :: TYPE 'CONFIRM' TO GO NEXT STEP: ${C_RESET}"
             read final_confirm
             
             if [ "$final_confirm" == "CONFIRM" ]; then
+                echo ""
                 echo -e "${C_TAVIOLET} :: Awaiting execution command...${C_RESET}"
                 while true; do
                     echo -ne "${C_BLACK} › ${C_RESET}"
                     read force_cmd
                     if [ "$force_cmd" == "mux reload" ]; then
                         echo -e "${C_RED} :: INITIATING OVERCLOCK... ::${C_RESET}"
+                        if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+                        MUX_FIRECOUNT=$max_slots
+                        MUX_OCDATE=$(date +%s)
+                        _save_identity
                         sleep 1
                         _update_mux_state "XUM" "LOGIN" "OVERCLOCK"
                         _mux_reload_kernel

@@ -34,13 +34,6 @@ function _xum_system_boot() {
         done
     fi
 
-    # 3. 發射次數與啟動時間
-    if [ -z "$MUX_FIRECOUNT" ]; then
-        export MUX_FIRECOUNT=$max_slots
-        export MUX_OCDATE=$(date +%s)
-    fi
-    _save_identity
-
     clear
     _draw_logo "xum"
     _system_check "xum"
