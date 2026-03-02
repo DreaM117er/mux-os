@@ -519,11 +519,13 @@ function _xum_cmd_check() {
     # 5. 寫入狀態與輸出報告
     if [ "$is_defective" == true ]; then
         _xum_update_sts "$slot" "N"
-        echo -e "${C_RED}    ›› Defect detected : $defective_reason${C_RESET}"
+        local title_txt=$(_xum_glitch_text "Defect detected")
+        echo -e "${C_RED} :: ${title_txt}: $defective_reason${C_RESET}"
         _bot_say "error" "PAYLOAD DEFECTIVE. STS UPDATED TO [N]."
     else
         _xum_update_sts "$slot" "R"
-        echo -e "${C_GREEN}    ›› All structural checks passed.${C_RESET}"
+        local title_txt=$(_xum_glitch_text "All structural checks passed.")
+        echo -e "${C_GREEN} :: ${title_txt}${C_RESET}"
         _bot_say "success" "PAYLOAD VERIFIED. STS UPDATED TO [R]."
     fi
 }
