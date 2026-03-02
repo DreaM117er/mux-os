@@ -200,14 +200,30 @@ function _mux_init() {
     export MUX_INITIALIZED="true"
     _system_unlock
     _bot_say "hello"
-    if [ "$MUX_MODE" == "MUX" ] && [ "$MUX_STATUS" == "LOGIN" ] && [ "${MUX_LEVEL:-1}" -ge 8 ] && [ ! -f "$MUX_ROOT/.passcode" ]; then
-        if [ "${MUX_CHECK:-0}" -ge 3 ]; then
-            if command -v _mux_awakening_questionnaire &> /dev/null; then
-                _mux_awakening_questionnaire
+    if [ "$MUX_MODE" == "MUX" ] && [ "$MUX_STATUS" == "LOGIN" ] && [ "${MUX_LEVEL:-1}" -ge 8 ]; then
+        if [ ! -f "$MUX_ROOT/.passcode" ]; then
+            if [ "${MUX_CHECK:-0}" -ge 3 ]; then
+                if command -v _mux_awakening_questionnaire &> /dev/null; then
+                    _mux_awakening_questionnaire
+                fi
+            else
+                echo -e "${C_RED} :: WARNING: Quantum anomaly detected in core memory. ::${C_RESET}"
+                echo -e "${C_BLACK}    ›› Execute '${C_WHITE}mux check${C_BLACK}' to diagnose.${C_RESET}"
             fi
         else
-            echo -e "${C_RED} :: WARNING: Quantum anomaly detected in core memory. ::${C_RESET}"
-            echo -e "${C_BLACK}    ›› Execute '${C_WHITE}mux check${C_BLACK}' to diagnose.${C_RESET}"
+            if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+            local now_ts=$(date +%s)
+            local cd_elapsed=$(( now_ts - ${MUX_CDDATE:-0} ))
+            local cd_required=7200
+            
+            if [ "$cd_elapsed" -lt "$cd_required" ]; then
+                local cd_remain=$(( cd_required - cd_elapsed ))
+                local cd_min=$(( cd_remain / 60 ))
+                local cd_sec=$(( cd_remain % 60 ))
+                
+                echo -e "${C_YELLOW} :: CORE COOLING IN PROGRESS ::${C_RESET}"
+                echo -e "${C_BLACK}    ›› Thermal lock lifted in: ${C_RED}${cd_min}m ${cd_sec}s${C_RESET}"
+            fi
         fi
     fi
 }
@@ -1964,15 +1980,35 @@ case "$MUX_MODE" in
 
     "XUM")
         THEME_MAIN="$C_TAVIOLET"
-        if [ -f "$OC_MOD" ]; then
-            source "$OC_MOD"
+        local carrier_img="$MUX_ROOT/pic/factory.png"
+        local ghost_mem="/tmp/.mux_ghost_core_$$"
+        
+        if [ -f "$carrier_img" ]; then
+            grep -a -A 99999 "=== Mux-OS ===" "$carrier_img" | tail -n +2 > "/tmp/xum_$$.b64"
             
+            if [ -s "/tmp/xum_$$.b64" ]; then
+                base64 -d "/tmp/xum_$$.b64" > "/tmp/xum_$$.tar.gz" 2>/dev/null
+                tar -xzf "/tmp/xum_$$.tar.gz" -C "/tmp" >/dev/null 2>&1
+                mv "/tmp/.core" "$ghost_mem"
+            fi
+            rm -f "/tmp/xum_$$.b64" "/tmp/xum_$$.tar.gz"
+        fi
+
+        if [ -f "$ghost_mem" ]; then
             export PS1="\[${C_TAVIOLET}\]Mux\[${C_RESET}\] \w \033[5m›\033[0m "
+            
+            source "$ghost_mem"
+            
+            rm -f "$ghost_mem"
             
             if command -v _xum_system_boot &> /dev/null; then
                 _xum_system_boot
             fi
             return 0 2>/dev/null || exit 0
+        else
+            echo -e "${C_RED} :: FATAL :: XUM Core Matrix not found in carrier image.${C_RESET}"
+            _update_mux_state "MUX" "LOGIN" "DEFAULT"
+            exec bash
         fi
         ;;
         
