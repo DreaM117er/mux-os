@@ -430,7 +430,7 @@ function _xum_cmd_check() {
     # 2. 絕對物理防呆：只能在 CBR 為 F 時執行
     if [ "$_XUM_CBR" != "F" ]; then
         local current_cbr="${_XUM_CBR:-EMPTY}"
-        _bot_say "error" "SCAN DENIED. Chamber must be focused (F). Current CBR: [$current_cbr]."
+        _bot_say "error" "SCAN DENIED. Chamber must be focused [F]. Current CBR: [$current_cbr]."
         return 1
     fi
 
@@ -454,18 +454,18 @@ function _xum_cmd_check() {
         if [ -n "$val" ] && [ "$val" != "0" ]; then
             has_payload=true
             local title_txt=$(_xum_glitch_text "Probing Node [$key]")
-            echo -e "${C_GRAY}    ›› ${title_txt}...${C_RESET}"
+            echo -e "${C_BLACK}    ›› ${title_txt}...${C_RESET}"
             sleep 0.15
         fi
     done
     
     if [ "$has_payload" == true ]; then
         local title_txt=$(_xum_glitch_text "Cross-referencing logic gates")
-        echo -e "${C_GRAY}    ›› ${title_txt}...${C_RESET}"
+        echo -e "${C_BLACK}    ›› ${title_txt}...${C_RESET}"
         sleep 0.4
     fi
 
-    # 3. 判斷是否為「絕對空彈 (E)」
+    # 3. 判斷是否為「絕對空彈 [E]」
     local action="${_XUM_IHEAD}${_XUM_IBODY}"
     local is_empty=true
     
@@ -539,7 +539,7 @@ function _xum_cmd_import() {
     _xum_neural_read "$slot"
     if [ "$_XUM_CBR" != "F" ]; then
         local current_cbr="${_XUM_CBR:-EMPTY}"
-        _bot_say "error" "IMPORT DENIED. Chamber must be focused (F). Current: [$current_cbr]."
+        _bot_say "error" "IMPORT DENIED. Chamber must be focused [F]. Current: [$current_cbr]."
         return 1
     fi
 
@@ -589,7 +589,7 @@ function _xum_cmd_import() {
     local title_txt=""
     if [ -z "$selection" ]; then
         title_txt=$(_xum_glitch_text "Import aborted.")
-        echo -e "${C_GRAY}    ›› ${title_txt}${C_RESET}"
+        echo -e "${C_BLACK}    ›› ${title_txt}${C_RESET}"
         return 0
     fi
 
@@ -600,7 +600,6 @@ function _xum_cmd_import() {
     local node_disp="$i_cmd"
     [ -n "$i_sub" ] && node_disp="$i_cmd $i_sub"
 
-    
     # 呼叫核心神經元讀取並寫入
     _mux_neural_data "$i_cmd" "$i_sub"
     if [ $? -eq 0 ]; then
@@ -618,13 +617,13 @@ function _xum_cmd_import() {
             local val="${item#*:}"
             if [ -n "$val" ]; then
                 local title_txt=$(_xum_glitch_text "Injecting [$key]")
-                echo -e "${C_GRAY}    ›› ${title_txt}...${C_RESET}"
+                echo -e "${C_BLACK}    ›› ${title_txt}...${C_RESET}"
                 sleep 0.2
             fi
         done
         
         title_txt=$(_xum_glitch_text "Locking parameters to Chamber $slot")
-        echo -e "${C_GRAY}    ›› ${title_txt}...${C_RESET}"
+        echo -e "${C_BLACK}    ›› ${title_txt}...${C_RESET}"
         sleep 0.4
 
         # 綁定當前駕駛員
@@ -679,12 +678,12 @@ function _xum_cmd_import() {
         
         # 狀態標記轉換
         _xum_update_sts "$slot" "S"
-        _bot_say "success" "Core Payload [$i_cmd $i_sub] Injected to Chamber $slot."
+        _bot_say "success" "Core Payload [$node_disp] Injected."
         
         _xum_ui_status_panel "$slot"
         _xum_update_glitch_rate
     else
-        _bot_say "error" "Import Failed: Core Node [$i_cmd $i_sub] Not Found."
+        _bot_say "error" "Import Failed: Core Node [$node_disp] Not Found."
         return 1
     fi
 }
@@ -700,7 +699,7 @@ function _xum_cmd_input() {
     _xum_neural_read "$slot"
     if [ "$_XUM_CBR" != "F" ]; then
         local current_cbr="${_XUM_CBR:-EMPTY}"
-        _bot_say "error" "WORKBENCH LOCKED. Chamber must be focused (F). Current: [$current_cbr]."
+        _bot_say "error" "WORKBENCH LOCKED. Chamber must be focused [F]. Current: [$current_cbr]."
         return 1
     fi
 
@@ -783,7 +782,7 @@ function _xum_cmd_input() {
         local title_txt=""
         if [ -z "$selection" ]; then 
             title_txt=$(_xum_glitch_text "Workbench closed. Initiating safety scan")
-            echo -e "${C_GRAY}    ›› ${title_txt}...${C_RESET}"
+            echo -e "${C_BLACK}    ›› ${title_txt}...${C_RESET}"
             _xum_cmd_check
             break
         fi 
@@ -793,7 +792,7 @@ function _xum_cmd_input() {
         
         if [ "$field" == "[Confirm]" ]; then
             title_txt=$(_xum_glitch_text "Workbench closed. Initiating safety scan")
-            echo -e "${C_GRAY}    ›› ${title_txt}...${C_RESET}"
+            echo -e "${C_BLACK}    ›› ${title_txt}...${C_RESET}"
             _xum_cmd_check
             break
         fi
@@ -1054,7 +1053,7 @@ function _xum_cmd_input() {
                 fi
                 final_val="$expanded_url"
                 title_txt=$(_xum_glitch_text "Auto-expanded to")
-                echo -e "${C_GRAY}    ›› ${title_txt}: $final_val${C_RESET}"
+                echo -e "${C_BLACK}    ›› ${title_txt}: $final_val${C_RESET}"
 
             elif [ "$final_val_clean" == "[Custom]" ]; then
                 local current_val=""
@@ -1135,7 +1134,7 @@ function _xum_cmd_input() {
             fi
 
             title_txt=$(_xum_glitch_text "Injecting manual payload to [$field]")
-            echo -e "${C_GRAY}    ›› ${title_txt}...${C_RESET}"
+            echo -e "${C_BLACK}    ›› ${title_txt}...${C_RESET}"
             sleep 0.25
             
             # 執行寫入，然後跳出子迴圈，回到 Main Workbench
@@ -1157,7 +1156,7 @@ function _xum_cmd_set() {
     
     # 物理推至 L (Locked)
     _xum_update_cbr "$slot" "L"
-    _bot_say "success" "CHAMBER [$slot] LOCKED (L). READY TO FIRE."
+    _bot_say "success" "CHAMBER [$slot] LOCKED [L]. READY TO FIRE."
 }
 
 # 退開保險並解除鎖定 (Clear CBR & Focus)
@@ -1294,7 +1293,7 @@ function _xum_cmd_fire() {
             loaded_count=$((loaded_count + 1))
             title_txt=$(_xum_glitch_text "Pressurizing [$key]")
             
-            local c_press="${C_GRAY}"
+            local c_press="${C_BLACK}"
             if [ "$loaded_count" -ge 8 ]; then c_press="${C_RED}"
             elif [ "$loaded_count" -ge 4 ]; then c_press="${C_ORANGE}"
             else c_press="${C_YELLOW}"
@@ -1325,7 +1324,7 @@ function _xum_cmd_fire() {
     if [ "$is_empty" == true ]; then
         # 空彈擊發
         title_txt=$(_xum_glitch_text "Chamber payload is empty. Testing barrel mechanism")
-        echo -e "${C_GRAY}    ›› ${title_txt}...${C_RESET}"
+        echo -e "${C_BLACK}    ›› ${title_txt}...${C_RESET}"
         report_content="-----
 Time: $report_time
 Playload: [EMPTY CHAMBER / DRY FIRE]
@@ -1470,7 +1469,7 @@ Output: $output"
     
     export XUM_CURRENT_SLOT=""
     _bot_say "system" "CHAMBER [$slot] EJECTED & RESET."
-    echo -e "${C_GRAY}    ›› Venting thermal exhaust...${C_RESET}"
+    echo -e "${C_BLACK}    ›› Venting thermal exhaust...${C_RESET}"
     sleep 0.7
     
     local tmp_file=$(mktemp)
