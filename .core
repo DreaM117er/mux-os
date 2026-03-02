@@ -1495,6 +1495,7 @@ function _xum_cmd_reset() {
 
     # 寫入關閉時間
     if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+    MUX_FIRECOUNT=0
     MUX_CDDATE=$(date +%s)
     _save_identity
 
