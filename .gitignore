@@ -7,7 +7,6 @@ vendor.csv
 xum.csv
 .passcode
 .core
-.matrix
 
 # :: System Backups
 bak/
