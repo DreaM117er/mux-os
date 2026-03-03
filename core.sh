@@ -245,6 +245,7 @@ function _mux_reload_kernel() {
             local safe_mode=$(grep "^MUX_MODE=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2 | tr -d '\r\n ')
             local safe_status=$(grep "^MUX_STATUS=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2 | tr -d '\r\n ')
             _update_mux_state "$safe_mode" "$safe_status"
+            export MUX_MODE="$safe_mode"
         fi
     fi
 
