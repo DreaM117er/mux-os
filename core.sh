@@ -1980,31 +1980,18 @@ case "$MUX_MODE" in
 
     "XUM")
         THEME_MAIN="$C_TAVIOLET"
-        local matrix="$MUX_ROOT/.matrix"
-        local mem="/tmp/.mux_mem_$$"
-        local tmp_arc="/tmp/m_$$.tar.gz"
         
-        if [ -f "$matrix" ]; then
-            base64 -d "$matrix" > "$tmp_arc" 2>/dev/null
-            tar -xzf "$tmp_arc" -C "/tmp" >/dev/null 2>&1
-            mv "/tmp/.core" "$mem"
-            
-            rm -f "$tmp_arc"
-        fi
-
-        if [ -f "$mem" ]; then
+        if [ -f "$OC_MOD" ]; then
             export PS1="\[${C_TAVIOLET}\]Mux\[${C_RESET}\] \w \033[5m›\033[0m "
             
-            source "$mem"
-            
-            rm -f "$mem"
+            source "$OC_MOD"
             
             if command -v _xum_system_boot &> /dev/null; then
                 _xum_system_boot
             fi
             return 0 2>/dev/null || exit 0
         else
-            echo -e "${C_RED} :: FATAL :: Core Matrix corrupted or missing.${C_RESET}"
+            echo -e "${C_RED} :: FATAL :: XUM Core Not Found. Authentication required.${C_RESET}"
             _update_mux_state "MUX" "LOGIN" "DEFAULT"
             exec bash
         fi

