@@ -302,6 +302,11 @@ function _draw_logo() {
             label=":: Mux-OS v$MUX_VERSION Core ::"
             if [ "$cols" -ge 52 ]; then label+=" S¥ST3M ØV3RCL0CK ::"; fi
             ;;
+        "awake")
+            color_primary="$C_YELLOW"
+            label=":: SYSTEM CORE INSIDE ::"
+            if [ "$cols" -ge 52 ]; then label+=" SYSTEM INSIDE ::"; fi
+            ;;
         *)
             color_primary="$THEME_MAIN"
             label=":: Mux-OS v$MUX_VERSION Core ::"
@@ -504,18 +509,8 @@ function _mux_glitch_filter() {
 # 系統核心覺醒問卷 (System Core Awakening Questionnaire)
 function _mux_awakening_questionnaire() {
     clear
-    echo -e "${C_BLACK}"
-    cat << "EOF"
-  __  __                  ___  ____  
- |  \/  |_   ___  __     / _ \/ ___| 
- | |\/| | | | \ \/ /____| | | \___ \ 
- | |  | | |_| |>  <_____| |_| |___) |
- |_|  |_|\__,_/_/\_\     \___/|____/ 
-EOF
-    echo -e "${C_RESET}"
-    echo -e " ${C_BLACK}:: SYSTEM CORE INSIDE ::${C_RESET}"
-    echo ""
-    echo -e "${C_YELLOW}    (Hint: Answers are case-insensitive. No punctuation required.)${C_RESET}"
+    _draw_logo "awake"
+    echo -e "${C_YELLOW} :: Answers are case-insensitive. No punctuation required.${C_RESET}"
     echo ""
     
     echo -e "${C_CYAN} [ID] Commander Identification:${C_RESET}"
@@ -558,7 +553,7 @@ function _mux_awakening_protocol() {
        [ "$a3" == "designed for efficiency" ] && [ "$a4" == "built for control" ]; then
         
         echo ""
-        _bot_say "system" "ACCESS GRANTED. DECRYPTING CORE PHILOSOPHY..."
+        echo -e "${C_GREEN} :: ACCESS GRANTED. DECRYPTING CORE PHILOSOPHY..."
         sleep 0.5
         echo ""
         
