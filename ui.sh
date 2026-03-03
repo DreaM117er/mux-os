@@ -559,17 +559,18 @@ function _mux_awakening_protocol() {
         
         echo ""
         _bot_say "system" "ACCESS GRANTED. DECRYPTING CORE PHILOSOPHY..."
-        sleep 1
+        sleep 0.5
+        echo ""
         
         local s1="Logic in mind, Hardware in hand."
-        local s2="Designed for efficiency, built for control."
+        local s2="Designed for efficiency, Built for control."
         
         echo -ne "${C_TAVIOLET}    "
         for (( i=0; i<${#s1}; i++ )); do echo -ne "${s1:$i:1}"; sleep 0.05; done; echo ""
         sleep 0.5
         echo -ne "    "
         for (( i=0; i<${#s2}; i++ )); do echo -ne "${s2:$i:1}"; sleep 0.05; done; echo -e "${C_RESET}"
-        sleep 1.5
+        sleep 0.5
         
         local max_slots=3
         if [ "${MUX_LEVEL:-1}" -ge 12 ]; then max_slots=8
@@ -586,14 +587,14 @@ function _mux_awakening_protocol() {
         
         while true; do
             echo -e "${C_RED} :: Are you ready to start building your world?${C_RESET}"
-            echo -ne "${C_RED} :: TYPE 'CONFIRM' TO GO NEXT STEP: ${C_RESET}"
+            echo -ne "${C_RED} :: TYPE 'CONFIRM' TO NEXT STEP: ${C_RESET}"
             read final_confirm
             
             if [ "$final_confirm" == "CONFIRM" ]; then
                 echo ""
                 echo -e "${C_TAVIOLET} :: Awaiting execution command...${C_RESET}"
                 while true; do
-                    echo -ne "${C_BLACK} › ${C_RESET}"
+                    echo -ne "${C_TAVIOLET} :: TYPE${C_BLACK} › ${C_RESET}"
                     read force_cmd
                     if [ "$force_cmd" == "mux reload" ]; then
                         echo -e "${C_RED} :: INITIATING OVERCLOCK... ::${C_RESET}"
