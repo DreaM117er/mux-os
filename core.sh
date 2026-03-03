@@ -203,8 +203,20 @@ function _mux_init() {
     if [ "$MUX_MODE" == "MUX" ] && [ "$MUX_STATUS" == "LOGIN" ] && [ "${MUX_LEVEL:-1}" -ge 8 ]; then
         if [ ! -f "$MUX_ROOT/.passcode" ]; then
             if [ "${MUX_CHECK:-0}" -ge 3 ]; then
-                if command -v _mux_awakening_questionnaire &> /dev/null; then
-                    _mux_awakening_questionnaire
+                echo ""
+                echo -e "${C_PURPLE} :: ANOMALY TRACE COMPLETED ::${C_RESET}"
+                echo -e "${C_BLACK}    ›› The anomaly is not a bug. It is a hidden gateway.${C_RESET}"
+                echo -e "${C_RED}    ›› WARNING: You are about to access the deepest layer of Mux-OS.${C_RESET}"
+                echo -e "${C_RED}    ›› A mandatory Philosophy Verification will be required.${C_RESET}"
+                echo -ne "${C_YELLOW} :: Initialize the Core Awakening Protocol? [Y/n]: ${C_RESET}"
+                read awake_choice
+                
+                if [[ "$awake_choice" == "y" || "$awake_choice" == "Y" ]]; then
+                    if command -v _mux_awakening_questionnaire &> /dev/null; then
+                        _mux_awakening_questionnaire
+                    fi
+                else
+                    echo -e "${C_BLACK}    ›› Protocol aborted. Ignorance is bliss.${C_RESET}"
                 fi
             else
                 echo -e "${C_RED} :: WARNING: Quantum anomaly detected in core memory. ::${C_RESET}"
@@ -1122,48 +1134,14 @@ function _core_system_scan() {
         fi
     fi
 
-    local is_anomaly=false
     if [ "$mode" == "manual" ] && [ "$MUX_MODE" == "MUX" ] && [ "$MUX_STATUS" == "LOGIN" ] && [ "${MUX_LEVEL:-1}" -ge 8 ] && [ ! -f "$MUX_ROOT/.passcode" ]; then
-        is_anomaly=true
         if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
         MUX_CHECK=$(( ${MUX_CHECK:-0} + 1 ))
         _save_identity
-
-        if [ "$MUX_CHECK" -eq 1 ]; then
-            echo -e "$scan_output"
-            _bot_say "success" "All systems green. Ready for combat."
-            echo ""
-            echo -e "${C_YELLOW} :: ANOMALY PERSISTS: Deep scan required. ::${C_RESET}"
-            echo -e "${C_BLACK}    ›› Execute '${C_WHITE}mux check${C_BLACK}' again.${C_RESET}"
-            return 0
-            
-        elif [ "$MUX_CHECK" -eq 2 ]; then
-            if command -v _mux_glitch_filter &> /dev/null; then
-                echo -e "$scan_output" | _mux_glitch_filter 50
-            else
-                echo -e "$scan_output"
-            fi
-            _bot_say "warn" "M3M0RY C0RRUPT!0N D3T3CT3D."
-            echo ""
-            echo -e "${C_RED} :: F4T4L 3RR0R !MM!N3NT. ::${C_RESET}"
-            echo -e "${C_BLACK}    ›› 3x3cut3 '${C_WHITE}mux check${C_BLACK}' N0W.${C_RESET}"
-            return 0
-            
-        elif [ "$MUX_CHECK" -ge 3 ]; then
-            if command -v _mux_glitch_filter &> /dev/null; then
-                echo -e "$scan_output" | _mux_glitch_filter 100
-            else
-                echo -e "$scan_output"
-            fi
-            echo ""
-            echo -e "${C_PURPLE} :: REALITY MATRIX COLLAPSED ::${C_RESET}"
-            sleep 2
-            exit 0
-        fi
     fi
 
     # 正常輸出
-    if [ "$is_anomaly" == false ] && [ "$mode" == "manual" ]; then
+    if [ "$mode" == "manual" ]; then
         echo -e "$scan_output"
         if [ "$total_issues" -eq 0 ]; then
             _bot_say "success" "All systems green. Ready for combat."
