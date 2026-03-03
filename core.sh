@@ -206,8 +206,9 @@ function _mux_init() {
                 echo ""
                 echo -e "${C_PURPLE} :: ANOMALY TRACE COMPLETED ::${C_RESET}"
                 echo -e "${C_BLACK}    ›› The anomaly is not a bug. It is a hidden gateway.${C_RESET}"
-                echo -e "${C_RED}    ›› WARNING: You are about to access the deepest layer of Mux-OS.${C_RESET}"
-                echo -e "${C_RED}    ›› A mandatory Philosophy Verification will be required.${C_RESET}"
+                echo -e "${C_RED} :: WARNING: You are about to access the deepest layer of Mux-OS.${C_RESET}"
+                echo -e "${C_RED} :: A mandatory Philosophy Verification will be required.${C_RESET}"
+                echo ""
                 echo -ne "${C_YELLOW} :: Initialize the Core Awakening Protocol? [Y/n]: ${C_RESET}"
                 read awake_choice
                 
@@ -217,6 +218,11 @@ function _mux_init() {
                     fi
                 else
                     echo -e "${C_BLACK}    ›› Protocol aborted. Ignorance is bliss.${C_RESET}"
+                    
+                    if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+                    MUX_CHECK=0
+                    _save_identity
+                    rm -f "$MUX_ROOT/.core"
                 fi
             else
                 echo -e "${C_RED} :: WARNING: Quantum anomaly detected in core memory. ::${C_RESET}"
@@ -224,6 +230,13 @@ function _mux_init() {
             fi
         else
             if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+            
+            if [ "${MUX_CHECK:-0}" -gt 0 ]; then
+                MUX_CHECK=0
+                _save_identity
+                rm -f "$MUX_ROOT/.core"
+            fi
+            
             local now_ts=$(date +%s)
             local cd_elapsed=$(( now_ts - ${MUX_CDDATE:-0} ))
             local cd_required=7200
