@@ -1891,6 +1891,7 @@ function mux() {
             _core_pre_factory_auth
             ;;
 
+        # : Trigger Architect Ascension Protocol
         "reborn")
             if [ "$MUX_LEVEL" -lt 16 ]; then
                 echo -e "${C_YELLOW} :: Unknown Directive: 'reborn'.${C_RESET}"
@@ -1913,6 +1914,11 @@ function mux() {
             else
                 echo -e "${THEME_DESC}    ›› Ascension aborted. Maintaining Architect status.${C_RESET}"
             fi
+            ;;
+        
+        "xum")
+            echo -e "${C_YELLOW} :: Unknown Directive: '$cmd'.${C_RESET}"
+            return 1
             ;;
 
         *)
@@ -1980,7 +1986,7 @@ case "$MUX_MODE" in
 
     "XUM")
         THEME_MAIN="$C_TAVIOLET"
-        
+
         if [ -f "$OC_MOD" ]; then
             export PS1="\[${C_TAVIOLET}\]Mux\[${C_RESET}\] \w \033[5m›\033[0m "
             

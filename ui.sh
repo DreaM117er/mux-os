@@ -758,6 +758,10 @@ function _mux_dynamic_help_core() {
             if ($0 ~ /"/) {
                 split($0, parts, "\"");
                 cmd_name = parts[2];
+
+                if (cmd_name == "reborn" && (lvl + 0) < 16) {
+                    next;
+                }
                 
                 printf "    %s%-10s\033[0m%s\n", cmd_color, cmd_name, desc;
             }
