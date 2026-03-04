@@ -1211,7 +1211,7 @@ function _core_system_scan() {
         if [ "$mode" == "manual" ]; then
             scan_output="${THEME_OK} :: SYSTEM DIAGNOSTIC COMPLETE ::${C_RESET}\n"
             scan_output+="${THEME_DESC}    Neural Integrity: 100%${C_RESET}\n"
-            scan_output+="${THEME_DESC}    Logic Gates: Stable${C_RESET}\n\n"
+            scan_output+="${THEME_DESC}    Logic Gates: Stable${C_RESET}"
         fi
     fi
 
