@@ -163,7 +163,7 @@ function _render_special() {
     fi
 
     # 渲染
-    if [ "$tag" == "PB" ] && [ "$is_unlocked" -eq 1 ]; then
+    if [[ "$tag" =~ ^(PB|LIMIT_BREAK)$ ]] && [ "$is_unlocked" -eq 1 ]; then
         echo -e " ${C_TAVIOLET}[${abbr}]${C_RESET}${C_BLACK}-\033[0;35m${name}${C_RESET}"
         echo -e " ${C_TAVIOLET}[Curse]${C_RESET}${C_BLACK}[∞]${C_RESET}"
         echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
@@ -250,6 +250,7 @@ function _show_badges() {
     _render_special "PHOENIX"     "Px" "Phoenix"            "Rose from the ashes of dimensional collapse."
     _render_special "DSTRIKE"     "Ds" "Dimensional Strike" "Survivor of Dimensional Collapse."
     _render_special "PB"          "Pb" "Pandora's Box"      "Bore the curse of causality."
+    _render_special "LIMIT_BREAK" "Lb" "Limit Break"       "Initialized the XUM Overclock protocol."
 
     # 2. 計數器型 - 傳入 6 個參數
     _render_special "FALSE_IDOL"  "Rt" "False Idol" \
