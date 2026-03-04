@@ -222,7 +222,7 @@ function _mux_init() {
                     if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
                     MUX_CHECK=0
                     _save_identity
-                    rm -f "$MUX_ROOT/.core"
+                    command rm -f "$MUX_ROOT/.core"
                 fi
             else
                 echo -e "${C_RED} :: WARNING: Quantum anomaly detected in core memory. ::${C_RESET}"
@@ -234,7 +234,7 @@ function _mux_init() {
             if [ "${MUX_CHECK:-0}" -gt 0 ]; then
                 MUX_CHECK=0
                 _save_identity
-                rm -f "$MUX_ROOT/.core"
+                command rm -f "$MUX_ROOT/.core"
             fi
             
             local now_ts=$(date +%s)
@@ -710,6 +710,73 @@ function nano()  { _check_pandoras_box "nano" "$@" || return 1; command nano "$@
 function micro() { _check_pandoras_box "micro" "$@" || return 1; command micro "$@"; }
 function vim()   { _check_pandoras_box "vim" "$@" || return 1; command vim "$@"; }
 function vi()    { _check_pandoras_box "vi" "$@" || return 1; command vi "$@"; }
+
+# 檔案系統物理裝甲 (File System Guard)
+function _mux_fs_guard() {
+    local cmd="$1"
+    shift
+    local args="$*"
+    
+    # 允許測試與系統重載用的後門檔案 (測試完畢後刪除)
+    if [[ "$args" == *".passcode"* ]]; then
+        return 0
+    fi
+    
+    local in_mux=0
+    if [[ "$PWD" == *"/mux-os"* ]]; then
+        in_mux=1
+    fi
+    
+    local blocked=0
+    for arg in "$@"; do
+        if [[ "$arg" == -* ]]; then continue; fi # 跳過參數如 -rf
+        
+        # 條件 1：防禦外部跨資料夾操作
+        if [[ "$arg" == *"mux-os"* ]]; then
+            blocked=1; break;
+        fi
+        
+        # 條件 2：MUX_ROOT 內部
+        if [ "$in_mux" -eq 1 ]; then
+            local target_file=$(basename "$arg")
+
+            # A. 核心主程序防護
+            if [[ "$target_file" =~ ^(core\.sh|ui\.sh|factory\.sh|bot\.sh|identity\.sh|system\.csv|app\.csv|\.matrix)$ ]]; then
+                blocked=1; break;
+            fi
+
+            # B. 幽靈與暫存檔防護
+            if [ -f "$MUX_ROOT/.gitignore" ]; then
+                while IFS= read -r ignore_rule || [ -n "$ignore_rule" ]; do
+                    # 跳過註解與空行
+                    [[ "$ignore_rule" =~ ^# ]] && continue
+                    [[ -z "$ignore_rule" ]] && continue
+                    
+                    local clean_rule="${ignore_rule%/}"
+                    # 動態比對萬用字元
+                    if [[ "$target_file" == $clean_rule ]]; then
+                        blocked=1
+                        break 2
+                    fi
+                done < "$MUX_ROOT/.gitignore"
+            fi
+        fi
+    done
+    
+    if [ "$blocked" -eq 1 ]; then
+        echo ""
+        echo -e "${C_RED} :: ERROR :: Core Integrity Protection Active.${C_RESET}"
+        echo -e "${C_BLACK}    ›› Direct manipulation ('$cmd') threatens system stability.${C_RESET}"
+        echo -e "${C_BLACK}    ›› Please use standard Mux protocols or Factory Mode.${C_RESET}"
+        return 1
+    fi
+    return 0
+}
+
+# 覆寫系統原生檔案操作指令
+function rm() { _mux_fs_guard "rm" "$@" || return 1; command rm "$@"; }
+function cp() { _mux_fs_guard "cp" "$@" || return 1; command cp "$@"; }
+function mv() { _mux_fs_guard "mv" "$@" || return 1; command mv "$@"; }
 
 # 神經火控系統 (Neural Fire Control)
 function _mux_neural_fire_control() {
