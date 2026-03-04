@@ -717,11 +717,6 @@ function _mux_fs_guard() {
     shift
     local args="$*"
     
-    # 允許測試與系統重載用的後門檔案 (測試完畢後刪除)
-    if [[ "$args" == *".passcode"* ]]; then
-        return 0
-    fi
-    
     local in_mux=0
     if [[ "$PWD" == *"/mux-os"* ]]; then
         in_mux=1
@@ -777,6 +772,8 @@ function _mux_fs_guard() {
 function rm() { _mux_fs_guard "rm" "$@" || return 1; command rm "$@"; }
 function cp() { _mux_fs_guard "cp" "$@" || return 1; command cp "$@"; }
 function mv() { _mux_fs_guard "mv" "$@" || return 1; command mv "$@"; }
+function base64() { _mux_fs_guard "base64" "$@" || return 1; command base64 "$@"; }
+function tar()    { _mux_fs_guard "tar" "$@" || return 1; command tar "$@"; }
 
 # 神經火控系統 (Neural Fire Control)
 function _mux_neural_fire_control() {
