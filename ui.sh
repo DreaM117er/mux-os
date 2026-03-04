@@ -696,15 +696,7 @@ function _mux_show_info() {
                 local cd_elapsed=$(( now_ts - ${MUX_CDDATE:-0} ))
                 local cd_required=7200
                 
-                if [ "$cd_elapsed" -lt "$cd_required" ]; then
-                    local cd_remain=$(( cd_required - cd_elapsed ))
-                    local cd_min=$(( cd_remain / 60 ))
-                    local cd_sec=$(( cd_remain % 60 ))
-                    
-                    _bot_say "error" "OVERCLOCK PROTOCOL LOCKED. CORE COOLING IN PROGRESS."
-                    echo -e "${THEME_DESC}    ›› Time remaining: ${C_RED}${cd_min}m ${cd_sec}s${C_RESET}"
-                    return 1
-                fi
+                if [ "$cd_elapsed" -lt "$cd_required" ]; then return 1; fi
 
                 echo -ne " ${THEME_WARN}:: Are you ready to start building your world? [Y/n]: ${C_RESET}"
                 read ready_choice
