@@ -304,7 +304,7 @@ function _draw_logo() {
             if [ "$cols" -ge 52 ]; then label+=" S¥ST3M ØV3RCL0CK ::"; fi
             ;;
         "awake")
-            color_primary="$C_YELLOW"
+            color_primary="$C_TAVIOLET"
             label=":: SYSTEM CORE INSIDE ::"
             if [ "$cols" -ge 52 ]; then label+=" SYSTEM INSIDE ::"; fi
             ;;
