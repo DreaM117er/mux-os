@@ -183,7 +183,7 @@ function _fac_neural_write() {
             $col = val
         }
         print $0
-    }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
+    }' "$target_file" > "${target_file}.tmp" && command mv "${target_file}.tmp" "$target_file"
 }
 
 # 原子寫入函數 (Atomic Node Updater)
@@ -226,7 +226,7 @@ function _fac_update_node() {
             }
         }
         print $0
-    }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
+    }' "$target_file" > "${target_file}.tmp" && command mv "${target_file}.tmp" "$target_file"
 }
 
 # 原子刪除函數 (Atomic Node Deleter)
@@ -272,7 +272,7 @@ function _fac_delete_node() {
         } else {
             print $0
         }
-    }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
+    }' "$target_file" > "${target_file}.tmp" && command mv "${target_file}.tmp" "$target_file"
 }
 
 # 複合鍵偵測器 (Private Logic)
@@ -337,7 +337,7 @@ function _factory_system_boot() {
 
     # 前置作業
     if [ -f "$MUX_ROOT/app.csv" ]; then
-        cp "$MUX_ROOT/app.csv" "$MUX_ROOT/app.csv.temp"
+        command cp "$MUX_ROOT/app.csv" "$MUX_ROOT/app.csv.temp"
     else
         echo '"CATNO","COMNO","CATNAME","TYPE","COM","COM2","COM3","HUDNAME","UINAME","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE","FLAG","EX","EXTRA","BOOLEN","ENGINE"' > "$MUX_ROOT/app.csv.temp"
     fi
@@ -367,14 +367,14 @@ function _factory_system_boot() {
 
             print $0
         }
-    ' "$MUX_ROOT/app.csv.temp" > "$MUX_ROOT/app.csv.temp.tmp" && mv "$MUX_ROOT/app.csv.temp.tmp" "$MUX_ROOT/app.csv.temp"
+    ' "$MUX_ROOT/app.csv.temp" > "$MUX_ROOT/app.csv.temp.tmp" && command mv "$MUX_ROOT/app.csv.temp.tmp" "$MUX_ROOT/app.csv.temp"
 
     export PS1="\[\033[1;38;5;208m\]Fac\[\033[0m\] \w › "
     export PROMPT_COMMAND="tput sgr0; echo -ne '\033[0m'"
     
     # 製作.bak檔案
-    rm -f "$bak_dir"/app.csv.*.bak 2>/dev/null
-    cp "$MUX_ROOT/app.csv" "$bak_dir/app.csv.$ts.bak"
+    command rm -f "$bak_dir"/app.csv.*.bak 2>/dev/null
+    command cp "$MUX_ROOT/app.csv" "$bak_dir/app.csv.$ts.bak"
 
     # 初始化介面
     if command -v _fac_init &> /dev/null; then
@@ -405,7 +405,7 @@ function _fac_init() {
         }
         print $0
     }
-    ' "$MUX_ROOT/app.csv.temp" > "$MUX_ROOT/app.csv.temp.tmp" && mv "$MUX_ROOT/app.csv.temp.tmp" "$MUX_ROOT/app.csv.temp"
+    ' "$MUX_ROOT/app.csv.temp" > "$MUX_ROOT/app.csv.temp.tmp" && command mv "$MUX_ROOT/app.csv.temp.tmp" "$MUX_ROOT/app.csv.temp"
     _system_unlock
 }
 
@@ -414,7 +414,7 @@ function _factory_auto_backup() {
     local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
     local ts=$(date +%Y%m%d%H%M%S)
     
-    cp "$MUX_ROOT/app.csv.temp" "$bak_dir/app.csv.$ts.atb"
+    command cp "$MUX_ROOT/app.csv.temp" "$bak_dir/app.csv.$ts.atb"
     
     local count=$(ls -1 "$MUX_BAK"/app.csv.atb.* 2>/dev/null | wc -l)
     
@@ -485,7 +485,7 @@ function _fac_rebak_wizard() {
             if command -v _grant_xp &> /dev/null; then
                 _grant_xp 15 "FAC_REBAK"
             fi
-            cp "$bak_dir/$target_file" "$MUX_ROOT/app.csv.temp"
+            command cp "$bak_dir/$target_file" "$MUX_ROOT/app.csv.temp"
             echo -e "${THEME_WARN} :: Workspace Restored from: $target_file${C_RESET}"
             sleep 0.3
             echo -e "${THEME_DESC}    ›› Verified. ✅.${C_RESET}"
@@ -567,11 +567,11 @@ function _fac_maintenance() {
     # 3. 安全寫入檢查 (Safety Net)
     # 只有當 temp_file 有內容且大小大於 0 時才覆蓋
     if [ -s "$temp_file" ]; then
-        mv "$temp_file" "$target_file"
+        command mv "$temp_file" "$target_file"
         echo -e "${THEME_OK}    ›› Neural Nodes Verified & Patched.${C_RESET}"
     else
         # 如果發生截斷事故，刪除壞檔，保留原檔，並報警
-        rm -f "$temp_file"
+        command rm -f "$temp_file"
         echo -e "${THEME_ERR} :: CRITICAL ERROR :: Maintenance output empty! Aborting overwrite.${C_RESET}"
         echo -e "${THEME_DESC}    (Your original data has been protected)${C_RESET}"
     fi
@@ -594,10 +594,10 @@ function _fac_sort_optimization() {
     tail -n +2 "$target_file" | sort -t',' -k1,1n -k2,2n >> "$temp_file"
 
     if [ -s "$temp_file" ]; then
-        mv "$temp_file" "$target_file"
+        command mv "$temp_file" "$target_file"
         echo -e "${THEME_OK}    ›› Sequence Optimized. Nodes Realigned.${C_RESET}"
     else
-        rm "$temp_file"
+        command rm "$temp_file"
         echo -e "${THEME_ERR}    ›› Optimization Failed: Empty Output.${C_RESET}"
     fi
 }
@@ -665,13 +665,13 @@ function _fac_safe_merge() {
 
     # Deploy
     if [ -s "$temp_file" ]; then
-        mv "$temp_file" "$target_file"
+        command mv "$temp_file" "$target_file"
         echo -e "${THEME_OK}    ›› Matrix Merged. Assets Transferred.${C_RESET}"
         
         _fac_sort_optimization
         _fac_matrix_defrag
     else
-        rm "$temp_file"
+        command rm "$temp_file"
         echo -e "${THEME_ERR}    ›› Merge Failed: Output stream broken.${C_RESET}"
     fi
 }
@@ -719,10 +719,10 @@ function _fac_matrix_defrag() {
     ' "$target_file" > "$temp_file"
 
     if [ -s "$temp_file" ]; then
-        mv "$temp_file" "$target_file"
+        command mv "$temp_file" "$target_file"
         echo -e "${THEME_OK}    ›› Matrix Defragmented. Categories Shifted.${C_RESET}"
     else
-        rm "$temp_file"
+        command rm "$temp_file"
         echo -e "${THEME_ERR}    ›› Defrag Failed.${C_RESET}"
     fi
 }
@@ -744,7 +744,7 @@ function _factory_reset() {
         _bot_say "action" "Reversing time flow..."
         
         if [ -n "$target_bak" ] && [ -f "$target_bak" ]; then
-            cp "$target_bak" "$MUX_ROOT/app.csv.temp"
+            command cp "$target_bak" "$MUX_ROOT/app.csv.temp"
             
             if command -v _factory_auto_backup &> /dev/null; then
                 _factory_auto_backup
@@ -755,7 +755,7 @@ function _factory_reset() {
         else
             _bot_say "error" "Session Backup missing. Fallback to Production."
             if [ -f "$MUX_ROOT/app.csv" ]; then
-                cp "$MUX_ROOT/app.csv" "$MUX_ROOT/app.csv.temp"
+                command cp "$MUX_ROOT/app.csv" "$MUX_ROOT/app.csv.temp"
                 _fac_init
                 _bot_say "success" "Restored from Production (app.csv)."
             else
@@ -806,11 +806,11 @@ function _factory_deploy_sequence() {
     ' "$target_file" > "$qa_file" 2> "$stats_log"
 
     if grep -q "QA_FAIL" "$stats_log"; then
-        mv "$qa_file" "$target_file"; rm "$stats_log"
+        command mv "$qa_file" "$target_file"; command rm "$stats_log"
         echo -e "${THEME_ERR} :: QA FAILED. Invalid nodes detected.${C_RESET}"
         return 1
     else
-        mv "$qa_file" "$target_file"; rm "$stats_log"
+        command mv "$qa_file" "$target_file"; command rm "$stats_log"
         echo -e "${THEME_OK}    ›› QA Passed. State normalized to [P].${C_RESET}"
         sleep 1.0
     fi
@@ -843,7 +843,7 @@ function _factory_deploy_sequence() {
                 echo -e "${THEME_OK} :: EXECUTING DEPLOYMENT PROTOCOL...${C_RESET}"
                 
                 if [ -f "$target_file" ]; then
-                    mv "$target_file" "$prod_file"
+                    command mv "$target_file" "$prod_file"
                 fi
                 echo ""
                 echo -e "${THEME_OK} :: DEPLOYMENT SUCCESSFUL ::${C_RESET}"
@@ -949,8 +949,8 @@ EOF
     # 執行正常寫入
     sleep 0.9
     if [ -f "$target_file" ]; then
-        mv "$target_file" "$prod_file"
-        cp "$prod_file" "$target_file"
+        command mv "$target_file" "$prod_file"
+        command cp "$prod_file" "$target_file"
     fi
     echo ""
     echo -e "${THEME_OK} :: DEPLOYMENT SUCCESSFUL ::${C_RESET}"
@@ -1058,7 +1058,7 @@ function _fac_update_category_name() {
             $3 = val
         }
         print $0
-    }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
+    }' "$target_file" > "${target_file}.tmp" && command mv "${target_file}.tmp" "$target_file"
     
     _bot_say "success" "Category Renamed."
     if command -v _grant_xp &> /dev/null; then _grant_xp 10 "FAC_EDIT"; fi
@@ -2408,7 +2408,7 @@ function fac() {
                         _bot_say "action" "Migrating assets to Void..."
                         _fac_safe_merge "999" "$temp_id"
                         
-                        awk -F, -v tid="$temp_id" -v OFS=, '$1 != tid {print $0}' "$MUX_ROOT/app.csv.temp" > "$MUX_ROOT/app.csv.temp.tmp" && mv "$MUX_ROOT/app.csv.temp.tmp" "$MUX_ROOT/app.csv.temp"
+                        awk -F, -v tid="$temp_id" -v OFS=, '$1 != tid {print $0}' "$MUX_ROOT/app.csv.temp" > "$MUX_ROOT/app.csv.temp.tmp" && command mv "$MUX_ROOT/app.csv.temp.tmp" "$MUX_ROOT/app.csv.temp"
                         
                         _bot_say "success" "Category Dissolved."
                         

@@ -621,7 +621,7 @@ function _mux_awakening_protocol() {
         done
 
     else
-        rm -f "$MUX_ROOT/.passcode"
+        command rm -f "$MUX_ROOT/.passcode"
         MUX_CHECK=0
         _save_identity
         echo ""

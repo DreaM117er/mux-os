@@ -183,7 +183,11 @@ function _mux_init() {
     _safe_ui_calc
 
     if [ -f "$MUX_ROOT/app.csv.temp" ]; then
-        rm "$MUX_ROOT/app.csv.temp"
+        command rm "$MUX_ROOT/app.csv.temp"
+    fi
+
+    if [ "$MUX_MODE" == "MUX" ] && [ -f "$MUX_ROOT/xum.csv" ]; then
+        command rm -f "$MUX_ROOT/xum.csv"
     fi
     
     clear
@@ -1563,7 +1567,7 @@ function _core_eject_sequence() {
     fi
 
     if [ -f "$MUX_ROOT/app.csv.temp" ]; then
-        rm "$MUX_ROOT/app.csv.temp"
+        command rm "$MUX_ROOT/app.csv.temp"
     fi
 
     echo -e ""
