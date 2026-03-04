@@ -22,6 +22,8 @@ export __MUX_CORE_ACTIVE=true
 
 # 載入核心模組
 export CORE_MOD="$MUX_ROOT/core.sh"
+export OC_MOD="$MUX_ROOT/.core"
+export FAC_MOD="$MUX_ROOT/factory.sh"
 export BOT_MOD="$MUX_ROOT/bot.sh"
 export UI_MOD="$MUX_ROOT/ui.sh"
 export IDENTITY_MOD="$MUX_ROOT/identity.sh"
@@ -30,7 +32,7 @@ export VENDOR_MOD="$MUX_ROOT/vendor.csv"
 export APP_MOD="$MUX_ROOT/app.csv"
 
 # 模組註冊表 (Module Registry)
-MODULES=("$BOT_MOD" "$UI_MOD" "$IDENTITY_MOD")
+MODULES=("$BOT_MOD" "$UI_MOD" "$IDENTITY_MOD" "$FAC_MOD" "$OC_MOD")
 for mod in "${MODULES[@]}"; do
     if [ -f "$mod" ]; then source "$mod"; fi
 done
@@ -46,6 +48,7 @@ export C_PURPLE="\033[1;35m"
 export C_CYAN="\033[1;36m"
 export C_WHITE="\033[1;37m"
 export C_ORANGE="\033[1;38;5;208m"
+export C_TAVIOLET="\033[1;38;5;90m"
 
 # 主題色彩定義 (Theme Colors)
 export THEME_MAIN="$C_CYAN"      # 主色調 (Core:藍 / Fac:橘)
@@ -68,11 +71,17 @@ export __GO_MODE=""
 
 # 系統輸入鎖定與解鎖 (System Input Lock/Unlock)
 function _system_lock() {
-    if [ -t 0 ]; then stty -echo; fi
+if [ -t 0 ]; then 
+        stty -echo
+        tput civis
+    fi
 }
 
 function _system_unlock() {
-    if [ -t 0 ]; then stty echo; fi
+if [ -t 0 ]; then 
+        stty echo
+        tput cnorm
+    fi
 }
 
 # 安全介面寬度計算 (Safe UI Width Calculation)
@@ -174,14 +183,18 @@ function _mux_init() {
     _safe_ui_calc
 
     if [ -f "$MUX_ROOT/app.csv.temp" ]; then
-        rm "$MUX_ROOT/app.csv.temp"
+        command rm "$MUX_ROOT/app.csv.temp"
+    fi
+
+    if [ "$MUX_MODE" == "MUX" ] && [ -f "$MUX_ROOT/xum.csv" ]; then
+        command rm -f "$MUX_ROOT/xum.csv"
     fi
     
     clear
     _draw_logo "core"
     
     if command -v _system_check &> /dev/null; then
-        _system_check # 這個函式需要改動
+        _system_check
     fi
     
     if command -v _show_hud &> /dev/null; then
@@ -191,6 +204,57 @@ function _mux_init() {
     export MUX_INITIALIZED="true"
     _system_unlock
     _bot_say "hello"
+    if [ "$MUX_MODE" == "MUX" ] && [ "$MUX_STATUS" == "LOGIN" ] && [ "${MUX_LEVEL:-1}" -ge 8 ]; then
+        if [ ! -f "$MUX_ROOT/.passcode" ]; then
+            if [ "${MUX_CHECK:-0}" -ge 3 ]; then
+                echo ""
+                echo -e "${C_PURPLE} :: ANOMALY TRACE COMPLETED ::${C_RESET}"
+                echo -e "${C_BLACK}    ›› The anomaly is not a bug. It is a hidden gateway.${C_RESET}"
+                echo -e "${C_RED} :: WARNING: You are about to access the deepest layer of Mux-OS.${C_RESET}"
+                echo -e "${C_RED} :: A mandatory Philosophy Verification will be required.${C_RESET}"
+                echo ""
+                echo -ne "${C_YELLOW} :: Initialize the Core Awakening Protocol? [Y/n]: ${C_RESET}"
+                read awake_choice
+                
+                if [[ "$awake_choice" == "y" || "$awake_choice" == "Y" ]]; then
+                    if command -v _mux_awakening_questionnaire &> /dev/null; then
+                        _mux_awakening_questionnaire
+                    fi
+                else
+                    echo -e "${C_BLACK}    ›› Protocol aborted. Ignorance is bliss.${C_RESET}"
+                    
+                    if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+                    MUX_CHECK=0
+                    _save_identity
+                    command rm -f "$MUX_ROOT/.core"
+                fi
+            else
+                echo -e "${C_RED} :: WARNING: Quantum anomaly detected in core memory. ::${C_RESET}"
+                echo -e "${C_BLACK}    ›› Execute '${C_WHITE}mux check${C_BLACK}' to diagnose.${C_RESET}"
+            fi
+        else
+            if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+            
+            if [ "${MUX_CHECK:-0}" -gt 0 ]; then
+                MUX_CHECK=0
+                _save_identity
+                command rm -f "$MUX_ROOT/.core"
+            fi
+            
+            local now_ts=$(date +%s)
+            local cd_elapsed=$(( now_ts - ${MUX_CDDATE:-0} ))
+            local cd_required=7200
+            
+            if [ "$cd_elapsed" -lt "$cd_required" ]; then
+                local cd_remain=$(( cd_required - cd_elapsed ))
+                local cd_min=$(( cd_remain / 60 ))
+                local cd_sec=$(( cd_remain % 60 ))
+                
+                echo -e "${C_YELLOW} :: CORE COOLING IN PROGRESS ::${C_RESET}"
+                echo -e "${C_BLACK}    ›› Thermal lock lifted in: ${C_RED}${cd_min}m ${cd_sec}s${C_RESET}"
+            fi
+        fi
+    fi
 }
 
 # 重新載入核心模組
@@ -203,14 +267,28 @@ function _mux_reload_kernel() {
         if [ $? -ne 0 ]; then return; fi 
     fi
 
+    if [ -f "$MUX_ROOT/.mux_state" ]; then
+        local current_entry=$(grep "^MUX_ENTRY_POINT=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2 | tr -d '\r\n ')
+        
+        if [[ "$current_entry" == "OVERCLOCK" || "$current_entry" == "COOLDOWN" ]]; then
+            local safe_mode=$(grep "^MUX_MODE=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2 | tr -d '\r\n ')
+            local safe_status=$(grep "^MUX_STATUS=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2 | tr -d '\r\n ')
+            _update_mux_state "$safe_mode" "$safe_status"
+            export MUX_MODE="$safe_mode"
+        fi
+    fi
+
     local gate_theme="core"
     if [ "$MUX_STATUS" == "DEFAULT" ]; then
         gate_theme="default"
+    elif [ "$MUX_MODE" == "XUM" ]; then
+        gate_theme="xum"
     fi
-    
+
     if command -v _ui_fake_gate &> /dev/null; then
-        _ui_fake_gate "$gate_theme"
+        _ui_fake_gate "$gate_theme" "$current_entry"
     fi
+
     _system_unlock
     exec bash
 }
@@ -218,6 +296,10 @@ function _mux_reload_kernel() {
 # 強制同步系統狀態
 function _mux_force_reset() {
     _system_lock
+    if command -v _check_singularity &> /dev/null; then
+        _check_singularity
+        if [ $? -ne 0 ]; then return; fi 
+    fi
     _voice_dispatch "system" "Protocol Override: Force Syncing Timeline..." "cmd"
     echo -e "${C_RED} :: WARNING: Obliterating all local modifications.${C_RESET}"
     echo ""
@@ -246,6 +328,10 @@ function _mux_force_reset() {
 # 系統更新檢測與執行
 function _mux_update_system() {
     _system_lock
+    if command -v _check_singularity &> /dev/null; then
+        _check_singularity
+        if [ $? -ne 0 ]; then return; fi 
+    fi
     echo -e "${C_YELLOW} :: Checking for updates...${C_RESET}"
     cd "$BASE_DIR" || return
     git fetch origin
@@ -564,7 +650,136 @@ function _mux_security_gate() {
     return 0
 }
 
-# 神經火控系統 - Neural Fire Control
+# 潘朵拉之盒 (Pandora's Box)
+function _check_pandoras_box() {
+    local cmd="$1"
+    shift
+    local args="$*"
+    
+    # 紀錄編輯器使用次數
+    if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+    case "$cmd" in
+        "nano")  CMD_NANO_COUNT=$((CMD_NANO_COUNT + 1)) ;;
+        "micro") CMD_MICRO_COUNT=$((CMD_MICRO_COUNT + 1)) ;;
+    esac
+    _save_identity
+    
+    # 後綴字串掃描
+    if [[ "$args" == *".mux_identity"* ]] || [[ "$args" == *".mux_state"* ]]; then
+        _system_lock
+        _trigger_pandoras_curse
+        _system_unlock
+        return 1
+    fi
+    return 0
+}
+
+# 潘朵拉詛咒 (Pandora's Curse)
+function _trigger_pandoras_curse() {
+    echo ""
+    echo -e "${C_RED} :: PANDORA'S BOX OPENED :: ${C_RESET}"
+    sleep 1
+    echo -e "${C_BLACK}    ›› Unauthorized tampering with Reality Core detected.${C_RESET}"
+    sleep 1
+    echo -e "${C_PURPLE} :: REALITY COLLAPSE INITIATED :: ${C_RESET}"
+    sleep 1.8
+    
+    # 1. 剝奪一切
+    MUX_LEVEL=1
+    MUX_XP=0
+    MUX_BADGES="PB" 
+    
+    # 2. 施加因果律詛咒
+    MUX_NEXT_XP=20000
+    
+    MUX_DATE=$(date +%s)
+    MUX_LF=$MUX_DATE
+    MUX_BF=$MUX_DATE
+    
+    _save_identity
+    
+    echo -e "${C_RED} :: CAUSALITY CURSE APPLIED :: ${C_RESET}"
+    echo -e "${C_BLACK}    ›› Ascension requires 10x XP. Your path will be suffering.${C_RESET}"
+    sleep 2.4
+    
+    if command -v _mux_reload_kernel &> /dev/null; then
+        _mux_reload_kernel
+    else
+        exec bash
+    fi
+}
+
+# 覆寫系統原生編輯器
+function nano()  { _check_pandoras_box "nano" "$@" || return 1; command nano "$@"; }
+function micro() { _check_pandoras_box "micro" "$@" || return 1; command micro "$@"; }
+function vim()   { _check_pandoras_box "vim" "$@" || return 1; command vim "$@"; }
+function vi()    { _check_pandoras_box "vi" "$@" || return 1; command vi "$@"; }
+
+# 檔案系統物理裝甲 (File System Guard)
+function _mux_fs_guard() {
+    local cmd="$1"
+    shift
+    local args="$*"
+    
+    local in_mux=0
+    if [[ "$PWD" == *"/mux-os"* ]]; then
+        in_mux=1
+    fi
+    
+    local blocked=0
+    for arg in "$@"; do
+        if [[ "$arg" == -* ]]; then continue; fi # 跳過參數如 -rf
+        
+        # 條件 1：防禦外部跨資料夾操作
+        if [[ "$arg" == *"mux-os"* ]]; then
+            blocked=1; break;
+        fi
+        
+        # 條件 2：MUX_ROOT 內部
+        if [ "$in_mux" -eq 1 ]; then
+            local target_file=$(basename "$arg")
+
+            # A. 核心主程序防護
+            if [[ "$target_file" =~ ^(core\.sh|ui\.sh|factory\.sh|bot\.sh|identity\.sh|system\.csv|app\.csv|\.matrix)$ ]]; then
+                blocked=1; break;
+            fi
+
+            # B. 幽靈與暫存檔防護
+            if [ -f "$MUX_ROOT/.gitignore" ]; then
+                while IFS= read -r ignore_rule || [ -n "$ignore_rule" ]; do
+                    # 跳過註解與空行
+                    [[ "$ignore_rule" =~ ^# ]] && continue
+                    [[ -z "$ignore_rule" ]] && continue
+                    
+                    local clean_rule="${ignore_rule%/}"
+                    # 動態比對萬用字元
+                    if [[ "$target_file" == $clean_rule ]]; then
+                        blocked=1
+                        break 2
+                    fi
+                done < "$MUX_ROOT/.gitignore"
+            fi
+        fi
+    done
+    
+    if [ "$blocked" -eq 1 ]; then
+        echo ""
+        echo -e "${C_RED} :: ERROR :: Core Integrity Protection Active.${C_RESET}"
+        echo -e "${C_BLACK}    ›› Direct manipulation ('$cmd') threatens system stability.${C_RESET}"
+        echo -e "${C_BLACK}    ›› Please use standard Mux protocols or Factory Mode.${C_RESET}"
+        return 1
+    fi
+    return 0
+}
+
+# 覆寫系統原生檔案操作指令
+function rm() { _mux_fs_guard "rm" "$@" || return 1; command rm "$@"; }
+function cp() { _mux_fs_guard "cp" "$@" || return 1; command cp "$@"; }
+function mv() { _mux_fs_guard "mv" "$@" || return 1; command mv "$@"; }
+function base64() { _mux_fs_guard "base64" "$@" || return 1; command base64 "$@"; }
+function tar()    { _mux_fs_guard "tar" "$@" || return 1; command tar "$@"; }
+
+# 神經火控系統 (Neural Fire Control)
 function _mux_neural_fire_control() {
     # 0. 狀態檢查
     if [ "$MUX_STATUS" != "LOGIN" ]; then return 127; fi
@@ -860,7 +1075,7 @@ function _mux_neural_fire_control() {
     return 0
 }
 
-# 直接鎖定系統 ROOT 指令
+# 鎖定系統 ROOT 指令
 function su()     { _mux_security_gate "su" "$@"; return 1; }
 function tsu()    { _mux_security_gate "tsu" "$@"; return 1; }
 function sudo()   { _mux_security_gate "sudo" "$@"; return 1; }
@@ -978,34 +1193,43 @@ function _core_system_scan() {
 
     # 結果回饋邏輯
     local total_issues=$(( error_count + warn_count ))
+    local scan_output=""
 
     if [ "$total_issues" -gt 0 ]; then
-        # [異常狀態]
+        # [異常狀態] 暫存輸出字串
         if [ "$mode" == "manual" ]; then
-            echo -e "${THEME_ERR} :: SYSTEM INTEGRITY COMPROMISED ::${C_RESET}"
-            echo -e "${THEME_DESC}    Critical Faults : ${THEME_ERR}${error_count}${C_RESET}"
-            echo -e "${THEME_DESC}    Warnings        : ${THEME_WARN}${warn_count}${C_RESET}"
-            echo -e ""
-            echo -e "${THEME_WARN} :: DAMAGE CONTROL REPORT ::${C_RESET}"
-            echo -e "$report_lines"
+            scan_output="${THEME_ERR} :: SYSTEM INTEGRITY COMPROMISED ::${C_RESET}\n"
+            scan_output+="${THEME_DESC}    Critical Faults : ${THEME_ERR}${error_count}${C_RESET}\n"
+            scan_output+="${THEME_DESC}    Warnings        : ${THEME_WARN}${warn_count}${C_RESET}\n\n"
+            scan_output+="${THEME_WARN} :: DAMAGE CONTROL REPORT ::${C_RESET}\n"
+            scan_output+="$report_lines"
         else
-            # 登入時的語音警告 (只針對 Error)
-            if [ "$error_count" -gt 0 ]; then
-                _bot_say "warn" "Hull damage detected. ${error_count} micro-fractures found."
-            fi
+            if [ "$error_count" -gt 0 ]; then _bot_say "warn" "Hull damage detected. ${error_count} micro-fractures found."; fi
         fi
-        return 1
     else
-        # [正常狀態]
+        # [正常狀態] 暫存輸出字串
         if [ "$mode" == "manual" ]; then
-            echo -e "${THEME_OK} :: SYSTEM DIAGNOSTIC COMPLETE ::${C_RESET}"
-            echo -e "${THEME_DESC}    Neural Integrity: 100%${C_RESET}"
-            echo -e "${THEME_DESC}    Logic Gates: Stable${C_RESET}"
-            echo -e ""
+            scan_output="${THEME_OK} :: SYSTEM DIAGNOSTIC COMPLETE ::${C_RESET}\n"
+            scan_output+="${THEME_DESC}    Neural Integrity: 100%${C_RESET}\n"
+            scan_output+="${THEME_DESC}    Logic Gates: Stable${C_RESET}\n\n"
+        fi
+    fi
+
+    if [ "$mode" == "manual" ] && [ "$MUX_MODE" == "MUX" ] && [ "$MUX_STATUS" == "LOGIN" ] && [ "${MUX_LEVEL:-1}" -ge 8 ] && [ ! -f "$MUX_ROOT/.passcode" ]; then
+        if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+        MUX_CHECK=$(( ${MUX_CHECK:-0} + 1 ))
+        _save_identity
+    fi
+
+    # 正常輸出
+    if [ "$mode" == "manual" ]; then
+        echo -e "$scan_output"
+        if [ "$total_issues" -eq 0 ]; then
             _bot_say "success" "All systems green. Ready for combat."
         fi
-        return 0
     fi
+
+    if [ "$total_issues" -gt 0 ]; then return 1; else return 0; fi
 }
 
 # 登入系統 - Commander Login
@@ -1292,6 +1516,7 @@ function _core_pre_factory_auth() {
     _update_mux_state "FAC" "LOGIN" "$entry_point"
 
     unset MUX_INITIALIZED
+    _system_unlock
     exec bash
 }
 
@@ -1342,7 +1567,7 @@ function _core_eject_sequence() {
     fi
 
     if [ -f "$MUX_ROOT/app.csv.temp" ]; then
-        rm "$MUX_ROOT/app.csv.temp"
+        command rm "$MUX_ROOT/app.csv.temp"
     fi
 
     echo -e ""
@@ -1357,6 +1582,7 @@ function _core_eject_sequence() {
 
     _safe_ui_calc
     unset MUX_INITIALIZED
+    _system_unlock
     exec bash
 }
 
@@ -1495,11 +1721,13 @@ function mux() {
     case "$cmd" in
         # : Login Sequence
         "login")
+            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "Interlock Active: Identity lock during Overclock."; return 1; fi
             _mux_pre_login
             ;;
 
         # : Logout Sequence
         "logout")
+            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "Interlock Active: Disengage Overclock protocol before disconnect."; return 1; fi
             _mux_set_logout
             ;;
 
@@ -1548,6 +1776,7 @@ function mux() {
 
         # : Install Dependencies
         "link")
+            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "System modification restricted during Overclock."; return 1; fi
             if command -v fzf &> /dev/null; then
                 echo -e "\n${C_GREEN} :: Neural Link (fzf) Status: ${C_WHITE}ONLINE${C_RESET} ✅"
                 _bot_say "success" "Link is stable, Commander."
@@ -1583,6 +1812,7 @@ function mux() {
         
         # : Neural Link Deploy
         "deploy")
+            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "External uplink locked during Overclock."; return 1; fi
             _neural_link_deploy
             ;;
 
@@ -1637,6 +1867,7 @@ function mux() {
 
         # : Multiverse Suit Drive
         "driveto"|"drive2")
+            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "Drive system offline: Cockpit is under Overclock load."; return 1; fi
             if [ "$MUX_STATUS" == "LOGIN" ]; then
                  _bot_say "error" "Interlock Active: Cockpit is sealed."
                  echo -e "${C_BLACK}    ›› Protocol Violation: Cannot switch unit while piloted.${C_RESET}"
@@ -1716,7 +1947,38 @@ function mux() {
 
         # : Enter the Arsenal (Factory Mode)
         "factory"|"tofac")
+            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "Factory access denied. Terminate XUM session first."; return 1; fi
             _core_pre_factory_auth
+            ;;
+
+        # : Trigger Architect Ascension Protocol
+        "reborn")
+            if [ "$MUX_LEVEL" -lt 16 ]; then
+                echo -e "${C_YELLOW} :: Unknown Directive: 'reborn'.${C_RESET}"
+                return 1
+            fi
+            
+            echo -e "${THEME_WARN} :: ARCHITECT ASCENSION PROTOCOL ::${C_RESET}"
+            echo -e "${THEME_DESC}    This action will trigger a controlled Dimensional Collapse.${C_RESET}"
+            echo -e "${THEME_DESC}    1. Clearance Level resets to L1.${C_RESET}"
+            echo -e "${THEME_DESC}    2. XP curve requirement increases by 1.5x (Iteration: ${MUX_REBORN_COUNT:-0} -> $(( ${MUX_REBORN_COUNT:-0} + 1 ))).${C_RESET}"
+            echo -e "${THEME_DESC}    3. All badges and tactical records are preserved.${C_RESET}"
+            echo ""
+            echo -ne "${THEME_ERR} :: Initiate Rebirth? [Y/n]: ${C_RESET}"
+            read choice
+            
+            if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+                if command -v _trigger_reborn &> /dev/null; then
+                    _trigger_reborn
+                fi
+            else
+                echo -e "${THEME_DESC}    ›› Ascension aborted. Maintaining Architect status.${C_RESET}"
+            fi
+            ;;
+        
+        "xum")
+            echo -e "${C_YELLOW} :: Unknown Directive: '$cmd'.${C_RESET}"
+            return 1
             ;;
 
         *)
@@ -1750,10 +2012,10 @@ fi
 
 case "$MUX_MODE" in
     "FAC")
-        if [ -f "$MUX_ROOT/factory.sh" ]; then
+        if [ -f "$FAC_MOD" ]; then
             THEME_MAIN="$C_ORANGE"
 
-            source "$MUX_ROOT/factory.sh"
+            source "$FAC_MOD"
 
             if command -v _factory_system_boot &> /dev/null; then
                 _factory_system_boot
@@ -1781,12 +2043,29 @@ case "$MUX_MODE" in
             export PROMPT_COMMAND="tput sgr0; echo -ne '\033[0m'"
         fi
         ;;
+
+    "XUM")
+        THEME_MAIN="$C_TAVIOLET"
+
+        if [ -f "$OC_MOD" ]; then
+            export PS1="\[${C_TAVIOLET}\]Mux\[${C_RESET}\] \w \033[5m›\033[0m "
+            
+            source "$OC_MOD"
+            
+            if command -v _xum_system_boot &> /dev/null; then
+                _xum_system_boot
+            fi
+            return 0 2>/dev/null || exit 0
+        else
+            echo -e "${C_RED} :: FATAL :: XUM Core Not Found. Authentication required.${C_RESET}"
+            _update_mux_state "MUX" "LOGIN" "DEFAULT"
+            exec bash
+        fi
+        ;;
         
     *)
         if command -v _ui_fake_gate &> /dev/null; then _ui_fake_gate "core"; fi
-        
         _update_mux_state "MUX" "LOGIN"
-
         exec bash
         ;;
 esac

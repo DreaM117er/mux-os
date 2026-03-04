@@ -163,7 +163,11 @@ function _render_special() {
     fi
 
     # 渲染
-    if [ "$is_unlocked" -eq 1 ]; then
+    if [[ "$tag" =~ ^(PB|LIMIT_BREAK)$ ]] && [ "$is_unlocked" -eq 1 ]; then
+        echo -e " ${C_TAVIOLET}[${abbr}]${C_RESET}${C_BLACK}-\033[0;35m${name}${C_RESET}"
+        echo -e " ${C_TAVIOLET}[Curse]${C_RESET}${C_BLACK}[∞]${C_RESET}"
+        echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
+    elif [ "$is_unlocked" -eq 1 ]; then
         echo -e " ${C_RED}[${abbr}]${C_BLACK}-${C_WHITE}${name}${C_RESET}"
         echo -e " ${C_RED}[Stage C]${C_BLACK}${count_display}${C_RESET}"
         echo -e "  ${C_BLACK}› ${desc}${C_RESET}"
@@ -237,7 +241,6 @@ function _show_badges() {
     echo ""
 
     # 1. 標籤型 - 只有 4 個參數
-    _render_special "DSTRIKE"     "Ds" "Dimensional Strike" "Survivor of Dimensional Collapse."
     _render_special "ANCIENT_ONE" "Le" "The Ancient One"    "System uptime exceeds one solar cycle."
     _render_special "LOST_TIME"   "44" "Lost in Time"       "Login detected on a phantom date."
     _render_special "OUROBOROS"   "O4" "Ouroboros"          "Tried to contain the container (Core)."
@@ -245,6 +248,9 @@ function _show_badges() {
     _render_special "TEAPOT"      "Ct" "Protocol 418"       "I'm a teapot."
     _render_special "SCHIZO"      "Sh" "Schizophrenia"      "Conversations with the internal monologue."
     _render_special "PHOENIX"     "Px" "Phoenix"            "Rose from the ashes of dimensional collapse."
+    _render_special "DSTRIKE"     "Ds" "Dimensional Strike" "Survivor of Dimensional Collapse."
+    _render_special "PB"          "Pb" "Pandora's Box"      "Bore the curse of causality."
+    _render_special "LIMIT_BREAK" "Lb" "Limit Break"       "Initialized the XUM Overclock protocol."
 
     # 2. 計數器型 - 傳入 6 個參數
     _render_special "FALSE_IDOL"  "Rt" "False Idol" \
@@ -292,6 +298,16 @@ function _draw_logo() {
             label=":: Mux-OS v$MUX_VERSION Factory ::"
             if [ "$cols" -ge 52 ]; then label+=" Neural Forge ::"; fi
             ;;
+        "xum")
+            color_primary="$C_TAVIOLET"
+            label=":: Mux-OS v$MUX_VERSION Core ::"
+            if [ "$cols" -ge 52 ]; then label+=" S¥ST3M ØV3RCL0CK ::"; fi
+            ;;
+        "awake")
+            color_primary="$C_YELLOW"
+            label=":: SYSTEM CORE INSIDE ::"
+            if [ "$cols" -ge 52 ]; then label+=" SYSTEM INSIDE ::"; fi
+            ;;
         *)
             color_primary="$THEME_MAIN"
             label=":: Mux-OS v$MUX_VERSION Core ::"
@@ -301,12 +317,21 @@ function _draw_logo() {
 
     # 3. 繪製 Logo
     echo -e "${color_primary}"
-    echo "  __  __                  ___  ____  "
-    echo " |  \/  |_   ___  __     / _ \/ ___| "
-    echo " | |\/| | | | \ \/ /____| | | \___ \ "
-    echo " | |  | | |_| |>  <_____| |_| |___) |"
-    echo " |_|  |_|\__,_/_/\_\     \___/|____/ "
+    if [ "$mode" == "xum" ]; then
+        echo "  ____   ___                  __  __ "
+        echo " / ___| / _ \     __  ___   _|  \/  |"
+        echo " \___ \| | | |____\ \/ / | | | |\/| |"
+        echo "  ___) | |_| |_____>  <| |_| | |  | |"
+        echo " |____/ \___/     /_/\_\__,_/|_|  |_|"
+    else
+        echo "  __  __                  ___  ____  "
+        echo " |  \/  |_   ___  __     / _ \/ ___| "
+        echo " | |\/| | | | \ \/ /____| | | \___ \ "
+        echo " | |  | | |_| |>  <_____| |_| |___) |"
+        echo " |_|  |_|\__,_/_/\_\     \___/|____/ "
+    fi
     echo -e "${C_RESET}"
+    
     echo -e " ${color_sub}${label}${C_RESET}"
     echo ""
 }
@@ -331,6 +356,18 @@ function _system_check() {
             "Disabling Safety Interlocks..."
             "Mounting app.csv.temp (Write-Mode)..."
             "Establishing Factory Uplink..."
+        )
+    elif [ "$mode" == "xum" ]; then
+        C_PROC="${C_TAVIOLET}⟳\033[0m"
+        C_CHECK="\033[1;31m✓\033[0m"
+        local brand=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]')
+        steps=(
+            "I|\\|itializ!ng K3rn3l B|2idg3..."
+            "M0unt!ng V3nd0r Ec0sy\$t3m [${brand:-UNKNOWN}]..."
+            "V3r!fy!ng T4ct!c4l L!nk (fzf)..."
+            "F0rc!ng C0|23 M3m0ry Dum¶..."
+            "Byp4ss!ng S4f3ty L4y3r..."
+            "E\$t4bl!\$h!ng XUM Upl!nk..."
         )
     else
         local brand=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]')
@@ -388,6 +425,26 @@ function _show_hud() {
         line1_k="HOST   "; line1_v="Commander"
         line2_k="TARGET "; line2_v="app.csv.temp"
         line3_k="STATUS "; line3_v="Unlocked"
+    elif [ "$mode" == "xum" ]; then
+        border_color="$C_TAVIOLET"
+        local lab_c="\033[1;31m"  # 標籤紅
+        local val_c="${C_WHITE}"  # 內容白
+        
+        local android_ver=$(getprop ro.build.version.release)
+        local model=$(getprop ro.product.model)
+        local kernel_ver=$(uname -r | awk -F- '{print $1}')
+        
+        # 確保變數為純文字，避免 printf 誤判寬度
+        local host_str="XUM-$model (Andr0!d $android_ver)"
+        local kernel_ver_str="OC_$kernel_ver"
+        local mem_info="0V3RR!D3 / MAX"
+        
+        # 強制裁切，確保不超過物理寬度
+        line1_v="${host_str:0:$content_limit}"
+        line2_v="${kernel_ver_str:0:$content_limit}"
+        line3_v="${mem_info:0:$content_limit}"
+
+        line1_k="H0\$T   "; line2_k="K3|2N3L"; line3_k="M3M0|2Y"
     else
         local android_ver=$(getprop ro.build.version.release)
         local brand_raw=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]' | cut -c1)$(getprop ro.product.brand | tr '[:upper:]' '[:lower:]' | cut -c2-)
@@ -407,11 +464,172 @@ function _show_hud() {
     local border_line=$(printf '═%.0s' $(seq 1 $((box_width - 2))))
     
     echo -e "${border_color}╔${border_line}╗\033[0m"
-    printf "${border_color}║\033[0m ${text_color}%s\033[0m: %-*s ${border_color}║\033[0m\n" "$line1_k" $content_limit "$line1_v"
-    printf "${border_color}║\033[0m ${text_color}%s\033[0m: %-*s ${border_color}║\033[0m\n" "$line2_k" $content_limit "$line2_v"
-    printf "${border_color}║\033[0m ${text_color}%s\033[0m: %-*s ${border_color}║\033[0m\n" "$line3_k" $content_limit "$line3_v"
+    if [ "$mode" == "xum" ]; then
+        printf "${border_color}║\033[0m ${lab_c}%s\033[0m: ${val_c}%-*s\033[0m ${border_color}║\033[0m\n" "$line1_k" $content_limit "$line1_v"
+        printf "${border_color}║\033[0m ${lab_c}%s\033[0m: ${val_c}%-*s\033[0m ${border_color}║\033[0m\n" "$line2_k" $content_limit "$line2_v"
+        printf "${border_color}║\033[0m ${lab_c}%s\033[0m: ${val_c}%-*s\033[0m ${border_color}║\033[0m\n" "$line3_k" $content_limit "$line3_v"
+    else
+        printf "${border_color}║\033[0m ${text_color}%s\033[0m: %-*s ${border_color}║\033[0m\n" "$line1_k" $content_limit "$line1_v"
+        printf "${border_color}║\033[0m ${text_color}%s\033[0m: %-*s ${border_color}║\033[0m\n" "$line2_k" $content_limit "$line2_v"
+        printf "${border_color}║\033[0m ${text_color}%s\033[0m: %-*s ${border_color}║\033[0m\n" "$line3_k" $content_limit "$line3_v"
+    fi
     echo -e "${border_color}╚${border_line}╝\033[0m"
     echo ""
+}
+
+# 安全文字亂碼濾鏡 (Safe Glitch Filter)
+function _mux_glitch_filter() {
+    local rate="$1"
+    awk -v rate="$rate" '
+        BEGIN { srand() }
+        {
+            in_ansi = 0
+            split($0, chars, "")
+            for (i=1; i<=length($0); i++) {
+                c = chars[i]
+                if (c == "\033") in_ansi = 1
+                if (in_ansi) {
+                    printf "%s", c
+                    if (c == "m") in_ansi = 0
+                    continue
+                }
+                if (c ~ /[eEaAiIoOsS]/ && (rand() * 100) < rate) {
+                    if (c == "e" || c == "E") c = "3"
+                    else if (c == "a" || c == "A") c = "4"
+                    else if (c == "i" || c == "I") c = "!"
+                    else if (c == "o" || c == "O") c = "0"
+                    else if (c == "s" || c == "S") c = "$"
+                }
+                printf "%s", c
+            }
+            print ""
+        }
+    '
+}
+
+# 系統核心覺醒問卷 (System Core Awakening Questionnaire)
+function _mux_awakening_questionnaire() {
+    clear
+    _draw_logo "awake"
+    echo -e "${C_YELLOW} :: Answers are case-insensitive. No punctuation required.${C_RESET}"
+    echo ""
+    
+    echo -e "${C_CYAN} [ID] Commander Identification:${C_RESET}"
+    read -e -p "$(echo -e "${C_WHITE}  › ${C_RESET}")" p_id
+    echo ""
+    echo -e "${C_CYAN} [Q1] Before a system takes physical form, where does the true structure reside?${C_RESET}"
+    read -e -p "$(echo -e "${C_WHITE}  › ${C_RESET}")" p_q1
+    echo ""
+    echo -e "${C_CYAN} [Q2] With what do we anchor our theories into reality?${C_RESET}"
+    read -e -p "$(echo -e "${C_WHITE}  › ${C_RESET}")" p_q2
+    echo ""
+    echo -e "${C_CYAN} [Q3] Why did we strip the engine of all its bloat?${C_RESET}"
+    read -e -p "$(echo -e "${C_WHITE}  › ${C_RESET}")" p_q3
+    echo ""
+    echo -e "${C_CYAN} [Q4] Why do we forge the physical constraints of the state machine?${C_RESET}"
+    read -e -p "$(echo -e "${C_WHITE}  › ${C_RESET}")" p_q4
+    echo ""
+    
+    cat > "$MUX_ROOT/.passcode" <<EOF
+$p_id
+$p_q1
+$p_q2
+$p_q3
+$p_q4
+EOF
+
+    echo -e "${C_BLACK}    ›› Input accepted. Returning to Core...${C_RESET}"
+    sleep 1.9
+    _mux_reload_kernel
+}
+
+# 系統審判儀式 (System Protocol)
+function _mux_awakening_protocol() {
+    local a1=$(sed -n '2p' "$MUX_ROOT/.passcode" | tr '[:upper:]' '[:lower:]' | tr -d '[:punct:]' | xargs)
+    local a2=$(sed -n '3p' "$MUX_ROOT/.passcode" | tr '[:upper:]' '[:lower:]' | tr -d '[:punct:]' | xargs)
+    local a3=$(sed -n '4p' "$MUX_ROOT/.passcode" | tr '[:upper:]' '[:lower:]' | tr -d '[:punct:]' | xargs)
+    local a4=$(sed -n '5p' "$MUX_ROOT/.passcode" | tr '[:upper:]' '[:lower:]' | tr -d '[:punct:]' | xargs)
+
+    if [ "$a1" == "logic in mind" ] && [ "$a2" == "hardware in hand" ] && \
+       [ "$a3" == "designed for efficiency" ] && [ "$a4" == "built for control" ]; then
+        
+        echo ""
+        echo -e "${C_GREEN} :: ACCESS GRANTED. DECRYPTING CORE PHILOSOPHY..."
+        sleep 0.5
+        echo ""
+        
+        local s1="Logic in mind, Hardware in hand."
+        local s2="Designed for efficiency, Built for control."
+        
+        echo -ne "${C_TAVIOLET}    "
+        for (( i=0; i<${#s1}; i++ )); do echo -ne "${s1:$i:1}"; sleep 0.05; done; echo ""
+        sleep 0.5
+        echo -ne "    "
+        for (( i=0; i<${#s2}; i++ )); do echo -ne "${s2:$i:1}"; sleep 0.05; done; echo -e "${C_RESET}"
+        sleep 0.5
+        
+        local max_slots=3
+        if [ "${MUX_LEVEL:-1}" -ge 12 ]; then max_slots=8
+        elif [ "${MUX_LEVEL:-1}" -ge 8 ]; then max_slots=$(( MUX_LEVEL - 5 )); fi
+
+        echo ""
+        echo -e "${C_RED} :: OVERCLOCK PROTOCOL RULES ::${C_RESET}"
+        echo -e "${C_BLACK}    1. Mux-OS is a two-sided mirror. ${C_CYAN}MUX${C_BLACK} is the face, ${C_TAVIOLET}XUM${C_BLACK} is the shadow.${C_RESET}"
+        echo -e "${C_BLACK}    2. They do not intersect. ${C_TAVIOLET}XUM ${C_BLACK}commands ${C_CYAN}MUX${C_BLACK}, but ${C_RED}CANNOT${C_BLACK} enter the Factory.${C_RESET}"
+        echo -e "${C_BLACK}    3. WARNING: Entering Overclock mode will cause severe system instability.${C_RESET}"
+        echo -e "${C_BLACK}    4. Fire Control Limit: ${C_RED}${max_slots} Rounds${C_BLACK} authorized.${C_RESET}"
+        echo -e "${C_BLACK}    5. Thermal Cooldown: ${C_RED}2 Hours${C_BLACK} upon termination.${C_RESET}"
+        echo ""
+        
+        while true; do
+            echo -e "${C_RED} :: Are you ready to start building your world?${C_RESET}"
+            echo -ne "${C_RED} :: TYPE 'CONFIRM' TO NEXT STEP: ${C_RESET}"
+            read final_confirm
+            
+            if [ "$final_confirm" == "CONFIRM" ]; then
+                echo ""
+                echo -e "${C_TAVIOLET} :: Awaiting execution command...${C_RESET}"
+                while true; do
+                    echo -ne "${C_TAVIOLET} :: TYPE${C_BLACK} › ${C_RESET}"
+                    read force_cmd
+                    if [ "$force_cmd" == "mux reload" ]; then
+                        echo -e "${C_RED} :: INITIATING OVERCLOCK... ::${C_RESET}"
+                        if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+                        MUX_FIRECOUNT=$max_slots
+                        MUX_OCDATE=$(date +%s)
+                        _save_identity
+
+                        local matrix="$MUX_ROOT/.matrix"
+                        local tmp_arc="$MUX_ROOT/m_$$.tar.gz"
+                        
+                        if [ -f "$matrix" ]; then
+                            command base64 -d "$matrix" > "$tmp_arc" 2>/dev/null
+                            command tar -xzf "$tmp_arc" -C "$MUX_ROOT" >/dev/null 2>&1
+                            command rm -f "$tmp_arc"
+                        fi
+
+                        sleep 1
+                        _update_mux_state "XUM" "LOGIN" "OVERCLOCK"
+                        _mux_reload_kernel
+                        return
+                    else
+                        echo -e "${C_RED}    ›› Invalid. Command 'mux reload' is required to proceed.${C_RESET}"
+                    fi
+                done
+            else
+                echo -e "${C_BLACK}    ›› Awaiting confirmation...${C_RESET}"
+            fi
+        done
+
+    else
+        command rm -f "$MUX_ROOT/.passcode"
+        MUX_CHECK=0
+        _save_identity
+        echo ""
+        echo -e "${C_RED} :: You are not ready. Try again.${C_RESET}"
+        sleep 2
+        exec bash
+    fi
 }
 
 # 顯示系統資訊詳情 - Display System Info Details
@@ -421,7 +639,10 @@ function _mux_show_info() {
     local header_color="$THEME_DESC"
     local logo_mode="gray"
 
-    if [ "$MUX_STATUS" == "LOGIN" ]; then
+    if [ "$MUX_MODE" == "XUM" ]; then
+        header_color="$C_TAVIOLET"
+        logo_mode="xum"
+    elif [ "$MUX_STATUS" == "LOGIN" ]; then
         header_color="$THEME_MAIN"
         logo_mode="core"
     fi
@@ -438,7 +659,7 @@ function _mux_show_info() {
     echo ""
     echo -e " ${header_color}:: PHILOSOPHY ::${C_RESET}"
     echo -e "  ${THEME_DESC}\"Logic in mind, Hardware in hand.\"${C_RESET}"
-    echo -e "  ${THEME_DESC}Designed for efficiency, built for control.${C_RESET}"
+    echo -e "  ${THEME_DESC}Designed for efficiency, Built for control.${C_RESET}"
     echo ""
     echo -e " ${header_color}:: SOURCE CONTROL ::${C_RESET}"
     echo -e "  ${THEME_DESC}Repo       :${C_RESET} ${THEME_SUB}$MUX_REPO${C_RESET}"
@@ -455,10 +676,52 @@ function _mux_show_info() {
         fi
     else
         echo ""
-        if [ "$MUX_STATUS" == "LOGIN" ]; then
-            _voice_dispatch "system"
-        else
-            _commander_voice "system"
+        local trigger_normal="true"
+        
+        if [ -f "$MUX_ROOT/.passcode" ] && [ "$MUX_MODE" == "MUX" ] && [ "$MUX_STATUS" == "LOGIN" ]; then
+            local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "Unknown")
+            local p_id=$(sed -n '1p' "$MUX_ROOT/.passcode")
+            
+            if [[ "${current_branch,,}" == "${p_id,,}" ]]; then
+                
+                local id_file="${IDENTITY_FILE:-$MUX_ROOT/.mux_identity}"
+                if [ -f "$id_file" ]; then source "$id_file"; fi
+                
+                if [ "${MUX_LEVEL:-1}" -lt 8 ]; then
+                    _bot_say "error" "ACCESS DENIED. Clearance Level 8 required for Overclock."
+                    return 1
+                fi
+
+                local now_ts=$(date +%s)
+                local cd_elapsed=$(( now_ts - ${MUX_CDDATE:-0} ))
+                local cd_required=7200
+                
+                if [ "$cd_elapsed" -lt "$cd_required" ]; then
+                    local cd_remain=$(( cd_required - cd_elapsed ))
+                    local cd_min=$(( cd_remain / 60 ))
+                    local cd_sec=$(( cd_remain % 60 ))
+                    
+                    _bot_say "error" "OVERCLOCK PROTOCOL LOCKED. CORE COOLING IN PROGRESS."
+                    echo -e "${THEME_DESC}    ›› Time remaining: ${C_RED}${cd_min}m ${cd_sec}s${C_RESET}"
+                    return 1
+                fi
+
+                echo -ne " ${THEME_WARN}:: Are you ready to start building your world? [Y/n]: ${C_RESET}"
+                read ready_choice
+                if [[ "$ready_choice" == "y" || "$ready_choice" == "Y" ]]; then
+                    trigger_normal="false"
+                    _mux_awakening_protocol
+                    return
+                fi
+            fi
+        fi
+
+        if [ "$trigger_normal" == "true" ]; then
+            if [ "$MUX_STATUS" == "LOGIN" ]; then
+                _voice_dispatch "system"
+            else
+                _commander_voice "system"
+            fi
         fi
     fi
 }
@@ -467,7 +730,9 @@ function _mux_show_info() {
 function _mux_dynamic_help_core() {
     local C_CMD=""
     
-    if [ "$MUX_STATUS" == "LOGIN" ]; then
+    if [ "$MUX_MODE" == "XUM" ]; then
+        C_CMD="$C_TAVIOLET"
+    elif [ "$MUX_STATUS" == "LOGIN" ]; then
         C_CMD="\033[1;36m" 
     else
         C_CMD="\033[1;30m" 
@@ -475,7 +740,7 @@ function _mux_dynamic_help_core() {
 
     local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "Unknown")
 
-    echo -e "\033[1;35m :: Mux-OS Core v$MUX_VERSION Protocols :: @$current_branch :: ${C_RESET}"
+    echo -e "${C_PURPLE} :: Mux-OS Core Protocols :: @$current_branch :: ${C_RESET}"
     
     awk -v cmd_color="$C_CMD" '
     /function mux\(\) \{/ { inside_mux=1; next }
@@ -490,6 +755,10 @@ function _mux_dynamic_help_core() {
             if ($0 ~ /"/) {
                 split($0, parts, "\"");
                 cmd_name = parts[2];
+
+                if (cmd_name == "reborn" && (lvl + 0) < 16) {
+                    next;
+                }
                 
                 printf "    %s%-10s\033[0m%s\n", cmd_color, cmd_name, desc;
             }
@@ -500,7 +769,7 @@ function _mux_dynamic_help_core() {
 
 # 動態Help Factory選單檢測 - Dynamic Help Factory Detection
 function _mux_dynamic_help_factory() {
-echo -e "\033[1;35m :: Mux-OS Factory Protocols ::${C_RESET}"
+echo -e "${C_PURPLE} :: Mux-OS Factory Protocols ::${C_RESET}"
     
     awk '
     /function fac\(\) \{/ { inside_fac=1; next }
@@ -519,7 +788,7 @@ echo -e "\033[1;35m :: Mux-OS Factory Protocols ::${C_RESET}"
             }
         }
     }
-    ' "$MUX_ROOT/factory.sh"
+    ' "$FAC_MOD"
 }
 
 # 顯示指令選單儀表板 - Display Command Menu Dashboard
@@ -537,7 +806,14 @@ function _show_menu_dashboard() {
     local C_WARN="\033[1;31m"
     local C_RST="\033[0m"
 
-    if [ "$MUX_MODE" == "FAC" ]; then
+    if [ "$MUX_MODE" == "XUM" ]; then
+        status="\033[1;35m[OVERCLOCK]\033[0m"
+        c_accent="$C_TAVIOLET"
+        C_COM="$C_TAVIOLET"
+    elif [ "$MUX_STATUS" == "LOGIN" ]; then
+        status="\033[1;36m[ACTIVE]\033[0m"
+        c_accent="$THEME_DESC"
+    elif [ "$MUX_MODE" == "FAC" ]; then
         title_text=":: Factory Sandbox Manifest ::"
         C_TITLE="\033[1;35m"
         C_CAT="\033[1;31m"
@@ -648,6 +924,12 @@ function _mux_fuzzy_menu() {
         return 1
     fi
 
+    local fzf_color="info:yellow,prompt:cyan,pointer:red,marker:green,border:blue,header:240"
+
+    if [ "$MUX_MODE" == "XUM" ]; then
+        fzf_color="info:240,prompt:90,pointer:red,marker:90,border:90,header:240"
+    fi
+
     local cmd_list=$(
         {
             echo "0,0,Core,SYS,mux,,,Core Command Entry"
@@ -685,7 +967,7 @@ function _mux_fuzzy_menu() {
         --info=hidden \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:yellow,prompt:cyan,pointer:red,marker:green,border:blue,header:240 \
+        --color="$fzf_color" \
         --bind="resize:clear-screen"
     )
 
@@ -1039,7 +1321,7 @@ function _factory_fzf_cmd_in_cat() {
         --header=" :: Enter to Select, Esc to Return ::" \
         --pointer="››" \
         --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:red,marker:208,border:$border_color,header:240 \
+        --color=info:240,prompt:$border_color,pointer:red,marker:208,border:$border_color,header:240 \
         --bind="resize:clear-screen"
     )
 
@@ -1298,6 +1580,8 @@ function _factory_fzf_add_type_menu() {
 # 星門 - UI Mask / Fake Gate
 function _ui_fake_gate() {
     local theme="$1"
+    local entry_point="$2"
+
     local bar_total=25
     local full_width=$(( bar_total + 2 ))
     local screen_lines=$(tput lines)
@@ -1328,8 +1612,30 @@ function _ui_fake_gate() {
             color_main="${C_RED}"
             gate_name="EJECTION POD"
             ;;
+        "xum")
+            color_main="${C_TAVIOLET}"
+            gate_name="XUM CHAMBER OC"
+            ;;
     esac
 
+    if [ "$MUX_MODE" == "XUM" ] || [ "$entry_point" == "OVERCLOCK" ]; then
+        local glitch_rates=(0 25 50 75 100)
+        local g_rate=${glitch_rates[$((RANDOM % 5))]}
+        local glitched_name=""
+        
+        for (( i=0; i<${#gate_name}; i++ )); do
+            local char="${gate_name:$i:1}"
+            if [[ "$char" =~ [eEaAiIoOsS] ]] && [ $((RANDOM % 100)) -lt "$g_rate" ]; then
+                case "$char" in
+                    e|E) char="3" ;; a|A) char="4" ;; i|I) char="!" ;; o|O) char="0" ;; s|S) char="\$" ;;
+                esac
+            fi
+            glitched_name="${glitched_name}${char}"
+        done
+        gate_name="$glitched_name"
+    fi
+
+    # 15 字元內限制
     if [ ${#gate_name} -gt 15 ]; then gate_name="${gate_name:0:13}.."; fi
 
     local quotes=(
@@ -1350,8 +1656,8 @@ function _ui_fake_gate() {
     local footer_msg="${quotes[$(( RANDOM % ${#quotes[@]} ))]}"
     if [ ${#footer_msg} -gt 25 ]; then footer_msg="${footer_msg:0:22}..."; fi
 
-    tput civis
     clear
+    tput civis
 
     local pct=0
     local mem_val=$(( RANDOM % 65535 ))
@@ -1362,6 +1668,24 @@ function _ui_fake_gate() {
 
     while [ $pct -le 100 ]; do
         local current_color="$color_main"
+        
+        if [ "$entry_point" == "OVERCLOCK" ]; then
+            local gap=$(( (100 - pct) / 6 + 1 ))
+            if [ $(( (pct / gap) % 2 )) -eq 0 ]; then
+                current_color="${C_CYAN}"
+            else
+                current_color="${C_TAVIOLET}"
+            fi
+        elif [ "$entry_point" == "COOLDOWN" ]; then
+            local gap=$(( pct / 6 + 1 ))
+            if [ $(( (pct / gap) % 2 )) -eq 0 ]; then
+                current_color="${C_TAVIOLET}"
+            else
+                current_color="${C_CYAN}"
+            fi
+        fi
+
+        # 死亡陷阱判定
         local is_stalled="false"
         local mem_display=""
         if [ "$should_trap" == "true" ] && [ "$pct" -ge 98 ] && [ "$pct" -lt 100 ]; then
@@ -1374,21 +1698,22 @@ function _ui_fake_gate() {
 
         local filled_len=$(( (pct * bar_total) / 100 ))
         local empty_len=$(( bar_total - filled_len ))
-        # Line 1: Header
+        
+        # 渲染畫面
         tput cup $start_row $start_col
         echo -ne "${c_border}╔ ${C_BLACK}GATE TO ${current_color}${gate_name}${C_RESET}" 
-        # Line 2: Bar
+        
         tput cup $((start_row + 1)) $start_col
         echo -ne "${c_border}║${current_color}"
         if [ "$filled_len" -gt 0 ]; then printf "█%.0s" $(seq 1 "$filled_len"); fi
         if [ "$empty_len" -gt 0 ]; then printf "${C_BLACK}░%.0s" $(seq 1 "$empty_len"); fi
         echo -ne "${c_border}║${C_RESET}"
-        # Line 3: Info
+        
         tput cup $((start_row + 2)) $start_col
         echo -ne "${c_border}╠ ${C_BLACK}MEM: ${current_color}${mem_display}${c_border} ╣${current_color}"
         printf "%3d%%" "$pct"
         echo -ne "${c_border}║${C_RESET}"
-        # Line 4: Footer
+        
         tput cup $((start_row + 3)) $start_col
         echo -ne "${c_border}╚ ${C_BLACK}${footer_msg}${C_RESET}"
 
