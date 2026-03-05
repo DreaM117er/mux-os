@@ -581,45 +581,43 @@ function _mux_awakening_protocol() {
         echo -e "${C_BLACK}    5. Thermal Cooldown: ${C_RED}2 Hours${C_BLACK} upon termination.${C_RESET}"
         echo ""
         
-        while true; do
-            echo -e "${C_RED} :: Are you ready to start building your world?${C_RESET}"
-            echo -ne "${C_RED} :: TYPE 'CONFIRM' TO NEXT STEP: ${C_RESET}"
-            read final_confirm
-            
-            if [ "$final_confirm" == "CONFIRM" ]; then
-                echo ""
-                echo -e "${C_TAVIOLET} :: Awaiting execution command...${C_RESET}"
-                while true; do
-                    echo -ne "${C_TAVIOLET} :: TYPE${C_BLACK} › ${C_RESET}"
-                    read force_cmd
-                    if [ "$force_cmd" == "mux reload" ]; then
-                        echo -e "${C_RED} :: INITIATING OVERCLOCK... ::${C_RESET}"
-                        if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
-                        MUX_FIRECOUNT=$max_slots
-                        MUX_OCDATE=$(date +%s)
-                        _save_identity
+        echo -e "${C_RED} :: Are you ready to start building your world?${C_RESET}"
+        echo -ne "${C_RED} :: TYPE 'CONFIRM' TO NEXT STEP: ${C_RESET}"
+        read final_confirm
+        
+        if [ "$final_confirm" == "CONFIRM" ]; then
+            echo ""
+            echo -e "${C_TAVIOLET} :: Awaiting execution command...${C_RESET}"
+            while true; do
+                echo -ne "${C_TAVIOLET} :: TYPE${C_BLACK} › ${C_RESET}"
+                read force_cmd
+                if [ "$force_cmd" == "mux reload" ]; then
+                    echo -e "${C_RED} :: INITIATING OVERCLOCK... ::${C_RESET}"
+                    if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+                    MUX_FIRECOUNT=$max_slots
+                    MUX_OCDATE=$(date +%s)
+                    _save_identity
 
-                        local matrix="$MUX_ROOT/.matrix"
-                        local tmp_arc="$MUX_ROOT/m_$$.tar.gz"
-                        
-                        if [ -f "$matrix" ]; then
-                            command base64 -d "$matrix" > "$tmp_arc" 2>/dev/null
-                            command tar -xzf "$tmp_arc" -C "$MUX_ROOT" >/dev/null 2>&1
-                            command rm -f "$tmp_arc"
-                        fi
-
-                        sleep 1
-                        _update_mux_state "XUM" "LOGIN" "OVERCLOCK"
-                        _mux_reload_kernel
-                        return
-                    else
-                        echo -e "${C_RED}    ›› Invalid. Command 'mux reload' is required to proceed.${C_RESET}"
+                    local matrix="$MUX_ROOT/.matrix"
+                    local tmp_arc="$MUX_ROOT/m_$$.tar.gz"
+                    if [ -f "$matrix" ]; then
+                        command base64 -d "$matrix" > "$tmp_arc" 2>/dev/null
+                        command tar -xzf "$tmp_arc" -C "$MUX_ROOT" >/dev/null 2>&1
+                        command rm -f "$tmp_arc"
                     fi
-                done
-            else
-                echo -e "${C_BLACK}    ›› Awaiting confirmation...${C_RESET}"
-            fi
-        done
+
+                    sleep 1
+                    _update_mux_state "XUM" "LOGIN" "OVERCLOCK"
+                    _mux_reload_kernel
+                    return
+                else
+                    echo -e "${C_RED}    ›› Invalid. Command 'mux reload' is required to proceed.${C_RESET}"
+                fi
+            done
+        else
+            echo -e "${C_BLACK}    ›› Ascension aborted. The Matrix remains closed.${C_RESET}"
+            return 1
+        fi
 
     else
         command rm -f "$MUX_ROOT/.passcode"

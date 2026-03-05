@@ -499,6 +499,36 @@ function _fac_rebak_wizard() {
     fi
 }
 
+# 兵工廠廢料清理 (Factory Waste Purge)
+function _fac_clear_backups() {
+    local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
+    
+    echo -e "${THEME_WARN} :: FACTORY WASTE DISPOSAL ::${C_RESET}"
+    sleep 0.5
+    
+    local atb_count=$(ls -1 "$bak_dir"/app.csv.*.atb 2>/dev/null | wc -l)
+    
+    if [ "$atb_count" -eq 0 ]; then
+        _bot_say "success" "No temporal waste (.atb) detected. Backup repository is pure."
+        return 0
+    fi
+    
+    echo -e "${THEME_DESC}    ›› Scanning... Found ${THEME_WARN}${atb_count}${THEME_DESC} auto-backup fragments.${C_RESET}"
+    echo -ne "${THEME_ERR} :: TYPE 'CONFIRM' TO INCINERATE: ${C_RESET}"
+    read conf
+    
+    if [ "$conf" == "CONFIRM" ]; then
+        echo ""
+        _bot_say "action" "Incinerating waste..."
+        # 原子特權突破裝甲刪除
+        command rm -f "$bak_dir"/app.csv.*.atb
+        sleep 0.8
+        _bot_say "success" "Waste disposal complete. Repository purified."
+    else
+        echo -e "${THEME_DESC}    ›› Incineration aborted.${C_RESET}"
+    fi
+}
+
 # 機體維護工具 (Mechanism Maintenance)
 function _fac_maintenance() {
     echo -e "${THEME_DESC} :: Scanning Neural Integrity...${C_RESET}"
@@ -2474,6 +2504,11 @@ function fac() {
         # : Time Stone Undo (Rebak)
         "undo"|"rebak")
             _fac_rebak_wizard
+            ;;
+
+        # : Purge Auto-Backups
+        "clear")
+            _fac_clear_backups
             ;;
 
         # : Load Neural (Test Command)
