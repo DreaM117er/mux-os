@@ -363,6 +363,63 @@ function _mux_integrity_scan() {
     return 0
 }
 
+# 系統目錄淨化協議 (System Directory Purge)
+function _mux_system_purge() {
+    _system_lock
+    if command -v _check_singularity &> /dev/null; then
+        _check_singularity
+        if [ $? -ne 0 ]; then return; fi 
+    fi
+    
+    echo -e "${THEME_WARN} :: SYSTEM PURIFICATION PROTOCOL ::${C_RESET}"
+    sleep 0.5
+    echo -e "${THEME_DESC}    ›› Scanning for dimensional anomalies and foreign objects...${C_RESET}"
+    sleep 1
+    
+    cd "$MUX_ROOT" || return
+    
+    # 使用 git ls-files 抓出未追蹤的檔案，排除合法的暫存與設定檔
+    local untracked=$(git ls-files --others --exclude-standard 2>/dev/null)
+    local valid_pattern="^(bak|\.mux_state|\.mux_identity|app\.csv\.temp|xum\.csv|\.core|\.passcode|report\.txt|m_[0-9]+\.tar\.gz|\.matrix)$"
+    local impurities=$(echo "$untracked" | grep -vE "$valid_pattern")
+    
+    if [ -z "$impurities" ]; then
+        _system_unlock
+        _bot_say "success" "Scan complete. System directory is absolutely pure."
+        return 0
+    fi
+    
+    _system_unlock
+    echo ""
+    echo -e "${THEME_ERR} :: IMPURITIES DETECTED ::${C_RESET}"
+    echo "$impurities" | while read -r line; do
+        if [ -n "$line" ]; then
+            echo -e "    ${C_RED}✗${C_RESET} ${THEME_DESC}$line${C_RESET}"
+        fi
+    done
+    echo ""
+    echo -ne "${THEME_WARN} :: TYPE 'CONFIRM' TO PURGE ALL FOREIGN OBJECTS: ${C_RESET}"
+    read conf
+    
+    if [ "$conf" == "CONFIRM" ]; then
+        _system_lock
+        echo ""
+        _bot_say "action" "Purging impurities..."
+        echo "$impurities" | while read -r line; do
+            if [ -n "$line" ]; then
+                command rm -rf "$MUX_ROOT/$line"
+            fi
+        done
+        sleep 1
+        _bot_say "success" "System purified. Re-syncing matrix..."
+        _system_unlock
+        sleep 1
+        _mux_reload_kernel
+    else
+        echo -e "${THEME_DESC}    ›› Purge aborted. Impurities remain.${C_RESET}"
+    fi
+}
+
 # 神經連結部署協議
 function _neural_link_deploy() {
     if [ -z "$(git config user.name)" ]; then
@@ -1827,6 +1884,11 @@ function mux() {
         # : Check for Updates
         "update")
             _mux_update_system
+            ;;
+
+        # : Clean System Directory
+        "clear")
+            _mux_system_purge
             ;;
 
         # : Run Setup Protocol
