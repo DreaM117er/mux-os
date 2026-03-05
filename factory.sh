@@ -2562,6 +2562,9 @@ function fac() {
 
         # : Show Hall of Fame (Medals)
         "hof")
+            clear
+            if command -v _draw_logo &> /dev/null; then _draw_logo "factory"; fi
+
             if command -v _show_badges &> /dev/null; then
                 _show_badges
             else
@@ -2572,6 +2575,11 @@ function fac() {
                     _bot_say "error" "Visual module (ui.sh) missing."
                 fi
             fi
+            
+            echo ""
+            echo -ne "${C_YELLOW} :: Press [ENTER] to return to Neural Forge... ${C_RESET}"
+            read -r
+            _fac_init
             ;;
 
         # : Reload Factory

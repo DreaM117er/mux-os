@@ -1811,6 +1811,11 @@ function mux() {
 
         # : Show Hall of Fame (Medals)
         "hof")
+            clear
+            local logo_theme="core"
+            if [ "$MUX_MODE" == "XUM" ]; then logo_theme="xum"; fi
+            if command -v _draw_logo &> /dev/null; then _draw_logo "$logo_theme"; fi
+            
             if command -v _show_badges &> /dev/null; then
                 _show_badges
             else
@@ -1821,6 +1826,11 @@ function mux() {
                     _bot_say "error" "Visual module (ui.sh) missing."
                 fi
             fi
+            
+            echo ""
+            echo -ne "${C_YELLOW} :: Press [ENTER] to return to Core... ${C_RESET}"
+            read -r 
+            _mux_init
             ;;
 
         # : Infomation
