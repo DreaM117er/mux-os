@@ -2577,7 +2577,7 @@ function fac() {
             fi
             
             echo ""
-            echo -ne "${C_YELLOW} :: Press [ENTER] to return to Neural Forge... ${C_RESET}"
+            echo -ne "${C_YELLOW} :: Press 'Enter' to return to Neural Forge... ${C_RESET}"
             read -r
             _fac_init
             ;;

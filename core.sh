@@ -1828,7 +1828,7 @@ function mux() {
             fi
             
             echo ""
-            echo -ne "${C_YELLOW} :: Press [ENTER] to return to Core... ${C_RESET}"
+            echo -ne "${C_YELLOW} :: Press 'Enter' to return to Core... ${C_RESET}"
             read -r 
             _mux_init
             ;;
