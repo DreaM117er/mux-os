@@ -23,7 +23,12 @@ function _fac_neural_read() {
     unset _VAL_CATNO _VAL_COMNO _VAL_CATNAME _VAL_TYPE _VAL_COM \
           _VAL_COM2 _VAL_COM3 _VAL_HUDNAME _VAL_UINAME _VAL_PKG \
           _VAL_TARGET _VAL_IHEAD _VAL_IBODY _VAL_URI _VAL_MIME \
-          _VAL_CATE _VAL_FLAG _VAL_EX _VAL_EXTRA _VAL_BOOLEN _VAL_ENGINE
+          _VAL_CATE1 _VAL_CATE2 _VAL_CATE3 _VAL_FLAG \
+          _VAL_EX1 _VAL_EXTRA1 _VAL_BOOLEN1 \
+          _VAL_EX2 _VAL_EXTRA2 _VAL_BOOLEN2 \
+          _VAL_EX3 _VAL_EXTRA3 _VAL_BOOLEN3 \
+          _VAL_EX4 _VAL_EXTRA4 _VAL_BOOLEN4 \
+          _VAL_EX5 _VAL_EXTRA5 _VAL_BOOLEN5 _VAL_ENGINE
 
     local target_key="$1"
     local target_file="${2:-$MUX_ROOT/app.csv.temp}"
@@ -72,29 +77,20 @@ function _fac_neural_read() {
     if [ -z "$raw_data" ]; then return 1; fi
 
     eval $(echo "$raw_data" | awk -v FPAT='([^,]*)|("[^"]+")' '{
-        fields[1]="_VAL_CATNO"
-        fields[2]="_VAL_COMNO"
-        fields[3]="_VAL_CATNAME"
-        fields[4]="_VAL_TYPE"
-        fields[5]="_VAL_COM"
-        fields[6]="_VAL_COM2"
-        fields[7]="_VAL_COM3"
-        fields[8]="_VAL_HUDNAME"
-        fields[9]="_VAL_UINAME"
-        fields[10]="_VAL_PKG"
-        fields[11]="_VAL_TARGET"
-        fields[12]="_VAL_IHEAD"
-        fields[13]="_VAL_IBODY"
-        fields[14]="_VAL_URI"
-        fields[15]="_VAL_MIME"
-        fields[16]="_VAL_CATE"
-        fields[17]="_VAL_FLAG"
-        fields[18]="_VAL_EX"
-        fields[19]="_VAL_EXTRA"
-        fields[20]="_VAL_BOOLEN"
-        fields[21]="_VAL_ENGINE"
+        fields[1]="_VAL_CATNO"; fields[2]="_VAL_COMNO"; fields[3]="_VAL_CATNAME";
+        fields[4]="_VAL_TYPE"; fields[5]="_VAL_COM"; fields[6]="_VAL_COM2"; fields[7]="_VAL_COM3";
+        fields[8]="_VAL_HUDNAME"; fields[9]="_VAL_UINAME"; fields[10]="_VAL_PKG";
+        fields[11]="_VAL_TARGET"; fields[12]="_VAL_IHEAD"; fields[13]="_VAL_IBODY";
+        fields[14]="_VAL_URI"; fields[15]="_VAL_MIME"; fields[16]="_VAL_CATE1";
+        fields[17]="_VAL_CATE2"; fields[18]="_VAL_CATE3"; fields[19]="_VAL_FLAG";
+        fields[20]="_VAL_EX1"; fields[21]="_VAL_EXTRA1"; fields[22]="_VAL_BOOLEN1";
+        fields[23]="_VAL_EX2"; fields[24]="_VAL_EXTRA2"; fields[25]="_VAL_BOOLEN2";
+        fields[26]="_VAL_EX3"; fields[27]="_VAL_EXTRA3"; fields[28]="_VAL_BOOLEN3";
+        fields[29]="_VAL_EX4"; fields[30]="_VAL_EXTRA4"; fields[31]="_VAL_BOOLEN4";
+        fields[32]="_VAL_EX5"; fields[33]="_VAL_EXTRA5"; fields[34]="_VAL_BOOLEN5";
+        fields[35]="_VAL_ENGINE";
 
-        for (i=1; i<=21; i++) {
+        for (i=1; i<=35; i++) {
             val = $i
             if (val ~ /^".*"$/) { val = substr(val, 2, length(val)-2) }
             gsub(/""/, "\"", val); gsub(/'\''/, "'\''\\'\'''\''", val)
@@ -339,7 +335,7 @@ function _factory_system_boot() {
     if [ -f "$MUX_ROOT/app.csv" ]; then
         command cp "$MUX_ROOT/app.csv" "$MUX_ROOT/app.csv.temp"
     else
-        echo '"CATNO","COMNO","CATNAME","TYPE","COM","COM2","COM3","HUDNAME","UINAME","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE","FLAG","EX","EXTRA","BOOLEN","ENGINE"' > "$MUX_ROOT/app.csv.temp"
+        echo '"CATNO","COMNO","CATNAME","TYPE","COM","COM2","COM3","HUDNAME","UINAME","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE1","CATE2","CATE3","FLAG","EX1","EXTRA1","BOOLEN1","EX2","EXTRA2","BOOLEN2","EX3","EXTRA3","BOOLEN3","EX4","EXTRA4","BOOLEN4","EX5","EXTRA5","BOOLEN5","ENGINE"' > "$MUX_ROOT/app.csv.temp"
     fi
 
     # 清除狀態 N 的指令
@@ -1039,12 +1035,26 @@ function _fac_generic_edit() {
         13) current_val="$_VAL_IBODY" ;;
         14) current_val="$_VAL_URI" ;;
         15) current_val="$_VAL_MIME" ;;
-        16) current_val="$_VAL_CATE" ;;
-        17) current_val="$_VAL_FLAG" ;;
-        18) current_val="$_VAL_EX" ;;
-        19) current_val="$_VAL_EXTRA" ;;
-        20) current_val="$_VAL_BOOLEN" ;;
-        21) current_val="$_VAL_ENGINE" ;;
+        16) current_val="$_VAL_CATE1" ;;
+        17) current_val="$_VAL_CATE2" ;;
+        18) current_val="$_VAL_CATE3" ;;
+        19) current_val="$_VAL_FLAG" ;;
+        20) current_val="$_VAL_EX1" ;;
+        21) current_val="$_VAL_EXTRA1" ;;
+        22) current_val="$_VAL_BOOLEN1" ;;
+        23) current_val="$_VAL_EX2" ;;
+        24) current_val="$_VAL_EXTRA2" ;;
+        25) current_val="$_VAL_BOOLEN2" ;;
+        26) current_val="$_VAL_EX3" ;;
+        27) current_val="$_VAL_EXTRA3" ;;
+        28) current_val="$_VAL_BOOLEN3" ;;
+        29) current_val="$_VAL_EX4" ;;
+        30) current_val="$_VAL_EXTRA4" ;;
+        31) current_val="$_VAL_BOOLEN4" ;;
+        32) current_val="$_VAL_EX5" ;;
+        33) current_val="$_VAL_EXTRA5" ;;
+        34) current_val="$_VAL_BOOLEN5" ;;
+        35) current_val="$_VAL_ENGINE" ;;
         *) current_val="" ;;
     esac
     
@@ -1418,19 +1428,53 @@ function _fac_edit_router() {
             ;;
             
         "ROOM_CATE")
-            echo -e "${THEME_DESC} :: Guide   : Intent Category Suffix${C_RESET}" >&2
-            echo -e "${THEME_DESC} :: Note    : System adds 'android.intent.category.' prefix.${C_RESET}" >&2
-            echo -e "${THEME_DESC} :: Example : ${THEME_WARN}BROWSABLE${C_RESET}, ${THEME_WARN}DEFAULT${C_RESET}, ${THEME_WARN}LAUNCHER${C_RESET}" >&2
-            
-            _fac_generic_edit "$target_key" 16 "Edit Category Type:"
-            return 2
+            while true; do
+                _fac_neural_read "$target_key"
+                
+                local menu_list=$(
+                    echo -e " CATE1   \t${_VAL_CATE1:-[Empty]}"
+                    echo -e " CATE2   \t${_VAL_CATE2:-[Empty]}"
+                    echo -e " CATE3   \t${_VAL_CATE3:-[Empty]}"
+                    echo -e "\033[1;30m----------\033[0m"
+                    echo -e "\033[1;32m[Confirm]\033[0m"
+                )
+
+                local choice=$(echo -e "$menu_list" | fzf --ansi \
+                    --height=8 \
+                    --layout=reverse \
+                    --border=bottom \
+                    --info=hidden \
+                    --header=" :: Input CATEGORY ::" \
+                    --border-label=" :: EDIT CATEGORY :: " \
+                    --prompt=" :: Setting › " \
+                    --pointer="››" \
+                    --delimiter="\t" \
+                    --with-nth=1,2 \
+                    --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                    --color=info:240,prompt:$prompt_color,pointer:red,marker:208,border:$border_color,header:240 \
+                    --bind="resize:clear-screen"
+                )
+
+                if [ -z "$choice" ]; then return 2; fi
+
+                local guide_text="${THEME_DESC} :: Note    : System adds 'android.intent.category.' prefix.${C_RESET}"
+                if echo "$choice" | grep -q "^ CATE1"; then
+                    _fac_generic_edit "$target_key" 16 "Edit Category 1:" "$guide_text"
+                elif echo "$choice" | grep -q "^ CATE2"; then
+                    _fac_generic_edit "$target_key" 17 "Edit Category 2:" "$guide_text"
+                elif echo "$choice" | grep -q "^ CATE3"; then
+                    _fac_generic_edit "$target_key" 18 "Edit Category 3:" "$guide_text"
+                elif echo "$choice" | grep -q "Confirm"; then
+                    return 2
+                fi
+            done
             ;;
 
         "ROOM_FLAG")
             echo -e "${THEME_DESC} :: Guide   : Execution Flags (am start)${C_RESET}" >&2
             echo -e "${THEME_DESC} :: Example : ${THEME_WARN}--user 0${C_RESET}, ${THEME_WARN}--grant-read-uri-permission${C_RESET}" >&2
             
-            _fac_generic_edit "$target_key" 17 "Edit Execution Flags:"
+            _fac_generic_edit "$target_key" 19 "Edit Execution Flags:"
             return 2
             ;;
 
@@ -1531,7 +1575,7 @@ function _fac_edit_router() {
 
                 elif echo "$choice" | grep -q "Confirm"; then
                     _fac_neural_write "$target_key" 14 "$edit_uri"
-                    _fac_neural_write "$target_key" 21 "$edit_engine"
+                    _fac_neural_write "$target_key" 35 "$edit_engine"
                     _bot_say "success" "URI/Engine Configuration Saved."
                     if command -v _grant_xp &> /dev/null; then _grant_xp 15 "FAC_EDIT"; fi
                     return 2
@@ -1540,15 +1584,20 @@ function _fac_edit_router() {
             ;;
 
         "ROOM_EXTRA")
+            local current_slot=1
             while true; do
-                # 每次迴圈重新讀取最新寫入的資料
                 _fac_neural_read "$target_key"
                 
-                local disp_ex="${_VAL_EX:-[Empty]}"
-                local disp_extra="${_VAL_EXTRA:-[Empty]}"
-                local disp_boo="${_VAL_BOOLEN:-[Empty]}"
+                local ex_var="_VAL_EX${current_slot}"
+                local extra_var="_VAL_EXTRA${current_slot}"
+                local boo_var="_VAL_BOOLEN${current_slot}"
+                
+                local disp_ex="${!ex_var:-[Empty]}"
+                local disp_extra="${!extra_var:-[Empty]}"
+                local disp_boo="${!boo_var:-[Empty]}"
                 
                 local menu_list=$(
+                    echo -e " SLOT    \t\033[1;36m[ Slot $current_slot ] (Switch)\033[0m"
                     echo -e " EX      \t$disp_ex"
                     echo -e " EXTRA   \t$disp_extra"
                     echo -e " BOOLEN  \t$disp_boo"
@@ -1559,11 +1608,9 @@ function _fac_edit_router() {
                 local choice=$(echo -e "$menu_list" | fzf --ansi \
                     --height=9 \
                     --layout=reverse \
-                    --border-label=" :: EDIT EXTRA PAYLOAD :: " \
                     --border=bottom \
-                    --header=" :: Modify Extended Parameters ::" \
+                    --border-label=" :: EDIT EXTRA PAYLOAD :: " \
                     --prompt=" :: Setting › " \
-                    --info=hidden \
                     --pointer="››" \
                     --delimiter="\t" \
                     --with-nth=1,2 \
@@ -1575,19 +1622,22 @@ function _fac_edit_router() {
                 if [ -z "$choice" ]; then return 2; fi
 
                 local guide_text=""
-                if echo "$choice" | grep -q "^ EX "; then
+                if echo "$choice" | grep -q "^ SLOT"; then
+                    current_slot=$((current_slot + 1))
+                    if [ "$current_slot" -gt 5 ]; then current_slot=1; fi
+                elif echo "$choice" | grep -q "^ EX "; then
                     guide_text="${THEME_DESC} :: Guide   : Type flag (e.g., --es, --ez, --ei, --eu).${C_RESET}"
-                    _fac_generic_edit "$target_key" 18 "Edit Extra Type (EX):" "$guide_text"
-                    
+                    local col=$(( 20 + (current_slot - 1) * 3 ))
+                    _fac_generic_edit "$target_key" "$col" "Edit Extra Type (EX$current_slot):" "$guide_text"
                 elif echo "$choice" | grep -q "^ EXTRA"; then
                     guide_text="${THEME_DESC} :: Guide   : The key name (e.g., android.intent.extra.TEXT).${C_RESET}"
-                    _fac_generic_edit "$target_key" 19 "Edit Extra Key (EXTRA):" "$guide_text"
-                    
+                    local col=$(( 21 + (current_slot - 1) * 3 ))
+                    _fac_generic_edit "$target_key" "$col" "Edit Extra Key (EXTRA$current_slot):" "$guide_text"
                 elif echo "$choice" | grep -q "^ BOOLEN"; then
                     guide_text="${THEME_DESC} :: Guide   : The actual value (e.g., true, 7, \"Hello World\").${C_RESET}\n"
                     guide_text+="${THEME_DESC} :: Note    : You can use \$query to bind dynamic user input.${C_RESET}"
-                    _fac_generic_edit "$target_key" 20 "Edit Extra Value (BOOLEN):" "$guide_text"
-                    
+                    local col=$(( 22 + (current_slot - 1) * 3 ))
+                    _fac_generic_edit "$target_key" "$col" "Edit Extra Value (BOOLEN$current_slot):" "$guide_text"
                 elif echo "$choice" | grep -q "Confirm"; then
                     return 2
                 fi
@@ -1643,8 +1693,8 @@ function _fac_safe_edit_protocol() {
     _fac_neural_write "$target_key" 7 "B"
 
     # 引號處理
-    local draft_row="$_VAL_CATNO,$_VAL_COMNO,${_VAL_CATNAME:+\"$_VAL_CATNAME\"},${_VAL_TYPE:+\"$_VAL_TYPE\"},${_VAL_COM:+\"$_VAL_COM\"},${_VAL_COM2:+\"$_VAL_COM2\"},\"E\",${_VAL_HUDNAME:+\"$_VAL_HUDNAME\"},${_VAL_UINAME:+\"$_VAL_UINAME\"},${_VAL_PKG:+\"$_VAL_PKG\"},${_VAL_TARGET:+\"$_VAL_TARGET\"},${_VAL_IHEAD:+\"$_VAL_IHEAD\"},${_VAL_IBODY:+\"$_VAL_IBODY\"},${_VAL_URI:+\"$_VAL_URI\"},${_VAL_MIME:+\"$_VAL_MIME\"},${_VAL_CATE:+\"$_VAL_CATE\"},${_VAL_FLAG:+\"$_VAL_FLAG\"},${_VAL_EX:+\"$_VAL_EX\"},${_VAL_EXTRA:+\"$_VAL_EXTRA\"},${_VAL_BOOLEN:+\"$_VAL_BOOLEN\"},${_VAL_ENGINE:+\"$_VAL_ENGINE\"}"
-    
+    local draft_row="$_VAL_CATNO,$_VAL_COMNO,${_VAL_CATNAME:+\"$_VAL_CATNAME\"},${_VAL_TYPE:+\"$_VAL_TYPE\"},${_VAL_COM:+\"$_VAL_COM\"},${_VAL_COM2:+\"$_VAL_COM2\"},\"E\",${_VAL_HUDNAME:+\"$_VAL_HUDNAME\"},${_VAL_UINAME:+\"$_VAL_UINAME\"},${_VAL_PKG:+\"$_VAL_PKG\"},${_VAL_TARGET:+\"$_VAL_TARGET\"},${_VAL_IHEAD:+\"$_VAL_IHEAD\"},${_VAL_IBODY:+\"$_VAL_IBODY\"},${_VAL_URI:+\"$_VAL_URI\"},${_VAL_MIME:+\"$_VAL_MIME\"},${_VAL_CATE1:+\"$_VAL_CATE1\"},${_VAL_CATE2:+\"$_VAL_CATE2\"},${_VAL_CATE3:+\"$_VAL_CATE3\"},${_VAL_FLAG:+\"$_VAL_FLAG\"},${_VAL_EX1:+\"$_VAL_EX1\"},${_VAL_EXTRA1:+\"$_VAL_EXTRA1\"},${_VAL_BOOLEN1:+\"$_VAL_BOOLEN1\"},${_VAL_EX2:+\"$_VAL_EX2\"},${_VAL_EXTRA2:+\"$_VAL_EXTRA2\"},${_VAL_BOOLEN2:+\"$_VAL_BOOLEN2\"},${_VAL_EX3:+\"$_VAL_EX3\"},${_VAL_EXTRA3:+\"$_VAL_EXTRA3\"},${_VAL_BOOLEN3:+\"$_VAL_BOOLEN3\"},${_VAL_EX4:+\"$_VAL_EX4\"},${_VAL_EXTRA4:+\"$_VAL_EXTRA4\"},${_VAL_BOOLEN4:+\"$_VAL_BOOLEN4\"},${_VAL_EX5:+\"$_VAL_EX5\"},${_VAL_EXTRA5:+\"$_VAL_EXTRA5\"},${_VAL_BOOLEN5:+\"$_VAL_BOOLEN5\"},${_VAL_ENGINE:+\"$_VAL_ENGINE\"}"
+
     # 資料格式狀態
     echo "$draft_row" >> "$MUX_ROOT/app.csv.temp"
     local working_key="$target_key"
@@ -1824,15 +1874,11 @@ function _fac_launch_test() {
 
     # 全域變數替換
     _VAL_URI="${_VAL_URI//\$query/$safe_query}"
-    _VAL_EXTRA="${_VAL_EXTRA//\$query/$raw_query}"
-    _VAL_EX="${_VAL_EX//\$query/$raw_query}"
     _VAL_PKG="${_VAL_PKG//\$query/$raw_query}"
     _VAL_TARGET="${_VAL_TARGET//\$query/$raw_query}"
     _VAL_FLAG="${_VAL_FLAG//\$query/$raw_query}"
-    _VAL_BOOLEN="${_VAL_BOOLEN//\$query/$raw_query}"
     
     # 顯示詳細資訊
-    # 共通欄位
     echo -e "${C_SEP}    ---------------${C_RST}"
     printf "${C_TYPE}    [TYPE: %-3s]${C_RST}\n" "$_VAL_TYPE"
     echo -e "${C_LBL}    Command:${C_RST} ${C_VAL}$_VAL_COM ${_VAL_COM2:-$C_EMP}${C_RST}"
@@ -1861,54 +1907,58 @@ function _fac_launch_test() {
             ;;
     esac
 
-    # 旗標顯示
-    [ -n "$_VAL_CATE" ] && echo -e "    ${C_LBL}Cate   :${C_RST} ${C_VAL}$_VAL_CATE${C_RST}"
+    # 旗標與類別顯示
     [ -n "$_VAL_MIME" ] && echo -e "    ${C_LBL}Mime   :${C_RST} ${C_VAL}$_VAL_MIME${C_RST}"
     [ -n "$_VAL_FLAG" ] && echo -e "    ${C_LBL}Flag   :${C_RST} ${C_VAL}$_VAL_FLAG${C_RST}"
+    [ -n "$_VAL_CATE1" ] && echo -e "    ${C_LBL}Cate 1 :${C_RST} ${C_VAL}$_VAL_CATE1${C_RST}"
+    [ -n "$_VAL_CATE2" ] && echo -e "    ${C_LBL}Cate 2 :${C_RST} ${C_VAL}$_VAL_CATE2${C_RST}"
+    [ -n "$_VAL_CATE3" ] && echo -e "    ${C_LBL}Cate 3 :${C_RST} ${C_VAL}$_VAL_CATE3${C_RST}"
 
-    local ex_str=""
-    local extra_str=""
-    local boolen_str=""
-    [ -n "$_VAL_EX" ] && ex_str="    ${C_LBL}Extra  :${C_RST} ${C_VAL}$_VAL_EX${C_RST}"
-    [ -n "$_VAL_EXTRA" ] && extra_str="${C_VAL}$_VAL_EXTRA${C_RST}"
-    [ -n "$_VAL_BOOLEN" ] && boolen_str="${C_VAL}$_VAL_BOOLEN${C_RST}"
-    if [ -z "$ex_str" ] && [[ -n "$extra_str" || -n "$boolen_str" ]]; then
-        ex_str="    ${C_LBL}Extra  :${C_RST}"
-    fi
+    # 動態編譯 Extra 與顯示
+    local extra_args=""
+    for i in {1..5}; do
+        local ex_var="_VAL_EX$i"; local ex_val="${!ex_var}"
+        local extra_var="_VAL_EXTRA$i"; local extra_val="${!extra_var}"
+        local boo_var="_VAL_BOOLEN$i"; local boo_val="${!boo_var}"
+        
+        ex_val="${ex_val//\$query/$raw_query}"
+        extra_val="${extra_val//\$query/$raw_query}"
+        boo_val="${boo_val//\$query/$raw_query}"
 
-    if [ -n "$ex_str" ] || [ -n "$extra_str" ] || [ -n "$boolen_str" ]; then 
-        echo -e "${ex_str} ${extra_str} ${boolen_str}"
-    fi
+        if [ -n "$ex_val" ] || [ -n "$extra_val" ] || [ -n "$boo_val" ]; then
+            echo -e "    ${C_LBL}Ext $i  :${C_RST} ${C_VAL}${ex_val} ${extra_val} ${boo_val}${C_RST}"
+            [ -n "$ex_val" ] && extra_args="$extra_args $ex_val"
+            [ -n "$extra_val" ] && extra_args="$extra_args $extra_val"
+            [ -n "$boo_val" ] && extra_args="$extra_args $boo_val"
+        fi
+    done
+    
+    local cate_args=""
+    [ -n "$_VAL_CATE1" ] && cate_args="$cate_args -c \"android.intent.category.$_VAL_CATE1\""
+    [ -n "$_VAL_CATE2" ] && cate_args="$cate_args -c \"android.intent.category.$_VAL_CATE2\""
+    [ -n "$_VAL_CATE3" ] && cate_args="$cate_args -c \"android.intent.category.$_VAL_CATE3\""
 
     # 3. 智慧網址解析
     local final_uri="$_VAL_URI"
 
-    # 如果有變數，先進行解析
     if [[ "$_VAL_URI" == *"\$__GO_TARGET"* ]] || [[ "$_VAL_URI" == *"\$query"* ]]; then
-        
-        # 準備解析參數
         local engine_base=""
         if [ -n "$_VAL_ENGINE" ]; then engine_base=$(eval echo "$_VAL_ENGINE"); fi
         local test_query="${input_args:-TEST_PAYLOAD}"
         
-        # 解析邏輯
         if [[ "$_VAL_URI" == *"\$query"* ]]; then
              local safe_args="${input_args// /+}"
              final_uri="${_VAL_URI//\$query/$safe_args}"
-        
         elif [[ "$_VAL_URI" == *"\$__GO_TARGET"* ]]; then
              if command -v _resolve_smart_url &> /dev/null; then
-                 # 呼叫 Core
                  _resolve_smart_url "$engine_base" "$test_query"
                  final_uri="$__GO_TARGET"
              else
-                 # Fallback
                  local safe_q="${test_query// /+}"
                  final_uri="${engine_base}${safe_q}"
              fi
         fi
         
-        # 輸出網址串
         echo -e "${C_SEP}    ---------------${C_RST}"
         echo -e "${THEME_DESC}    Resolving › $final_uri${C_RESET}"
         echo -e "${C_SEP}    ---------------${C_RST}"
@@ -1916,16 +1966,11 @@ function _fac_launch_test() {
 
     # 4. 選擇開火模式
     local menu_opts=""
-    
-    # 建構選單 (t, d, n, p, i, SSL)
     menu_opts+="MODE_T\t\033[1;35m['t' mode]\033[0m Direct Launch ( -n PKG/TARGET )\n"
     menu_opts+="MODE_D\t\033[1;32m['d' mode]\033[0m Standard AM ( -a -d -p -f... )\n"
     menu_opts+="MODE_N\t\033[1;33m['n' mode]\033[0m Component Lock ( -a -d -n... )\n"
     menu_opts+="MODE_P\t\033[1;34m['p' mode]\033[0m Package Lock ( -a -d -p... )\n"
     menu_opts+="MODE_I\t\033[1;36m['i' mode]\033[0m Implicit Intent ( -a -d Only )\n"
-    
-    # SSL 隱藏接口
-    # menu_opts+="SSL\t\033[1;31m[MODE_S]\033[0m Special Mode"
 
     local fzf_sel=$(echo -e "$menu_opts" | fzf --ansi \
         --height=9 \
@@ -1958,78 +2003,52 @@ function _fac_launch_test() {
     local pkg="$_VAL_PKG"
     local tgt="$_VAL_TARGET"
     local flg="$_VAL_FLAG"
-    local cat="$_VAL_CATE"
     local mime="$_VAL_MIME"
-    local ex="$_VAL_EX"
-    local extra="$_VAL_EXTRA"
-    local boolen="$_VAL_BOOLEN"
 
     case "$fire_mode" in
         "MODE_T")
-            # 't' mode: Direct Launch (-n PKG/TARGET)
             if [ -z "$pkg" ] || [ -z "$tgt" ]; then _bot_say "warn" "Missing PKG or TARGET."; return 1; fi
             final_cmd="am start --user 0 -n \"$pkg/$tgt\""
             ;;
-
         "MODE_D")
-            # 'd' mode: Standard AM (adpfc, ex+extra)
             final_cmd="am start --user 0"
             [ -n "$act" ] && final_cmd="$final_cmd -a \"$act\""
             [ -n "$dat" ] && final_cmd="$final_cmd -d \"$dat\""
             [ -n "$pkg" ] && final_cmd="$final_cmd -p \"$pkg\""
             [ -n "$flg" ] && final_cmd="$final_cmd -f $flg"
-            [ -n "$cat" ] && final_cmd="$final_cmd -c \"android.intent.category.$cat\""
-            [ -n "$ex" ]  && final_cmd="$final_cmd $ex"
-            [ -n "$extra" ] && final_cmd="$final_cmd $extra"
-            [ -n "$boolen" ] && final_cmd="$final_cmd $boolen"
+            [ -n "$cate_args" ] && final_cmd="$final_cmd $cate_args"
+            [ -n "$extra_args" ] && final_cmd="$final_cmd$extra_args"
             ;;
-
         "MODE_N")
-            # 'n' mode: Component Lock (apctdf, ex+extra)
             if [ -z "$pkg" ] || [ -z "$tgt" ]; then _bot_say "error" "Missing PKG or TARGET."; return 1; fi
             final_cmd="am start --user 0"
             [ -n "$act" ] && final_cmd="$final_cmd -a \"$act\""
-            [ -n "$pkg" ] && final_cmd="$final_cmd -n \"$pkg/$tgt\"" # Note: -n replaces -p
+            [ -n "$pkg" ] && final_cmd="$final_cmd -n \"$pkg/$tgt\""
             [ -n "$dat" ] && final_cmd="$final_cmd -d \"$dat\""
-            [ -n "$cat" ] && final_cmd="$final_cmd -c \"android.intent.category.$cat\""
             [ -n "$mime" ] && final_cmd="$final_cmd -t \"$mime\""
             [ -n "$flg" ] && final_cmd="$final_cmd -f $flg"
-            [ -n "$ex" ]  && final_cmd="$final_cmd $ex"
-            [ -n "$extra" ] && final_cmd="$final_cmd $extra"
-            [ -n "$boolen" ] && final_cmd="$final_cmd $boolen"
+            [ -n "$cate_args" ] && final_cmd="$final_cmd $cate_args"
+            [ -n "$extra_args" ] && final_cmd="$final_cmd$extra_args"
             ;;
-
         "MODE_P")
-            # 'p' mode: Package Lock (adctf, ex+extra)
             if [ -z "$pkg" ]; then _bot_say "error" "Missing PKG."; return 1; fi
             final_cmd="am start --user 0"
             [ -n "$act" ] && final_cmd="$final_cmd -a \"$act\""
             [ -n "$dat" ] && final_cmd="$final_cmd -d \"$dat\""
             [ -n "$pkg" ] && final_cmd="$final_cmd -p \"$pkg\""
-            [ -n "$cat" ] && final_cmd="$final_cmd -c \"android.intent.category.$cat\""
             [ -n "$mime" ] && final_cmd="$final_cmd -t \"$mime\""
             [ -n "$flg" ] && final_cmd="$final_cmd -f $flg"
-            [ -n "$ex" ]  && final_cmd="$final_cmd $ex"
-            [ -n "$extra" ] && final_cmd="$final_cmd $extra"
-            [ -n "$boolen" ] && final_cmd="$final_cmd $boolen"
+            [ -n "$cate_args" ] && final_cmd="$final_cmd $cate_args"
+            [ -n "$extra_args" ] && final_cmd="$final_cmd$extra_args"
             ;;
-
         "MODE_I")
-            # 'i' mode: Implicit Intent (andctf... without P/N)
             final_cmd="am start --user 0"
             [ -n "$act" ] && final_cmd="$final_cmd -a \"$act\""
             [ -n "$dat" ] && final_cmd="$final_cmd -d \"$dat\""
-            [ -n "$cat" ] && final_cmd="$final_cmd -c \"android.intent.category.$cat\""
             [ -n "$mime" ] && final_cmd="$final_cmd -t \"$mime\""
             [ -n "$flg" ] && final_cmd="$final_cmd -f $flg"
-            [ -n "$ex" ]  && final_cmd="$final_cmd $ex"
-            [ -n "$extra" ] && final_cmd="$final_cmd $extra"
-            [ -n "$boolen" ] && final_cmd="$final_cmd $boolen"
-            ;;
-
-        "SSL")
-            # SSL: System Special Launch (Custom Payload)
-            final_cmd="$pkg $input_args"
+            [ -n "$cate_args" ] && final_cmd="$final_cmd $cate_args"
+            [ -n "$extra_args" ] && final_cmd="$final_cmd$extra_args"
             ;;
     esac
 
