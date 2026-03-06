@@ -1327,17 +1327,15 @@ function _factory_fzf_detail_view() {
 
     if [ -z "$target_key" ]; then return; fi
 
-    # 1. 呼叫核心讀取模組 (這會自動產生 _VAL_PKG, _VAL_TYPE 等變數)
-    # 注意：這裡依賴 factory.sh 的函式，確保 factory.sh 已載入
+    # 1. 呼叫核心讀取模組
     if ! command -v _fac_neural_read &> /dev/null; then
         echo "Error: Neural Reader not found."
         return
     fi
 
-    # 讀取資料
     _fac_neural_read "$target_key" || return
 
-    # 2. 定義樣式 (Bash Native)
+    # 2. 定義樣式
     local C_LBL="\033[1;30m"
     local C_VAL="\033[1;37m"
     local C_TAG="\033[1;33m"
@@ -1389,6 +1387,31 @@ function _factory_fzf_detail_view() {
     local final_uri="$d_uri"
     if [ -n "$_VAL_ENGINE" ]; then final_uri="$d_eng"; fi
 
+    # 動態 CATE 摘要生成
+    local cate_summary=""
+    [ -n "$_VAL_CATE1" ] && cate_summary+="${_VAL_CATE1} "
+    [ -n "$_VAL_CATE2" ] && cate_summary+="${_VAL_CATE2} "
+    [ -n "$_VAL_CATE3" ] && cate_summary+="${_VAL_CATE3} "
+    if [ -z "$cate_summary" ]; then cate_summary="[Empty]"; fi
+
+    # 動態 EXTRA 插槽狀態偵測
+    local extra_summary=""
+    local active_ex=0
+    for i in {1..5}; do
+        local ex_var="_VAL_EX$i"; local ex_val="${!ex_var}"
+        local extra_var="_VAL_EXTRA$i"; local extra_val="${!extra_var}"
+        local boo_var="_VAL_BOOLEN$i"; local boo_val="${!boo_var}"
+        if [ -n "$ex_val" ] || [ -n "$extra_val" ] || [ -n "$boo_val" ]; then
+            active_ex=$((active_ex + 1))
+        fi
+    done
+    
+    if [ "$active_ex" -eq 0 ]; then
+        extra_summary="[Empty]"
+    else
+        extra_summary="\033[1;36m[ $active_ex Slots Active ]\033[0m"
+    fi
+
     # 4. 生成報告 (Bash Printf)
     local report=""
     
@@ -1407,9 +1430,9 @@ function _factory_fzf_detail_view() {
         if [ "$_VAL_TYPE" == "NB" ]; then
             report+=" ${C_LBL}Intent :${C_VAL} ${_VAL_IHEAD}${_VAL_IBODY}${S}ROOM_INTENT\n"
             report+=" ${C_LBL}URI    :${C_VAL} ${final_uri} ${S}ROOM_URI\n"
-            report+=" ${C_LBL}Cate   :${C_VAL} ${_VAL_CATE:-[Empty]} ${S}ROOM_CATE\n"
+            report+=" ${C_LBL}Cate   :${C_VAL} ${cate_summary} ${S}ROOM_CATE\n"
             report+=" ${C_LBL}Mime   :${C_VAL} ${_VAL_MIME:-[Empty]} ${S}ROOM_MIME\n"
-            report+=" ${C_LBL}Extra  :${C_VAL} ${_VAL_EX:-[Empty]} ${_VAL_EXTRA} ${_VAL_BOOLEN} ${S}ROOM_EXTRA\n"
+            report+=" ${C_LBL}Extra  :${C_VAL} ${extra_summary} ${S}ROOM_EXTRA\n"
             report+=" ${C_LBL}Package:${C_VAL} ${d_pkg} ${S}ROOM_PKG\n"
             report+=" ${C_LBL}Target :${C_VAL} ${d_act} ${S}ROOM_ACT\n"
             report+="${C_LBL}${SEP}${C_RST}\n"
@@ -1425,25 +1448,24 @@ function _factory_fzf_detail_view() {
             report+="\033[1;32m[Confirm]\033[0m ${S}ROOM_CONFIRM"
         fi
     else
-        # VIEW Mode Section
+        # VIEW Mode Section (無 ROOM_ID 的純顯示模式)
         if [ "$_VAL_TYPE" == "NB" ]; then
-            report+=" ${C_LBL}Intent :${C_VAL} ${_VAL_IHEAD}${_VAL_IBODY}${S}ROOM_INTENT\n"
-            report+=" ${C_LBL}URI    :${C_VAL} ${final_uri} ${S}ROOM_URI\n"
-            report+=" ${C_LBL}Cate   :${C_VAL} ${_VAL_CATE:-[Empty]} ${S}ROOM_CATE\n"
-            report+=" ${C_LBL}Mime   :${C_VAL} ${_VAL_MIME:-[Empty]} ${S}ROOM_MIME\n"
-            report+=" ${C_LBL}Extra  :${C_VAL} ${_VAL_EX:-[Empty]} ${_VAL_EXTRA} ${_VAL_BOOLEN} ${S}ROOM_EXTRA\n"
-            report+=" ${C_LBL}Package:${C_VAL} ${d_pkg} ${S}ROOM_PKG\n"
-            report+=" ${C_LBL}Target :${C_VAL} ${d_act} ${S}ROOM_ACT"
+            report+=" ${C_LBL}Intent :${C_VAL} ${_VAL_IHEAD}${_VAL_IBODY}\n"
+            report+=" ${C_LBL}URI    :${C_VAL} ${final_uri}\n"
+            report+=" ${C_LBL}Cate   :${C_VAL} ${cate_summary}\n"
+            report+=" ${C_LBL}Mime   :${C_VAL} ${_VAL_MIME:-[Empty]}\n"
+            report+=" ${C_LBL}Extra  :${C_VAL} ${extra_summary}\n"
+            report+=" ${C_LBL}Package:${C_VAL} ${d_pkg}\n"
+            report+=" ${C_LBL}Target :${C_VAL} ${d_act}"
         else
         # Default / NA / SYS
-            report+=" ${C_LBL}Package:${C_VAL} ${d_pkg} ${S}ROOM_PKG\n"
-            report+=" ${C_LBL}Target :${C_VAL} ${d_act} ${S}ROOM_ACT\n"
-            report+=" ${C_LBL}Flag   :${C_VAL} ${_VAL_FLAG:-[Empty]} ${S}ROOM_FLAG"
+            report+=" ${C_LBL}Package:${C_VAL} ${d_pkg}\n"
+            report+=" ${C_LBL}Target :${C_VAL} ${d_act}\n"
+            report+=" ${C_LBL}Flag   :${C_VAL} ${_VAL_FLAG:-[Empty]}"
         fi
     fi
 
     # 5. 輸出給 FZF
-    # FZF 設定保持你原本的邏輯
     local header_text="DETAIL CONTROL"
     local border_color="208"
     local prompt_color="208"

@@ -481,7 +481,12 @@ function _mux_neural_data() {
     unset _VAL_CATNO _VAL_COMNO _VAL_CATNAME _VAL_TYPE _VAL_COM \
           _VAL_COM2 _VAL_COM3 _VAL_HUDNAME _VAL_UINAME _VAL_PKG \
           _VAL_TARGET _VAL_IHEAD _VAL_IBODY _VAL_URI _VAL_MIME \
-          _VAL_CATE _VAL_FLAG _VAL_EX _VAL_EXTRA _VAL_BOOLEN _VAL_ENGINE
+          _VAL_CATE1 _VAL_CATE2 _VAL_CATE3 _VAL_FLAG \
+          _VAL_EX1 _VAL_EXTRA1 _VAL_BOOLEN1 \
+          _VAL_EX2 _VAL_EXTRA2 _VAL_BOOLEN2 \
+          _VAL_EX3 _VAL_EXTRA3 _VAL_BOOLEN3 \
+          _VAL_EX4 _VAL_EXTRA4 _VAL_BOOLEN4 \
+          _VAL_EX5 _VAL_EXTRA5 _VAL_BOOLEN5 _VAL_ENGINE
 
     local target_com="$1"
     local target_sub="$2"
@@ -523,29 +528,20 @@ function _mux_neural_data() {
     if [ -z "$raw_data" ]; then return 1; fi
 
     eval $(echo "$raw_data" | awk -v FPAT='([^,]*)|("[^"]+")' '{
-        fields[1]="_VAL_CATNO"
-        fields[2]="_VAL_COMNO"
-        fields[3]="_VAL_CATNAME"
-        fields[4]="_VAL_TYPE"
-        fields[5]="_VAL_COM"
-        fields[6]="_VAL_COM2"
-        fields[7]="_VAL_COM3"
-        fields[8]="_VAL_HUDNAME"
-        fields[9]="_VAL_UINAME"
-        fields[10]="_VAL_PKG"
-        fields[11]="_VAL_TARGET"
-        fields[12]="_VAL_IHEAD"
-        fields[13]="_VAL_IBODY"
-        fields[14]="_VAL_URI"
-        fields[15]="_VAL_MIME"
-        fields[16]="_VAL_CATE"
-        fields[17]="_VAL_FLAG"
-        fields[18]="_VAL_EX"
-        fields[19]="_VAL_EXTRA"
-        fields[20]="_VAL_BOOLEN"
-        fields[21]="_VAL_ENGINE"
+        fields[1]="_VAL_CATNO"; fields[2]="_VAL_COMNO"; fields[3]="_VAL_CATNAME";
+        fields[4]="_VAL_TYPE"; fields[5]="_VAL_COM"; fields[6]="_VAL_COM2"; fields[7]="_VAL_COM3";
+        fields[8]="_VAL_HUDNAME"; fields[9]="_VAL_UINAME"; fields[10]="_VAL_PKG";
+        fields[11]="_VAL_TARGET"; fields[12]="_VAL_IHEAD"; fields[13]="_VAL_IBODY";
+        fields[14]="_VAL_URI"; fields[15]="_VAL_MIME"; fields[16]="_VAL_CATE1";
+        fields[17]="_VAL_CATE2"; fields[18]="_VAL_CATE3"; fields[19]="_VAL_FLAG";
+        fields[20]="_VAL_EX1"; fields[21]="_VAL_EXTRA1"; fields[22]="_VAL_BOOLEN1";
+        fields[23]="_VAL_EX2"; fields[24]="_VAL_EXTRA2"; fields[25]="_VAL_BOOLEN2";
+        fields[26]="_VAL_EX3"; fields[27]="_VAL_EXTRA3"; fields[28]="_VAL_BOOLEN3";
+        fields[29]="_VAL_EX4"; fields[30]="_VAL_EXTRA4"; fields[31]="_VAL_BOOLEN4";
+        fields[32]="_VAL_EX5"; fields[33]="_VAL_EXTRA5"; fields[34]="_VAL_BOOLEN5";
+        fields[35]="_VAL_ENGINE";
 
-        for (i=1; i<=21; i++) {
+        for (i=1; i<=35; i++) {
             val = $i
             if (val ~ /^".*"$/) { val = substr(val, 2, length(val)-2) }
             gsub(/""/, "\"", val)
@@ -554,7 +550,7 @@ function _mux_neural_data() {
         }
     }')
     
-    _VAL_ENGINE=${_VAL_ENGINE//$'\rT'/}
+    _VAL_ENGINE=${_VAL_ENGINE//$'\r'/}
     return 0
 }
 
@@ -620,15 +616,29 @@ function _launch_android_app() {
         fi
     fi
 
-    # 純啓動不用-a/-d 參數判定
+    # 動態組裝多重 CATE
+    local cate_args=""
+    [ -n "$_VAL_CATE1" ] && cate_args="$cate_args -c \"android.intent.category.$_VAL_CATE1\""
+    [ -n "$_VAL_CATE2" ] && cate_args="$cate_args -c \"android.intent.category.$_VAL_CATE2\""
+    [ -n "$_VAL_CATE3" ] && cate_args="$cate_args -c \"android.intent.category.$_VAL_CATE3\""
 
-    # RELOAD
-    if [ -n "$_VAL_CATE" ];    then cmd_args="$cmd_args -c \"android.intent.category.$_VAL_CATE\""; fi
-    if [ -n "$_VAL_MIME" ];    then cmd_args="$cmd_args -t \"$_VAL_MIME\""; fi
-    if [ -n "$_VAL_FLAG" ];    then cmd_args="$cmd_args -f $_VAL_FLAG"; fi
-    if [ -n "$_VAL_EX" ];      then cmd_args="$cmd_args $_VAL_EX"; fi
-    if [ -n "$_VAL_EXTRA" ];   then cmd_args="$cmd_args $_VAL_EXTRA"; fi
-    if [ -n "$_VAL_BOOLEN" ]; then cmd_args="$cmd_args $_VAL_BOOLEN"; fi
+    # 動態組裝多重 EXTRA (1~5)
+    local extra_args=""
+    for i in {1..5}; do
+        local ex_var="_VAL_EX$i"; local ex_val="${!ex_var}"
+        local extra_var="_VAL_EXTRA$i"; local extra_val="${!extra_var}"
+        local boo_var="_VAL_BOOLEN$i"; local boo_val="${!boo_var}"
+        
+        [ -n "$ex_val" ] && extra_args="$extra_args $ex_val"
+        [ -n "$extra_val" ] && extra_args="$extra_args $extra_val"
+        [ -n "$boo_val" ] && extra_args="$extra_args $boo_val"
+    done
+
+    # 參數注入
+    if [ -n "$cate_args" ]; then cmd_args="$cmd_args$cate_args"; fi
+    if [ -n "$_VAL_MIME" ]; then cmd_args="$cmd_args -t \"$_VAL_MIME\""; fi
+    if [ -n "$_VAL_FLAG" ]; then cmd_args="$cmd_args -f $_VAL_FLAG"; fi
+    if [ -n "$extra_args" ]; then cmd_args="$cmd_args$extra_args"; fi
 
     _bot_say "launch" "Target: '$name'"
     
@@ -935,29 +945,30 @@ function _mux_neural_fire_control() {
                 _bot_say "neural" "Payload: Raw Search ›› '$safe_query'"
 
                 local cmd="am start --user 0 -a \"$final_action\""
-
                 if [ -n "$_VAL_PKG" ]; then cmd="$cmd -p \"$_VAL_PKG\""; fi
                 if [ -n "$_VAL_FLAG" ]; then cmd="$cmd -f $_VAL_FLAG"; fi
-                if [ -n "$_VAL_CATE" ]; then cmd="$cmd -c android.intent.category.$_VAL_CATE"; fi
+
+                # 動態編譯 CATE 與 EXTRA (支援 $query 替換)
+                local cate_args=""
+                [ -n "$_VAL_CATE1" ] && cate_args="$cate_args -c android.intent.category.$_VAL_CATE1"
+                [ -n "$_VAL_CATE2" ] && cate_args="$cate_args -c android.intent.category.$_VAL_CATE2"
+                [ -n "$_VAL_CATE3" ] && cate_args="$cate_args -c android.intent.category.$_VAL_CATE3"
                 
-                if [ -n "$_VAL_EX" ]; then
-                    local injected_ex="${_VAL_EX//\$query/$safe_query}"
-                    cmd="$cmd $injected_ex"
-                fi
+                local extra_args=""
+                for i in {1..5}; do
+                    local ex_var="_VAL_EX$i"; local ex_val="${!ex_var}"
+                    local extra_var="_VAL_EXTRA$i"; local extra_val="${!extra_var}"
+                    local boo_var="_VAL_BOOLEN$i"; local boo_val="${!boo_var}"
+                    
+                    [ -n "$ex_val" ] && extra_args="$extra_args ${ex_val//\$query/$safe_query}"
+                    [ -n "$extra_val" ] && extra_args="$extra_args ${extra_val//\$query/$safe_query}"
+                    [ -n "$boo_val" ] && extra_args="$extra_args ${boo_val//\$query/$safe_query}"
+                done
 
-                if [ -n "$_VAL_EXTRA" ]; then
-                    local injected_extra="${_VAL_EXTRA//\$query/$safe_query}"
-                    cmd="$cmd $injected_extra"
-                fi  
-
-                if [ -n "$_VAL_BOOLEN" ]; then
-                    cmd="$cmd $_VAL_BOOLEN"
-                fi
+                cmd="$cmd$cate_args$extra_args"
 
                 # FIRE THE COMMAND
                 local output=$(eval "$cmd" 2>&1)
-
-                # 不要試圖去更動 system 裡的參數，後果自負
                 if [[ "$output" == *"Error"* ]]; then
                     _bot_say "error" "Launch Failed: $output"
                     return 1
@@ -994,24 +1005,32 @@ function _mux_neural_fire_control() {
                 _bot_say "launch" "Executing: '$real_args'"
             fi
 
+            local cate_args=""
+            [ -n "$_VAL_CATE1" ] && cate_args="$cate_args -c android.intent.category.$_VAL_CATE1"
+            [ -n "$_VAL_CATE2" ] && cate_args="$cate_args -c android.intent.category.$_VAL_CATE2"
+            [ -n "$_VAL_CATE3" ] && cate_args="$cate_args -c android.intent.category.$_VAL_CATE3"
+            
+            local extra_args=""
+            for i in {1..5}; do
+                local ex_var="_VAL_EX$i"; local ex_val="${!ex_var}"
+                local extra_var="_VAL_EXTRA$i"; local extra_val="${!extra_var}"
+                local boo_var="_VAL_BOOLEN$i"; local boo_val="${!boo_var}"
+                [ -n "$ex_val" ] && extra_args="$extra_args $ex_val"
+                [ -n "$extra_val" ] && extra_args="$extra_args $extra_val"
+                [ -n "$boo_val" ] && extra_args="$extra_args $boo_val"
+            done
+
             # 'p' mode (Package Locked)
             local cmd="am start --user 0 -a \"$final_action\""
-            
             if [ -n "$_VAL_PKG" ]; then cmd="$cmd -p \"$_VAL_PKG\""; fi
             
-            # 參數注入
-            if [ -n "$_VAL_CATE" ]; then cmd="$cmd -c android.intent.category.$_VAL_CATE"; fi
             if [ -n "$_VAL_MIME" ]; then cmd="$cmd -t \"$_VAL_MIME\""; fi
             if [ -n "$final_uri" ]; then cmd="$cmd -d \"$final_uri\""; fi
             if [ -n "$_VAL_FLAG" ]; then cmd="$cmd -f $_VAL_FLAG"; fi
-            if [ -n "$_VAL_EX" ]; then cmd="$cmd $_VAL_EX"; fi
-            if [ -n "$_VAL_EXTRA" ]; then cmd="$cmd $_VAL_EXTRA"; fi
-            if [ -n "$_VAL_BOOLEN" ]; then cmd="$cmd $_VAL_BOOLEN"; fi
+            cmd="$cmd$cate_args$extra_args"
             
             # FIRST FIRE THE COMMAND
             local output=$(eval "$cmd" 2>&1)
-            
-            # 檢查結果：如果成功，直接返回
             if [[ "$output" != *"Error"* && "$output" != *"Activity not found"* && "$output" != *"unable to resolve Intent"* ]]; then
                 return 0
             fi
@@ -1020,18 +1039,11 @@ function _mux_neural_fire_control() {
             if [ -n "$final_uri" ]; then
                 _bot_say "error" "'p' mode rejected. Try for 'i' mode."
 
-                # 重新拼裝：移除 -p, -n
                 local cmd_i="am start --user 0 -a \"$final_action\" -d \"$final_uri\""
-                
-                # 補回參數
-                if [ -n "$_VAL_CATE" ]; then cmd_i="$cmd_i -c android.intent.category.$_VAL_CATE"; fi
                 if [ -n "$_VAL_MIME" ]; then cmd_i="$cmd_i -t \"$_VAL_MIME\""; fi
                 if [ -n "$_VAL_FLAG" ]; then cmd_i="$cmd_i -f $_VAL_FLAG"; fi
-                if [ -n "$_VAL_EX" ]; then cmd_i="$cmd_i $_VAL_EX"; fi
-                if [ -n "$_VAL_EXTRA" ]; then cmd_i="$cmd_i $_VAL_EXTRA"; fi
-                if [ -n "$_VAL_BOOLEN" ]; then cmd="$cmd $_VAL_BOOLEN"; fi
+                cmd_i="$cmd_i$cate_args$extra_args"
 
-                # SECOND FIRE THE COMMAND
                 local output_i=$(eval "$cmd_i" 2>&1)
 
                 if [[ "$output_i" != *"Error"* && "$output_i" != *"Activity not found"* && "$output_i" != *"unable to resolve Intent"* ]]; then
@@ -1046,23 +1058,14 @@ function _mux_neural_fire_control() {
 
             # 'n' mode (Component Locked)
             if [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
-                # 重新拼裝
                 local cmd_n="am start --user 0 -a \"$final_action\" -n \"$_VAL_PKG/$_VAL_TARGET\""
-
                 if [ -n "$final_uri" ]; then cmd_n="$cmd_n -d \"$final_uri\""; fi
-                if [ -n "$_VAL_CATE" ]; then cmd_n="$cmd_n -c android.intent.category.$_VAL_CATE"; fi
                 if [ -n "$_VAL_MIME" ]; then cmd_n="$cmd_n -t \"$_VAL_MIME\""; fi
                 if [ -n "$_VAL_FLAG" ]; then cmd_n="$cmd_n -f $_VAL_FLAG"; fi
-                if [ -n "$_VAL_EX" ]; then cmd_n="$cmd_n $_VAL_EX"; fi
-                if [ -n "$_VAL_EXTRA" ]; then cmd_n="$cmd_n $_VAL_EXTRA"; fi
-                if [ -n "$_VAL_BOOLEN" ]; then cmd="$cmd $_VAL_BOOLEN"; fi
+                cmd_n="$cmd_n$cate_args$extra_args"
 
                 _bot_say "launch" "Retrying ('n' mode): '$real_args'"
-                
-                # THIRD FIRE THE COMMAND
                 local output_n=$(eval "$cmd_n" 2>&1)
-                
-                # 最終驗證
                 _mux_launch_validator "$output_n" "$_VAL_PKG"
                 return 0
             else
@@ -1072,43 +1075,40 @@ function _mux_neural_fire_control() {
             ;;
 
         "SYS")
-            # SYS 單次執行就可
             local cmd="am start --user 0"
-            
-            # 1. 先看 Action (-a) & Data (-d)
             local sys_action="${_VAL_IHEAD}${_VAL_IBODY}"
             if [ -n "$sys_action" ]; then  cmd="$cmd -a \"$sys_action\""; fi
             if [ -n "$_VAL_URI" ]; then cmd="$cmd -d \"$_VAL_URI\""; fi
-
-            # 2. 再看 Category (-c)
-            if [ -n "$_VAL_CATE" ]; then cmd="$cmd -c android.intent.category.$_VAL_CATE"; fi
-
-            # 3. 再看 Mime Type (-t)
             if [ -n "$_VAL_MIME" ]; then cmd="$cmd -t \"$_VAL_MIME\""; fi
 
-            # 4. 先後看 Component (-n)，再看 Package (-p)
             if [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
                 cmd="$cmd -n \"$_VAL_PKG/$_VAL_TARGET\""
             elif [ -n "$_VAL_PKG" ]; then
                 cmd="$cmd -p \"$_VAL_PKG\""
             fi
-
-            # 5. 再看 ex & extra (擴充參數)
-            if [ -n "$_VAL_EX" ]; then cmd="$cmd $_VAL_EX"; fi
-            if [ -n "$_VAL_EXTRA" ]; then cmd="$cmd $_VAL_EXTRA"; fi
-            if [ -n "$_VAL_BOOLEN" ]; then cmd="$cmd $_VAL_BOOLEN"; fi
-
-            # 6. 最後看 Flags (-f)
             if [ -n "$_VAL_FLAG" ]; then cmd="$cmd -f $_VAL_FLAG"; fi
 
-            # 執行回報
-            _bot_say "system" "System Call: $_VAL_UINAME"
+            # 動態編譯 CATE 與 EXTRA
+            local cate_args=""
+            [ -n "$_VAL_CATE1" ] && cate_args="$cate_args -c android.intent.category.$_VAL_CATE1"
+            [ -n "$_VAL_CATE2" ] && cate_args="$cate_args -c android.intent.category.$_VAL_CATE2"
+            [ -n "$_VAL_CATE3" ] && cate_args="$cate_args -c android.intent.category.$_VAL_CATE3"
+            
+            local extra_args=""
+            for i in {1..5}; do
+                local ex_var="_VAL_EX$i"; local ex_val="${!ex_var}"
+                local extra_var="_VAL_EXTRA$i"; local extra_val="${!extra_var}"
+                local boo_var="_VAL_BOOLEN$i"; local boo_val="${!boo_var}"
+                [ -n "$ex_val" ] && extra_args="$extra_args $ex_val"
+                [ -n "$extra_val" ] && extra_args="$extra_args $extra_val"
+                [ -n "$boo_val" ] && extra_args="$extra_args $boo_val"
+            done
 
-            # FIRE THE COMMAND (SYS Mode)
+            cmd="$cmd$cate_args$extra_args"
+
+            _bot_say "system" "System Call: $_VAL_UINAME"
             local output_sys
             output_sys=$(eval "$cmd" 2>&1)
-
-            # 驗證結果
             _mux_launch_validator "$output_sys" "Node: ${_VAL_PKG:-$_VAL_UINAME}"
             ;;
 
