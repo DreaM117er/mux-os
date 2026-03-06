@@ -1195,6 +1195,8 @@ function _mux_neural_fire_control() {
                     resolved_boo="${resolved_boo//\$q9/$q9}"
                     resolved_boo="${resolved_boo//\$query/$q1}"
 
+                    if [ -z "$resolved_boo" ]; then continue; fi
+
                     # 智慧引號裝甲
                     if [[ "$resolved_boo" == *" "* ]] && [[ ! "$resolved_boo" =~ ^\".*\"$ ]]; then
                         resolved_boo="\"$resolved_boo\""
