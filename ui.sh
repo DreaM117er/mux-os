@@ -1394,8 +1394,9 @@ function _factory_fzf_detail_view() {
     [ -n "$_VAL_CATE3" ] && cate_summary+="${_VAL_CATE3} "
     if [ -z "$cate_summary" ]; then cate_summary="[Empty]"; fi
 
-    # 動態 EXTRA 插槽狀態偵測
-    local extra_summary=""
+    # 動態 EXTRA 插槽狀態偵測 (已修改為多行展開)
+    local extra_lines_edit=""
+    local extra_lines_view=""
     local active_ex=0
     for i in {1..5}; do
         local ex_var="_VAL_EX$i"; local ex_val="${!ex_var}"
@@ -1403,13 +1404,20 @@ function _factory_fzf_detail_view() {
         local boo_var="_VAL_BOOLEN$i"; local boo_val="${!boo_var}"
         if [ -n "$ex_val" ] || [ -n "$extra_val" ] || [ -n "$boo_val" ]; then
             active_ex=$((active_ex + 1))
+            local slot_str=""
+            [ -n "$ex_val" ] && slot_str+="$ex_val "
+            [ -n "$extra_val" ] && slot_str+="$extra_val "
+            [ -n "$boo_val" ] && slot_str+="$boo_val"
+            
+            # 建立多行顯示字串
+            extra_lines_edit+=" ${C_LBL}Ext $i   :${C_VAL} $slot_str ${S}ROOM_EXTRA\n"
+            extra_lines_view+=" ${C_LBL}Ext $i   :${C_VAL} $slot_str\n"
         fi
     done
     
     if [ "$active_ex" -eq 0 ]; then
-        extra_summary="[Empty]"
-    else
-        extra_summary="\033[1;36m[ $active_ex Slots Active ]\033[0m"
+        extra_lines_edit+=" ${C_LBL}Extra  :${C_VAL} [Empty] ${S}ROOM_EXTRA\n"
+        extra_lines_view+=" ${C_LBL}Extra  :${C_VAL} [Empty]\n"
     fi
 
     # 4. 生成報告 (Bash Printf)
@@ -1426,20 +1434,20 @@ function _factory_fzf_detail_view() {
     report+="${C_LBL}${SEP}${C_RST}\n"
 
     if [[ "$view_mode" == "NEW" || "$view_mode" == "EDIT" ]]; then
-        # NEW & EDIT Mode Section
-        if [ "$_VAL_TYPE" == "NB" ]; then
+        # NEW & EDIT Mode Section (已擴充 SYS / SSL)
+        if [[ "$_VAL_TYPE" == "NB" || "$_VAL_TYPE" == "SYS" || "$_VAL_TYPE" == "SSL" ]]; then
             report+=" ${C_LBL}Intent :${C_VAL} ${_VAL_IHEAD}${_VAL_IBODY}${S}ROOM_INTENT\n"
             report+=" ${C_LBL}URI    :${C_VAL} ${final_uri} ${S}ROOM_URI\n"
             report+=" ${C_LBL}Cate   :${C_VAL} ${cate_summary} ${S}ROOM_CATE\n"
             report+=" ${C_LBL}Mime   :${C_VAL} ${_VAL_MIME:-[Empty]} ${S}ROOM_MIME\n"
-            report+=" ${C_LBL}Extra  :${C_VAL} ${extra_summary} ${S}ROOM_EXTRA\n"
+            report+="${extra_lines_edit}"
             report+=" ${C_LBL}Package:${C_VAL} ${d_pkg} ${S}ROOM_PKG\n"
             report+=" ${C_LBL}Target :${C_VAL} ${d_act} ${S}ROOM_ACT\n"
             report+="${C_LBL}${SEP}${C_RST}\n"
             report+="\033[1;36m[Lookup] 'apklist'\033[0m ${S}ROOM_LOOKUP\n"
             report+="\033[1;32m[Confirm]\033[0m ${S}ROOM_CONFIRM"
         else
-        # Default / NA / SYS
+        # Default / NA
             report+=" ${C_LBL}Package:${C_VAL} ${d_pkg} ${S}ROOM_PKG\n"
             report+=" ${C_LBL}Target :${C_VAL} ${d_act} ${S}ROOM_ACT\n"
             report+=" ${C_LBL}Flag   :${C_VAL} ${_VAL_FLAG:-[Empty]} ${S}ROOM_FLAG\n"
@@ -1449,16 +1457,16 @@ function _factory_fzf_detail_view() {
         fi
     else
         # VIEW Mode Section (無 ROOM_ID 的純顯示模式)
-        if [ "$_VAL_TYPE" == "NB" ]; then
+        if [[ "$_VAL_TYPE" == "NB" || "$_VAL_TYPE" == "SYS" || "$_VAL_TYPE" == "SSL" ]]; then
             report+=" ${C_LBL}Intent :${C_VAL} ${_VAL_IHEAD}${_VAL_IBODY}\n"
             report+=" ${C_LBL}URI    :${C_VAL} ${final_uri}\n"
             report+=" ${C_LBL}Cate   :${C_VAL} ${cate_summary}\n"
             report+=" ${C_LBL}Mime   :${C_VAL} ${_VAL_MIME:-[Empty]}\n"
-            report+=" ${C_LBL}Extra  :${C_VAL} ${extra_summary}\n"
+            report+="${extra_lines_view}"
             report+=" ${C_LBL}Package:${C_VAL} ${d_pkg}\n"
             report+=" ${C_LBL}Target :${C_VAL} ${d_act}"
         else
-        # Default / NA / SYS
+        # Default / NA
             report+=" ${C_LBL}Package:${C_VAL} ${d_pkg}\n"
             report+=" ${C_LBL}Target :${C_VAL} ${d_act}\n"
             report+=" ${C_LBL}Flag   :${C_VAL} ${_VAL_FLAG:-[Empty]}"
@@ -1568,9 +1576,22 @@ function _factory_fzf_catedit_submenu() {
 
 # 新增類型選擇器 - Add Type Selector
 function _factory_fzf_add_type_menu() {
+    local has_reborn=0
+    if [ "${MUX_REBORN_COUNT:-0}" -gt 0 ]; then has_reborn=1; fi
+    local current_lv=${MUX_LEVEL:-1}
+
+    # 基礎選項
     local options="Command NA\nCommand NB"
-    # 若要開啟 SYS/SSL，解除下方註解
-    # options="Command NA\nCommand NB\nCommand SYS #\nCommand SSL"
+
+    # Lv.8 或 Reborn 解鎖 SYS
+    if [ "$current_lv" -ge 8 ] || [ "$has_reborn" -eq 1 ]; then
+        options="$options\nCommand SYS"
+    fi
+    
+    # Lv.16 或 Reborn 解鎖 SSL
+    if [ "$current_lv" -ge 16 ] || [ "$has_reborn" -eq 1 ]; then
+        options="$options\nCommand SSL"
+    fi
 
     local selected=$(printf "%b" "$options" | fzf --ansi \
         --height=8 \

@@ -1137,19 +1137,130 @@ function _mux_neural_fire_control() {
             _mux_launch_validator "$output_sys" "Node: ${_VAL_PKG:-$_VAL_UINAME}"
             ;;
 
+        "SSL")
+            # 1. 智慧分詞器 
+            eval "set -- $real_args"
+            local q1="$1"; local q2="$2"; local q3="$3"
+            local q4="$4"; local q5="$5"; local q6="$6"
+            local q7="$7"; local q8="$8"; local q9="$9"
+
+            # 2. 基礎底盤組裝
+            local cmd="am start --user 0"
+            local sys_action="${_VAL_IHEAD}${_VAL_IBODY}"
+            if [ -n "$sys_action" ]; then cmd="$cmd -a \"$sys_action\""; fi
+            
+            # [升級] SSL 專屬 URI 多重變數替換引擎
+            if [ -n "$_VAL_URI" ]; then
+                local resolved_uri="$_VAL_URI"
+                resolved_uri="${resolved_uri//\$q1/$q1}"
+                resolved_uri="${resolved_uri//\$q2/$q2}"
+                resolved_uri="${resolved_uri//\$q3/$q3}"
+                resolved_uri="${resolved_uri//\$q4/$q4}"
+                resolved_uri="${resolved_uri//\$q5/$q5}"
+                resolved_uri="${resolved_uri//\$q6/$q6}"
+                resolved_uri="${resolved_uri//\$q7/$q7}"
+                resolved_uri="${resolved_uri//\$q8/$q8}"
+                resolved_uri="${resolved_uri//\$q9/$q9}"
+                # 向下相容
+                resolved_uri="${resolved_uri//\$query/$q1}" 
+                
+                cmd="$cmd -d \"$resolved_uri\""
+            fi
+
+            if [ -n "$_VAL_MIME" ]; then cmd="$cmd -t \"$_VAL_MIME\""; fi
+            
+            if [ -n "$_VAL_PKG" ] && [ -n "$_VAL_TARGET" ]; then
+                cmd="$cmd -n \"$_VAL_PKG/$_VAL_TARGET\""
+            elif [ -n "$_VAL_PKG" ]; then
+                cmd="$cmd -p \"$_VAL_PKG\""
+            fi
+            if [ -n "$_VAL_FLAG" ]; then cmd="$cmd -f $_VAL_FLAG"; fi
+
+            # 3. 動態編譯 CATE
+            local cate_args=""
+            [ -n "$_VAL_CATE1" ] && cate_args="$cate_args -c android.intent.category.$_VAL_CATE1"
+            [ -n "$_VAL_CATE2" ] && cate_args="$cate_args -c android.intent.category.$_VAL_CATE2"
+            [ -n "$_VAL_CATE3" ] && cate_args="$cate_args -c android.intent.category.$_VAL_CATE3"
+
+            # 4. SSL 專屬 EXTRA 多重變數替換引擎 (Mutli-Query Resolver)
+            local extra_args=""
+            for i in {1..5}; do
+                local ex_var="_VAL_EX$i"; local ex_val="${!ex_var}"
+                local extra_var="_VAL_EXTRA$i"; local extra_val="${!extra_var}"
+                local boo_var="_VAL_BOOLEN$i"; local boo_val="${!boo_var}"
+                
+                if [ -n "$boo_val" ]; then
+                    local resolved_boo="$boo_val"
+                    resolved_boo="${resolved_boo//\$q1/$q1}"
+                    resolved_boo="${resolved_boo//\$q2/$q2}"
+                    resolved_boo="${resolved_boo//\$q3/$q3}"
+                    resolved_boo="${resolved_boo//\$q4/$q4}"
+                    resolved_boo="${resolved_boo//\$q5/$q5}"
+                    resolved_boo="${resolved_boo//\$q6/$q6}"
+                    resolved_boo="${resolved_boo//\$q7/$q7}"
+                    resolved_boo="${resolved_boo//\$q8/$q8}"
+                    resolved_boo="${resolved_boo//\$q9/$q9}"
+                    resolved_boo="${resolved_boo//\$query/$q1}"
+
+                    # 智慧引號裝甲
+                    if [[ "$resolved_boo" == *" "* ]] && [[ ! "$resolved_boo" =~ ^\".*\"$ ]]; then
+                        resolved_boo="\"$resolved_boo\""
+                    fi
+
+                    [ -n "$ex_val" ] && extra_args="$extra_args $ex_val"
+                    [ -n "$extra_val" ] && extra_args="$extra_args $extra_val"
+                    extra_args="$extra_args $resolved_boo"
+                fi
+            done
+
+            cmd="$cmd$cate_args$extra_args"
+
+            # 5. 發射與回報
+            _bot_say "system" "Executing SSL Override: $_VAL_UINAME"
+            # _bot_say "neural" "Compiled Command: $cmd"  # Debug 時可以打開這行
+            
+            local output_ssl
+            output_ssl=$(eval "$cmd" 2>&1)
+            _mux_launch_validator "$output_ssl" "Node: ${_VAL_PKG:-$_VAL_UINAME}"
+            ;;
+
         *)
             _bot_say "error" "Unknown Signal Type: '$_VAL_TYPE'"
             return 1
             ;;
     esac
 
+    # 經驗值計算
     local xp_gain=0
-
     case "$_VAL_TYPE" in
-        "SYS") xp_gain=5 ;;   # 系統指令 +5
-        "NA")  xp_gain=10 ;;  # App 啟動 +10
-        "NB")  xp_gain=15 ;;  # 網頁/複雜指令 +15
-        *)     xp_gain=2 ;;   # 其他 +2
+        "SYS"|"NA")
+            # 系統指令/App 啟動 +10
+            xp_gain=10
+            ;;
+
+        "NB")
+            # 網頁/複雜指令 +15
+            xp_gain=15
+            ;;
+
+        "SSL")
+            # 基礎值 20，公式： B + B * (1 + 0.1 * (n - 1))
+            # 參數塞滿，n 會等於 11
+            local arg_count=$#
+            [ "$arg_count" -eq 0 ] && arg_count=1
+            if [ "$arg_count" -ge 9 ]; then arg_count=11; fi
+            
+            local base_xp=20
+            local bonus_xp=$(( (base_xp * (9 + arg_count)) / 10 ))
+            local total_xp=$(( base_xp + bonus_xp ))
+            
+            xp_gain=$total_xp
+            ;;
+            
+        *)
+            # 其他 +2
+            xp_gain=2
+            ;;
     esac
 
     if command -v _grant_xp &> /dev/null; then

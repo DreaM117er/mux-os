@@ -332,10 +332,33 @@ function _factory_system_boot() {
     local ts=$(date +%Y%m%d%H%M%S)
 
     # 前置作業
+    local db_header='"CATNO","COMNO","CATNAME","TYPE","COM","COM2","COM3","HUDNAME","UINAME","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE1","CATE2","CATE3","FLAG","EX1","EXTRA1","BOOLEN1","EX2","EXTRA2","BOOLEN2","EX3","EXTRA3","BOOLEN3","EX4","EXTRA4","BOOLEN4","EX5","EXTRA5","BOOLEN5","ENGINE"'
+    local has_reborn=0
+    if [ "${MUX_REBORN_COUNT:-0}" -gt 0 ]; then has_reborn=1; fi
+    local current_lv=${MUX_LEVEL:-1}
+
     if [ -f "$MUX_ROOT/app.csv" ]; then
         command cp "$MUX_ROOT/app.csv" "$MUX_ROOT/app.csv.temp"
     else
-        echo '"CATNO","COMNO","CATNAME","TYPE","COM","COM2","COM3","HUDNAME","UINAME","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE1","CATE2","CATE3","FLAG","EX1","EXTRA1","BOOLEN1","EX2","EXTRA2","BOOLEN2","EX3","EXTRA3","BOOLEN3","EX4","EXTRA4","BOOLEN4","EX5","EXTRA5","BOOLEN5","ENGINE"' > "$MUX_ROOT/app.csv.temp"
+        echo "$db_header" > "$MUX_ROOT/app.csv.temp"
+    fi
+    export __FAC_ACTIVE_DB="$MUX_ROOT/app.csv.temp"
+    export __FAC_ACTIVE_DB_NAME="APP"
+
+    if [ "$current_lv" -ge 8 ] || [ "$has_reborn" -eq 1 ]; then
+        if [ -f "$MUX_ROOT/vendor.csv" ]; then
+            command cp "$MUX_ROOT/vendor.csv" "$MUX_ROOT/vendor.csv.temp"
+        else
+            echo "$db_header" > "$MUX_ROOT/vendor.csv.temp"
+        fi
+    fi
+
+    if [ "$current_lv" -ge 16 ] || [ "$has_reborn" -eq 1 ]; then
+        if [ -f "$MUX_ROOT/system.csv" ]; then
+            command cp "$MUX_ROOT/system.csv" "$MUX_ROOT/system.csv.temp"
+        else
+            echo "$db_header" > "$MUX_ROOT/system.csv.temp"
+        fi
     fi
 
     # 清除狀態 N 的指令
@@ -381,6 +404,70 @@ function _factory_system_boot() {
     fi
 
     _bot_say "factory_welcome"
+}
+
+# 兵工廠資料庫離合器 (Database Switcher)
+function _fac_cmd_db() {
+    local has_reborn=0
+    if [ "${MUX_REBORN_COUNT:-0}" -gt 0 ]; then has_reborn=1; fi
+    local current_lv=${MUX_LEVEL:-1}
+
+    local menu_opts="APP\t\033[1;32m[ app.csv ]\033[0m Standard Applications\n"
+    
+    if [ "$current_lv" -ge 8 ] || [ "$has_reborn" -eq 1 ]; then
+        menu_opts+="VENDOR\t\033[1;33m[ vendor.csv ]\033[0m Manufacturer Plugins\n"
+    else
+        menu_opts+="VENDOR\t\033[1;30m[ Locked ] Requires Lv.8\033[0m\n"
+    fi
+
+    if [ "$current_lv" -ge 16 ] || [ "$has_reborn" -eq 1 ]; then
+        menu_opts+="SYSTEM\t\033[1;31m[ system.csv ]\033[0m Core Directives\n"
+    else
+        menu_opts+="SYSTEM\t\033[1;30m[ Locked ] Requires Lv.16 / Reborn\033[0m\n"
+    fi
+
+    local fzf_sel=$(echo -e "$menu_opts" | fzf --ansi \
+        --height=8 \
+        --layout=reverse \
+        --border=bottom \
+        --info=hidden \
+        --border-label=" :: DATABASE SWITCHER :: " \
+        --prompt=" :: Target DB › " --pointer="››" \
+        --delimiter="\t" \
+        --with-nth=2,3 \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:208,pointer:red,marker:208,border:208 \
+        --bind="resize:clear-screen"
+    )
+    
+    if [ -z "$fzf_sel" ]; then return 0; fi
+    local sel_db=$(echo "$fzf_sel" | awk '{print $1}')
+
+    case "$sel_db" in
+        "APP")
+            export __FAC_ACTIVE_DB="$MUX_ROOT/app.csv.temp"
+            export __FAC_ACTIVE_DB_NAME="APP"
+            _bot_say "success" "Target Locked: APP Database."
+            ;;
+        "VENDOR")
+            if [ "$current_lv" -lt 8 ] && [ "$has_reborn" -eq 0 ]; then
+                _bot_say "error" "Clearance Level 8 Required."
+                return 1
+            fi
+            export __FAC_ACTIVE_DB="$MUX_ROOT/vendor.csv.temp"
+            export __FAC_ACTIVE_DB_NAME="VENDOR"
+            _bot_say "success" "Target Locked: VENDOR Database."
+            ;;
+        "SYSTEM")
+            if [ "$current_lv" -lt 16 ] && [ "$has_reborn" -eq 0 ]; then
+                _bot_say "error" "Architect Clearance (Lv.16+ or Reborn) Required."
+                return 1
+            fi
+            export __FAC_ACTIVE_DB="$MUX_ROOT/system.csv.temp"
+            export __FAC_ACTIVE_DB_NAME="SYSTEM"
+            _bot_say "warn" "Target Locked: SYSTEM Database."
+            ;;
+    esac
 }
 
 # 初始化視覺效果 (Initialize Visuals)
@@ -847,9 +934,20 @@ function _factory_deploy_sequence() {
     echo -e "${THEME_MAIN} :: MANIFEST CHANGES (Sandbox vs Production) ::${C_RESET}"
     echo ""
     if command -v diff &> /dev/null; then
-        diff -U 0 "$prod_file" "$target_file" | grep -v "^@" | head -n 20 | awk '/^\+/{print "\033[1;32m" $0 "\033[0m";next}/^-/{print "\033[1;31m" $0 "\033[0m";next}{print}'
+        for db in "${db_list[@]}"; do
+            local target_file="$MUX_ROOT/$db.csv.temp"
+            local prod_file="$MUX_ROOT/$db.csv"
+            if [ -f "$target_file" ]; then
+                [ ! -f "$prod_file" ] && touch "$prod_file"
+                local temp_diff=$(diff -U 0 "$prod_file" "$target_file" | grep -v "^@" | head -n 20 | awk '/^\+/{print "\033[1;32m" $0 "\033[0m";next}/^-/{print "\033[1;31m" $0 "\033[0m";next}{print}')
+                if [ -n "$temp_diff" ]; then
+                    echo -e "${C_CYAN}--- [ $db.csv ] ---${C_RESET}"
+                    echo -e "$temp_diff"
+                    echo ""
+                fi
+            fi
+        done
     fi
-    echo ""
 
     # 彈射分支
     if [ "$ej_mode" == "1" ]; then
@@ -868,9 +966,13 @@ function _factory_deploy_sequence() {
                 echo ""
                 echo -e "${THEME_OK} :: EXECUTING DEPLOYMENT PROTOCOL...${C_RESET}"
                 
-                if [ -f "$target_file" ]; then
-                    command mv "$target_file" "$prod_file"
-                fi
+                # 多重檔案強制寫入 (彈射不留 temp)
+                for db in "${db_list[@]}"; do
+                    if [ -f "$MUX_ROOT/$db.csv.temp" ]; then
+                        command mv "$MUX_ROOT/$db.csv.temp" "$MUX_ROOT/$db.csv"
+                    fi
+                done
+
                 echo ""
                 echo -e "${THEME_OK} :: DEPLOYMENT SUCCESSFUL ::${C_RESET}"
                 
@@ -972,12 +1074,18 @@ EOF
         return
     fi
 
-    # 執行正常寫入
+    # 執行正常寫入 (多重檔案迴圈)
     sleep 0.9
-    if [ -f "$target_file" ]; then
-        command mv "$target_file" "$prod_file"
-        command cp "$prod_file" "$target_file"
-    fi
+    for db in "${db_list[@]}"; do
+        local target_file="$MUX_ROOT/$db.csv.temp"
+        local prod_file="$MUX_ROOT/$db.csv"
+        
+        if [ -f "$target_file" ]; then
+            command mv "$target_file" "$prod_file"
+            command cp "$prod_file" "$target_file"
+        fi
+    done
+
     echo ""
     echo -e "${THEME_OK} :: DEPLOYMENT SUCCESSFUL ::${C_RESET}"
 
@@ -1981,6 +2089,12 @@ function _fac_launch_test() {
     # 準備注入的參數
     local raw_query="${input_args}"
     local safe_query="${input_args// /+}"
+    
+    # 智慧分詞器 (9 槽彈藥)
+    eval "set -- $input_args"
+    local q1="$1"; local q2="$2"; local q3="$3"
+    local q4="$4"; local q5="$5"; local q6="$6"
+    local q7="$7"; local q8="$8"; local q9="$9"
 
     # 處理 Smart URL / Engine
     if [[ "$_VAL_URI" == *"\$__GO_TARGET"* ]]; then
@@ -1995,11 +2109,19 @@ function _fac_launch_test() {
         fi
     fi
 
-    # 全域變數替換
+    # 全域變數替換 ($query 與 $q1~$q9)
     _VAL_URI="${_VAL_URI//\$query/$safe_query}"
     _VAL_PKG="${_VAL_PKG//\$query/$raw_query}"
     _VAL_TARGET="${_VAL_TARGET//\$query/$raw_query}"
     _VAL_FLAG="${_VAL_FLAG//\$query/$raw_query}"
+
+    for n in {1..9}; do
+        local q_val="q${n}"
+        _VAL_URI="${_VAL_URI//\$q$n/${!q_val}}"
+        _VAL_PKG="${_VAL_PKG//\$q$n/${!q_val}}"
+        _VAL_TARGET="${_VAL_TARGET//\$q$n/${!q_val}}"
+        _VAL_FLAG="${_VAL_FLAG//\$q$n/${!q_val}}"
+    done
     
     # 顯示詳細資訊
     echo -e "${C_SEP}    ---------------${C_RST}"
@@ -2009,7 +2131,7 @@ function _fac_launch_test() {
     echo -e "${C_LBL}    Detail :${C_RST} ${C_VAL}${_VAL_HUDNAME:-$C_EMP}${C_RST}"
     echo -e "${C_SEP}    ---------------${C_RST}"
 
-    # TYPE 欄位
+    # TYPE 欄位 HUD 顯示
     case "$_VAL_TYPE" in
         "NA")
             echo -e "    ${C_LBL}Package:${C_RST} ${C_VAL}${_VAL_PKG:-$C_EMP}${C_RST}"
@@ -2027,6 +2149,13 @@ function _fac_launch_test() {
 
             [ -n "$_VAL_PKG" ] && echo -e "    ${C_LBL}Package:${C_RST} ${C_VAL}$_VAL_PKG${C_RST}"
             [ -n "$_VAL_TARGET" ] && echo -e "    ${C_LBL}Target :${C_RST} ${C_VAL}$_VAL_TARGET${C_RST}"
+            ;;
+        "SSL")
+            local intent_str="${_VAL_IHEAD}${_VAL_IBODY}"
+            echo -e "    ${C_LBL}Payload:${C_RST} ${C_VAL}${_VAL_PKG:-$C_EMP}${C_RST}"
+            [ -n "$intent_str" ] && echo -e "    ${C_LBL}Intent :${C_RST} ${C_VAL}${intent_str}${C_RST}"
+            [ -n "$_VAL_TARGET" ] && echo -e "    ${C_LBL}Target :${C_RST} ${C_VAL}$_VAL_TARGET${C_RST}"
+            [ -n "$_VAL_URI" ] && echo -e "    ${C_LBL}URI    :${C_RST} ${C_VAL}${_VAL_URI}${C_RST}"
             ;;
     esac
 
@@ -2046,8 +2175,16 @@ function _fac_launch_test() {
         
         ex_val="${ex_val//\$query/$raw_query}"
         extra_val="${extra_val//\$query/$raw_query}"
-        
         local resolved_boo="${boo_val//\$query/$raw_query}"
+
+        # 處理 $q1~$q9 替換
+        for n in {1..9}; do
+            local q_arg="q${n}"
+            ex_val="${ex_val//\$q$n/${!q_arg}}"
+            extra_val="${extra_val//\$q$n/${!q_arg}}"
+            resolved_boo="${resolved_boo//\$q$n/${!q_arg}}"
+        done
+
         if [[ "$resolved_boo" == *" "* ]] && [[ ! "$resolved_boo" =~ ^\".*\"$ ]]; then
             resolved_boo="\"$resolved_boo\""
         fi
@@ -2092,31 +2229,37 @@ function _fac_launch_test() {
     fi
 
     # 4. 選擇開火模式
-    local menu_opts=""
-    menu_opts+="MODE_T\t\033[1;35m['t' mode]\033[0m Direct Launch ( -n PKG/TARGET )\n"
-    menu_opts+="MODE_D\t\033[1;32m['d' mode]\033[0m Standard AM ( -a -d -p -f... )\n"
-    menu_opts+="MODE_N\t\033[1;33m['n' mode]\033[0m Component Lock ( -a -d -n... )\n"
-    menu_opts+="MODE_P\t\033[1;34m['p' mode]\033[0m Package Lock ( -a -d -p... )\n"
-    menu_opts+="MODE_I\t\033[1;36m['i' mode]\033[0m Implicit Intent ( -a -d Only )\n"
+    local fire_mode=""
+    if [ "$_VAL_TYPE" == "SSL" ]; then
+        # SSL 直接略過 FZF 選擇，進入特殊發射模式
+        fire_mode="MODE_S"
+    else
+        local menu_opts=""
+        menu_opts+="MODE_T\t\033[1;35m['t' mode]\033[0m Direct Launch ( -n PKG/TARGET )\n"
+        menu_opts+="MODE_D\t\033[1;32m['d' mode]\033[0m Standard AM ( -a -d -p -f... )\n"
+        menu_opts+="MODE_N\t\033[1;33m['n' mode]\033[0m Component Lock ( -a -d -n... )\n"
+        menu_opts+="MODE_P\t\033[1;34m['p' mode]\033[0m Package Lock ( -a -d -p... )\n"
+        menu_opts+="MODE_I\t\033[1;36m['i' mode]\033[0m Implicit Intent ( -a -d Only )\n"
 
-    local fzf_sel=$(echo -e "$menu_opts" | fzf --ansi \
-        --height=9 \
-        --info=hidden \
-        --layout=reverse \
-        --border=bottom \
-        --border-label=" :: FIRE CONTROL :: " \
-        --header=" :: Enter to Select, Esc to Return :: " \
-        --prompt=" :: Fire Mode Detected › " \
-        --pointer="››" \
-        --delimiter="\t" \
-        --with-nth=2,3 \
-        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-        --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
-        --bind="resize:clear-screen"
-    )
+        local fzf_sel=$(echo -e "$menu_opts" | fzf --ansi \
+            --height=9 \
+            --info=hidden \
+            --layout=reverse \
+            --border=bottom \
+            --border-label=" :: FIRE CONTROL :: " \
+            --header=" :: Enter to Select, Esc to Return :: " \
+            --prompt=" :: Fire Mode Detected › " \
+            --pointer="››" \
+            --delimiter="\t" \
+            --with-nth=2,3 \
+            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+            --color=info:240,prompt:208,pointer:red,marker:208,border:208,header:240 \
+            --bind="resize:clear-screen"
+        )
 
-    if [ -z "$fzf_sel" ]; then return 0; fi
-    local fire_mode=$(echo "$fzf_sel" | awk '{print $1}')
+        if [ -z "$fzf_sel" ]; then return 0; fi
+        fire_mode=$(echo "$fzf_sel" | awk '{print $1}')
+    fi
     
     echo -e "${THEME_WARN} :: EXECUTING SEQUENCE ($fire_mode) ::${C_RESET}"
 
@@ -2177,6 +2320,22 @@ function _fac_launch_test() {
             [ -n "$cate_args" ] && final_cmd="$final_cmd $cate_args"
             [ -n "$extra_args" ] && final_cmd="$final_cmd$extra_args"
             ;;
+        "MODE_S")
+            final_cmd="am start --user 0"
+            [ -n "$act" ] && final_cmd="$final_cmd -a \"$act\""
+            [ -n "$dat" ] && final_cmd="$final_cmd -d \"$dat\""
+            [ -n "$mime" ] && final_cmd="$final_cmd -t \"$mime\""
+            
+            if [ -n "$pkg" ] && [ -n "$tgt" ]; then
+                final_cmd="$final_cmd -n \"$pkg/$tgt\""
+            elif [ -n "$pkg" ]; then
+                final_cmd="$final_cmd -p \"$pkg\""
+            fi
+            
+            [ -n "$flg" ] && final_cmd="$final_cmd -f $flg"
+            [ -n "$cate_args" ] && final_cmd="$final_cmd $cate_args"
+            [ -n "$extra_args" ] && final_cmd="$final_cmd$extra_args"
+            ;;
     esac
 
     # 6. 執行與輸出報告
@@ -2195,7 +2354,7 @@ function _fac_launch_test() {
             return 1
         else
             echo -e "\n${THEME_OK} :: FIRE SUCCESS ::${C_RESET}"
-            if [ "$fire_mode" == "SSL" ]; then
+            if [ "$fire_mode" == "MODE_S" ]; then
                 echo -e "${THEME_DESC}    ---------------${C_RESET}"
                 echo -e "$output"
                 echo -e "${THEME_DESC}    ---------------${C_RESET}"
@@ -2329,8 +2488,11 @@ function fac() {
                 _factory_auto_backup
             fi
 
+            # 確保寫入目標為目前離合器選擇的沙盒 (預設為 app)
+            local target_db="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
+
             # 計算編號
-            local next_comno=$(awk -F, '$1==999 {gsub(/^"|"$/, "", $2); if(($2+0) > max) max=$2} END {print max+1}' "$MUX_ROOT/app.csv.temp")
+            local next_comno=$(awk -F, '$1==999 {gsub(/^"|"$/, "", $2); if(($2+0) > max) max=$2} END {print max+1}' "$target_db")
             if [ -z "$next_comno" ] || [ "$next_comno" -eq 1 ]; then next_comno=1; fi
             if ! [[ "$next_comno" =~ ^[0-9]+$ ]]; then next_comno=999; fi
 
@@ -2346,10 +2508,16 @@ function fac() {
             # 指令模板
             case "$type_sel" in
                 "Command NA")
-                    new_row="${target_cat},${next_comno},${target_catname},\"NA\",\"${temp_cmd_name}\",,\"${com3_flag}\",\"Unknown\",\"Unknown\",,,,,,,,,,,,"
+                    new_row="${target_cat},${next_comno},${target_catname},\"NA\",\"${temp_cmd_name}\",,\"${com3_flag}\",\"Unknown\",\"Unknown\",,,,,,,,,,,,,,,,,,,,,,,,,,"
                     ;;
                 "Command NB")
-                    new_row="${target_cat},${next_comno},${target_catname},\"NB\",\"${temp_cmd_name}\",,\"${com3_flag}\",\"Unknown\",\"Unknown\",,,\"android.intent.action\",\".VIEW\",\"$(echo '$__GO_TARGET')\",,,,,,,\"$(echo '$SEARCH_GOOGLE')\""
+                    new_row="${target_cat},${next_comno},${target_catname},\"NB\",\"${temp_cmd_name}\",,\"${com3_flag}\",\"Unknown\",\"Unknown\",,,\"android.intent.action\",\".VIEW\",\"$(echo '$__GO_TARGET')\",,,,,,,,,,,,,,,,,,,,,\"$(echo '$SEARCH_GOOGLE')\""
+                    ;;
+                "Command SYS")
+                    new_row="${target_cat},${next_comno},${target_catname},\"SYS\",\"${temp_cmd_name}\",,\"${com3_flag}\",\"Unknown\",\"Unknown\",,,,,,,,,,,,,,,,,,,,,,,,,,"
+                    ;;
+                "Command SSL")
+                    new_row="${target_cat},${next_comno},${target_catname},\"SSL\",\"${temp_cmd_name}\",,\"${com3_flag}\",\"Unknown\",\"Unknown\",,,,,,,,,,,,,,,,,,,,,,,,,,"
                     ;;
                 *) 
                     return ;;
@@ -2361,10 +2529,10 @@ function fac() {
 
             # 寫入與啟動編輯協議
             if [ -n "$new_row" ]; then
-                if [ -s "$MUX_ROOT/app.csv.temp" ] && [ "$(tail -c 1 "$MUX_ROOT/app.csv.temp")" != "" ]; then
-                    echo "" >> "$MUX_ROOT/app.csv.temp"
+                if [ -s "$target_db" ] && [ "$(tail -c 1 "$target_db")" != "" ]; then
+                    echo "" >> "$target_db"
                 fi
-                echo "$new_row" >> "$MUX_ROOT/app.csv.temp"
+                echo "$new_row" >> "$target_db"
                 
                 _bot_say "action" "Initializing Construction Sequence..."
                 
@@ -2377,7 +2545,7 @@ function fac() {
                          if command -v _unlock_badge &> /dev/null; then _unlock_badge "INFINITE_GEAR" "Infinite Gear"; fi
                     fi
 
-                    local void_count=$(awk -F, '$1==999 {count++} END {print count+0}' "$MUX_ROOT/app.csv.temp")
+                    local void_count=$(awk -F, '$1==999 {count++} END {print count+0}' "$target_db")
                     if [ "$void_count" -ge 50 ]; then
                          if command -v _unlock_badge &> /dev/null; then _unlock_badge "VOID_WALKER" "Void Walker"; fi
                     fi
