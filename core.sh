@@ -1221,11 +1221,10 @@ function _mux_neural_fire_control() {
 
             # 5. 發射與回報
             _bot_say "system" "Executing SSL Override: $_VAL_UINAME"
-            # _bot_say "neural" "Compiled Command: $cmd"  # Debug 時可以打開這行
+            _bot_say "neural" "Compiled Command: $cmd"  # Debug 時可以打開這行
             
             local output_ssl
             output_ssl=$(eval "$cmd" 2>&1)
-            _mux_launch_validator "$output_ssl" "Node: ${_VAL_PKG:-$_VAL_UINAME}"
             ;;
 
         *)
