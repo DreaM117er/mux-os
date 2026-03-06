@@ -1532,7 +1532,7 @@ function _fac_edit_router() {
                 )
 
                 local choice=$(echo -e "$menu_list" | fzf --ansi \
-                    --height=11 \
+                    --height=9 \
                     --layout=reverse \
                     --border=bottom \
                     --info=hidden \
