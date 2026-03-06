@@ -962,7 +962,14 @@ function _mux_neural_fire_control() {
                     
                     [ -n "$ex_val" ] && extra_args="$extra_args ${ex_val//\$query/$safe_query}"
                     [ -n "$extra_val" ] && extra_args="$extra_args ${extra_val//\$query/$safe_query}"
-                    [ -n "$boo_val" ] && extra_args="$extra_args ${boo_val//\$query/$safe_query}"
+                    
+                    if [ -n "$boo_val" ]; then
+                        local resolved_boo="${boo_val//\$query/$safe_query}"
+                        if [[ "$resolved_boo" == *" "* ]] && [[ ! "$resolved_boo" =~ ^\".*\"$ ]]; then
+                            resolved_boo="\"$resolved_boo\""
+                        fi
+                        extra_args="$extra_args $resolved_boo"
+                    fi
                 done
 
                 cmd="$cmd$cate_args$extra_args"
@@ -1011,13 +1018,22 @@ function _mux_neural_fire_control() {
             [ -n "$_VAL_CATE3" ] && cate_args="$cate_args -c android.intent.category.$_VAL_CATE3"
             
             local extra_args=""
+            local safe_query="${real_args//\"/\\\"}"
             for i in {1..5}; do
                 local ex_var="_VAL_EX$i"; local ex_val="${!ex_var}"
                 local extra_var="_VAL_EXTRA$i"; local extra_val="${!extra_var}"
                 local boo_var="_VAL_BOOLEN$i"; local boo_val="${!boo_var}"
-                [ -n "$ex_val" ] && extra_args="$extra_args $ex_val"
-                [ -n "$extra_val" ] && extra_args="$extra_args $extra_val"
-                [ -n "$boo_val" ] && extra_args="$extra_args $boo_val"
+                
+                [ -n "$ex_val" ] && extra_args="$extra_args ${ex_val//\$query/$safe_query}"
+                [ -n "$extra_val" ] && extra_args="$extra_args ${extra_val//\$query/$safe_query}"
+                
+                if [ -n "$boo_val" ]; then
+                    local resolved_boo="${boo_val//\$query/$safe_query}"
+                    if [[ "$resolved_boo" == *" "* ]] && [[ ! "$resolved_boo" =~ ^\".*\"$ ]]; then
+                        resolved_boo="\"$resolved_boo\""
+                    fi
+                    extra_args="$extra_args $resolved_boo"
+                fi
             done
 
             # 'p' mode (Package Locked)
@@ -1095,13 +1111,22 @@ function _mux_neural_fire_control() {
             [ -n "$_VAL_CATE3" ] && cate_args="$cate_args -c android.intent.category.$_VAL_CATE3"
             
             local extra_args=""
+            local safe_query="${real_args//\"/\\\"}"
             for i in {1..5}; do
                 local ex_var="_VAL_EX$i"; local ex_val="${!ex_var}"
                 local extra_var="_VAL_EXTRA$i"; local extra_val="${!extra_var}"
                 local boo_var="_VAL_BOOLEN$i"; local boo_val="${!boo_var}"
-                [ -n "$ex_val" ] && extra_args="$extra_args $ex_val"
-                [ -n "$extra_val" ] && extra_args="$extra_args $extra_val"
-                [ -n "$boo_val" ] && extra_args="$extra_args $boo_val"
+                
+                [ -n "$ex_val" ] && extra_args="$extra_args ${ex_val//\$query/$safe_query}"
+                [ -n "$extra_val" ] && extra_args="$extra_args ${extra_val//\$query/$safe_query}"
+                
+                if [ -n "$boo_val" ]; then
+                    local resolved_boo="${boo_val//\$query/$safe_query}"
+                    if [[ "$resolved_boo" == *" "* ]] && [[ ! "$resolved_boo" =~ ^\".*\"$ ]]; then
+                        resolved_boo="\"$resolved_boo\""
+                    fi
+                    extra_args="$extra_args $resolved_boo"
+                fi
             done
 
             cmd="$cmd$cate_args$extra_args"
