@@ -1149,7 +1149,7 @@ function _mux_neural_fire_control() {
             local sys_action="${_VAL_IHEAD}${_VAL_IBODY}"
             if [ -n "$sys_action" ]; then cmd="$cmd -a \"$sys_action\""; fi
             
-            # [升級] SSL 專屬 URI 多重變數替換引擎
+            # SSL 專屬 URI 多重變數替換引擎
             if [ -n "$_VAL_URI" ]; then
                 local resolved_uri="$_VAL_URI"
                 resolved_uri="${resolved_uri//\$q1/$q1}"

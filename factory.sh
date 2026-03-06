@@ -412,18 +412,18 @@ function _fac_cmd_db() {
     if [ "${MUX_REBORN_COUNT:-0}" -gt 0 ]; then has_reborn=1; fi
     local current_lv=${MUX_LEVEL:-1}
 
-    local menu_opts="APP\t\033[1;32m[ app.csv ]\033[0m Standard Applications\n"
+    local menu_opts="APP\t\033[1;32m[app.csv]\033[0m Standard Applications\n"
     
     if [ "$current_lv" -ge 8 ] || [ "$has_reborn" -eq 1 ]; then
-        menu_opts+="VENDOR\t\033[1;33m[ vendor.csv ]\033[0m Manufacturer Plugins\n"
+        menu_opts+="VENDOR\t\033[1;33m[vendor.csv]\033[0m Manufacturer Plugins\n"
     else
-        menu_opts+="VENDOR\t\033[1;30m[ Locked ] Requires Lv.8\033[0m\n"
+        menu_opts+="VENDOR\t\033[1;30m[Locked] Requires Lv.8\033[0m\n"
     fi
 
     if [ "$current_lv" -ge 16 ] || [ "$has_reborn" -eq 1 ]; then
-        menu_opts+="SYSTEM\t\033[1;31m[ system.csv ]\033[0m Core Directives\n"
+        menu_opts+="SYSTEM\t\033[1;31m[system.csv]\033[0m Core Directives\n"
     else
-        menu_opts+="SYSTEM\t\033[1;30m[ Locked ] Requires Lv.16 / Reborn\033[0m\n"
+        menu_opts+="SYSTEM\t\033[1;30m[Locked] Requires Lv.16 / Reborn\033[0m\n"
     fi
 
     local fzf_sel=$(echo -e "$menu_opts" | fzf --ansi \
@@ -2387,6 +2387,10 @@ function fac() {
     fi
 
     case "$cmd" in
+        # : Change Temp Target
+        "switch")
+            _fac_cmd_db
+            ;;
         # : Open Neural Forge Menu
         "menu"|"commenu"|"comm")
             local view_state="VIEW"
