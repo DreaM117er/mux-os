@@ -1923,13 +1923,17 @@ function _fac_launch_test() {
         
         ex_val="${ex_val//\$query/$raw_query}"
         extra_val="${extra_val//\$query/$raw_query}"
-        boo_val="${boo_val//\$query/$raw_query}"
+        
+        local resolved_boo="${boo_val//\$query/$raw_query}"
+        if [[ "$resolved_boo" == *" "* ]] && [[ ! "$resolved_boo" =~ ^\".*\"$ ]]; then
+            resolved_boo="\"$resolved_boo\""
+        fi
 
-        if [ -n "$ex_val" ] || [ -n "$extra_val" ] || [ -n "$boo_val" ]; then
-            echo -e "    ${C_LBL}Ext $i  :${C_RST} ${C_VAL}${ex_val} ${extra_val} ${boo_val}${C_RST}"
+        if [ -n "$ex_val" ] || [ -n "$extra_val" ] || [ -n "$resolved_boo" ]; then
+            echo -e "    ${C_LBL}Ext $i  :${C_RST} ${C_VAL}${ex_val} ${extra_val} ${resolved_boo}${C_RST}"
             [ -n "$ex_val" ] && extra_args="$extra_args $ex_val"
             [ -n "$extra_val" ] && extra_args="$extra_args $extra_val"
-            [ -n "$boo_val" ] && extra_args="$extra_args $boo_val"
+            [ -n "$resolved_boo" ] && extra_args="$extra_args $resolved_boo"
         fi
     done
     
