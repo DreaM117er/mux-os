@@ -182,24 +182,17 @@ function _mux_init() {
     _system_lock
     _safe_ui_calc
 
-    if [ -f "$MUX_ROOT/app.csv.temp" ]; then
-        command rm "$MUX_ROOT/app.csv.temp"
-    fi
+    if [ -f "$MUX_ROOT/app.csv.temp" ]; then command rm "$MUX_ROOT/app.csv.temp"; fi
+    if [ -f "$MUX_ROOT/vendor.csv.temp" ]; then command rm "$MUX_ROOT/vendor.csv.temp"; fi
+    if [ -f "$MUX_ROOT/system.csv.temp" ]; then command rm "$MUX_ROOT/system.csv.temp"; fi
 
-    if [ "$MUX_MODE" == "MUX" ] && [ -f "$MUX_ROOT/xum.csv" ]; then
-        command rm -f "$MUX_ROOT/xum.csv"
-    fi
+    if [ "$MUX_MODE" == "MUX" ] && [ -f "$MUX_ROOT/xum.csv" ]; then command rm -f "$MUX_ROOT/xum.csv"; fi
     
     clear
     _draw_logo "core"
     
-    if command -v _system_check &> /dev/null; then
-        _system_check
-    fi
-    
-    if command -v _show_hud &> /dev/null; then
-        _show_hud
-    fi
+    if command -v _system_check &> /dev/null; then _system_check; fi
+    if command -v _show_hud &> /dev/null; then _show_hud; fi
     
     export MUX_INITIALIZED="true"
     _system_unlock
