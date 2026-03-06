@@ -1078,6 +1078,97 @@ function _fac_generic_edit() {
     fi
 }
 
+# 通用 FZF 選單編輯器 (FZF Editor with Options)
+function _fac_fzf_edit() {
+    local target_key="$1"
+    local col_idx="$2"
+    local prompt_title="$3"
+    local fzf_opts="$4"
+    
+    # 1. 讀取最新狀態
+    _fac_neural_read "$target_key"
+    
+    local current_val=""
+    case "$col_idx" in
+        12) current_val="$_VAL_IHEAD" ;;
+        13) current_val="$_VAL_IBODY" ;;
+        15) current_val="$_VAL_MIME" ;;
+        16) current_val="$_VAL_CATE1" ;;
+        17) current_val="$_VAL_CATE2" ;;
+        18) current_val="$_VAL_CATE3" ;;
+        19) current_val="$_VAL_FLAG" ;;
+        20) current_val="$_VAL_EX1" ;;
+        21) current_val="$_VAL_EXTRA1" ;;
+        22) current_val="$_VAL_BOOLEN1" ;;
+        23) current_val="$_VAL_EX2" ;;
+        24) current_val="$_VAL_EXTRA2" ;;
+        25) current_val="$_VAL_BOOLEN2" ;;
+        26) current_val="$_VAL_EX3" ;;
+        27) current_val="$_VAL_EXTRA3" ;;
+        28) current_val="$_VAL_BOOLEN3" ;;
+        29) current_val="$_VAL_EX4" ;;
+        30) current_val="$_VAL_EXTRA4" ;;
+        31) current_val="$_VAL_BOOLEN4" ;;
+        32) current_val="$_VAL_EX5" ;;
+        33) current_val="$_VAL_EXTRA5" ;;
+        34) current_val="$_VAL_BOOLEN5" ;;
+    esac
+
+    # 組合選項並加入 [Custom] 與 [Clear]
+    local final_opts="${fzf_opts%\n}"
+    if [ -n "$final_opts" ]; then
+        final_opts+="\n\033[1;30m----------\033[0m\n"
+    fi
+    final_opts+="\033[1;33m[Custom]\033[0m\n\033[1;31m[Clear]\033[0m"
+
+    # 動態計算高度 (自適應螢幕)
+    local total_sub=$(echo -e "$final_opts" | grep -c "^")
+    local term_h=$(tput lines)
+    local max_h=$(( term_h - 18 ))
+    [ "$max_h" -lt 7 ] && max_h=7
+    
+    local fzf_h=$(( total_sub + 4 ))
+    [ "$fzf_h" -gt 15 ] && fzf_h=15
+    [ "$fzf_h" -gt "$max_h" ] && fzf_h=$max_h
+
+    # 渲染 FZF
+    local sub_sel=$(echo -e "$final_opts" | fzf --ansi \
+        --height=${fzf_h} \
+        --layout=reverse \
+        --border-label=" :: $prompt_title :: " \
+        --border=bottom \
+        --prompt=" :: INPUT › " \
+        --info=hidden \
+        --pointer="››" \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:46,pointer:red,marker:208,border:46 \
+        --bind="resize:clear-screen"
+    )
+
+    if [ -z "$sub_sel" ]; then return 0; fi
+    
+    local final_val_clean=$(echo "$sub_sel" | sed $'s/\033\\[[0-9;]*m//g')
+    local final_val="$final_val_clean"
+    
+    if [[ "$final_val_clean" == *"----------"* ]]; then return 0; fi
+
+    # 處理特殊切換按鈕
+    if [ "$final_val_clean" == "[Clear]" ]; then 
+        final_val=""
+    elif [ "$final_val_clean" == "[Custom]" ]; then
+        _bot_say "action" "$prompt_title" >&2
+        echo -e "${THEME_DESC}    Current: [ ${current_val:-Empty} ]${C_RESET}" >&2
+        read -e -p "    › " -i "$current_val" input_val
+        final_val="$input_val"
+    fi
+
+    # 原子寫入
+    _fac_neural_write "$target_key" "$col_idx" "$final_val"
+    _bot_say "success" "Parameter Updated." >&2
+
+    if command -v _grant_xp &> /dev/null; then _grant_xp 15 "FAC_EDIT"; fi
+}
+
 # 分類名稱批量更新器 (Batch Category Renamer)
 function _fac_update_category_name() {
     local target_id="$1"
@@ -1428,6 +1519,7 @@ function _fac_edit_router() {
             ;;
             
         "ROOM_CATE")
+            local opts="DEFAULT\nBROWSABLE\nLAUNCHER\nHOME\nINFO\nOPENABLE\nTYPED_OPENABLE\nPREFERENCE\nTAB\nALTERNATIVE\nSELECTED_ALTERNATIVE\nTEST\nCAR_DOCK\nDESK_DOCK\nLEANBACK_LAUNCHER\nAPP_MARKET\nAPP_BROWSER\nAPP_CALCULATOR\nAPP_CALENDAR\nAPP_CONTACTS\nAPP_EMAIL\nAPP_GALLERY\nAPP_MAPS\nAPP_MESSAGING\nAPP_MUSIC\nAPP_SETTINGS\nAPP_FILES\nAPP_CAMERA\nAPP_CLOCK\nAPP_WEATHER\nAPP_NOTES\nAPP_VOICE_RECORDER\nAPP_NEWS\nAPP_PRODUCTIVITY\nAPP_SOCIAL\nAPP_GAMES\nAPP_BOOKS\nAPP_VIDEO\nAPP_PODCASTS\nAPP_HEALTH_FITNESS\nAPP_TRAVEL_LOCAL\nAPP_FINANCE\nAPP_SHOPPING\nAPP_FOOD_DRINK\nAPP_ENTERTAINMENT\nAPP_LIFESTYLE\nAPP_EDUCATION\nAPP_BUSINESS\nAPP_TOOLS\nAPP_COMMUNICATION\nAPP_PERSONALIZATION\nAPP_AUTO_AND_VEHICLES\nAPP_BEAUTY\nAPP_COMICS\nAPP_DATING\nAPP_EVENTS\nAPP_HOUSE_HOME\nAPP_MEDICAL\nAPP_PARENTING\nAPP_PHOTOGRAPHY\nAPP_SPORTS"
             while true; do
                 _fac_neural_read "$target_key"
                 
@@ -1440,11 +1532,11 @@ function _fac_edit_router() {
                 )
 
                 local choice=$(echo -e "$menu_list" | fzf --ansi \
-                    --height=8 \
+                    --height=11 \
                     --layout=reverse \
                     --border=bottom \
                     --info=hidden \
-                    --header=" :: Input CATEGORY ::" \
+                    --header=" :: Enter to Select, Esc to Return ::" \
                     --border-label=" :: EDIT CATEGORY :: " \
                     --prompt=" :: Setting › " \
                     --pointer="››" \
@@ -1457,13 +1549,12 @@ function _fac_edit_router() {
 
                 if [ -z "$choice" ]; then return 2; fi
 
-                local guide_text="${THEME_DESC} :: Note    : System adds 'android.intent.category.' prefix.${C_RESET}"
                 if echo "$choice" | grep -q "^ CATE1"; then
-                    _fac_generic_edit "$target_key" 16 "Edit Category 1:" "$guide_text"
+                    _fac_fzf_edit "$target_key" 16 "Edit Category 1" "$opts"
                 elif echo "$choice" | grep -q "^ CATE2"; then
-                    _fac_generic_edit "$target_key" 17 "Edit Category 2:" "$guide_text"
+                    _fac_fzf_edit "$target_key" 17 "Edit Category 2" "$opts"
                 elif echo "$choice" | grep -q "^ CATE3"; then
-                    _fac_generic_edit "$target_key" 18 "Edit Category 3:" "$guide_text"
+                    _fac_fzf_edit "$target_key" 18 "Edit Category 3" "$opts"
                 elif echo "$choice" | grep -q "Confirm"; then
                     return 2
                 fi
@@ -1479,14 +1570,46 @@ function _fac_edit_router() {
             ;;
 
         "ROOM_INTENT")
-            echo -e "${THEME_DESC} :: Guide   : Intent Action HEAD${C_RESET}" >&2
-            echo -e "${THEME_DESC} :: Format  : android.intent.action${C_RESET}" >&2
-            _fac_generic_edit "$target_key" 12 "Edit Intent Action (Head):"
-            
-            echo -e "${THEME_DESC} :: Guide   : Intent Action BODY${C_RESET}" >&2
-            echo -e "${THEME_DESC} :: Format  : '.VIEW', '.SEND', '.MAIN' ...${C_RESET}" >&2
-            _fac_generic_edit "$target_key" 13 "Edit Intent Data (Body):"
-            return 2
+            while true; do
+                _fac_neural_read "$target_key"
+                local sub_menu=""
+                sub_menu+="\033[1;37mIHEAD\033[0m\t\033[1;36m${_VAL_IHEAD:-[Empty]}\033[0m\n"
+                sub_menu+="\033[1;37mIBODY\033[0m\t\033[1;36m${_VAL_IBODY:-[Empty]}\033[0m\n"
+                sub_menu+="\033[1;30m----------\033[0m\n"
+                sub_menu+="\033[1;32m[Confirm]\033[0m"
+
+                local choice=$(echo -e "$sub_menu" | fzf --ansi \
+                    --height=9 \
+                    --layout=reverse \
+                    --info=hidden \
+                    --header=" :: Enter to Select, Esc to Return ::" \
+                    --border=bottom \
+                    --border-label=" :: INTENT CONFIG :: " \
+                    --prompt=" :: Setting › " \
+                    --pointer="››" \
+                    --delimiter="\t" \
+                    --with-nth=1,2 \
+                    --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                    --color=info:240,prompt:$prompt_color,pointer:red,marker:208,border:$border_color,header:240 \
+                    --bind="resize:clear-screen"
+                )
+
+                if [ -z "$choice" ]; then return 2; fi
+
+                if echo "$choice" | grep -q "IHEAD"; then
+                    local ex_ihead=$(awk -F',' 'FNR>1 {gsub(/"/,"",$12); if($12!="") print $12}' "$MUX_ROOT"/{app,system,vendor}.csv 2>/dev/null | sort -u)
+                    local std_ihead="android.intent.action\nandroid.settings\nandroid.media.action\nandroid.provider.Settings\nandroid.nfc.action\nandroid.bluetooth.adapter.action"
+                    local opts=$(echo -e "${ex_ihead}\n${std_ihead}" | sort -u | awk 'NF {printf "%s\\n", $0}')
+                    _fac_fzf_edit "$target_key" 12 "Edit Intent Action (Head)" "$opts"
+                elif echo "$choice" | grep -q "IBODY"; then
+                    local ex_ibody=$(awk -F',' 'FNR>1 {gsub(/"/,"",$13); if($13!="") print $13}' "$MUX_ROOT"/{app,system,vendor}.csv 2>/dev/null | sort -u)
+                    local std_ibody=".MAIN\n.VIEW\n.SEARCH\n.SEND\n.SENDTO\n.SEND_MULTIPLE\n.DIAL\n.CALL\n.WEB_SEARCH\n.VOICE_COMMAND\n.SET_ALARM\n.SET_TIMER\n.SHOW_ALARMS\n.EDIT\n.INSERT\n.DELETE\n.PICK\n.GET_CONTENT\n.CHOOSER\n.SYNC\n.IMAGE_CAPTURE\n.VIDEO_CAPTURE\n.STILL_IMAGE_CAMERA\n.MEDIA_PLAY_FROM_SEARCH\n.SETTINGS\n.WIRELESS_SETTINGS\n.AIRPLANE_MODE_SETTINGS\n.ACCESSIBILITY_SETTINGS\n.SECURITY_SETTINGS\n.PRIVACY_SETTINGS\n.APPLICATION_SETTINGS\n.LOCATION_SOURCE_SETTINGS\n.NFC_SETTINGS\n.BLUETOOTH_SETTINGS\n.DISPLAY_SETTINGS\n.DATE_SETTINGS"
+                    local opts=$(echo -e "${ex_ibody}\n${std_ibody}" | sort -u | awk 'NF {printf "%s\\n", $0}')
+                    _fac_fzf_edit "$target_key" 13 "Edit Intent Data (Body)" "$opts"
+                elif echo "$choice" | grep -q "Confirm"; then
+                    return 2
+                fi
+            done
             ;;
 
         "ROOM_URI")
@@ -1606,8 +1729,10 @@ function _fac_edit_router() {
                 )
 
                 local choice=$(echo -e "$menu_list" | fzf --ansi \
-                    --height=9 \
+                    --height=10 \
                     --layout=reverse \
+                    --info=hidden \
+                    --header=" :: Enter to Select, Esc to Return ::" \
                     --border=bottom \
                     --border-label=" :: EDIT EXTRA PAYLOAD :: " \
                     --prompt=" :: Setting › " \
@@ -1621,23 +1746,21 @@ function _fac_edit_router() {
 
                 if [ -z "$choice" ]; then return 2; fi
 
-                local guide_text=""
                 if echo "$choice" | grep -q "^ SLOT"; then
                     current_slot=$((current_slot + 1))
                     if [ "$current_slot" -gt 5 ]; then current_slot=1; fi
                 elif echo "$choice" | grep -q "^ EX "; then
-                    guide_text="${THEME_DESC} :: Guide   : Type flag (e.g., --es, --ez, --ei, --eu).${C_RESET}"
+                    local opts="--e\n--es\n--ez\n--ei\n--ef\n--el\n--eu\n--ena\n--esa\n--esb\n--eia"
                     local col=$(( 20 + (current_slot - 1) * 3 ))
-                    _fac_generic_edit "$target_key" "$col" "Edit Extra Type (EX$current_slot):" "$guide_text"
+                    _fac_fzf_edit "$target_key" "$col" "Edit Extra Type (EX$current_slot)" "$opts"
                 elif echo "$choice" | grep -q "^ EXTRA"; then
-                    guide_text="${THEME_DESC} :: Guide   : The key name (e.g., android.intent.extra.TEXT).${C_RESET}"
+                    local opts="android.intent.extra.TEXT\nandroid.intent.extra.SUBJECT\nandroid.intent.extra.TITLE\nandroid.intent.extra.EMAIL\nandroid.intent.extra.CC\nandroid.intent.extra.BCC\nandroid.intent.extra.STREAM\nandroid.intent.extra.PHONE_NUMBER\nquery\nandroid.intent.extra.alarm.MESSAGE\nandroid.intent.extra.alarm.HOUR\nandroid.intent.extra.alarm.MINUTES\nandroid.intent.extra.alarm.SKIP_UI\nandroid.intent.extra.alarm.LENGTH"
                     local col=$(( 21 + (current_slot - 1) * 3 ))
-                    _fac_generic_edit "$target_key" "$col" "Edit Extra Key (EXTRA$current_slot):" "$guide_text"
+                    _fac_fzf_edit "$target_key" "$col" "Edit Extra Key (EXTRA$current_slot)" "$opts"
                 elif echo "$choice" | grep -q "^ BOOLEN"; then
-                    guide_text="${THEME_DESC} :: Guide   : The actual value (e.g., true, 7, \"Hello World\").${C_RESET}\n"
-                    guide_text+="${THEME_DESC} :: Note    : You can use \$query to bind dynamic user input.${C_RESET}"
+                    local opts="true\nfalse\n\$query"
                     local col=$(( 22 + (current_slot - 1) * 3 ))
-                    _fac_generic_edit "$target_key" "$col" "Edit Extra Value (BOOLEN$current_slot):" "$guide_text"
+                    _fac_fzf_edit "$target_key" "$col" "Edit Extra Value (BOOLEN$current_slot)" "$opts"
                 elif echo "$choice" | grep -q "Confirm"; then
                     return 2
                 fi
@@ -1653,8 +1776,8 @@ function _fac_edit_router() {
             ;;
 
         "ROOM_MIME")
-            local guide_text="${THEME_DESC} :: Guide   : Enter Mime Type (e.g., text/plain, image/png, application/pdf).${C_RESET}"
-            _fac_generic_edit "$target_key" 15 "Edit Mime Type (MIME):" "$guide_text"
+            local opts="*/*\ntext/plain\ntext/html\ntext/xml\ntext/csv\ntext/x-vcard\nimage/*\nimage/jpeg\nimage/png\nimage/gif\nimage/webp\nimage/svg+xml\nvideo/*\nvideo/mp4\nvideo/x-matroska\nvideo/webm\naudio/*\naudio/mpeg\naudio/mp4\naudio/ogg\naudio/wav\napplication/vnd.android.package-archive\napplication/pdf\napplication/zip\napplication/json\napplication/msword\napplication/vnd.openxmlformats-officedocument.wordprocessingml.document\napplication/vnd.ms-excel\napplication/vnd.openxmlformats-officedocument.spreadsheetml.sheet\napplication/vnd.ms-powerpoint\napplication/vnd.openxmlformats-officedocument.presentationml.presentation"
+            _fac_fzf_edit "$target_key" 15 "Edit Mime Type (MIME)" "$opts"
             return 2
             ;;
 
