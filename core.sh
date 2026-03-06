@@ -865,10 +865,13 @@ function _mux_neural_fire_control() {
 
     # 4. 定義參數起點
     local real_args=""
+    local -a MUX_RAW_ARGS=("$@")
     
     if [ -n "$_VAL_COM2" ] && [ "$_VAL_COM2" == "$input_sub" ]; then
+        MUX_RAW_ARGS=("${MUX_RAW_ARGS[@]:2}")
         real_args="${*:3}"
     else
+        MUX_RAW_ARGS=("${MUX_RAW_ARGS[@]:1}")
         real_args="${*:2}"
     fi
 
@@ -1133,9 +1136,15 @@ function _mux_neural_fire_control() {
         "SSL")
             # 1. 智慧分詞器 
             eval "set -- $real_args"
-            local q1="$1"; local q2="$2"; local q3="$3"
-            local q4="$4"; local q5="$5"; local q6="$6"
-            local q7="$7"; local q8="$8"; local q9="$9"
+            local q1="${MUX_RAW_ARGS[0]}"
+            local q2="${MUX_RAW_ARGS[1]}"
+            local q3="${MUX_RAW_ARGS[2]}"
+            local q4="${MUX_RAW_ARGS[3]}"
+            local q5="${MUX_RAW_ARGS[4]}"
+            local q6="${MUX_RAW_ARGS[5]}"
+            local q7="${MUX_RAW_ARGS[6]}"
+            local q8="${MUX_RAW_ARGS[7]}"
+            local q9="${MUX_RAW_ARGS[8]}"
 
             # 2. 基礎底盤組裝
             local cmd="am start --user 0"

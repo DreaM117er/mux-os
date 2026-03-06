@@ -1765,18 +1765,42 @@ function _fac_edit_router() {
                 if [ -z "$choice" ]; then return 0; fi
 
                 if echo "$choice" | grep -q "URI"; then
-                    _bot_say "action" "Enter Static URI (e.g., https://...):"
-                    read -e -p "    › " -i "$edit_uri" input_val
-                    if [ -n "$input_val" ]; then
-                        edit_uri="$input_val"
-                        if [ "$input_val" != "\$__GO_TARGET" ]; then
-                            if [ -n "$edit_engine" ]; then
-                                edit_engine=""
-                                _bot_say "warn" "Engine unlinked due to static URI override."
-                            fi
+                    # 1. 彈出迷你快捷選單
+                    local uri_opts="[Custom Input]\n\$q1\n\$q2\n\$q3\n\$q4\n\$q5\n\$q6\n\$q7\n\$q8\n\$q9\ntel:\nmailto:\nhttps://\n\$query"
+                    local sel_uri=$(echo -e "$uri_opts" | fzf --ansi \
+                        --height=12 \
+                        --layout=reverse \
+                        --border=bottom \
+                        --info=hidden \
+                        --border-label=" :: URI QUICK SELECT :: " \
+                        --prompt=" :: Select › " \
+                        --pointer="››" \
+                        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                        --color=info:240,prompt:46,pointer:red,marker:208,border:46 \
+                        --bind="resize:clear-screen"
+                    )
+                    
+                    # 2. 判斷並餵給輸入框
+                    local default_val="$edit_uri"
+                    if [ -n "$sel_uri" ]; then
+                        if [ "$sel_uri" != "[Custom Input]" ]; then
+                            default_val="$sel_uri"
                         fi
-                    else
-                         edit_uri=""
+                        
+                        _bot_say "action" "Edit Static URI:"
+                        read -e -p "    › " -i "$default_val" input_val
+                        
+                        if [ -n "$input_val" ]; then
+                            edit_uri="$input_val"
+                            if [ "$input_val" != "\$__GO_TARGET" ]; then
+                                if [ -n "$edit_engine" ]; then
+                                    edit_engine=""
+                                    _bot_say "warn" "Engine unlinked due to static URI override."
+                                fi
+                            fi
+                        else
+                             edit_uri=""
+                        fi
                     fi
                 elif echo "$choice" | grep -q "ENGINE"; then
                     local sel_eng=$(echo -e "$engine_list" | fzf --ansi \
@@ -1866,7 +1890,7 @@ function _fac_edit_router() {
                     local col=$(( 21 + (current_slot - 1) * 3 ))
                     _fac_fzf_edit "$target_key" "$col" "Edit Extra Key (EXTRA$current_slot)" "$opts"
                 elif echo "$choice" | grep -q "^ BOOLEN"; then
-                    local opts="true\nfalse\n\$query"
+                    local opts="true\nfalse\n\$query\n\$q1\n\$q2\n\$q3\n\$q4\n\$q5\n\$q6\n\$q7\n\$q8\n\$q9"
                     local col=$(( 22 + (current_slot - 1) * 3 ))
                     _fac_fzf_edit "$target_key" "$col" "Edit Extra Value (BOOLEN$current_slot)" "$opts"
                 elif echo "$choice" | grep -q "Confirm"; then
@@ -2091,10 +2115,11 @@ function _fac_launch_test() {
     local safe_query="${input_args// /+}"
     
     # 智慧分詞器 (9 槽彈藥)
-    eval "set -- $input_args"
-    local q1="$1"; local q2="$2"; local q3="$3"
-    local q4="$4"; local q5="$5"; local q6="$6"
-    local q7="$7"; local q8="$8"; local q9="$9"
+    local -a MUX_RAW_ARGS
+    eval "MUX_RAW_ARGS=($input_args)"
+    local q1="${MUX_RAW_ARGS[0]}"; local q2="${MUX_RAW_ARGS[1]}"; local q3="${MUX_RAW_ARGS[2]}"
+    local q4="${MUX_RAW_ARGS[3]}"; local q5="${MUX_RAW_ARGS[4]}"; local q6="${MUX_RAW_ARGS[5]}"
+    local q7="${MUX_RAW_ARGS[6]}"; local q8="${MUX_RAW_ARGS[7]}"; local q9="${MUX_RAW_ARGS[8]}"
 
     # 處理 Smart URL / Engine
     if [[ "$_VAL_URI" == *"\$__GO_TARGET"* ]]; then
@@ -2184,6 +2209,8 @@ function _fac_launch_test() {
             extra_val="${extra_val//\$q$n/${!q_arg}}"
             resolved_boo="${resolved_boo//\$q$n/${!q_arg}}"
         done
+
+        if [ -n "$boo_val" ] && [ -z "$resolved_boo" ]; then continue; fi
 
         if [[ "$resolved_boo" == *" "* ]] && [[ ! "$resolved_boo" =~ ^\".*\"$ ]]; then
             resolved_boo="\"$resolved_boo\""
