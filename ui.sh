@@ -350,11 +350,18 @@ function _system_check() {
     local steps=()
     if [ "$mode" == "factory" ]; then
         C_PROC="\033[1;35m⟳\033[0m"
+        local active_db=$(basename "${__FAC_ACTIVE_DB:-app.csv.temp}")
+        local mount_msg="Mounting $active_db (Write-Mode)..."
+        if [ "$active_db" == "vendor.csv.temp" ]; then
+            mount_msg="Unlocking Manufacturer Plugins ($active_db)..."
+        elif [ "$active_db" == "system.csv.temp" ]; then
+            mount_msg="Bypassing Core Directives ($active_db)..."
+        fi
         steps=(
             "Initializing Neural Forge..."
             "Overriding Read-Only Filesystem..."
             "Disabling Safety Interlocks..."
-            "Mounting app.csv.temp (Write-Mode)..."
+            "$mount_msg"
             "Establishing Factory Uplink..."
         )
     elif [ "$mode" == "xum" ]; then
@@ -760,10 +767,13 @@ function _mux_dynamic_help_core() {
 
 # 動態Help Factory選單檢測 - Dynamic Help Factory Detection
 function _mux_dynamic_help_factory() {
-echo -e "${C_PURPLE} :: Mux-OS Factory Protocols ::${C_RESET}"
+    local current_lv=${MUX_LEVEL:-1}
+    local has_reborn=${MUX_REBORN_COUNT:-0}
+
+    echo -e "${C_PURPLE} :: Mux-OS Factory Protocols ::${C_RESET}"
     
-    awk '
-    /function fac\(\) \{/ { inside_fac=1; next }
+    awk -v lvl="$current_lv" -v rb="$has_reborn" '
+    /function __fac_core\(\) \{/ { inside_fac=1; next }
     /^}/ { inside_fac=0 }
 
     inside_fac {
@@ -775,6 +785,11 @@ echo -e "${C_PURPLE} :: Mux-OS Factory Protocols ::${C_RESET}"
             if ($0 ~ /"/) {
                 split($0, parts, "\"");
                 cmd_name = parts[2];
+                
+                if (cmd_name == "switch" && (lvl + 0) < 8 && (rb + 0) == 0) {
+                    next;
+                }
+
                 printf "    \033[1;38;5;208m%-10s\033[0m%s\n", cmd_name, desc;
             }
         }

@@ -2424,7 +2424,7 @@ function _fac_launch_test() {
 # === Fac ===
 
 # : Factory Command Entry
-function fac() {
+function __fac_core() {
     local cmd="$1"
     if [ "$MUX_MODE" != "FAC" ]; then
         _bot_say "error" "Factory commands disabled during Core session."
@@ -2439,8 +2439,15 @@ function fac() {
     case "$cmd" in
         # : Change Temp Target
         "switch")
+            local has_reborn=${MUX_REBORN_COUNT:-0}
+            local current_lv=${MUX_LEVEL:-1}
+            if [ "$current_lv" -lt 8 ] && [ "$has_reborn" -eq 0 ]; then
+                echo -e "${THEME_WARN} :: Unknown Directive: '$cmd'.${C_RESET}"
+                return 1
+            fi
             _fac_cmd_db
             ;;
+
         # : Open Neural Forge Menu
         "menu"|"commenu"|"comm")
             local view_state="VIEW"
@@ -3060,4 +3067,42 @@ function fac() {
             echo -e "${THEME_WARN} :: Unknown Directive: '$cmd'.${C_RESET}"
             ;;
     esac
+}
+
+# 工廠全視之眼 (Omniscient Eyes of Factory)
+function fac() {
+    # 紀錄操作前的等級
+    local old_lv=${MUX_LEVEL:-1}
+    
+    # 執行兵工廠核心指令
+    __fac_core "$@"
+    local ret_code=$?
+    
+    # 紀錄操作後的等級
+    local new_lv=${MUX_LEVEL:-1}
+    local reboot_flag=0
+    
+    # VENDOR 解鎖
+    if [ "$old_lv" -lt 8 ] && [ "$new_lv" -ge 8 ]; then
+        echo ""
+        _bot_say "warn" "CRITICAL: Clearance Level 8 Reached." 2>/dev/null
+        echo -e "${THEME_WARN} :: VENDOR Database Unlocked. Preparing Neural Forge...${C_RESET}"
+        reboot_flag=1
+    fi
+    
+    # SYSTEM 解鎖
+    if [ "$old_lv" -lt 16 ] && [ "$new_lv" -ge 16 ]; then
+        echo ""
+        _bot_say "warn" "CRITICAL: Architect Clearance Level 16 Reached." 2>/dev/null
+        echo -e "${C_RED} :: SYSTEM Database Unlocked. Core Directives Exposed.${C_RESET}"
+        reboot_flag=1
+    fi
+    
+    # 任何權限變更則執行重啟
+    if [ "$reboot_flag" -eq 1 ]; then
+        sleep 1.5
+        _fac_init
+    fi
+    
+    return $ret_code
 }
