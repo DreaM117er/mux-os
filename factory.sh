@@ -31,7 +31,7 @@ function _fac_neural_read() {
           _VAL_EX5 _VAL_EXTRA5 _VAL_BOOLEN5 _VAL_ENGINE
 
     local target_key="$1"
-    local target_file="${2:-$MUX_ROOT/app.csv.temp}"
+    local target_file="${2:-${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}}"
     local target_state="${__FAC_IO_STATE:-ANY}" 
 
     local t_com=$(echo "$target_key" | awk '{print $1}')
@@ -108,7 +108,7 @@ function _fac_neural_write() {
     local target_key="$1"
     local col_idx="$2"
     local new_val="$3"
-    local target_file="${4:-$MUX_ROOT/app.csv.temp}"
+    local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
     local target_state="${__FAC_IO_STATE:-ANY}"
 
     # 完整保留
@@ -188,7 +188,7 @@ function _fac_update_node() {
     local target_key="$1"
     local col_idx="$2"
     local new_val="$3"
-    local target_file="$MUX_ROOT/app.csv.temp"
+    local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
 
     local t_com=$(echo "$target_key" | awk '{print $1}')
     local t_sub=""
@@ -228,7 +228,7 @@ function _fac_update_node() {
 # 原子刪除函數 (Atomic Node Deleter)
 function _fac_delete_node() {
     local target_key="$1"
-    local target_file="$MUX_ROOT/app.csv.temp"
+    local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
     
     local auth_state="${__FAC_IO_STATE:-User}" 
 
@@ -275,8 +275,8 @@ function _fac_delete_node() {
 function _fac_check_composite_exists() {
     local c1="$1"
     local c2="$2"
-    local csv_path="$MUX_ROOT/app.csv.temp"
-    if [ ! -f "$csv_path" ]; then csv_path="$MUX_ROOT/app.csv"; fi
+    local csv_path="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
+    if [ ! -f "$csv_path" ]; then csv_path="${csv_path%.temp}"; fi
 
     if [ -z "$c1" ] || [ -z "$c2" ]; then return 1; fi
     if [ ! -f "$csv_path" ]; then return 1; fi
@@ -297,7 +297,7 @@ function _fac_check_composite_exists() {
 
 # 兵工廠快速列表 - List all commands
 function _fac_list() {
-    local target_file="$MUX_ROOT/app.csv.temp"
+    local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
     local width=$(tput cols)
     
     echo -e "${THEME_WARN} :: Mux-OS Command Registry :: ${C_RESET}"
@@ -362,10 +362,14 @@ function _factory_system_boot() {
     fi
 
     # 清除狀態 N 的指令
-    awk -F, -v OFS=, '
+    local active_dbs=("$MUX_ROOT/app.csv.temp")
+    if [ "$current_lv" -ge 8 ] || [ "$has_reborn" -eq 1 ]; then active_dbs+=("$MUX_ROOT/vendor.csv.temp"); fi
+    if [ "$current_lv" -ge 16 ] || [ "$has_reborn" -eq 1 ]; then active_dbs+=("$MUX_ROOT/system.csv.temp"); fi
+
+    for db_temp in "${active_dbs[@]}"; do
+        awk -F, -v OFS=,'
         BEGIN { cn=0; cs=0; fail=0 }
         NR==1 { print; next }
-        
         {
             st=$7; gsub(/^"|"$/, "", st); gsub(/\r| /, "", st)
             
@@ -386,14 +390,15 @@ function _factory_system_boot() {
 
             print $0
         }
-    ' "$MUX_ROOT/app.csv.temp" > "$MUX_ROOT/app.csv.temp.tmp" && command mv "$MUX_ROOT/app.csv.temp.tmp" "$MUX_ROOT/app.csv.temp"
-
-    export PS1="\[\033[1;38;5;208m\]Fac\[\033[0m\] \w › "
-    export PROMPT_COMMAND="tput sgr0; echo -ne '\033[0m'"
-    
-    # 製作.bak檔案
-    command rm -f "$bak_dir"/app.csv.*.bak 2>/dev/null
-    command cp "$MUX_ROOT/app.csv" "$bak_dir/app.csv.$ts.bak"
+    ' "$db_temp" > "${db_temp}.tmp" && command mv "${db_temp}.tmp" "$db_temp"
+        
+        # 製作 .bak 檔案
+        local db_base=$(basename "$db_temp" .temp)
+        command rm -f "$bak_dir"/${db_base}.*.bak 2>/dev/null
+        if [ -f "$MUX_ROOT/$db_base" ]; then
+            command cp "$MUX_ROOT/$db_base" "$bak_dir/${db_base}.$ts.bak"
+        fi
+    done
 
     # 初始化介面
     if command -v _fac_init &> /dev/null; then
@@ -468,6 +473,7 @@ function _fac_cmd_db() {
             _bot_say "warn" "Target Locked: SYSTEM Database."
             ;;
     esac
+    _fac_init
 }
 
 # 初始化視覺效果 (Initialize Visuals)
@@ -478,6 +484,7 @@ function _fac_init() {
     _draw_logo "factory"
     _system_check "factory"
     _show_hud "factory"
+    local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
     awk -F, -v OFS=, '
     {
         # 處決狀態 B 跟 C ，將 B 轉 P
@@ -488,7 +495,7 @@ function _fac_init() {
         }
         print $0
     }
-    ' "$MUX_ROOT/app.csv.temp" > "$MUX_ROOT/app.csv.temp.tmp" && command mv "$MUX_ROOT/app.csv.temp.tmp" "$MUX_ROOT/app.csv.temp"
+    ' "$target_file" > "${target_file}.tmp" && command mv "${target_file}.tmp" "$target_file"
     _system_unlock
 }
 
@@ -496,12 +503,11 @@ function _fac_init() {
 function _factory_auto_backup() {
     local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
     local ts=$(date +%Y%m%d%H%M%S)
+    local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
+    local db_name=$(basename "$target_file" .temp)
     
-    command cp "$MUX_ROOT/app.csv.temp" "$bak_dir/app.csv.$ts.atb"
-    
-    local count=$(ls -1 "$MUX_BAK"/app.csv.atb.* 2>/dev/null | wc -l)
-    
-    ls -t "$bak_dir"/app.csv.*.atb 2>/dev/null | tail -n +11 | xargs -r rm
+    command cp "$target_file" "$bak_dir/$db_name.$ts.atb"
+    ls -t "$bak_dir"/${db_name}.*.atb 2>/dev/null | tail -n +11 | xargs -r rm
 }
 
 # 災難復原精靈 - Recovery Wizard
@@ -513,8 +519,10 @@ function _fac_rebak_wizard() {
         return 1
     fi
 
+    local db_name=$(basename "${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}" .temp)
+
     local menu_list=$(
-        cd "$bak_dir" && ls -t app.csv.* 2>/dev/null | while read -r fname; do
+        cd "$bak_dir" && ls -t ${db_name}.* 2>/dev/null | while read -r fname; do
             local raw_ts=$(echo "$fname" | awk -F'.' '{print $3}')
             local ext=$(echo "$fname" | awk -F'.' '{print $4}')
             
@@ -568,7 +576,7 @@ function _fac_rebak_wizard() {
             if command -v _grant_xp &> /dev/null; then
                 _grant_xp 15 "FAC_REBAK"
             fi
-            command cp "$bak_dir/$target_file" "$MUX_ROOT/app.csv.temp"
+            command cp "$bak_dir/$target_file" "${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
             echo -e "${THEME_WARN} :: Workspace Restored from: $target_file${C_RESET}"
             sleep 0.3
             echo -e "${THEME_DESC}    ›› Verified. ✅.${C_RESET}"
@@ -585,11 +593,12 @@ function _fac_rebak_wizard() {
 # 兵工廠廢料清理 (Factory Waste Purge)
 function _fac_clear_backups() {
     local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
+    local db_name=$(basename "${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}" .temp)
     
     echo -e "${THEME_WARN} :: FACTORY WASTE DISPOSAL ::${C_RESET}"
     sleep 0.5
     
-    local atb_count=$(ls -1 "$bak_dir"/app.csv.*.atb 2>/dev/null | wc -l)
+    local atb_count=$(ls -1 "$bak_dir"/${db_name}.*.atb 2>/dev/null | wc -l)
     
     if [ "$atb_count" -eq 0 ]; then
         _bot_say "success" "No temporal waste (.atb) detected. Backup repository is pure."
@@ -604,7 +613,7 @@ function _fac_clear_backups() {
         echo ""
         _bot_say "action" "Incinerating waste..."
         # 原子特權突破裝甲刪除
-        command rm -f "$bak_dir"/app.csv.*.atb
+        command rm -f "$bak_dir"/${db_name}.*.atb
         sleep 0.8
         _bot_say "success" "Waste disposal complete. Repository purified."
     else
@@ -616,7 +625,7 @@ function _fac_clear_backups() {
 function _fac_maintenance() {
     echo -e "${THEME_DESC} :: Scanning Neural Integrity...${C_RESET}"
     
-    local target_file="$MUX_ROOT/app.csv.temp"
+    local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
     local temp_file="${target_file}.chk"
 
     # 1. 確保目標存在
@@ -694,7 +703,7 @@ function _fac_maintenance() {
 function _fac_sort_optimization() {
     echo -e "${THEME_DESC} :: Optimizing Neural Sequence...${C_RESET}"
 
-    local target_file="$MUX_ROOT/app.csv.temp"
+    local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
     local temp_file="${target_file}.sorted"
 
     if [ ! -f "$target_file" ]; then
@@ -719,7 +728,7 @@ function _fac_sort_optimization() {
 function _fac_safe_merge() {
     local target_id="$1"
     local source_id="$2"
-    local target_file="$MUX_ROOT/app.csv.temp"
+    local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
     local temp_file="${target_file}.merge"
 
     if [ -z "$target_id" ] || [ -z "$source_id" ]; then
@@ -791,7 +800,7 @@ function _fac_safe_merge() {
 
 # 矩陣重組與格式化 - Matrix Defragmentation & Sanitizer
 function _fac_matrix_defrag() {
-    local target_file="$MUX_ROOT/app.csv.temp"
+    local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
     local temp_file="${target_file}.defrag"
 
     if [ ! -f "$target_file" ]; then return; fi
@@ -843,7 +852,8 @@ function _fac_matrix_defrag() {
 # 兵工廠重置 (Factory Reset - Phoenix Protocol)
 function _factory_reset() {
     local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
-    local target_bak=$(ls -t "$bak_dir"/app.csv.*.bak 2>/dev/null | head -n 1)
+    local db_name=$(basename "${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}" .temp)
+    local target_bak=$(ls -t "$bak_dir"/${db_name}.*.bak 2>/dev/null | head -n 1)
 
     echo ""
     echo -e "${THEME_ERR} :: CRITICAL WARNING :: FACTORY RESET DETECTED ::${C_RESET}"
@@ -857,7 +867,7 @@ function _factory_reset() {
         _bot_say "action" "Reversing time flow..."
         
         if [ -n "$target_bak" ] && [ -f "$target_bak" ]; then
-            command cp "$target_bak" "$MUX_ROOT/app.csv.temp"
+            command cp "$target_bak" "${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
             
             if command -v _factory_auto_backup &> /dev/null; then
                 _factory_auto_backup
@@ -867,10 +877,12 @@ function _factory_reset() {
             _bot_say "success" "Timeline restored to Session Start."
         else
             _bot_say "error" "Session Backup missing. Fallback to Production."
-            if [ -f "$MUX_ROOT/app.csv" ]; then
-                command cp "$MUX_ROOT/app.csv" "$MUX_ROOT/app.csv.temp"
+            local active_temp="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
+            local prod_file="${active_temp%.temp}"
+            if [ -f "$prod_file" ]; then
+                command cp "$prod_file" "$active_temp"
                 _fac_init
-                _bot_say "success" "Restored from Production (app.csv)."
+                _bot_say "success" "Restored from Production."
             else
                 _bot_say "error" "Critical Failure: No source available."
             fi
@@ -891,19 +903,28 @@ function _factory_deploy_sequence() {
         ej_mode=$(grep "FAC_EJMODE" "$MUX_ROOT/.mux_state" | cut -d'=' -f2 | tr -d '"')
     fi
 
+    local db_list=("app" "vendor" "system")
+
     unset __FAC_IO_STATE
     echo -ne "${THEME_WARN} :: Initiating Deployment Sequence...${C_RESET}"
     sleep 0.5
 
     # 2. QA
-    local target_file="$MUX_ROOT/app.csv.temp"
-    local prod_file="$MUX_ROOT/app.csv"
+    local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
+    local prod_file="${target_file%.temp}"
     local qa_file="${target_file}.qa"
     local stats_log="${target_file}.log"
 
     echo -e "\n${THEME_DESC} :: Running Final Quality Assurance (QA)...${C_RESET}"
 
-    awk -F, -v OFS=, '
+    for db in "${db_list[@]}"; do
+        local target_file="$MUX_ROOT/$db.csv.temp"
+        if [ ! -f "$target_file" ]; then continue; fi
+        
+        local qa_file="${target_file}.qa"
+        local stats_log="${target_file}.log"
+
+        awk -F, -v OFS=, '
         BEGIN { cn=0; cs=0; fail=0 }
         NR==1 { print; next }
         {
@@ -916,17 +937,18 @@ function _factory_deploy_sequence() {
             if (st == "S" || st == "N" || st == "") { $7 = "\"P\"" }
             print $0
         }
-    ' "$target_file" > "$qa_file" 2> "$stats_log"
+        ' "$target_file" > "$qa_file" 2> "$stats_log"
 
-    if grep -q "QA_FAIL" "$stats_log"; then
-        command mv "$qa_file" "$target_file"; command rm "$stats_log"
-        echo -e "${THEME_ERR} :: QA FAILED. Invalid nodes detected.${C_RESET}"
-        return 1
-    else
-        command mv "$qa_file" "$target_file"; command rm "$stats_log"
-        echo -e "${THEME_OK}    ›› QA Passed. State normalized to [P].${C_RESET}"
-        sleep 1.0
-    fi
+        if grep -q "QA_FAIL" "$stats_log"; then
+            command mv "$qa_file" "$target_file"; command rm "$stats_log"
+            echo -e "${THEME_ERR} :: QA FAILED in [$db]. Invalid nodes detected.${C_RESET}"
+            return 1
+        else
+            command mv "$qa_file" "$target_file"; command rm "$stats_log"
+        fi
+    done
+    echo -e "${THEME_OK}    ›› System-wide QA Passed. State normalized to [P].${C_RESET}"
+    sleep 1.0
 
     # 差異比對
     clear
@@ -1281,7 +1303,7 @@ function _fac_fzf_edit() {
 function _fac_update_category_name() {
     local target_id="$1"
     local new_name="$2"
-    local target_file="$MUX_ROOT/app.csv.temp"
+    local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
     
     local safe_name="${new_name//\"/\"\"}"
     safe_name="\"$safe_name\""
@@ -1306,7 +1328,7 @@ function _fac_update_category_name() {
 # 分類名稱衝突檢測器 (Category Conflict Scanner)
 function _fac_check_category_conflict() {
     local check_name="$1"
-    local target_file="$MUX_ROOT/app.csv.temp"
+    local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
 
     awk -F, -v target="$check_name" '
         NR>1 {
@@ -1420,7 +1442,7 @@ function _fac_edit_router() {
                         if (match_type == "SIMILAR") print "SIMILAR:" target_name
                         else print "OK"
                     }
-                ' "$MUX_ROOT/app.csv.temp")
+                ' "${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}")
 
                 # 判斷掃描結果
                 if [[ "$scan_result" == EXACT* ]]; then
@@ -1434,7 +1456,7 @@ function _fac_edit_router() {
                         BEGIN { max=0 }
                         { id=$1; gsub(/^"|"$/, "", id); cn=$2; gsub(/^"|"$/, "", cn); 
                         if (id == target_cat && (cn+0) > max) max=cn+0 } END { print max+1 }
-                    ' "$MUX_ROOT/app.csv.temp")
+                    ' "${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}")
 
                     _fac_neural_write "$target_key" 1 "$exist_id"
                     _fac_neural_write "$target_key" 2 "$next_com_no"
@@ -1460,7 +1482,7 @@ function _fac_edit_router() {
                         val = (max == 0) ? 1 : max+1
                         printf "%03d", val 
                     }
-                ' "$MUX_ROOT/app.csv.temp")
+                ' "${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}")
                 
                 _bot_say "action" "Moving Node to New Sector [$next_cat_no] $new_cat_name..." >&2
                 
@@ -1481,7 +1503,7 @@ function _fac_edit_router() {
                         name=$3; gsub(/^"|"$/, "", name);
                         if (id+0 == tid+0) { print name; exit }
                     }
-                ' "$MUX_ROOT/app.csv.temp")
+                ' "${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}")
 
                 if [ "$sel_id" == "$current_cat_no" ]; then
                     _bot_say "warn" "Node is already in this category." >&2
@@ -1501,7 +1523,7 @@ function _fac_edit_router() {
                         }
                     }
                     END { print max+1 }
-                ' "$MUX_ROOT/app.csv.temp")
+                ' "${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}")
 
                 # 原子寫入
                 _fac_neural_write "$target_key" 1 "$sel_id"
@@ -1705,12 +1727,12 @@ function _fac_edit_router() {
                 if [ -z "$choice" ]; then return 2; fi
 
                 if echo "$choice" | grep -q "IHEAD"; then
-                    local ex_ihead=$(awk -F',' 'FNR>1 {gsub(/"/,"",$12); if($12!="") print $12}' "$MUX_ROOT"/{app,system,vendor}.csv 2>/dev/null | sort -u)
+                    local ex_ihead=$(awk -F',' 'FNR>1 {gsub(/"/,"",$12); if($12!="") print $12}' "$MUX_ROOT"/{app,system,vendor}.csv* 2>/dev/null | sort -u)
                     local std_ihead="android.intent.action\nandroid.settings\nandroid.media.action\nandroid.provider.Settings\nandroid.nfc.action\nandroid.bluetooth.adapter.action"
                     local opts=$(echo -e "${ex_ihead}\n${std_ihead}" | sort -u | awk 'NF {printf "%s\\n", $0}')
                     _fac_fzf_edit "$target_key" 12 "Edit Intent Action (Head)" "$opts"
                 elif echo "$choice" | grep -q "IBODY"; then
-                    local ex_ibody=$(awk -F',' 'FNR>1 {gsub(/"/,"",$13); if($13!="") print $13}' "$MUX_ROOT"/{app,system,vendor}.csv 2>/dev/null | sort -u)
+                    local ex_ibody=$(awk -F',' 'FNR>1 {gsub(/"/,"",$13); if($13!="") print $13}' "$MUX_ROOT"/{app,system,vendor}.csv* 2>/dev/null | sort -u)
                     local std_ibody=".MAIN\n.VIEW\n.SEARCH\n.SEND\n.SENDTO\n.SEND_MULTIPLE\n.DIAL\n.CALL\n.WEB_SEARCH\n.VOICE_COMMAND\n.SET_ALARM\n.SET_TIMER\n.SHOW_ALARMS\n.EDIT\n.INSERT\n.DELETE\n.PICK\n.GET_CONTENT\n.CHOOSER\n.SYNC\n.IMAGE_CAPTURE\n.VIDEO_CAPTURE\n.STILL_IMAGE_CAMERA\n.MEDIA_PLAY_FROM_SEARCH\n.SETTINGS\n.WIRELESS_SETTINGS\n.AIRPLANE_MODE_SETTINGS\n.ACCESSIBILITY_SETTINGS\n.SECURITY_SETTINGS\n.PRIVACY_SETTINGS\n.APPLICATION_SETTINGS\n.LOCATION_SOURCE_SETTINGS\n.NFC_SETTINGS\n.BLUETOOTH_SETTINGS\n.DISPLAY_SETTINGS\n.DATE_SETTINGS"
                     local opts=$(echo -e "${ex_ibody}\n${std_ibody}" | sort -u | awk 'NF {printf "%s\\n", $0}')
                     _fac_fzf_edit "$target_key" 13 "Edit Intent Data (Body)" "$opts"
@@ -1951,7 +1973,7 @@ function _fac_safe_edit_protocol() {
     local draft_row="$_VAL_CATNO,$_VAL_COMNO,${_VAL_CATNAME:+\"$_VAL_CATNAME\"},${_VAL_TYPE:+\"$_VAL_TYPE\"},${_VAL_COM:+\"$_VAL_COM\"},${_VAL_COM2:+\"$_VAL_COM2\"},\"E\",${_VAL_HUDNAME:+\"$_VAL_HUDNAME\"},${_VAL_UINAME:+\"$_VAL_UINAME\"},${_VAL_PKG:+\"$_VAL_PKG\"},${_VAL_TARGET:+\"$_VAL_TARGET\"},${_VAL_IHEAD:+\"$_VAL_IHEAD\"},${_VAL_IBODY:+\"$_VAL_IBODY\"},${_VAL_URI:+\"$_VAL_URI\"},${_VAL_MIME:+\"$_VAL_MIME\"},${_VAL_CATE1:+\"$_VAL_CATE1\"},${_VAL_CATE2:+\"$_VAL_CATE2\"},${_VAL_CATE3:+\"$_VAL_CATE3\"},${_VAL_FLAG:+\"$_VAL_FLAG\"},${_VAL_EX1:+\"$_VAL_EX1\"},${_VAL_EXTRA1:+\"$_VAL_EXTRA1\"},${_VAL_BOOLEN1:+\"$_VAL_BOOLEN1\"},${_VAL_EX2:+\"$_VAL_EX2\"},${_VAL_EXTRA2:+\"$_VAL_EXTRA2\"},${_VAL_BOOLEN2:+\"$_VAL_BOOLEN2\"},${_VAL_EX3:+\"$_VAL_EX3\"},${_VAL_EXTRA3:+\"$_VAL_EXTRA3\"},${_VAL_BOOLEN3:+\"$_VAL_BOOLEN3\"},${_VAL_EX4:+\"$_VAL_EX4\"},${_VAL_EXTRA4:+\"$_VAL_EXTRA4\"},${_VAL_BOOLEN4:+\"$_VAL_BOOLEN4\"},${_VAL_EX5:+\"$_VAL_EX5\"},${_VAL_EXTRA5:+\"$_VAL_EXTRA5\"},${_VAL_BOOLEN5:+\"$_VAL_BOOLEN5\"},${_VAL_ENGINE:+\"$_VAL_ENGINE\"}"
 
     # 資料格式狀態
-    echo "$draft_row" >> "$MUX_ROOT/app.csv.temp"
+    echo "$draft_row" >> "${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
     local working_key="$target_key"
     export __FAC_IO_STATE="E"
 
@@ -2055,8 +2077,8 @@ function _factory_mask_apps() {
 
     local lock_list=(
         "$MUX_ROOT/app.csv.temp"
-        "$MUX_ROOT/system.csv"
-        "$MUX_ROOT/vendor.csv"
+        "$MUX_ROOT/vendor.csv.temp"
+        "$MUX_ROOT/system.csv.temp"
     )
 
     for csv_file in "${lock_list[@]}"; do
@@ -2453,7 +2475,7 @@ function fac() {
                             exit
                         }
                     }
-                ' "$MUX_ROOT/app.csv.temp")
+                ' "${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}")
 
                 if [ -z "$db_name" ]; then 
                     db_name=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{$1=""; print $0}' | sed 's/^[ \t]*//')
@@ -2576,7 +2598,7 @@ function fac() {
                          if command -v _unlock_badge &> /dev/null; then _unlock_badge "INFINITE_GEAR" "Infinite Gear"; fi
                     fi
 
-                    local void_count=$(awk -F, '$1==999 {count++} END {print count+0}' "$target_db")
+                    local void_count=$(cat "$MUX_ROOT"/{app,vendor,system}.csv.temp 2>/dev/null | awk -F, '$1==999 {count++} END {print count+0}')
                     if [ "$void_count" -ge 50 ]; then
                          if command -v _unlock_badge &> /dev/null; then _unlock_badge "VOID_WALKER" "Void Walker"; fi
                     fi
@@ -2629,7 +2651,7 @@ function fac() {
                 local temp_id=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
 
                 # 重新讀取 ID
-                local db_data=$(awk -F, -v tid="$temp_id" 'NR>1 {gsub(/^"|"$/, "", $1); if($1==tid){gsub(/^"|"$/, "", $3); print $1 "|" $3; exit}}' "$MUX_ROOT/app.csv.temp")
+                local db_data=$(awk -F, -v tid="$temp_id" 'NR>1 {gsub(/^"|"$/, "", $1); if($1==tid){gsub(/^"|"$/, "", $3); print $1 "|" $3; exit}}' "${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}")
                 local cat_id=$(echo "$db_data" | awk -F'|' '{print $1}')
                 local cat_name=$(echo "$db_data" | awk -F'|' '{print $2}')
                 if [ -z "$cat_id" ]; then cat_id="XX"; cat_name="Unknown"; fi
@@ -2758,7 +2780,7 @@ function fac() {
                 if [ -z "$raw_cat" ]; then break; fi
                 
                 local temp_id=$(echo "$raw_cat" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
-                local db_name=$(awk -F, -v tid="$temp_id" 'NR>1 {cid=$1; gsub(/^"|"$/, "", cid); if(cid==tid){name=$3; gsub(/^"|"$/, "", name); print name; exit}}' "$MUX_ROOT/app.csv.temp")
+                local db_name=$(awk -F, -v tid="$temp_id" 'NR>1 {cid=$1; gsub(/^"|"$/, "", cid); if(cid==tid){name=$3; gsub(/^"|"$/, "", name); print name; exit}}' "${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}")
                 if [ -z "$db_name" ]; then db_name="Unknown"; fi
 
                 local action=$(_factory_fzf_catedit_submenu "$temp_id" "$db_name" "DEL")
@@ -2783,7 +2805,8 @@ function fac() {
                         _bot_say "action" "Migrating assets to Void..."
                         _fac_safe_merge "999" "$temp_id"
                         
-                        awk -F, -v tid="$temp_id" -v OFS=, '$1 != tid {print $0}' "$MUX_ROOT/app.csv.temp" > "$MUX_ROOT/app.csv.temp.tmp" && command mv "$MUX_ROOT/app.csv.temp.tmp" "$MUX_ROOT/app.csv.temp"
+                        local active_db="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
+                        awk -F, -v tid="$temp_id" -v OFS=, '$1 != tid {print $0}' "$active_db" > "${active_db}.tmp" && command mv "${active_db}.tmp" "$active_db"
                         
                         _bot_say "success" "Category Dissolved."
                         
@@ -2952,8 +2975,15 @@ function fac() {
 
         # : Deploy Changes
         "deploy")
+            local e_found=0
+            for db_chk in app vendor system; do
+                if [ -f "$MUX_ROOT/$db_chk.csv.temp" ] && grep -q ',"E",' "$MUX_ROOT/$db_chk.csv.temp"; then
+                    e_found=1
+                    break
+                fi
+            done
             _fac_maintenance
-            if grep -q ',"E",' "$MUX_ROOT/app.csv.temp"; then
+            if [ "$e_found" -eq 1 ]; then
                 echo -e "\n${C_RED} :: DEPLOY ABORTED :: Active Drafts (E) Detected.${C_RESET}"
                 echo -e "${C_BLACK}    Please finish editing or delete drafts before deployment.${C_RESET}"
                 echo -ne "\n${C_YELLOW}    ›› Acknowledge and Return? [Y/n]: ${C_RESET}"
