@@ -18,4 +18,4 @@
 4,2,"Samsung Devices","NA","wear",,"P","Galaxy Wearable","Galaxy Wearable","com.samsung.android.app.watchmanager",".setupwizard.SetupWizardWelcomeActivity",,,,,,,,,,,,,,,,,,,,,,,,
 4,3,"Samsung Devices","NA","tutor",,"P","Smart Tutor (Remote Support)","Smart Tutor","com.rsupport.rs.activity.rsupport.aas2","com.rsupport.rs.activity.edit.IntroActivity",,,,,,,,,,,,,,,,,,,,,,,,
 5,1,"Samsung Tools","NA","note",,"P","Samsung Notes","Samsung Notes","com.samsung.android.app.notes",".memolist.MemoListActivity",,,,,,,,,,,,,,,,,,,,,,,,
-5,1,"Samsung Tools","NA","remind",,"P","Samsung Reminder","Reminder","com.samsung.android.app.reminder",".ui.LaunchMainActivity",,,,,,,,,,,,,,,,,,,,,,,,
+5,2,"Samsung Tools","NA","remind",,"P","Samsung Reminder","Reminder","com.samsung.android.app.reminder",".ui.LaunchMainActivity",,,,,,,,,,,,,,,,,,,,,,,,
