@@ -166,12 +166,14 @@ function _install_protocol() {
     echo "    ›› Installing Bootloader..."
 
     # 重要！定義注入區塊
-    BLOCK_START="# [Mux-OS-START]"
-    BLOCK_END="# [Mux-OS-END]"
+    BLOCK_START="# >>> Mux-OS Init >>>"
+    BLOCK_END="# <<< Mux-OS Init <<<"
 
-    sed -i '/source .*mux-os\/core.sh/d' "$RC_FILE"
-    sed -i '/# Mux-OS Core Uplink/d' "$RC_FILE"
-    sed -i "/$BLOCK_START/,/$BLOCK_END/d" "$RC_FILE"
+    [ ! -f "$RC_FILE" ] && touch "$RC_FILE"
+
+    if grep -qF "$BLOCK_START" "$RC_FILE"; then
+        sed -i "/$BLOCK_START/,/$BLOCK_END/d" "$RC_FILE"
+    fi
 
     cat << EOF >> "$RC_FILE"
 $BLOCK_START
