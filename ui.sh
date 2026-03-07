@@ -257,7 +257,7 @@ function _show_badges() {
         "Attempted to invoke Administrator privileges." \
         "${SUDO_ATTEMPT_COUNT:-0}" "10"
 
-    local void_count=$(awk -F, '$1==999 {count++} END {print count+0}' "$MUX_ROOT/app.csv.temp" 2>/dev/null)
+    local void_count=$(cat "$MUX_ROOT"/{app,vendor,system}.csv.temp 2>/dev/null | awk -F, '$1==999 {count++} END {print count+0}')
     _render_special "VOID_WALKER" "Vd" "Void Walker" \
         "Embraced the chaos of Category 999." \
         "${void_count:-0}" "50"
@@ -423,7 +423,7 @@ function _show_hud() {
 
     if [ "$mode" == "factory" ]; then
         line1_k="HOST   "; line1_v="Commander"
-        line2_k="TARGET "; line2_v="app.csv.temp"
+        line2_k="TARGET "; line2_v="$active_db_disp"
         line3_k="STATUS "; line3_v="Unlocked"
     elif [ "$mode" == "xum" ]; then
         border_color="$C_TAVIOLET"
@@ -809,12 +809,15 @@ function _show_menu_dashboard() {
         C_CAT="\033[1;31m"
         C_COM="\033[1;37m"
         
-        if [ -f "$MUX_ROOT/app.csv.temp" ]; then
-            target_app_file="$MUX_ROOT/app.csv.temp"
-        fi
+        local data_files=()
+        [ -f "$MUX_ROOT/system.csv.temp" ] && data_files+=("$MUX_ROOT/system.csv.temp")
+        [ -f "$MUX_ROOT/vendor.csv.temp" ] && data_files+=("$MUX_ROOT/vendor.csv.temp")
+        [ -f "$MUX_ROOT/app.csv.temp" ] && data_files+=("$MUX_ROOT/app.csv.temp")
     fi
 
-    local data_files=("$SYSTEM_MOD" "$VENDOR_MOD" "$target_app_file")
+    if [ "$MUX_MODE" != "FAC" ]; then
+        local data_files=("$SYSTEM_MOD" "$VENDOR_MOD" "$APP_MOD")
+    fi
 
     echo -e " ${C_TITLE}${title_text}${C_RST}"
 
@@ -850,7 +853,7 @@ function _show_menu_dashboard() {
         echo ""
         echo -e " ${C_WARN}:: SYSTEM INTEGRITY WARNING :: Command Conflict Detected${C_RST}"
         echo -e " ${C_WARN}   Duplicate Entries: ${collision_list}${C_RST}"
-        echo -e " ${C_DESC}   (Please remove duplicates from app.csv)${C_RST}"
+        echo -e " ${C_DESC}   (Please resolve duplicates in active workspace)${C_RST}"
     fi
     
     echo ""
@@ -984,8 +987,9 @@ function _mux_fuzzy_menu() {
 
 # 顯示兵工廠狀態 - Display Factory Status
 function _factory_show_status() {
-    local temp_file="$MUX_ROOT/app.csv.temp"
+    local temp_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
     local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
+    local db_name=$(basename "$temp_file")
 
     echo -e "${THEME_MAIN} :: Neural Forge Status Report ::${C_RESET}"
     echo -e "${THEME_DESC}    --------------------------${C_RESET}"
@@ -997,7 +1001,7 @@ function _factory_show_status() {
         
         local size=$(du -h "$temp_file" | cut -f1)
         
-        echo -e "${THEME_DESC}    Target  : ${THEME_WARN}app.csv.temp${C_RESET}"
+        echo -e "${THEME_DESC}    Target  : ${THEME_WARN}$db_name${C_RESET}"
         echo -e "${THEME_DESC}    Size    : $size"
         echo -e "${THEME_DESC}    Nodes   : ${THEME_SUB}$node_count active commands${C_RESET}"
     else
@@ -1009,7 +1013,7 @@ function _factory_show_status() {
     
     local found_any=0
     
-    local session_bak=$(ls "$bak_dir"/app.csv.*.bak 2>/dev/null | head -n 1)
+    local session_bak=$(ls "$bak_dir"/${db_name}.*.bak 2>/dev/null | head -n 1)
     if [ -n "$session_bak" ]; then
         local fname=$(basename "$session_bak")
         local raw_ts=$(echo "$fname" | awk -F'.' '{print $3}')
@@ -1022,7 +1026,7 @@ function _factory_show_status() {
         found_any=1
     fi
 
-    local atb_files=$(ls -t "$bak_dir"/app.csv.*.atb 2>/dev/null | head -n 3)
+    local atb_files=$(ls -t "$bak_dir"/${db_name}.*.atb 2>/dev/null | head -n 3)
     
     if [ -n "$atb_files" ]; then
         [ "$found_any" -eq 1 ] && echo -e "${THEME_DESC}    --------------------------${C_RESET}"
@@ -1056,6 +1060,7 @@ function _factory_show_status() {
 
 # 顯示兵工廠資訊 - Display Factory Info Manifest
 function _factory_show_info() {
+    local db_name=$(basename "${__FAC_ACTIVE_DB:-app.csv.temp}")
     clear
     _draw_logo "factory"
     
@@ -1064,7 +1069,7 @@ function _factory_show_info() {
     echo -e "  ${THEME_DESC}PROTOCOL   :${C_RESET} ${THEME_SUB}Factory Mode${C_RESET}"
     echo -e "  ${THEME_DESC}ACCESS     :${C_RESET} ${THEME_MAIN}COMMANDER${C_RESET}"
     echo -e "  ${THEME_DESC}PURPOSE    :${C_RESET} ${THEME_SUB}Neural Link Construction & Modification${C_RESET}"
-    echo -e "  ${THEME_DESC}TARGET     :${C_RESET} ${THEME_WARN}app.csv.temp${C_RESET}"
+    echo -e "  ${THEME_DESC}TARGET     :${C_RESET} ${THEME_WARN}$db_name${C_RESET}"
     echo ""
     echo -e " ${THEME_MAIN}:: WARNING ::${C_RESET}"
     echo -e "  ${THEME_DESC}\"With great power comes great possibility of breaking things.\"${C_RESET}"
@@ -1087,8 +1092,8 @@ function _factory_fzf_menu() {
     local mode="${2:-VIEW}"
     local cat_filter="$3" 
     
-    local target_file="$MUX_ROOT/app.csv.temp"
-    if [ ! -f "$target_file" ]; then target_file="$MUX_ROOT/app.csv"; fi
+    local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
+    if [ ! -f "$target_file" ]; then target_file="${target_file%.temp}"; fi
 
     local border_color="208"
     local header_msg="NEURAL FORGE"
@@ -1175,7 +1180,7 @@ function _factory_fzf_menu() {
 # 兵工廠指令選擇器 - Factory Category Scanner
 function _factory_fzf_cat_selector() {
     local mode="${1:-VIEW}"
-    local target_file="$MUX_ROOT/app.csv.temp"
+    local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
     
     # --- 1. 樣式定義 ---
     local border_color="208"
@@ -1256,7 +1261,7 @@ function _factory_fzf_cat_selector() {
 function _factory_fzf_cmd_in_cat() {
     local target_cat_name="$1"
     local mode="${2:-VIEW}"
-    local target_file="$MUX_ROOT/app.csv.temp"
+    local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
     
     if [ -z "$target_cat_name" ]; then return 1; fi
 
