@@ -636,6 +636,7 @@ function _launch_android_app() {
     _bot_say "launch" "Target: '$name'"
     
     # FIRE THE COMMAND
+    if ! _mux_payload_sanitizer "am start --user 0 $cmd_args"; then return 1; fi
     local output
     output=$(eval "am start --user 0 $cmd_args" 2>&1)
 
@@ -710,6 +711,29 @@ function _mux_security_gate() {
     fi
 
     return 0
+}
+
+# 實時發射載荷消毒器 (Real-time Payload Sanitizer)
+function _mux_payload_sanitizer() {
+    local payload="$1"
+    
+    # 1. 檢測 Shell 注入危險字元 
+    if [[ "$payload" == *"\`"* ]] || [[ "$payload" == *"\$("* ]] || [[ "$payload" == *"&&"* ]] || [[ "$payload" == *"||"* ]]; then
+        _bot_say "error" "SECURITY ALERT: Payload contains forbidden shell injection sequences."
+        echo -e "${C_BLACK}    ›› Blocked signature: Sub-shell or chaining operators.${C_RESET}"
+        return 1
+    fi
+
+    # 2. 檢測致命的 Android/Linux 破壞指令
+    local dangerous_patterns="(rm -rf|mkfs|dd if=|chmod -R|chown -R|> /dev/|su -c|tsu -c)"
+    if [[ "$payload" =~ $dangerous_patterns ]]; then
+        local matched="${BASH_REMATCH[1]:-Unknown}"
+        _bot_say "error" "SECURITY ALERT: Destructive command pattern detected."
+        echo -e "${C_BLACK}    ›› Blocked signature: '${matched}'${C_RESET}"
+        return 1
+    fi
+
+    return
 }
 
 # 潘朵拉之盒 (Pandora's Box)
@@ -971,6 +995,7 @@ function _mux_neural_fire_control() {
                 cmd="$cmd$cate_args$extra_args"
 
                 # FIRE THE COMMAND
+                if ! _mux_payload_sanitizer "$cmd"; then return 1; fi
                 local output=$(eval "$cmd" 2>&1)
                 if [[ "$output" == *"Error"* ]]; then
                     _bot_say "error" "Launch Failed: $output"
@@ -1042,6 +1067,7 @@ function _mux_neural_fire_control() {
             cmd="$cmd$cate_args$extra_args"
             
             # FIRST FIRE THE COMMAND
+            if ! _mux_payload_sanitizer "$cmd"; then return 1; fi
             local output=$(eval "$cmd" 2>&1)
             if [[ "$output" != *"Error"* && "$output" != *"Activity not found"* && "$output" != *"unable to resolve Intent"* ]]; then
                 return 0
@@ -1056,6 +1082,7 @@ function _mux_neural_fire_control() {
                 if [ -n "$_VAL_FLAG" ]; then cmd_i="$cmd_i -f $_VAL_FLAG"; fi
                 cmd_i="$cmd_i$cate_args$extra_args"
 
+                if ! _mux_payload_sanitizer "$cmd_i"; then return 1; fi
                 local output_i=$(eval "$cmd_i" 2>&1)
 
                 if [[ "$output_i" != *"Error"* && "$output_i" != *"Activity not found"* && "$output_i" != *"unable to resolve Intent"* ]]; then
@@ -1077,6 +1104,7 @@ function _mux_neural_fire_control() {
                 cmd_n="$cmd_n$cate_args$extra_args"
 
                 _bot_say "launch" "Retrying ('n' mode): '$real_args'"
+                if ! _mux_payload_sanitizer "$cmd_n"; then return 1; fi
                 local output_n=$(eval "$cmd_n" 2>&1)
                 _mux_launch_validator "$output_n" "$_VAL_PKG"
                 return 0
@@ -1128,6 +1156,7 @@ function _mux_neural_fire_control() {
             cmd="$cmd$cate_args$extra_args"
 
             _bot_say "system" "System Call: $_VAL_UINAME"
+            if ! _mux_payload_sanitizer "$cmd"; then return 1; fi
             local output_sys
             output_sys=$(eval "$cmd" 2>&1)
             _mux_launch_validator "$output_sys" "Node: ${_VAL_PKG:-$_VAL_UINAME}"
@@ -1222,6 +1251,7 @@ function _mux_neural_fire_control() {
             # 5. 發射與回報
             _bot_say "system" "Executing SSL Override: $_VAL_UINAME"
             
+            if ! _mux_payload_sanitizer "$cmd"; then return 1; fi
             local output_ssl
             output_ssl=$(eval "$cmd" 2>&1)
             ;;
@@ -1332,7 +1362,7 @@ function _core_system_scan() {
                 }
 
                 # 3. 結構完整性預判 (Deep Scan)
-                if (com ~ /^(o|op|open|mux|fac|xum)$/) {
+                if (com ~ /^(o|op|open|mux|fac|xum|set)$/) {
                     level = "ERR"
                     msg = "Reserved Keyword Violation (" com ")"
                 }
@@ -1361,8 +1391,16 @@ function _core_system_scan() {
                         }
                     }
                 }
+
+                # 4. 惡意代碼靜態掃描 (Static Malware Scan)
+                full_payload = pkg " " tgt " " ihead " " ibody " " uri " " $19 " " $21 " " $24 " " $27 " " $30 " " $33
                 
-                # 4. 輸出結果 (格式: COM_NAME|LEVEL|MSG)
+                if (full_payload ~ /(rm -rf|mkfs|dd if=|chmod -R|chown -R|> \/dev\/|su -c|\$\(|`)/) {
+                    level = "ERR"
+                    msg = "MALICIOUS PAYLOAD DETECTED (Injection Risk)"
+                }
+                
+                # 5. 輸出結果 (格式: COM_NAME|LEVEL|MSG)
                 if (level != "") {
                     print com "|" level "|" msg
                 }
