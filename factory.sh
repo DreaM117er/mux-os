@@ -1198,6 +1198,14 @@ function _fac_generic_edit() {
     # 3. 使用者輸入
     echo -e "${THEME_DESC}    Current: [ ${current_val:-Empty} ]${C_RESET}" >&2
     read -e -p "    › " -i "$current_val" input_val
+
+    if [ -n "$input_val" ]; then
+        if ! _mux_payload_sanitizer "$input_val" >&2; then
+            echo -e "${THEME_DESC}    (Press 'Enter' to return...)${C_RESET}" >&2
+            read -r < /dev/tty
+            return 2
+        fi
+    fi
     
     # 4. 原子寫入
     _fac_neural_write "$target_key" "$col_idx" "$input_val"
@@ -1291,6 +1299,14 @@ function _fac_fzf_edit() {
         echo -e "${THEME_DESC}    Current: [ ${current_val:-Empty} ]${C_RESET}" >&2
         read -e -p "    › " -i "$current_val" input_val
         final_val="$input_val"
+    fi
+
+    if [ -n "$final_val" ]; then
+        if ! _mux_payload_sanitizer "$final_val" >&2; then
+            echo -e "${THEME_DESC}    (Press 'Enter' to return...)${C_RESET}" >&2
+            read -r < /dev/tty
+            return 2
+        fi
     fi
 
     # 原子寫入
@@ -1814,6 +1830,12 @@ function _fac_edit_router() {
                         read -e -p "    › " -i "$default_val" input_val
                         
                         if [ -n "$input_val" ]; then
+                            if ! _mux_payload_sanitizer "$input_val" >&2; then
+                                echo -e "${THEME_DESC}    (Press 'Enter' to return...)${C_RESET}" >&2
+                                read -r < /dev/tty
+                                return 2
+                            fi
+                            
                             edit_uri="$input_val"
                             if [ "$input_val" != "\$__GO_TARGET" ]; then
                                 if [ -n "$edit_engine" ]; then
@@ -2391,6 +2413,7 @@ function _fac_launch_test() {
     # 6. 執行與輸出報告
     if [ -n "$final_cmd" ]; then
         echo -e "${THEME_DESC}    Payload › $final_cmd${C_RESET}"
+        if ! _mux_payload_sanitizer "$final_cmd"; then return 1; fi
         output=$(eval "$final_cmd" 2>&1)
         
         if [[ "$output" == *"Error"* || "$output" == *"does not exist"* || "$output" == *"unable to resolve"* ]]; then
