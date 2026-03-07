@@ -367,7 +367,8 @@ function _factory_system_boot() {
     if [ "$current_lv" -ge 16 ] || [ "$has_reborn" -eq 1 ]; then active_dbs+=("$MUX_ROOT/system.csv.temp"); fi
 
     for db_temp in "${active_dbs[@]}"; do
-        awk -F, -v OFS=,'
+
+        awk -F, -v OFS=, '
         BEGIN { cn=0; cs=0; fail=0 }
         NR==1 { print; next }
         {

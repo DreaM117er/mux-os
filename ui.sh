@@ -422,6 +422,7 @@ function _show_hud() {
     local line3_v=""
 
     if [ "$mode" == "factory" ]; then
+        local active_db_disp=$(basename "${__FAC_ACTIVE_DB:-app.csv.temp}")
         line1_k="HOST   "; line1_v="Commander"
         line2_k="TARGET "; line2_v="$active_db_disp"
         line3_k="STATUS "; line3_v="Unlocked"
