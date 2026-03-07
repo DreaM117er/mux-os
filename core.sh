@@ -199,7 +199,7 @@ function _mux_init() {
     _bot_say "hello"
 
     local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
-    if [ "$MUX_MODE" == "MUX" ] && [ "$MUX_STATUS" == "LOGIN" ] && [ "${MUX_LEVEL:-1}" -ge 8 ] && [[ "$current_branch" != "main" && "$current_branch" != "master" ]]; then
+    if [ "$MUX_MODE" == "MUX" ] && [ "$MUX_STATUS" == "LOGIN" ] && [[ "${MUX_LEVEL:-1}" -ge 8 || "${MUX_REBORN_COUNT:-0}" -gt 0 ]] && [[ "$current_branch" != "main" && "$current_branch" != "master" ]]; then
         if [ ! -f "$MUX_ROOT/.passcode" ]; then
             if [ "${MUX_CHECK:-0}" -ge 3 ]; then
                 echo ""
@@ -1413,7 +1413,7 @@ function _core_system_scan() {
     fi
 
     local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
-    if [ "$mode" == "manual" ] && [ "$MUX_MODE" == "MUX" ] && [ "$MUX_STATUS" == "LOGIN" ] && [ "${MUX_LEVEL:-1}" -ge 8 ] && [ ! -f "$MUX_ROOT/.passcode" ] && [[ "$current_branch" != "main" && "$current_branch" != "master" ]]; then
+    if [ "$mode" == "manual" ] && [ "$MUX_MODE" == "MUX" ] && [ "$MUX_STATUS" == "LOGIN" ] && [[ "${MUX_LEVEL:-1}" -ge 8 || "${MUX_REBORN_COUNT:-0}" -gt 0 ]] && [ ! -f "$MUX_ROOT/.passcode" ] && [[ "$current_branch" != "main" && "$current_branch" != "master" ]]; then
         if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
         MUX_CHECK=$(( ${MUX_CHECK:-0} + 1 ))
         _save_identity
