@@ -3087,6 +3087,10 @@ function fac() {
         echo ""
         _bot_say "warn" "CRITICAL: Clearance Level 8 Reached." 2>/dev/null
         echo -e "${THEME_WARN} :: VENDOR Database Unlocked. Preparing Neural Forge...${C_RESET}"
+        # 解鎖新沙盒
+        if [ ! -f "$MUX_ROOT/vendor.csv.temp" ] && [ -f "$MUX_ROOT/vendor.csv" ]; then
+            command cp "$MUX_ROOT/vendor.csv" "$MUX_ROOT/vendor.csv.temp"
+        fi
         reboot_flag=1
     fi
     
@@ -3095,6 +3099,10 @@ function fac() {
         echo ""
         _bot_say "warn" "CRITICAL: Architect Clearance Level 16 Reached." 2>/dev/null
         echo -e "${C_RED} :: SYSTEM Database Unlocked. Core Directives Exposed.${C_RESET}"
+        # 解鎖新沙盒
+        if [ ! -f "$MUX_ROOT/system.csv.temp" ] && [ -f "$MUX_ROOT/system.csv" ]; then
+            command cp "$MUX_ROOT/system.csv" "$MUX_ROOT/system.csv.temp"
+        fi
         reboot_flag=1
     fi
     

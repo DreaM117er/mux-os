@@ -351,17 +351,21 @@ function _system_check() {
     if [ "$mode" == "factory" ]; then
         C_PROC="\033[1;35m⟳\033[0m"
         local active_db=$(basename "${__FAC_ACTIVE_DB:-app.csv.temp}")
-        local mount_msg="Mounting $active_db (Write-Mode)..."
+        local mount_msg="Mounting $active_db ..."
+        local mount_msg2="Writing-Mode Unlocked..."
         if [ "$active_db" == "vendor.csv.temp" ]; then
-            mount_msg="Unlocking Manufacturer Plugins ($active_db)..."
+            mount_msg="Unlocking Manufacturer Plugins..."
+            mount_msg2="Setting $active_db on board..."
         elif [ "$active_db" == "system.csv.temp" ]; then
-            mount_msg="Bypassing Core Directives ($active_db)..."
+            mount_msg="Bypassing Core Directives..."
+            mount_msg2="Unlocked Database $active_db ..."
         fi
         steps=(
             "Initializing Neural Forge..."
             "Overriding Read-Only Filesystem..."
             "Disabling Safety Interlocks..."
             "$mount_msg"
+            "$mount_msg2"
             "Establishing Factory Uplink..."
         )
     elif [ "$mode" == "xum" ]; then
