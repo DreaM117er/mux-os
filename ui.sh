@@ -774,6 +774,9 @@ function _mux_dynamic_help_factory() {
     local current_lv=${MUX_LEVEL:-1}
     local has_reborn=${MUX_REBORN_COUNT:-0}
 
+    local has_xum=0
+    [ -f "$MUX_ROOT/xum.csv" ] && has_xum=1
+
     echo -e "${C_PURPLE} :: Mux-OS Factory Protocols ::${C_RESET}"
     
     awk -v lvl="$current_lv" -v rb="$has_reborn" '
@@ -791,6 +794,10 @@ function _mux_dynamic_help_factory() {
                 cmd_name = parts[2];
                 
                 if (cmd_name == "switch" && (lvl + 0) < 8 && (rb + 0) == 0) {
+                    next;
+                }
+
+                if (cmd_name == "import" && xum == 0) {
                     next;
                 }
 

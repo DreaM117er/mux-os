@@ -166,10 +166,16 @@ function _install_protocol() {
     echo "    ›› Installing Bootloader..."
 
     # 重要！定義注入區塊
+    if [ -f "$RC_FILE" ]; then
+        sed -i '/# Mux-OS Core Uplink/d' "$RC_FILE"
+        sed -i '\#\[ -f "$HOME/mux-os/core.sh" \] && source "$HOME/mux-os/core.sh"#d' "$RC_FILE"
+        sed -i '/# === Mux-OS Auto-Loader ===/d' "$RC_FILE"
+    else
+        touch "$RC_FILE"
+    fi
+
     BLOCK_START="# >>> Mux-OS Init >>>"
     BLOCK_END="# <<< Mux-OS Init <<<"
-
-    [ ! -f "$RC_FILE" ] && touch "$RC_FILE"
 
     if grep -qF "$BLOCK_START" "$RC_FILE"; then
         sed -i "/$BLOCK_START/,/$BLOCK_END/d" "$RC_FILE"
@@ -235,8 +241,17 @@ function _uninstall_protocol() {
     sleep 1
 
     if [ -f "$RC_FILE" ]; then
+        BLOCK_START="# >>> Mux-OS Init >>>"
+        BLOCK_END="# <<< Mux-OS Init <<<"
+        if grep -qF "$BLOCK_START" "$RC_FILE"; then
+            sed -i "/$BLOCK_START/,/$BLOCK_END/d" "$RC_FILE"
+        fi
+
         sed -i '/# === Mux-OS Auto-Loader ===/d' "$RC_FILE"
-        sed -i "\#source $MUX_ROOT/core.sh#d" "$RC_FILE"
+        sed -i '/# Mux-OS Core Uplink/d' "$RC_FILE"
+        sed -i '\#source '"$MUX_ROOT"'/core.sh#d' "$RC_FILE"
+        sed -i '\#\[ -f "$HOME/mux-os/core.sh" \] && source "$HOME/mux-os/core.sh"#d' "$RC_FILE"
+
         echo "    ›› Bootloader removed."
     fi
 

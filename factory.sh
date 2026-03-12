@@ -2651,6 +2651,101 @@ function __fac_core() {
             fi
             ;;
 
+        # : Import Blueprint from XUM report
+        "import")
+            if [ ! -f "$MUX_ROOT/xum.csv" ]; then
+                echo -e "${THEME_WARN} :: Unknown Directive: '$cmd'.${C_RESET}"
+                return 1
+            fi
+
+            local report_file="$MUX_ROOT/.report"
+            
+            if [ ! -f "$report_file" ]; then
+                _bot_say "error" "No combat report (.report) found."
+                return 1
+            fi
+            
+            # 1. 提取隱藏暗碼
+            local blueprint=$(grep "^\[XUM_BLUEPRINT\]::" "$report_file" | sed 's/^\[XUM_BLUEPRINT\]:://' | tail -n 1)
+            
+            if [ -z "$blueprint" ]; then
+                _bot_say "error" "No valid blueprint signature in .report."
+                return 1
+            fi
+            
+            _bot_say "action" "XUM Blueprint Detected. Decoding..."
+            sleep 0.8
+            
+            # 2. 補完 TYPE
+            _bot_say "warn" "Blueprint architecture undefined. Please specify TYPE:"
+            local type_sel=$(_factory_fzf_add_type_menu)
+            if [[ -z "$type_sel" || "$type_sel" == "Cancel" || "$type_sel" == *"------"* ]]; then
+                _bot_say "error" "Extraction aborted."
+                return 1
+            fi
+            local bp_type=$(echo "$type_sel" | awk '{print $2}') 
+
+            # 3. 補完名稱 (Identity)
+            _bot_say "action" "Assign an Identity (Command Name) for this Blueprint:"
+            read -e -p "    › " new_com_name
+            if [ -z "$new_com_name" ]; then
+                _bot_say "error" "Identity required. Aborting."
+                return 1
+            fi
+
+            # 4. 準備新流水號
+            local target_db="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
+            local next_comno=$(awk -F, '$1==999 {gsub(/^"|"$/, "", $2); if(($2+0) > max) max=$2} END {print max+1}' "$target_db")
+            if [ -z "$next_comno" ] || [ "$next_comno" -eq 1 ]; then next_comno=1; fi
+            if ! [[ "$next_comno" =~ ^[0-9]+$ ]]; then next_comno=999; fi
+            
+            # 5. 高精度神經映射 (29 cols -> 35 cols Schema Translation)
+            local final_row=$(echo "$blueprint" | awk -v FPAT='([^,]*)|("[^"]+")' -v OFS=, \
+                -v n_no="$next_comno" -v n_type="\"$bp_type\"" -v n_com="\"$new_com_name\"" '
+            {
+                # 建立 35 欄標準陣列
+                f[1]="999"; f[2]=n_no; f[3]="\"Others\""; f[4]=n_type; f[5]=n_com; 
+                f[6]="\"\""; f[7]="\"E\""; f[8]="\"\""; f[9]="\"\"";
+                
+                # 映射 XUM 參數至 Factory
+                f[10]=$5;  # PKG
+                f[11]=$6;  # TARGET
+                f[12]=$7;  # IHEAD
+                f[13]=$8;  # IBODY
+                f[14]=$9;  # URI
+                f[15]=$10; # MIME
+                f[16]=$11; # CATE1
+                f[17]=$12; # CATE2
+                f[18]=$13; # CATE3
+                f[19]=$29; # FLAG (XUM 29 -> FAC 19)
+                
+                # EXTRAs 對齊
+                f[20]=$14; f[21]=$15; f[22]=$16 # EXTRA 1
+                f[23]=$17; f[24]=$18; f[25]=$19 # EXTRA 2
+                f[26]=$20; f[27]=$21; f[28]=$22 # EXTRA 3
+                f[29]=$23; f[30]=$24; f[31]=$25 # EXTRA 4
+                f[32]=$26; f[33]=$27; f[34]=$28 # EXTRA 5
+                
+                f[35]="\"\"" # Padding
+                
+                # 輸出
+                for(i=1; i<=35; i++) {
+                    if (f[i] == "") f[i]="\"\""
+                    printf "%s%s", f[i], (i==35?"":OFS)
+                }
+                print ""
+            }')
+            
+            # 6. 寫入與編輯
+            if [ -s "$target_db" ] && [ "$(tail -c 1 "$target_db")" != "" ]; then echo "" >> "$target_db"; fi
+            echo "$final_row" >> "$target_db"
+            
+            _bot_say "success" "Blueprint Extracted & Reconstructed. Forging..."
+            sleep 1
+            
+            _fac_safe_edit_protocol "$new_com_name" "EDIT"
+            ;;
+
         # : Edit Neural (Edit Command)
         "edit"|"comedit"|"comm")
             local view_state="EDIT"
@@ -2924,7 +3019,11 @@ function __fac_core() {
                 
                 # 選中目標後，進入參數輸入
                 if [ -n "$target_node" ]; then
-                    read -e -p "$(echo -e "${C_YELLOW} :: $target_node ${C_BLACK}(Params?): ${C_RESET}")" user_params < /dev/tty
+                    local p_ylw=$'\001'"$(echo -e "${C_YELLOW}")"$'\002'
+                    local p_blk=$'\001'"$(echo -e "${C_BLACK}")"$'\002'
+                    local p_rst=$'\001'"$(echo -e "${C_RESET}")"$'\002'
+                    
+                    read -e -p "${p_ylw} :: $target_node ${p_blk}(Params?): ${p_rst}" user_params < /dev/tty
                 fi
 
             # Logic B: 有參數 -> 智慧判斷 (Bypass Mode)
