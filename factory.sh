@@ -2685,6 +2685,12 @@ function __fac_core() {
             fi
             local bp_type=$(echo "$type_sel" | awk '{print $2}') 
 
+            if [ "$bp_type" == "SYS" ] && [ "${__FAC_ACTIVE_DB_NAME:-APP}" != "SYSTEM" ]; then
+                _bot_say "error" "SYS Architecture must be forged in the SYSTEM Database."
+                echo -e "${THEME_DESC}    ›› Current workspace is [${__FAC_ACTIVE_DB_NAME:-APP}]. Please execute 'fac switch'.${C_RESET}"
+                return 1
+            fi
+
             # 3. 補完名稱 (Identity)
             _bot_say "action" "Assign an Identity (Command Name) for this Blueprint:"
             read -e -p "    › " new_com_name
