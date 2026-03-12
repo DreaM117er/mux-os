@@ -140,26 +140,41 @@ function _install_protocol() {
     chmod +x "$MUX_ROOT/"*.sh
 
     echo "    ›› Calibrating Vendor Ecosystem..."
-    BRAND=$(getprop ro.product.brand | tr '[:upper:]' '[:lower:]' | xargs)
+    # 定義絕對的 vendor.csv 及 plugins
+    RAW_BRAND=$(getprop ro.product.brand 2>/dev/null | tr '[:upper:]' '[:lower:]' | xargs)
+    
+    case "$RAW_BRAND" in
+        "redmi"|"poco"|"blackshark") BRAND="xiaomi" ;;
+        "rog")                       BRAND="asus" ;;
+        *)                           BRAND="${RAW_BRAND:-unknown}" ;;
+    esac
+
     PLUGIN_DIR="$MUX_ROOT/plugins"
     VENDOR_TARGET="$MUX_ROOT/vendor.csv"
     
-    if [ ! -d "$PLUGIN_DIR" ]; then mkdir -p "$PLUGIN_DIR"; fi
+    [ ! -d "$PLUGIN_DIR" ] && mkdir -p "$PLUGIN_DIR"
 
-    case "$BRAND" in
-        "redmi"|"poco") BRAND="xiaomi" ;;
-        "rog"|"asus")   BRAND="asus" ;;
-        "samsung")      BRAND="samsung" ;;
-        *)              BRAND="${BRAND:-unknown}" ;;
-    esac
+    MATCHED_PLUGIN=""
+    if [ -n "$(ls -A "$PLUGIN_DIR"/*.csv 2>/dev/null)" ]; then
+        for plugin in "$PLUGIN_DIR"/*.csv; do
+            plugin_name=$(basename "$plugin" .csv)
+            if [ "$plugin_name" == "$BRAND" ] || [ "$plugin_name" == "$RAW_BRAND" ]; then
+                MATCHED_PLUGIN="$plugin"
+                break
+            fi
+        done
+    fi
 
-    TARGET_PLUGIN="$PLUGIN_DIR/$BRAND.csv"
-    if [ -f "$TARGET_PLUGIN" ]; then
-        cp "$TARGET_PLUGIN" "$VENDOR_TARGET"
-        echo "    ›› Vendor Identity: $BRAND (Module Loaded)"
+    if [ -n "$MATCHED_PLUGIN" ]; then
+        cp "$MATCHED_PLUGIN" "$VENDOR_TARGET"
+        echo "    ›› Vendor Identity: $BRAND (Dynamic Module Loaded)"
     else
         echo '"CATNO","COMNO","CATNAME","TYPE","COM","COM2","COM3","HUDNAME","UINAME","PKG","TARGET","IHEAD","IBODY","URI","MIME","CATE1","CATE2","CATE3","FLAG","EX1","EXTRA1","BOOLEN1","EX2","EXTRA2","BOOLEN2","EX3","EXTRA3","BOOLEN3","EX4","EXTRA4","BOOLEN4","EX5","EXTRA5","BOOLEN5","ENGINE"' > "$VENDOR_TARGET"
-        echo "    ›› Vendor Identity: Generic (Standard Protocol)"
+        if [ "$BRAND" != "unknown" ]; then
+            echo "    ›› Vendor Identity: $BRAND (Generic Protocol Fallback)"
+        else
+            echo "    ›› Vendor Identity: Generic (Standard Protocol)"
+        fi
     fi
     chmod 644 "$VENDOR_TARGET"
 
