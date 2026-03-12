@@ -17,6 +17,7 @@ bak/
 *.qa
 *.chk
 *_backup_*
+.report
 
 # :: Factory Reset Files
 app.csv.temp
