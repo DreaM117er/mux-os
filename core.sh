@@ -373,7 +373,7 @@ function _mux_system_purge() {
     
     # 抓出未追蹤的檔案，排除合法的暫存與設定檔
     local untracked=$(git ls-files --others --exclude-standard 2>/dev/null)
-    local valid_pattern="^(bak|\.mux_state|\.mux_identity|app\.csv\.temp|xum\.csv|\.core|\.passcode|\.report|report\.txt|m_[0-9]+\.tar\.gz|\.matrix)$"
+    local valid_pattern="^(bak|\.mux_state|\.mux_identity|app\.csv\.temp|xum\.csv|\.core|\.passcode|\.report|m_[0-9]+\.tar\.gz|\.matrix)$"
     local impurities=$(echo "$untracked" | grep -vE "$valid_pattern")
     
     if [ -z "$impurities" ]; then
