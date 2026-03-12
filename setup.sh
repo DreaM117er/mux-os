@@ -42,7 +42,7 @@ function _banner() {
  |_|  |_|\__,_/_/\_\     \___/|____/ 
 EOF
     echo -e "${C_RESET}"
-    echo -e " ${C_GRAY}:: Lifecycle Manager :: v3.6.0 ::${C_RESET}"
+    echo -e " ${C_GRAY}:: Lifecycle Manager :: v3.8.0 ::${C_RESET}"
     echo ""
 }
 
