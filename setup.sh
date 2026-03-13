@@ -42,7 +42,7 @@ function _banner() {
  |_|  |_|\__,_/_/\_\     \___/|____/ 
 EOF
     echo -e "${C_RESET}"
-    echo -e " ${C_GRAY}:: Lifecycle Manager :: v3.8.0 ::${C_RESET}"
+    echo -e " ${C_GRAY}:: Lifecycle Manager :: v4.0.0 ::${C_RESET}"
     echo ""
 }
 
@@ -221,9 +221,17 @@ EOF
     echo -e "${C_GREEN} :: System Ready. Returning to Core...${C_RESET}"
     sleep 1
     
+    local current_mode="MUX"
+    local preserved_ej=""
+    if [ -f "$MUX_ROOT/.mux_state" ]; then
+        current_mode=$(grep "^MUX_MODE=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2)
+        preserved_ej=$(grep "^FAC_EJMODE=" "$MUX_ROOT/.mux_state")
+    fi
+
     cat > "$MUX_ROOT/.mux_state" <<EOF
-MUX_MODE="MUX"
+MUX_MODE="$current_mode"
 MUX_STATUS="DEFAULT"
+$preserved_ej
 EOF
 
     unset MUX_INITIALIZED
