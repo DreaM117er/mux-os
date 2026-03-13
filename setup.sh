@@ -10,6 +10,7 @@ COMMANDER_ID=""
 # 定義路徑
 MUX_ROOT="$HOME/mux-os"
 RC_FILE="$HOME/.bashrc"
+SOUL_VAULT="$HOME/.bakmuxid"
 BACKUP_DIR="$HOME/mux-os_backup_$(date +%Y%m%d_%H%M%S)"
 
 # 定義顏色
@@ -52,7 +53,7 @@ function _banner() {
  |_|  |_|\__,_/_/\_\     \___/|____/ 
 EOF
     echo -e "${C_RESET}"
-    echo -e " ${C_GRAY}:: Lifecycle Manager :: v4.0.0 ::${C_RESET}"
+    echo -e " ${C_GRAY}:: Lifecycle Manager :: vL.2.D ::${C_RESET}"
     echo ""
 }
 
@@ -62,6 +63,41 @@ function _exit_protocol() {
     echo -e "${C_GRAY}    ›› Operations complete. Returning to Core...${C_RESET}"
     sleep 0.5
     exec bash
+}
+
+# 靈魂傳輸協議
+function _restore_identity_protocol() {
+    if [ ! -d "$SOUL_VAULT" ] || [ -z "$(ls -A "$SOUL_VAULT"/.muxid_* 2>/dev/null)" ]; then
+        return 1 # 找不到前世記憶
+    fi
+
+    echo ""
+    echo -e "${C_CYAN} :: Archived Identity Matrices detected in Soul Vault.${C_RESET}"
+    echo -ne "${C_YELLOW} :: Initiate Soul Transfer (Restore)? [Y/n]: ${C_RESET}"
+    read r_choice
+    if [[ "$r_choice" == "y" || "$r_choice" == "Y" || "$r_choice" == "" ]]; then
+        echo -e "${C_GRAY}    ›› Select Identity to restore:${C_RESET}"
+        local i=1
+        local files=()
+        # 依照時間排序，最新的在最上面
+        for f in $(ls -1t "$SOUL_VAULT"/.muxid_*); do
+            files[$i]="$f"
+            echo -e "    [$i] $(basename "$f")"
+            ((i++))
+        done
+        echo -ne "${C_CYAN}    ›› Choice: ${C_RESET}"
+        read id_choice
+        if [[ "$id_choice" =~ ^[1-3]$ ]] && [ -n "${files[$id_choice]}" ]; then
+            cp "${files[$id_choice]}" "$MUX_ROOT/.mux_identity"
+            echo -e "${C_GREEN}    ›› Soul Transfer Complete. Welcome back.${C_RESET}"
+            sleep 1
+            return 0 # 成功轉生
+        else
+            echo -e "${C_RED}    ›› Invalid selection. Transfer aborted.${C_RESET}"
+            return 1
+        fi
+    fi
+    return 1 # 創造新生命
 }
 
 # 身份重置協議
@@ -77,12 +113,61 @@ function _reauth_protocol() {
     fi
     
     sleep 1
-    __MUX_CORE_ACTIVE=true bash "$MUX_ROOT/identity.sh"
+    if ! _restore_identity_protocol; then
+        __MUX_CORE_ACTIVE=true bash "$MUX_ROOT/identity.sh"
+    fi
     
     echo ""
     echo -e "${C_GREEN} :: Identity Matrix Updated.${C_RESET}"
     sleep 1
     
+    _exit_protocol
+}
+
+# 身份備份協議
+function _backup_identity_protocol() {
+    echo ""
+    echo -e "${C_YELLOW} :: Identity Backup Sequence Initiated...${C_RESET}"
+    
+    if [ ! -d "$SOUL_VAULT" ]; then mkdir -p "$SOUL_VAULT"; fi
+    
+    if [ ! -f "$MUX_ROOT/.mux_identity" ]; then
+        echo -e "${C_RED}    ›› Error: No Identity Matrix found to backup.${C_RESET}"
+        sleep 2
+        _exit_protocol
+    fi
+
+    # 檢查記憶插槽數量
+    local count=$(ls -1 "$SOUL_VAULT"/.muxid_* 2>/dev/null | wc -l)
+    local target_file="$SOUL_VAULT/.muxid_$(date +%Y%m%d%H%M%S)"
+
+    if [ "$count" -ge 3 ]; then
+        echo -e "${C_RED}    ›› Memory slots full (Max 3). Select a matrix to overwrite:${C_RESET}"
+        local i=1
+        local files=()
+        for f in $(ls -1t "$SOUL_VAULT"/.muxid_*); do
+            files[$i]="$f"
+            echo -e "    [$i] $(basename "$f")"
+            ((i++))
+        done
+        echo -e "    [c] Cancel"
+        echo -ne "${C_CYAN}    ›› Choice: ${C_RESET}"
+        read b_choice
+        if [[ "$b_choice" =~ ^[1-3]$ ]] && [ -n "${files[$b_choice]}" ]; then
+            rm "${files[$b_choice]}"
+            echo -e "${C_GRAY}    ›› Old matrix purged.${C_RESET}"
+        else
+            echo -e "${C_GRAY}    ›› Backup aborted.${C_RESET}"
+            sleep 1
+            _exit_protocol
+        fi
+    fi
+
+    cp "$MUX_ROOT/.mux_identity" "$target_file"
+    echo -e "${C_GREEN}    ›› Identity Matrix safely cloned to Soul Vault:${C_RESET}"
+    echo -e "${C_GRAY}       $(basename "$target_file")${C_RESET}"
+    
+    sleep 2
     _exit_protocol
 }
 
@@ -221,10 +306,13 @@ EOF
     fi
 
     if [ ! -f "$MUX_ROOT/.mux_identity" ] || [ "$current_id" == "Unknown" ]; then
-        echo ""
-        echo -e "${C_YELLOW} :: Initializing Identity Protocol...${C_RESET}"
-        sleep 1
-        __MUX_CORE_ACTIVE=true bash "$MUX_ROOT/identity.sh"
+        # 探測是否有前世記憶
+        if ! _restore_identity_protocol; then
+            echo ""
+            echo -e "${C_YELLOW} :: Initializing Identity Protocol...${C_RESET}"
+            sleep 1
+            __MUX_CORE_ACTIVE=true bash "$MUX_ROOT/identity.sh"
+        fi
     fi
 
     echo ""
@@ -316,16 +404,18 @@ if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
     echo ""
     echo " [1] Repair / Reinstall (Update)"
     echo " [2] Reset Identity (Re-auth)"
-    echo " [3] Uninstall (Self-Destruct)"
-    echo " [4] Cancel (Reload Core)"
+    echo " [3] Backup Identity (Export)"
+    echo " [4] Uninstall (Self-Destruct)"
+    echo " [5] Cancel (Reload Core)"
     echo ""
-    echo -ne "${C_CYAN} :: Select Protocol [1-4]: ${C_RESET}"
+    echo -ne "${C_CYAN} :: Select Protocol [1-5]: ${C_RESET}"
     read choice
 
     case "$choice" in
         1) _install_protocol ;;
         2) _reauth_protocol ;;
-        3) _uninstall_protocol ;;
+        3) _backup_identity_protocol ;;
+        4) _uninstall_protocol ;;
         *) _exit_protocol ;;
     esac
 

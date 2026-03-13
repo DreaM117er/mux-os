@@ -3147,6 +3147,17 @@ function __fac_core() {
             _fac_matrix_defrag
             _factory_deploy_sequence
             ;;
+
+        # : Run Setup Protocol
+        "setup")
+            if [ -f "$MUX_ROOT/setup.sh" ]; then
+                _bot_say "action" "Transferring control to Lifecycle Manager..."
+                sleep 0.8
+                exec bash "$MUX_ROOT/setup.sh"
+            else
+                _bot_say "error" "Lifecycle Manager (setup.sh) not found."
+            fi
+            ;;
         
         "eject")
             local current_mode="0"
