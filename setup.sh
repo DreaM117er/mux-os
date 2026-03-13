@@ -30,6 +30,17 @@ else
     COMMANDER_ID="Unknown"
 fi
 
+# 狀態機探測與繼承
+CURRENT_MODE="MUX"
+PRESERVED_EJ=""
+if [ -f "$MUX_ROOT/.mux_state" ]; then
+    CURRENT_MODE=$(grep "^MUX_MODE=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2 | tr -d '\r\n ')
+    PRESERVED_EJ=$(grep "^FAC_EJMODE=" "$MUX_ROOT/.mux_state" 2>/dev/null)
+fi
+# 狀態機損毀 fallback 機制
+[ -z "$CURRENT_MODE" ] && CURRENT_MODE="MUX"
+
+
 # 輔助函式：Banner
 function _banner() {
     clear
@@ -221,18 +232,19 @@ EOF
     echo -e "${C_GREEN} :: System Ready. Returning to Core...${C_RESET}"
     sleep 1
     
-    local current_mode="MUX"
-    local preserved_ej=""
-    if [ -f "$MUX_ROOT/.mux_state" ]; then
-        current_mode=$(grep "^MUX_MODE=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2)
-        preserved_ej=$(grep "^FAC_EJMODE=" "$MUX_ROOT/.mux_state")
-    fi
-
-    cat > "$MUX_ROOT/.mux_state" <<EOF
-MUX_MODE="$current_mode"
+    # 狀態機偵測及寫入
+    if [ "$SYSTEM_STATUS" != "ONLINE" ]; then
+        cat > "$MUX_ROOT/.mux_state" <<EOF
+MUX_MODE="MUX"
 MUX_STATUS="DEFAULT"
-$preserved_ej
 EOF
+    else
+        cat > "$MUX_ROOT/.mux_state" <<EOF
+MUX_MODE="$CURRENT_MODE"
+MUX_STATUS="DEFAULT"
+$PRESERVED_EJ
+EOF
+    fi
 
     unset MUX_INITIALIZED
     exec bash
@@ -280,6 +292,7 @@ function _uninstall_protocol() {
 
     if [ -d "$MUX_ROOT" ]; then
         unset -f mux _bot_say _mux_init 2>/dev/null
+        cd ~ 2>/dev/null || cd /
         rm -rf "$MUX_ROOT"
         echo "    ›› Core files vaporized."
     fi
@@ -294,6 +307,7 @@ _banner
 
 if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
     echo -e "${C_CYAN} :: System Status: ${C_GREEN}ONLINE${C_RESET} ${C_GRAY}(Commander: $COMMANDER_ID)${C_RESET}"
+    echo -e "${C_CYAN} :: Active Dimension: ${C_YELLOW}$CURRENT_MODE${C_RESET}"
     echo ""
     echo " [1] Repair / Reinstall (Update)"
     echo " [2] Reset Identity (Re-auth)"
