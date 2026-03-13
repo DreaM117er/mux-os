@@ -1594,7 +1594,9 @@ function _fac_edit_router() {
                     read -e -p "    › " -i "$_VAL_COM" new_com
                     new_com=$(echo "$new_com" | sed 's/^[ \t]*//;s/[ \t]*$//')
 
-                    if [[ "$new_com" =~ ^(o|op|open|mux|fac|xum)$ ]]; then
+                    if [ ${#new_com} -gt 8 ]; then
+                        _bot_say "error" "Length Exceeded. COM must be <= 8 chars." >&2
+                    elif [[ "$new_com" =~ ^(o|op|open|mux|fac|xum)$ ]]; then
                         _bot_say "error" "Reserved System Keyword. Request Denied." >&2
                     elif [ -n "$new_com" ] && [ "$new_com" != "$_VAL_COM" ]; then
                         _fac_neural_write "$current_track_key" 5 "$new_com"
@@ -1614,7 +1616,9 @@ function _fac_edit_router() {
                     read -e -p "    › " -i "$_VAL_COM2" new_sub
                     new_sub=$(echo "$new_sub" | sed 's/^[ \t]*//;s/[ \t]*$//')
                     
-                    if [ "$new_sub" != "$_VAL_COM2" ]; then
+                    if [ ${#new_sub} -gt 8 ]; then
+                        _bot_say "error" "Length Exceeded. SUBCOM must be <= 8 chars." >&2
+                    elif [ "$new_sub" != "$_VAL_COM2" ]; then
                         _fac_neural_write "$current_track_key" 6 "$new_sub"
                         local cur_com="${_VAL_COM}"
                         if [ -n "$new_sub" ]; then
@@ -1965,6 +1969,12 @@ function _fac_edit_router() {
                 return 2
             elif [[ "$_VAL_COM" =~ ^(o|op|open|mux|fac|xum)$ ]]; then
                 _bot_say "error" "System Keyword '$_VAL_COM' is forbidden." >&2
+                return 2
+            elif [ ${#_VAL_COM} -gt 8 ]; then
+                _bot_say "error" "COM Length Exceeded (Max: 8). Please rename it." >&2
+                return 2
+            elif [ -n "$_VAL_COM2" ] && [ ${#_VAL_COM2} -gt 8 ]; then
+                _bot_say "error" "SUBCOM Length Exceeded (Max: 8). Please rename it." >&2
                 return 2
             else
                 _bot_say "success" "Node Validated." >&2
@@ -2653,13 +2663,7 @@ function __fac_core() {
 
         # : Import Blueprint from XUM report
         "import")
-            if [ ! -f "$MUX_ROOT/xum.csv" ]; then
-                echo -e "${THEME_WARN} :: Unknown Directive: '$cmd'.${C_RESET}"
-                return 1
-            fi
-
             local report_file="$MUX_ROOT/.report"
-            
             if [ ! -f "$report_file" ]; then
                 _bot_say "error" "No combat report (.report) found."
                 return 1
@@ -2694,8 +2698,13 @@ function __fac_core() {
             # 3. 補完名稱 (Identity)
             _bot_say "action" "Assign an Identity (Command Name) for this Blueprint:"
             read -e -p "    › " new_com_name
+            new_com_name=$(echo "$new_com_name" | sed 's/^[ \t]*//;s/[ \t]*$//')
+            
             if [ -z "$new_com_name" ]; then
                 _bot_say "error" "Identity required. Aborting."
+                return 1
+            elif [ ${#new_com_name} -gt 8 ]; then
+                _bot_say "error" "Length Exceeded (Max: 8). Aborting."
                 return 1
             fi
 

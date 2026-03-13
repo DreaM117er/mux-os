@@ -775,11 +775,11 @@ function _mux_dynamic_help_factory() {
     local has_reborn=${MUX_REBORN_COUNT:-0}
 
     local has_xum=0
-    [ -f "$MUX_ROOT/xum.csv" ] && has_xum=1
+    [ -f "$MUX_ROOT/.report" ] && has_report=1
 
     echo -e "${C_PURPLE} :: Mux-OS Factory Protocols ::${C_RESET}"
     
-    awk -v lvl="$current_lv" -v rb="$has_reborn" '
+    awk -v lvl="$current_lv" -v rb="$has_reborn" -v rep="$has_report" '
     /function __fac_core\(\) \{/ { inside_fac=1; next }
     /^}/ { inside_fac=0 }
 
@@ -797,7 +797,7 @@ function _mux_dynamic_help_factory() {
                     next;
                 }
 
-                if (cmd_name == "import" && xum == 0) {
+                if (cmd_name == "import" && rep == 0) {
                     next;
                 }
 
@@ -929,9 +929,15 @@ function _show_menu_dashboard() {
             }
 
             if (com2 == "") {
-                printf "    %s%-9s%s %s%s%s\n", C_COM, com, C_RST, C_DESC, desc, C_RST
+                pad_len = 18 - length(com)
+                if (pad_len < 1) pad_len = 1
+
+                printf "    %s%s%s%*s%s%s%s\n", C_COM, com, C_RST, pad_len, "", C_DESC, desc, C_RST
             } else {
-                printf "    %s%s %s%-7s %s%s%s\n", C_COM, com, C_SUB, com2, C_RST " ", C_DESC, desc, C_RST
+                pad_len = 18 - (length(com) + 1 + length(com2))
+                if (pad_len < 1) pad_len = 1
+
+                printf "    %s%s %s%s%s%*s%s%s%s\n", C_COM, com, C_SUB, com2, C_RST, pad_len, "", C_DESC, desc, C_RST
             }
         }
     '

@@ -14,7 +14,7 @@ if command -v _init_identity &> /dev/null; then _init_identity; fi
 
 # 基礎路徑與版本定義
 export MUX_REPO="https://github.com/DreaM117er/mux-os"
-export MUX_VERSION="8.0.0"
+export MUX_VERSION="8.2.0"
 export MUX_ROOT="$HOME/mux-os"
 export BASE_DIR="$MUX_ROOT"
 export MUX_BAK="$MUX_ROOT/bak"
@@ -2006,7 +2006,11 @@ function mux() {
             echo ""
             echo -ne "${C_YELLOW} :: Press 'Enter' to return to Core... ${C_RESET}"
             read -r 
-            _mux_init
+            if [ "$MUX_MODE" == "XUM" ]; then
+                _xum_system_boot
+            else
+                _mux_init
+            fi
             ;;
 
         # : Infomation
