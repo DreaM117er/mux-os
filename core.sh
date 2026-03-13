@@ -2092,7 +2092,7 @@ function mux() {
                     exec bash
                 fi
             else
-                _bot_say "error" "Lifecycle module missing."
+                _bot_say "error" "Lifecycle Manager (setup.sh) not found."
             fi
             ;;
 
