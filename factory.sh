@@ -2668,6 +2668,13 @@ function __fac_core() {
                 _bot_say "error" "No combat report (.report) found."
                 return 1
             fi
+
+            # 0. 探測是否為空彈試射 (Dry Fire)
+            if grep -q "\[EMPTY CHAMBER / DRY FIRE\]" "$report_file" || grep -q "Success (Test)" "$report_file"; then
+                _bot_say "warn" "Report indicates a DRY FIRE (Empty Chamber)."
+                echo -e "${THEME_DESC}    ›› No blueprint payload to extract. Please load a real payload.${C_RESET}"
+                return 1
+            fi
             
             # 1. 提取隱藏暗碼
             local blueprint=$(grep "^\[XUM_BLUEPRINT\]::" "$report_file" | sed 's/^\[XUM_BLUEPRINT\]:://' | tail -n 1)
