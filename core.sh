@@ -79,6 +79,7 @@ if [ -t 0 ]; then
 
 function _system_unlock() {
 if [ -t 0 ]; then 
+        while read -r -s -t 0.01 -n 10000 garbage; do :; done 2>/dev/null
         stty echo
         tput cnorm
     fi
