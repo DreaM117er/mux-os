@@ -32,13 +32,12 @@ fi
 
 # 狀態機探測與繼承
 CURRENT_MODE="MUX"
-PRESERVED_EJ=""
+CURRENT_STATUS="DEFAULT"
 if [ -f "$MUX_ROOT/.mux_state" ]; then
-    CURRENT_MODE=$(grep "^MUX_MODE=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2 | tr -d '\r\n ')
-    PRESERVED_EJ=$(grep "^FAC_EJMODE=" "$MUX_ROOT/.mux_state" 2>/dev/null)
+    source "$MUX_ROOT/.mux_state" 2>/dev/null
+    [ -n "$MUX_MODE" ] && CURRENT_MODE="$MUX_MODE"
+    [ -n "$MUX_STATUS" ] && CURRENT_STATUS="$MUX_STATUS"
 fi
-# 狀態機損毀 fallback 機制
-[ -z "$CURRENT_MODE" ] && CURRENT_MODE="MUX"
 
 
 # 輔助函式：Banner
@@ -233,17 +232,23 @@ EOF
     sleep 1
     
     # 狀態機偵測及寫入
-    if [ "$SYSTEM_STATUS" != "ONLINE" ]; then
+    if [ "$SYSTEM_STATUS" != "ONLINE" ] || [ ! -f "$MUX_ROOT/.mux_state" ]; then
+        # 全新安裝
         cat > "$MUX_ROOT/.mux_state" <<EOF
 MUX_MODE="MUX"
 MUX_STATUS="DEFAULT"
 EOF
     else
-        cat > "$MUX_ROOT/.mux_state" <<EOF
-MUX_MODE="$CURRENT_MODE"
-MUX_STATUS="DEFAULT"
-$PRESERVED_EJ
-EOF
+        # 修復更新
+        if [[ "$CURRENT_MODE" == "XUM" || "$CURRENT_MODE" == "FAC" ]]; then
+            CURRENT_STATUS="LOGIN"
+        fi
+
+        if ! grep -q "^MUX_MODE=" "$MUX_ROOT/.mux_state"; then echo "MUX_MODE=\"\"" >> "$MUX_ROOT/.mux_state"; fi
+        if ! grep -q "^MUX_STATUS=" "$MUX_ROOT/.mux_state"; then echo "MUX_STATUS=\"\"" >> "$MUX_ROOT/.mux_state"; fi
+        
+        sed -i "s/^MUX_MODE=.*/MUX_MODE=\"$CURRENT_MODE\"/" "$MUX_ROOT/.mux_state"
+        sed -i "s/^MUX_STATUS=.*/MUX_STATUS=\"$CURRENT_STATUS\"/" "$MUX_ROOT/.mux_state"
     fi
 
     unset MUX_INITIALIZED
