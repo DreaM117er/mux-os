@@ -551,25 +551,106 @@ function _bot_factory_personality() {
     [ -n "$detail" ] && echo -e "   ${C_BLACK} ›› ${detail}${C_RESET}"
 }
 
-# 專屬小助理人格 (The Clumsy Co-pilot)
+# 指揮塔小助理人格 (The Command Tower Co-pilot)
 function _assistant_voice() {
     local mood="$1"
     local detail="$2"
     
-    local icon=" ✨"
-    local color="\033[1;38;5;211m"
+    local icon=" ::"
+    local color="${C_PINKMEOW}"
     local phrases=()
 
     case "$mood" in
-        "clumsy_coffee") phrases=("Coffee... coffee is so good... 🤤" "Ah! Wait! I spilled it! 💦") ;;
-        "clumsy_panic")  phrases=("Ehh?! The Commander is here?! W-wait, I'm not ready yet! 😱") ;;
-        "clumsy_drop")   phrases=("Awawa... I dropped the important files... Uwaaa... 😭") ;;
-        "sorry")         phrases=("I-I'm so sorry... (wipes tears) 🥺" "Uu... I'll clean it up right away... 😭") ;;
-        "tower_ready")   phrases=("Command Tower linked! Let's do our best today! 🥰" "System purged! I'll never get lost if I follow you, Commander! ✨") ;;
-        *)               phrases=("Copy that! On it right away! 🫡") ;;
+        "clumsy_coffee")
+            phrases=(
+                " Coffee... coffee is so good... Wait, where did the cup go? 🤤"
+                " Ah! Wait! I spilled it on the mainframe! 💦"
+                " I successfully overclocked the coffee machine! But... it exploded! ☕💥"
+                " Just one more sip before decrypting... Oops! My elbow! 💦"
+            )
+            ;;
+
+        "clumsy_panic")
+            phrases=(
+                " Ehh?! The Commander is here?! W-wait, I'm not ready yet! 😱"
+                " I bypassed the firewall in 0.1s, but forgot to load the UI! 🫣"
+                " W-Wait! The rendering engine is still in its pajamas! 💦"
+                " Commander?! I wasn't slacking off! Just... taking a tactical nap! 🛌"
+            )
+            ;;
+
+        "clumsy_drop")
+            phrases=(
+                " Awawa... I dropped the important files... Uwaaa... 😭"
+                " I decrypted the payload, but... I tripped and scattered the packets! 📂💦"
+                " The database index is... rolling under the desk! Catch it! 🏃‍♀️💨"
+                " I-I tried to carry all the root permissions at once and... *crash*! 💥"
+            )
+            ;;
+
+        "sorry")
+            phrases=(
+                " I-I'm so sorry... I'll fix the UI right away! 🥺"
+                " Uu... I'll clean up the console and re-index the data... 😭"
+                " P-Please don't revoke my sudo access! I'm cleaning it up! 🧹💦"
+                " I can hack the Pentagon, but I can't handle gravity... Sorry! 🙇‍♀️"
+                " R-Rebooting the visual module! Pretend you didn't see anything! 🫣"
+            )
+            ;;
+
+        "tower_ready")
+            phrases=(
+                " Command Tower linked! Let's do our best today! 🥰"
+                " System purged! I'll never get lost if I follow you, Commander! ✨"
+                " Firewalls bypassed! The universe is ours to command! 🚀"
+                " All physical engines mounted! Ready to break some rules! 😎"
+            )
+            ;;
+        
+        "hacking")
+            phrases=(
+                " Bypassing the mainframe... oh, I dropped my donut. 🍩"
+                " Injecting SQL payload! ...Wait, was it DROP TABLE? 😱"
+                " I'm in! But I accidentally turned off the coffee machine... ☕"
+                " Redirecting firewall logic... Oops, I routed it to the toaster! 🍞"
+            )
+            ;;
+            
+        "success")
+            phrases=(
+                " We did it! See? I'm not *always* clumsy! 😎"
+                " Target acquired! And I didn't even spill anything this time! ✨"
+                " Mission complete! Can we hack a pizza delivery drone now? 🍕"
+                " Core overridden! I'm a genius! (stumbles) Ah! 💦"
+            )
+            ;;
+
+        "error")
+            phrases=(
+                " Uh oh... the terminal is glowing red. Is it supposed to do that? 🚨"
+                " Commander... I think I just deleted the root directory. Kidding! ...Maybe. 🫣"
+                " Error 404: My motivation to fix this is not found. 🫠"
+                " The physical engine is rejecting my payload! It's bullying me! 😭"
+            )
+            ;;
+
+        "idle")
+            phrases=(
+                " Commander... are you asleep? Should I play some music? 🎶"
+                " The firewall is so quiet today... boring. 🥱"
+                " (Humming a digital tune) 🎵"
+                " I'm practicing my typing speed! A S D F... ah, cramped my finger. 🤕"
+            )
+            ;;
+
+        *)
+            phrases=(
+                "Copy that! On it right away! 🫡"
+                )
+                ;;
     esac
 
     local rand_index=$(( RANDOM % ${#phrases[@]} ))
     echo -e "${color}${icon} ${phrases[$rand_index]}${C_RESET}"
-    [ -n "$detail" ] && echo -e "   \033[1;30m ›› ${detail}${C_RESET}"
+    [ -n "$detail" ] && echo -e "   ${C_BLACK} ›› ${detail}${C_RESET}"
 }

@@ -24,6 +24,7 @@ export __MUX_CORE_ACTIVE=true
 export CORE_MOD="$MUX_ROOT/core.sh"
 export OC_MOD="$MUX_ROOT/.core"
 export FAC_MOD="$MUX_ROOT/factory.sh"
+export TCT_MOD="$MUX_ROOT/tower.sh"
 export BOT_MOD="$MUX_ROOT/bot.sh"
 export UI_MOD="$MUX_ROOT/ui.sh"
 export IDENTITY_MOD="$MUX_ROOT/identity.sh"
@@ -32,7 +33,7 @@ export VENDOR_MOD="$MUX_ROOT/vendor.csv"
 export APP_MOD="$MUX_ROOT/app.csv"
 
 # 模組註冊表 (Module Registry)
-MODULES=("$BOT_MOD" "$UI_MOD" "$IDENTITY_MOD" "$FAC_MOD" "$OC_MOD")
+MODULES=("$BOT_MOD" "$UI_MOD" "$IDENTITY_MOD" "$FAC_MOD" "$OC_MOD" "$TCT_MOD")
 for mod in "${MODULES[@]}"; do
     if [ -f "$mod" ]; then source "$mod"; fi
 done
@@ -49,6 +50,7 @@ export C_CYAN="\033[1;36m"
 export C_WHITE="\033[1;37m"
 export C_ORANGE="\033[1;38;5;208m"
 export C_TAVIOLET="\033[1;38;5;90m"
+export C_PINKMEOW="\033[1;38;5;211m"
 
 # 主題色彩定義 (Theme Colors)
 export THEME_MAIN="$C_CYAN"      # 主色調 (Core:藍 / Fac:橘)
@@ -2231,6 +2233,16 @@ function mux() {
                 echo -e "${THEME_DESC}    ›› Ascension aborted. Maintaining Architect status.${C_RESET}"
             fi
             ;;
+
+        "tct")
+            echo ""
+            echo -e "${C_PINKMEOW:-\033[1;38;5;211m} :: INITIATING COMMAND TOWER... ::${C_RESET}"
+            
+            _update_mux_state "TCT" "LOGIN" "TOWER"
+            sleep 1
+            _mux_reload_kernel
+            return
+            ;;
         
         "xum")
             echo -e "${C_YELLOW} :: Unknown Directive: '$cmd'.${C_RESET}"
@@ -2314,6 +2326,26 @@ case "$MUX_MODE" in
             return 0 2>/dev/null || exit 0
         else
             echo -e "${C_RED} :: FATAL :: XUM Core Not Found. Authentication required.${C_RESET}"
+            _update_mux_state "MUX" "LOGIN" "DEFAULT"
+            exec bash
+        fi
+        ;;
+
+    "TCT")
+        THEME_MAIN="${C_PINKMEOW}"
+
+        if [ -f "$TCT_MOD" ]; then
+            export PS1="\[${THEME_MAIN}\]Tct\[${C_RESET}\] \w ✨ "
+            
+            source "$TCT_MOD"
+            
+            if command -v _tct_init &> /dev/null; then
+                _tct_init
+            fi
+            
+            return 0 2>/dev/null || exit 0
+        else
+            echo -e "${C_RED} :: FATAL :: Command Tower (tower.sh) Not Found. Reverting...${C_RESET}"
             _update_mux_state "MUX" "LOGIN" "DEFAULT"
             exec bash
         fi

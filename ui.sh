@@ -306,7 +306,18 @@ function _draw_logo() {
         "awake")
             color_primary="$C_TAVIOLET"
             label=":: SYSTEM CORE INSIDE ::"
-            if [ "$cols" -ge 52 ]; then label+=" SYSTEM INSIDE ::"; fi
+            if [ "$cols" -ge 52 ]; then label+=" ANSWER REQUIRED ::"; fi
+            ;;
+        "tower")
+            color_primary="$C_PINKMEOW"
+            label=":: Mux-OS v$MUX_VERSION Command Tower ::"
+            if [ "$cols" -ge 52 ]; then label+=" Weapons Cold ::"; fi
+            local rand_logo=$(( RANDOM % 100 ))
+            if [ "$rand_logo" -lt 15 ]; then
+                tct_logo="cat"
+                label=":: Cat-OS v$MUX_VERSION Meow Tower ::"
+                if [ "$cols" -ge 52 ]; then label+=" (ฅ^•ﻌ•^ฅ) ::"; fi
+            fi
             ;;
         *)
             color_primary="$THEME_MAIN"
@@ -317,12 +328,19 @@ function _draw_logo() {
 
     # 3. 繪製 Logo
     echo -e "${color_primary}"
+    echo -e "${color_primary}"
     if [ "$mode" == "xum" ]; then
         echo "  ____   ___                  __  __ "
         echo " / ___| / _ \     __  ___   _|  \/  |"
         echo " \___ \| | | |____\ \/ / | | | |\/| |"
         echo "  ___) | |_| |_____>  <| |_| | |  | |"
         echo " |____/ \___/     /_/\_\__,_/|_|  |_|"
+    elif [ "$tct_logo" == "cat" ]; then
+        echo "   ____        _          ___  ____  "
+        echo "  / ___| __ _ | |_       / _ \/ ___| "
+        echo " | |    / _  || __|____ | | | \___ \ "
+        echo " | |___| (_| || |_|____|| |_| |___) |"
+        echo "  \____|\__,_| \__|      \___/|____/ "
     else
         echo "  __  __                  ___  ____  "
         echo " |  \/  |_   ___  __     / _ \/ ___| "
@@ -347,6 +365,17 @@ function _system_check() {
     local DELAY_ANIM=0.06
     local DELAY_STEP=0.02
     
+    # 即使渲染
+    function _run_step() {
+        local msg="$1"
+        local status="${2:-0}"
+        echo -ne " $C_PROC $msg\r"; sleep $DELAY_ANIM
+        if [ "$status" -eq 0 ]; then echo -e " $C_CHECK $msg                    ";
+        elif [ "$status" -eq 1 ]; then echo -e " $C_FAIL $msg \033[1;31m[OFFLINE]\033[0m";
+        else echo -e " $C_WARN $msg \033[1;33m[UNKNOWN]\033[0m"; fi
+        sleep $DELAY_STEP
+    }
+
     local steps=()
     if [ "$mode" == "factory" ]; then
         C_PROC="\033[1;35m⟳\033[0m"
@@ -380,6 +409,44 @@ function _system_check() {
             "Byp4ss!ng S4f3ty L4y3r..."
             "E\$t4bl!\$h!ng XUM Upl!nk..."
         )
+    elif [ "$mode" == "tct" ] || [ "$mode" == "tower" ]; then
+        C_PROC="${C_PINKMEOW}⟳\033[0m"
+        C_CHECK="${C_PINKMEOW}✓\033[0m"
+        
+        # 小助理的冒失彩蛋
+        local rand_glitch=$(( RANDOM % 100 ))
+        if [ "$rand_glitch" -lt 15 ]; then
+            export __MUX_CLUMSY_STATE=$(( (RANDOM % 3) + 1 ))
+            
+            _run_step "Initializing Command Tower..." 0
+            _run_step "Bypassing Fire Control Systems..." 0
+            
+            echo -ne " $C_PROC Waking up Assistant AI...\r"; sleep 0.6
+            echo -e " ${C_FAIL} Waking up Assistant AI... \033[1;31m[INTERRUPTED]\033[0m"
+            echo ""
+            
+            if command -v _assistant_voice &> /dev/null; then
+                case "$__MUX_CLUMSY_STATE" in
+                    1) _assistant_voice "clumsy_coffee" ;;
+                    2) _assistant_voice "clumsy_panic" ;;
+                    3) _assistant_voice "clumsy_drop" ;;
+                esac
+            else
+                echo -e "${C_PINKMEOW} :: Ah! Wait! I messed up! 💦\033[0m"
+            fi
+            
+            sleep 1.5
+            return # 提早中斷
+        fi
+
+        export __MUX_CLUMSY_STATE=0
+        steps=(
+            "Initializing Command Tower..."
+            "Bypassing Fire Control Systems..."
+            "Mounting Native Physical Engine..."
+            "Waking up Assistant AI... ✨"
+            "All Systems Green. Weapons Cold."
+        )
     else
         local brand=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]')
         steps=(
@@ -392,16 +459,7 @@ function _system_check() {
         )
     fi
 
-    function _run_step() {
-        local msg="$1"
-        local status="${2:-0}"
-        echo -ne " $C_PROC $msg\r"; sleep $DELAY_ANIM
-        if [ "$status" -eq 0 ]; then echo -e " $C_CHECK $msg                    ";
-        elif [ "$status" -eq 1 ]; then echo -e " $C_FAIL $msg \033[1;31m[OFFLINE]\033[0m";
-        else echo -e " $C_WARN $msg \033[1;33m[UNKNOWN]\033[0m"; fi
-        sleep $DELAY_STEP
-    }
-
+    # 這裡會執行正常模式
     for step in "${steps[@]}"; do
         if [[ "$step" == *"fzf"* ]] && [ "$mode" == "core" ]; then
              command -v fzf &> /dev/null && _run_step "$step" 0 || _run_step "$step" 1
@@ -437,6 +495,34 @@ function _show_hud() {
         line1_k="HOST   "; line1_v="Commander"
         line2_k="TARGET "; line2_v="$active_db_disp"
         line3_k="STATUS "; line3_v="Unlocked"
+    elif [ "$mode" == "tct" ] || [ "$mode" == "tower" ]; then
+        border_color="$C_PINKMEOW"
+        
+        line1_k="TOWER  "; line1_v="Active (Weapons Cold)"
+        line2_k="ASSIST "; line2_v="Online ✨"
+        line3_k="STATUS "; line3_v="Standing By"
+
+        # 如果小助理出包了，覆寫介面為壞掉的狀態
+        if [ "${__MUX_CLUMSY_STATE:-0}" -gt 0 ]; then
+            border_color="\033[1;31m" 
+            case "$__MUX_CLUMSY_STATE" in
+                1) 
+                    line1_k="ERR    "; line1_v="LIQUID DETECTED ON CONSOLE"
+                    line2_k="ERR    "; line2_v="C0FF33_0V3RFL0W_EXCEPTION"
+                    line3_k="ERR    "; line3_v="0xDEADBEEF"
+                    ;;
+                2) 
+                    line1_k="SYS    "; line1_v="W-Wait! UI Not Ready!"
+                    line2_k="LOAD   "; line2_v="║░░░░░░░░░░║  0%"
+                    line3_k="WARN   "; line3_v="Dress Code: Pajamas"
+                    ;;
+                3) 
+                    line1_k="NULL   "; line1_v="[Data Fragment Lost]"
+                    line2_k="NULL   "; line2_v="[Data Fragment Lost]"
+                    line3_k="NULL   "; line3_v="[Data Fragment Lost]"
+                    ;;
+            esac
+        fi
     elif [ "$mode" == "xum" ]; then
         border_color="$C_TAVIOLET"
         local lab_c="\033[1;31m"  # 標籤紅
@@ -487,6 +573,18 @@ function _show_hud() {
     fi
     echo -e "${border_color}╚${border_line}╝\033[0m"
     echo ""
+    if [ "${__MUX_CLUMSY_STATE:-0}" -gt 0 ]; then
+        sleep 0.8
+        if command -v _commander_voice &> /dev/null; then
+            _commander_voice "sigh"
+        else
+            echo -e "\033[1;37m :: Uh... what are you doing? (Sigh)\033[0m"
+        fi
+        sleep 1.2
+        _assistant_voice "sorry"
+        unset __MUX_CLUMSY_STATE
+        sleep 0.5
+    fi
 }
 
 # 安全文字亂碼濾鏡 (Safe Glitch Filter)
@@ -1650,7 +1748,7 @@ function _factory_fzf_add_type_menu() {
 
 # 星門 - UI Mask / Fake Gate
 function _ui_fake_gate() {
-    local theme="$1"
+local theme="$1"
     local entry_point="$2"
 
     local bar_total=25
@@ -1665,6 +1763,7 @@ function _ui_fake_gate() {
     local color_main="${C_CYAN}"
     local gate_name="SYSTEM CORE"
     local c_border="${C_WHITE}" 
+    local tct_mode="normal"
     
     case "$theme" in
         "factory")
@@ -1687,8 +1786,24 @@ function _ui_fake_gate() {
             color_main="${C_TAVIOLET}"
             gate_name="XUM CHAMBER OC"
             ;;
+        "tct")
+            color_main="${C_PINKMEOW}"
+            gate_name="COMMAND TOWER"
+            
+            local rand_door=$(( RANDOM % 100 ))
+            if [ "$rand_door" -lt 40 ]; then
+                tct_mode="normal"
+            elif [ "$rand_door" -lt 60 ]; then
+                tct_mode="reverse"
+            elif [ "$rand_door" -lt 80 ]; then
+                tct_mode="overflow"
+            else
+                tct_mode="heart"
+            fi
+            ;;
     esac
 
+    # 處理 XUM 模式的字元崩潰
     if [ "$MUX_MODE" == "XUM" ] || [ "$entry_point" == "OVERCLOCK" ]; then
         local glitch_rates=(0 25 50 75 100)
         local g_rate=${glitch_rates[$((RANDOM % 5))]}
@@ -1706,9 +1821,9 @@ function _ui_fake_gate() {
         gate_name="$glitched_name"
     fi
 
-    # 15 字元內限制
     if [ ${#gate_name} -gt 15 ]; then gate_name="${gate_name:0:13}.."; fi
 
+    # 一般狀態下的隨機 Footer
     local quotes=(
         "Reality is a glitch."
         "Ghost in the shell."
@@ -1727,19 +1842,33 @@ function _ui_fake_gate() {
     local footer_msg="${quotes[$(( RANDOM % ${#quotes[@]} ))]}"
     if [ ${#footer_msg} -gt 25 ]; then footer_msg="${footer_msg:0:22}..."; fi
 
+    # TCT 的自訂 Footer 與起始數值
+    local pct=0
+    if [ "$theme" == "tct" ]; then
+        if [ "$tct_mode" == "reverse" ]; then
+            pct=100
+            footer_msg="Wait, wrong way! Reverse! 💦"
+        elif [ "$tct_mode" == "overflow" ]; then
+            footer_msg="Limiter broken! Overflow! 😱"
+        elif [ "$tct_mode" == "heart" ]; then
+            footer_msg="Welcome to the Tower! 🥰"
+        else
+            footer_msg="Command Tower Uplink... ✨"
+        fi
+    fi
+
     clear
     tput civis
 
-    local pct=0
     local mem_val=$(( RANDOM % 65535 ))
     local trap_triggered="false"
-    
     local should_trap="false"
     if [ $((RANDOM % 100)) -ge 95 ]; then should_trap="true"; fi
 
-    while [ $pct -le 100 ]; do
+    while true; do
         local current_color="$color_main"
         
+        # 覆寫 Overclock / Cooldown 漸變色
         if [ "$entry_point" == "OVERCLOCK" ]; then
             local gap=$(( (100 - pct) / 6 + 1 ))
             if [ $(( (pct / gap) % 2 )) -eq 0 ]; then
@@ -1756,40 +1885,83 @@ function _ui_fake_gate() {
             fi
         fi
 
-        # 死亡陷阱判定
+        # TCT 專屬字元與記憶體覆寫
+        local fill_char="█"
+        local empty_char="░"
+        if [ "$theme" == "tct" ]; then
+            if [ "$tct_mode" == "heart" ]; then
+                fill_char="♥"
+                empty_char="♡"
+                current_color="${C_PINKMEOW}"
+            fi
+        fi
+
+        # 死亡陷阱與記憶體顯示判定
         local is_stalled="false"
         local mem_display=""
+        
         if [ "$should_trap" == "true" ] && [ "$pct" -ge 98 ] && [ "$pct" -lt 100 ]; then
             current_color="${C_PURPLE}" 
             is_stalled="true"
             mem_display="0xDEAD"
         else
-            mem_display=$(printf "0x%04X" "$mem_val")
+            # TCT 特殊記憶體文字
+            if [[ "$theme" == "tct" && "$tct_mode" == "heart" ]]; then
+                mem_display="0xLOVE"
+            elif [[ "$theme" == "tct" && "$tct_mode" == "overflow" ]]; then
+                mem_display="0xHACK"
+            else
+                mem_display=$(printf "0x%04X" "$mem_val")
+            fi
         fi
 
+        # 數學計算
         local filled_len=$(( (pct * bar_total) / 100 ))
+        if [ "$filled_len" -lt 0 ]; then filled_len=0; fi
         local empty_len=$(( bar_total - filled_len ))
+        if [ "$empty_len" -lt 0 ]; then empty_len=0; fi 
         
-        # 渲染畫面
+        # 渲染畫面 (加入 \033[K 確保殘影清除)
         tput cup $start_row $start_col
-        echo -ne "${c_border}╔ ${C_BLACK}GATE TO ${current_color}${gate_name}${C_RESET}" 
+        echo -ne "${c_border}╔ ${C_BLACK}GATE TO ${current_color}${gate_name}${C_RESET} \033[K" 
         
         tput cup $((start_row + 1)) $start_col
         echo -ne "${c_border}║${current_color}"
-        if [ "$filled_len" -gt 0 ]; then printf "█%.0s" $(seq 1 "$filled_len"); fi
-        if [ "$empty_len" -gt 0 ]; then printf "${C_BLACK}░%.0s" $(seq 1 "$empty_len"); fi
-        echo -ne "${c_border}║${C_RESET}"
+        if [ "$filled_len" -gt 0 ]; then printf "${fill_char}%.0s" $(seq 1 "$filled_len"); fi
+        if [ "$empty_len" -gt 0 ]; then printf "${C_BLACK}${empty_char}%.0s" $(seq 1 "$empty_len"); fi
+        echo -ne "${c_border}║${C_RESET} \033[K"
         
         tput cup $((start_row + 2)) $start_col
         echo -ne "${c_border}╠ ${C_BLACK}MEM: ${current_color}${mem_display}${c_border} ╣${current_color}"
         printf "%3d%%" "$pct"
-        echo -ne "${c_border}║${C_RESET}"
+        echo -ne "${c_border}║${C_RESET} \033[K"
         
         tput cup $((start_row + 3)) $start_col
-        echo -ne "${c_border}╚ ${C_BLACK}${footer_msg}${C_RESET}"
+        echo -ne "${c_border}╚ ${C_BLACK}${footer_msg}${C_RESET} \033[K"
+        
+        # 根據不同模式判斷是否結束迴圈
+        if [ "$theme" == "tct" ]; then
+            if [ "$tct_mode" == "reverse" ]; then
+                if [ "$pct" -le 0 ]; then
+                    sleep 0.4
+                    pct=100
+                    tct_mode="normal"
+                    footer_msg="Fixed it! Phew... ✨"
+                    continue
+                fi
+            elif [ "$tct_mode" == "overflow" ]; then
+                if [ "$pct" -ge 180 ]; then
+                    sleep 0.8
+                    break
+                fi
+            else
+                if [ "$pct" -ge 100 ]; then break; fi
+            fi
+        else
+            if [ "$pct" -ge 100 ]; then break; fi
+        fi
 
-        if [ "$pct" -ge 100 ]; then break; fi
-
+        # 陷阱與前進邏輯
         if [ "$is_stalled" == "true" ] && [ "$trap_triggered" == "false" ]; then
             trap_triggered="true"
             pct=99
@@ -1797,8 +1969,17 @@ function _ui_fake_gate() {
         else
             sleep 0.02
             if [ $(( RANDOM % 10 )) -gt 7 ]; then sleep 0.05; fi
-            pct=$(( pct + (RANDOM % 4 + 1) ))
-            if [ $pct -gt 100 ]; then pct=100; fi
+            
+            # TCT 專屬步進邏輯
+            if [ "$theme" == "tct" ] && [ "$tct_mode" == "reverse" ]; then
+                pct=$(( pct - (RANDOM % 6 + 2) ))
+                if [ "$pct" -lt 0 ]; then pct=0; fi
+            elif [ "$theme" == "tct" ] && [ "$tct_mode" == "overflow" ]; then
+                pct=$(( pct + (RANDOM % 15 + 5) )) # 暴衝速度
+            else
+                pct=$(( pct + (RANDOM % 4 + 1) ))
+                if [ $pct -gt 100 ]; then pct=100; fi
+            fi
         fi
         
         if [ $(( RANDOM % 5 )) -eq 0 ]; then mem_val=$(( RANDOM % 65535 )); fi
