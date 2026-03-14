@@ -410,7 +410,7 @@ function _system_check() {
         )
     elif [ "$mode" == "tct" ] || [ "$mode" == "tower" ]; then
         C_PROC="${C_PINKMEOW}⟳\033[0m"
-        C_CHECK="${C_CHECK}✓\033[0m"
+        C_CHECK="${C_PINKMEOW}✓\033[0m"
         
         # 小助理的冒失彩蛋
         local rand_glitch=$(( RANDOM % 100 ))
