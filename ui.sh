@@ -308,7 +308,7 @@ function _draw_logo() {
             label=":: SYSTEM CORE INSIDE ::"
             if [ "$cols" -ge 52 ]; then label+=" ANSWER REQUIRED ::"; fi
             ;;
-        "tower")
+        "tct")
             color_primary="$C_PINKMEOW"
             label=":: Mux-OS v$MUX_VERSION Command Tower ::"
             if [ "$cols" -ge 52 ]; then label+=" Weapons Cold ::"; fi
@@ -433,7 +433,7 @@ function _system_check() {
             else
                 echo -e "${C_PINKMEOW} :: Ah! Wait! I messed up! 💦\033[0m"
             fi
-            
+            echo ""
             sleep 1.5
             return # 提早中斷
         fi
