@@ -396,6 +396,13 @@ function _commander_voice() {
             fi
             ;;
 
+        "sigh")
+            phrases=(
+                " Uh... what are you doing? (Sigh)"
+                " ...Did I just hear something break?"
+            )
+            ;;
+
         *)
             phrases=(
                 " Affirmative."
@@ -542,4 +549,27 @@ function _bot_factory_personality() {
     local rand_index=$(( RANDOM % ${#phrases[@]} ))
     echo -e "${color}${icon}${phrases[$rand_index]}${C_RESET}"
     [ -n "$detail" ] && echo -e "   ${C_BLACK} ›› ${detail}${C_RESET}"
+}
+
+# 專屬小助理人格 (The Clumsy Co-pilot)
+function _assistant_voice() {
+    local mood="$1"
+    local detail="$2"
+    
+    local icon=" ✨"
+    local color="\033[1;38;5;211m"
+    local phrases=()
+
+    case "$mood" in
+        "clumsy_coffee") phrases=("Coffee... coffee is so good... 🤤" "Ah! Wait! I spilled it! 💦") ;;
+        "clumsy_panic")  phrases=("Ehh?! The Commander is here?! W-wait, I'm not ready yet! 😱") ;;
+        "clumsy_drop")   phrases=("Awawa... I dropped the important files... Uwaaa... 😭") ;;
+        "sorry")         phrases=("I-I'm so sorry... (wipes tears) 🥺" "Uu... I'll clean it up right away... 😭") ;;
+        "tower_ready")   phrases=("Command Tower linked! Let's do our best today! 🥰" "System purged! I'll never get lost if I follow you, Commander! ✨") ;;
+        *)               phrases=("Copy that! On it right away! 🫡") ;;
+    esac
+
+    local rand_index=$(( RANDOM % ${#phrases[@]} ))
+    echo -e "${color}${icon} ${phrases[$rand_index]}${C_RESET}"
+    [ -n "$detail" ] && echo -e "   \033[1;30m ›› ${detail}${C_RESET}"
 }
