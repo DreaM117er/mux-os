@@ -1363,7 +1363,7 @@ function _core_system_scan() {
                 }
 
                 # 3. 結構完整性預判 (Deep Scan)
-                if (com ~ /^(o|op|open|mux|fac|xum|set)$/) {
+                if (com ~ /^(o|op|open|mux|fac|xum|set|git|gh|pkg|apt|vim|nvim|nano|ls|cd|cp|mv|rm)$/) {
                     level = "ERR"
                     msg = "Reserved Keyword Violation (" com ")"
                 }

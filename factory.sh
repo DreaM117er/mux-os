@@ -418,18 +418,18 @@ function _fac_cmd_db() {
     if [ "${MUX_REBORN_COUNT:-0}" -gt 0 ]; then has_reborn=1; fi
     local current_lv=${MUX_LEVEL:-1}
 
-    local menu_opts="APP\t\033[1;32m[app.csv]\033[0m Standard Applications\n"
+    local menu_opts="APP\t\033[1;32m[app.csv]\033[0m     Standard Applications\n"
     
     if [ "$current_lv" -ge 8 ] || [ "$has_reborn" -eq 1 ]; then
-        menu_opts+="VENDOR\t\033[1;33m[vendor.csv]\033[0m Manufacturer Plugins\n"
+        menu_opts+="VENDOR\t\033[1;33m[vendor.csv]\033[0m  Manufacturer Plugins\n"
     else
-        menu_opts+="VENDOR\t\033[1;30m[Locked] Requires Lv.8\033[0m\n"
+        menu_opts+="VENDOR\t\033[1;30m[Locked]  Requires Lv.8\033[0m\n"
     fi
 
     if [ "$current_lv" -ge 16 ] || [ "$has_reborn" -eq 1 ]; then
-        menu_opts+="SYSTEM\t\033[1;31m[system.csv]\033[0m Core Directives\n"
+        menu_opts+="SYSTEM\t\033[1;31m[system.csv]\033[0m  Core Directives\n"
     else
-        menu_opts+="SYSTEM\t\033[1;30m[Locked] Requires Lv.16 / Reborn\033[0m\n"
+        menu_opts+="SYSTEM\t\033[1;30m[Locked]  Requires Lv.16 / Reborn\033[0m\n"
     fi
 
     local fzf_sel=$(echo -e "$menu_opts" | fzf --ansi \
@@ -1967,7 +1967,7 @@ function _fac_edit_router() {
             if [ -z "$_VAL_COM" ] || [ "$_VAL_COM" == "[Empty]" ]; then
                 _bot_say "error" "Command Name is required!" >&2
                 return 2
-            elif [[ "$_VAL_COM" =~ ^(o|op|open|mux|fac|xum)$ ]]; then
+            elif [[ "$_VAL_COM" =~ ^(o|op|open|mux|fac|xum|set|git|gh|pkg|apt|vim|nvim|nano|ls|cd|cp|mv|rm)$ ]]; then
                 _bot_say "error" "System Keyword '$_VAL_COM' is forbidden." >&2
                 return 2
             elif [ ${#_VAL_COM} -gt 8 ]; then
@@ -2695,12 +2695,6 @@ function __fac_core() {
                 return 1
             fi
             local bp_type=$(echo "$type_sel" | awk '{print $2}') 
-
-            if [ "$bp_type" == "SYS" ] && [ "${__FAC_ACTIVE_DB_NAME:-APP}" != "SYSTEM" ]; then
-                _bot_say "error" "SYS Architecture must be forged in the SYSTEM Database."
-                echo -e "${THEME_DESC}    ›› Current workspace is [${__FAC_ACTIVE_DB_NAME:-APP}]. Please execute 'fac switch'.${C_RESET}"
-                return 1
-            fi
 
             # 3. 補完名稱 (Identity)
             _bot_say "action" "Assign an Identity (Command Name) for this Blueprint:"
