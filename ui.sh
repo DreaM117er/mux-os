@@ -328,7 +328,6 @@ function _draw_logo() {
 
     # 3. 繪製 Logo
     echo -e "${color_primary}"
-    echo -e "${color_primary}"
     if [ "$mode" == "xum" ]; then
         echo "  ____   ___                  __  __ "
         echo " / ___| / _ \     __  ___   _|  \/  |"
@@ -411,7 +410,7 @@ function _system_check() {
         )
     elif [ "$mode" == "tct" ] || [ "$mode" == "tower" ]; then
         C_PROC="${C_PINKMEOW}⟳\033[0m"
-        C_CHECK="${C_PINKMEOW}✓\033[0m"
+        C_CHECK="${C_CHECK}✓\033[0m"
         
         # 小助理的冒失彩蛋
         local rand_glitch=$(( RANDOM % 100 ))
@@ -498,8 +497,8 @@ function _show_hud() {
     elif [ "$mode" == "tct" ] || [ "$mode" == "tower" ]; then
         border_color="$C_PINKMEOW"
         
-        line1_k="TOWER  "; line1_v="Active (Weapons Cold)"
-        line2_k="ASSIST "; line2_v="Online ✨"
+        line1_k="TOWER  "; line1_v="Active"
+        line2_k="ASSIST "; line2_v="Online"
         line3_k="STATUS "; line3_v="Standing By"
 
         # 如果小助理出包了，覆寫介面為壞掉的狀態

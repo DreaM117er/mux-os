@@ -39,6 +39,7 @@ function _tct_init() {
         _show_hud "tct"
     fi
     
+    export MUX_INITIALIZED="true"
     export PS1="\[${C_PINKMEOW}\]Tct\[${C_RESET}\] \w \033[5m›\033[0m "
     
     _system_unlock

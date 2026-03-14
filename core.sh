@@ -281,6 +281,8 @@ function _mux_reload_kernel() {
         gate_theme="default"
     elif [ "$MUX_MODE" == "XUM" ]; then
         gate_theme="xum"
+    elif [ "$MUX_MODE" == "TCT" ] || [ "$current_entry" == "TOWER" ]; then
+        gate_theme="tct"
     fi
 
     if command -v _ui_fake_gate &> /dev/null; then
@@ -2236,10 +2238,9 @@ function mux() {
 
         "tct")
             echo ""
-            echo -e "${C_PINKMEOW:-\033[1;38;5;211m} :: INITIATING COMMAND TOWER... ::${C_RESET}"
-            
-            _update_mux_state "TCT" "LOGIN" "TOWER"
+            echo -e "${C_PINKMEOW} :: INITIATING COMMAND TOWER... ::${C_RESET}"
             sleep 1
+            _update_mux_state "TCT" "LOGIN" "TOWER"
             _mux_reload_kernel
             return
             ;;
