@@ -265,11 +265,12 @@ function _mux_reload_kernel() {
         if [ $? -ne 0 ]; then return; fi 
     fi
 
+    local current_entry=""
     if [ -f "$MUX_ROOT/.mux_state" ]; then
         source "$MUX_ROOT/.mux_state"
-        local current_entry=$(grep "^MUX_ENTRY_POINT=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2 | tr -d '\r\n ')
+        current_entry="$MUX_ENTRY_POINT"
         
-        if [[ "$MUX_ENTRY_POINT" == "OVERCLOCK" || "$MUX_ENTRY_POINT" == "COOLDOWN" ]]; then
+        if [[ "$current_entry" == "OVERCLOCK" || "$current_entry" == "COOLDOWN" ]]; then
             _update_mux_state "$MUX_MODE" "$MUX_STATUS"
         fi
     fi
