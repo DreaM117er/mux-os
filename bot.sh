@@ -558,7 +558,7 @@ function _assistant_voice() {
     
     local icon=" ::"
     # 前綴永遠保持粉紅色，維持系統識別度
-    local icon_color="${C_PINKMEOW:-\033[1;38;5;211m}"
+    local icon_color="${C_PINKMEOW}"
     local text_color="$icon_color" 
     local phrases=()
 
@@ -673,6 +673,6 @@ function _assistant_voice() {
     esac
 
     local rand_index=$(( RANDOM % ${#phrases[@]} ))
-    echo -e "${icon_color}${icon} ${text_color}${phrases[$rand_index]}${C_RESET}"
+    echo -e "${text_color}${icon}${phrases[$rand_index]}${C_RESET}"
     [ -n "$detail" ] && echo -e "   ${C_BLACK} ›› ${detail}${C_RESET}"
 }
