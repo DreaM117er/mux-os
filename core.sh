@@ -257,14 +257,7 @@ function _mux_init() {
 
 # 重新載入核心模組
 function _mux_reload_kernel() {
-    # 連環重啓安裝機制
-    export __MUX_RELOAD_COUNT=$(( ${__MUX_RELOAD_COUNT:-0} + 1 ))
-    if [ "$__MUX_RELOAD_COUNT" -gt 3 ]; then
-        echo -e "\033[1;31m :: SYSTEM PANIC :: Infinite Boot Loop Detected!\033[0m"
-        echo -e "\033[1;33m    Emergency abort. Dropping to vanilla shell.\033[0m"
-        unset __MUX_RELOAD_COUNT
-        exec bash --norc 
-    fi
+
 
     # 主函數邏輯
     _system_lock
