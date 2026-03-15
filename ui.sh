@@ -1956,11 +1956,11 @@ local theme="$1"
         if [ "$theme" == "tct" ]; then
             if [ "$tct_mode" == "reverse" ]; then
                 if [ "$pct" -le 0 ]; then
-                    sleep 1.9
+                    sleep 0.9
                     pct=100
                     tct_mode="normal"
                     footer_msg="Fixed it! Phew... ( ´ ▽ \` )ﾉ"
-                    sleep 0.8
+                    sleep 1.2
                     continue
                 fi
             elif [ "$tct_mode" == "overflow" ]; then
