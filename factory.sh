@@ -2745,6 +2745,7 @@ function __fac_core() {
             }')
 
             # 狀態為 N 的原生寫入
+            export __FAC_IO_STATE="N"
             _fac_neural_write "$temp_com_name" 10 "${bp_f[5]}"   # PKG
             _fac_neural_write "$temp_com_name" 11 "${bp_f[6]}"   # TGT
             _fac_neural_write "$temp_com_name" 12 "${bp_f[7]}"   # IHEAD
@@ -2775,6 +2776,8 @@ function __fac_core() {
             _fac_neural_write "$temp_com_name" 32 "${bp_f[26]}"  # EX5
             _fac_neural_write "$temp_com_name" 33 "${bp_f[27]}"  # EXTRA5
             _fac_neural_write "$temp_com_name" 34 "${bp_f[28]}"  # BOOLEN5
+            unset __FAC_IO_STATE
+            export __FAC_IO_STATE="E"
 
             # 5. 上帝視角檢閱
             _bot_say "action" "Displaying Blueprint Details..."
