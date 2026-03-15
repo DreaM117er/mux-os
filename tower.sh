@@ -109,7 +109,6 @@ function __tct_core() {
                 echo -e "${C_PINKMEOW} :: Lifecycle Manager (setup.sh) not found! Did you delete it? (；´д｀)ゞ${C_RESET}"
             fi
             ;;
-            ;;
 
         "help")
             if command -v _mux_dynamic_help_tower &> /dev/null; then
