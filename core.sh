@@ -1903,7 +1903,7 @@ function mux() {
 
     if [ "$MUX_STATUS" != "LOGIN" ]; then
         case "$cmd" in
-            "login"|"setup"|"help"|"status"|"sts"|"info"|"reload"|"reset"|"factory"|"tofac"|"driveto"|"update"|"drive2"|"hof")
+            "login"|"setup"|"help"|"status"|"sts"|"info"|"reload"|"reset"|"factory"|"tofac"|"driveto"|"update"|"drive2"|"hof"|"tower"|"totct")
                 # 放行
                 ;;
             *)
