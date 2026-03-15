@@ -1860,13 +1860,13 @@ local theme="$1"
     if [ "$theme" == "tct" ]; then
         if [ "$tct_mode" == "reverse" ]; then
             pct=100
-            footer_msg="Wait, wrong way! Reverse! 💦"
+            footer_msg="Wait, wrong way! Reverse! (；´д｀)ゞ"
         elif [ "$tct_mode" == "overflow" ]; then
-            footer_msg="Limiter broken! Overflow! 😱"
+            footer_msg="Limiter broken! Overflow! Σ(°Д°;)"
         elif [ "$tct_mode" == "heart" ]; then
-            footer_msg="Welcome to the Tower! 🥰"
+            footer_msg="Welcome to the Tower! (*≧ω≦)"
         else
-            footer_msg="Command Tower Uplink... ✨"
+            footer_msg="Command Tower Uplink... ( • ̀ω•́ )✧"
         fi
     fi
 
@@ -1956,15 +1956,16 @@ local theme="$1"
         if [ "$theme" == "tct" ]; then
             if [ "$tct_mode" == "reverse" ]; then
                 if [ "$pct" -le 0 ]; then
-                    sleep 0.4
+                    sleep 1.9
                     pct=100
                     tct_mode="normal"
-                    footer_msg="Fixed it! Phew... ✨"
+                    footer_msg="Fixed it! Phew... ( ´ ▽ \` )ﾉ"
+                    sleep 0.8
                     continue
                 fi
             elif [ "$tct_mode" == "overflow" ]; then
                 if [ "$pct" -ge 180 ]; then
-                    sleep 0.8
+                    sleep 1.1
                     break
                 fi
             else
