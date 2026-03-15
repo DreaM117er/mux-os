@@ -929,7 +929,7 @@ function _mux_dynamic_help_tower() {
     echo -e "${C_PURPLE} :: Mux-OS Command Tower Protocols ::${C_RESET}"
     
     awk -v cmd_color="$C_CMD" '
-    /function cmt\(\) \{/ { inside_cmt=1; next }
+    /function __tct_core\(\) \{/ { inside_cmt=1; next }
     /^}/ { inside_cmt=0 }
 
     inside_cmt {
