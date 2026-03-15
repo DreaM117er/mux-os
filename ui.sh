@@ -1832,15 +1832,18 @@ local theme="$1"
             color_main="${C_PINKMEOW}"
             gate_name="COMMAND TOWER"
             
+            # [修改] 擴充機率池，將卡頓門 (stalled) 加入抽籤序列
             local rand_door=$(( RANDOM % 100 ))
-            if [ "$rand_door" -lt 40 ]; then
-                tct_mode="normal"
-            elif [ "$rand_door" -lt 60 ]; then
+            if [ "$rand_door" -lt 15 ]; then
+                tct_mode="stalled"
+            elif [ "$rand_door" -lt 30 ]; then
                 tct_mode="reverse"
-            elif [ "$rand_door" -lt 80 ]; then
+            elif [ "$rand_door" -lt 45 ]; then
                 tct_mode="overflow"
-            else
+            elif [ "$rand_door" -lt 60 ]; then
                 tct_mode="heart"
+            else
+                tct_mode="normal"
             fi
             ;;
     esac
@@ -1930,11 +1933,14 @@ local theme="$1"
         # TCT 專屬字元與記憶體覆寫
         local fill_char="█"
         local empty_char="░"
+        local pct_text=$(printf "%3d%%" "$pct")
+
         if [ "$theme" == "tct" ]; then
             if [ "$tct_mode" == "heart" ]; then
-                fill_char="♥"
-                empty_char="♡"
+                fill_char="░"
+                empty_char="█"
                 current_color="${C_PINKMEOW}"
+                pct_text="HACK"
             fi
         fi
 
@@ -1963,7 +1969,7 @@ local theme="$1"
         local empty_len=$(( bar_total - filled_len ))
         if [ "$empty_len" -lt 0 ]; then empty_len=0; fi 
         
-        # 渲染畫面 (加入 \033[K 確保殘影清除)
+        # 渲染畫面 + 殘影清除
         tput cup $start_row $start_col
         echo -ne "${c_border}╔ ${C_BLACK}GATE TO ${current_color}${gate_name}${C_RESET} \033[K" 
         
@@ -1975,7 +1981,7 @@ local theme="$1"
         
         tput cup $((start_row + 2)) $start_col
         echo -ne "${c_border}╠ ${C_BLACK}MEM: ${current_color}${mem_display}${c_border} ╣${current_color}"
-        printf "%3d%%" "$pct"
+        printf "%4s" "$pct_text"
         echo -ne "${c_border}║${C_RESET} \033[K"
         
         tput cup $((start_row + 3)) $start_col
@@ -1983,7 +1989,17 @@ local theme="$1"
         
         # 根據不同模式判斷是否結束迴圈
         if [ "$theme" == "tct" ]; then
-            if [ "$tct_mode" == "reverse" ]; then
+            if [ "$tct_mode" == "stalled" ]; then
+                if [ "${tct_stall_ticks:-0}" -ge 65 ]; then
+                    sleep 0.2
+                    pct=100
+                    tct_mode="normal"
+                    footer_msg="Fixed it! Phew... ( ´ ▽ \` )ﾉ"
+                    tct_fixed_pause="true"
+                    unset tct_stall_ticks
+                    continue
+                fi
+            elif [ "$tct_mode" == "reverse" ]; then
                 if [ "$pct" -le 0 ]; then
                     sleep 0.9
                     pct=100
@@ -2019,7 +2035,19 @@ local theme="$1"
             if [ $(( RANDOM % 10 )) -gt 7 ]; then sleep 0.05; fi
             
             # TCT 專屬步進邏輯
-            if [ "$theme" == "tct" ] && [ "$tct_mode" == "reverse" ]; then
+            if [ "$theme" == "tct" ] && [ "$tct_mode" == "stalled" ]; then # 卡彈演出
+                if [ "$pct" -lt 14 ]; then
+                    pct=$(( pct + (RANDOM % 3 + 1) ))
+                else
+                    pct=14
+                    tct_stall_ticks=$(( ${tct_stall_ticks:-0} + 1 ))
+                    if [ "$tct_stall_ticks" -eq 15 ]; then
+                        footer_msg="Wait... why isn't it moving? (；´д｀)ゞ"
+                    elif [ "$tct_stall_ticks" -eq 40 ]; then
+                        footer_msg="Hold on! Let me hit it with a wrench! ≡(ง •̀_•́)ง"
+                    fi
+                fi
+            elif [ "$theme" == "tct" ] && [ "$tct_mode" == "reverse" ]; then
                 pct=$(( pct - (RANDOM % 6 + 2) ))
                 if [ "$pct" -lt 0 ]; then pct=0; fi
             elif [ "$theme" == "tct" ] && [ "$tct_mode" == "overflow" ]; then
@@ -2032,6 +2060,7 @@ local theme="$1"
         
         if [ $(( RANDOM % 5 )) -eq 0 ]; then mem_val=$(( RANDOM % 65535 )); fi
     done
+    
     while read -r -s -t 0.05 -n 10000 garbage; do :; done 2>/dev/null
     
     sleep 0.015
