@@ -51,11 +51,7 @@ function __tct_core() {
     local cmd="$1"
 
     if [ "$MUX_MODE" != "TCT" ]; then
-        if command -v _assistant_voice &> /dev/null; then
-            _assistant_voice "error" "Commander! Tower protocols are strictly for the Command Tower! ( • ̀ω•́ )✧"
-        else
-            echo -e "${C_PINKMEOW} :: Commander! Tower protocols are strictly for the Command Tower! ( • ̀ω•́ )✧${C_RESET}"
-        fi
+        echo -e "${THEME_ERR} :: Commander! Tower protocols are strictly for the Command Tower! ( • ̀ω•́ )✧${C_RESET}"
         return 1
     fi
 
