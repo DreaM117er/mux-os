@@ -85,12 +85,30 @@ function __tct_core() {
             _mux_reload_kernel
             ;;
 
-        # : Emergency protocol override
+        # : Force System Sync
         "reset")
             _mux_force_reset
             if [ $? -eq 0 ]; then
                 _mux_reload_kernel
             fi
+            ;;
+
+        # : Run Setup Protocol
+        "setup")
+            if [ -f "$MUX_ROOT/setup.sh" ]; then
+                echo -e "${C_PINKMEOW} :: Transferring control to Lifecycle Manager! Be careful! ( • ̀ω•́ )✧${C_RESET}"
+                sleep 0.8
+                bash "$MUX_ROOT/setup.sh"
+                
+                if [ -f "$MUX_ROOT/core.sh" ]; then
+                    _mux_reload_kernel
+                else
+                    exec bash
+                fi
+            else
+                echo -e "${C_PINKMEOW} :: Lifecycle Manager (setup.sh) not found! Did you delete it? (；´д｀)ゞ${C_RESET}"
+            fi
+            ;;
             ;;
 
         "help")
@@ -99,11 +117,21 @@ function __tct_core() {
             fi
             ;;
 
+        # : Exit Command Tower
         "logout")
-            echo -e "${C_PINKMEOW} :: Closing Tower Uplink. See you later, Commander! ( ´ ▽ \` )ﾉ${C_RESET}"
-            sleep 1
-            _update_mux_state "MUX" "DEFAULT"
-            _mux_reload_kernel
+            echo ""
+            echo -ne "${C_RED} :: EXIT COMMAND TOWER? TYPE 'CONFIRM' TO PROCEED: ${C_RESET}"
+            read final_confirm
+            
+            if [ "$final_confirm" == "CONFIRM" ]; then
+                echo ""
+                echo -e "${C_PINKMEOW} :: Tower Uplink Disconnected. See you, Commander! ( ´ ▽ \` )ﾉ${C_RESET}"
+                sleep 1
+                _update_mux_state "MUX" "DEFAULT"
+                _mux_reload_kernel
+            else
+                echo -e "${C_PINKMEOW}    ›› Aborted. We are staying! (*≧ω≦)${C_RESET}"
+            fi
             ;;
 
         *)

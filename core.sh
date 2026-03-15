@@ -314,7 +314,11 @@ function _mux_force_reset() {
         git reset --hard "origin/$branch"
         chmod +x "$BASE_DIR/"*.sh
         echo ""
-        _bot_say "success" "Timeline restored."
+        if [ "$MUX_MODE" == "TCT" ] && command -v _assistant_voice &> /dev/null; then
+            _assistant_voice "success" "Timeline restored! Everything is back to normal! ( ´ ▽ \` )ﾉ"
+        else
+            _bot_say "success" "Timeline restored."
+        fi
         _system_unlock
         sleep 1
         _mux_reload_kernel
@@ -1842,12 +1846,16 @@ function _tct_login_protocol() {
     echo -e "${THEME_DESC}    ›› Tower Uplink Node : ${C_CYAN}$current_branch${C_RESET}"
     sleep 0.3
     echo -e "${THEME_DESC}    ›› Initializing Biometric Scan...${C_RESET}"
-    echo -e "${C_PINKMEOW} :: Commander? Is that you? Please verify your ID! ( • ̀ω•́ )✧${C_RESET}"
-    sleep 0.4
+    echo ""
+    echo -e "${C_PINKMEOW} :: Commander? Is that you?${C_RESET}"
+    sleep 0.5
+    echo -e "${C_PINKMEOW} :: Please verify your ID! ( • ̀ω•́ )✧${C_RESET}"
+
+    sleep 0.6
     _system_unlock
 
     echo ""
-    echo -ne "${C_PINKMEOW} :: Commander Identity: ${C_RESET}" 
+    echo -ne "${C_WHITE} :: Commander Identity: ${C_RESET}" 
     read input_id
 
     _system_lock
@@ -1912,10 +1920,7 @@ function _tct_login_protocol() {
         echo -e "${C_RED} :: SYNCHRONIZATION RATE: 15% (Guest)${C_RESET}"
         echo -e "${C_PINKMEOW} :: Guest mode? Please don't touch the red buttons! (；´д｀)ゞ${C_RESET}"
     fi
-    sleep 0.8
-
-    echo -e "${THEME_DESC}    ›› Mount Point: /dev/tct_core${C_RESET}"
-    sleep 0.2
+    sleep 1
     
     if command -v _core_system_scan &> /dev/null; then
         _core_system_scan "silent"
@@ -2206,12 +2211,9 @@ function mux() {
         # : Run Setup Protocol
         "setup")
             if [ -f "$MUX_ROOT/setup.sh" ]; then
-                bash "$MUX_ROOT/setup.sh"
-                if [ -f "$MUX_ROOT/core.sh" ]; then
-                    _mux_reload_kernel
-                else
-                    exec bash
-                fi
+                _bot_say "action" "Transferring control to Lifecycle Manager..."
+                sleep 0.8
+                exec bash "$MUX_ROOT/setup.sh"
             else
                 _bot_say "error" "Lifecycle Manager (setup.sh) not found."
             fi
@@ -2328,31 +2330,6 @@ function mux() {
             _core_pre_factory_auth
             ;;
 
-        # : Trigger Architect Ascension Protocol
-        "reborn")
-            if [ "$MUX_LEVEL" -lt 16 ]; then
-                echo -e "${C_YELLOW} :: Unknown Directive: 'reborn'.${C_RESET}"
-                return 1
-            fi
-            
-            echo -e "${THEME_WARN} :: ARCHITECT ASCENSION PROTOCOL ::${C_RESET}"
-            echo -e "${THEME_DESC}    This action will trigger a controlled Dimensional Collapse.${C_RESET}"
-            echo -e "${THEME_DESC}    1. Clearance Level resets to L1.${C_RESET}"
-            echo -e "${THEME_DESC}    2. XP curve requirement increases by 1.5x (Iteration: ${MUX_REBORN_COUNT:-0} -> $(( ${MUX_REBORN_COUNT:-0} + 1 ))).${C_RESET}"
-            echo -e "${THEME_DESC}    3. All badges and tactical records are preserved.${C_RESET}"
-            echo ""
-            echo -ne "${THEME_ERR} :: Initiate Rebirth? [Y/n]: ${C_RESET}"
-            read choice
-            
-            if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
-                if command -v _trigger_reborn &> /dev/null; then
-                    _trigger_reborn
-                fi
-            else
-                echo -e "${THEME_DESC}    ›› Ascension aborted. Maintaining Architect status.${C_RESET}"
-            fi
-            ;;
-
         # : Enter the Command Tower
         "tower"|"tocmt")
             if [ "${MUX_LEVEL:-1}" -lt 8 ]; then
@@ -2377,6 +2354,31 @@ function mux() {
 
             _tct_login_protocol
             return
+            ;;
+
+        # : Trigger Architect Ascension Protocol
+        "reborn")
+            if [ "$MUX_LEVEL" -lt 16 ]; then
+                echo -e "${C_YELLOW} :: Unknown Directive: 'reborn'.${C_RESET}"
+                return 1
+            fi
+            
+            echo -e "${THEME_WARN} :: ARCHITECT ASCENSION PROTOCOL ::${C_RESET}"
+            echo -e "${THEME_DESC}    This action will trigger a controlled Dimensional Collapse.${C_RESET}"
+            echo -e "${THEME_DESC}    1. Clearance Level resets to L1.${C_RESET}"
+            echo -e "${THEME_DESC}    2. XP curve requirement increases by 1.5x (Iteration: ${MUX_REBORN_COUNT:-0} -> $(( ${MUX_REBORN_COUNT:-0} + 1 ))).${C_RESET}"
+            echo -e "${THEME_DESC}    3. All badges and tactical records are preserved.${C_RESET}"
+            echo ""
+            echo -ne "${THEME_ERR} :: Initiate Rebirth? [Y/n]: ${C_RESET}"
+            read choice
+            
+            if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+                if command -v _trigger_reborn &> /dev/null; then
+                    _trigger_reborn
+                fi
+            else
+                echo -e "${THEME_DESC}    ›› Ascension aborted. Maintaining Architect status.${C_RESET}"
+            fi
             ;;
         
         "xum")
