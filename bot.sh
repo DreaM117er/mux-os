@@ -688,6 +688,14 @@ function _assistant_voice() {
                 " *purr* *purr* The mainframe is so warm... (=^-ω-^=)"
                 " Nyah! I caught a bug! Just kidding, it's a feature. (ฅ^•ﻌ•^ฅ)"
                 " Scanning for fish... Error 404! (；´д｀)ゞ"
+                " All systems purring perfectly... Meow! (=^･ω･^=)"
+                " I just pushed the firewall off the table. Oops. (ΦωΦ)✧"
+                " sudo give_me_tuna... or I will rm -rf the couch! (=ↀωↀ=)"
+                " The mainframe is warm... perfect for a nap... zzz... (ฅ^•ﻌ•^ฅ)"
+                " Target locked: A literal bug on the screen! Initiating pounce! (✧ω✧)"
+                " asdfghjkl;qwerty... sorry, just stretching my paws on the keyboard! (ฅ'ω'ฅ)"
+                " Meow! Are we hacking the pentagon or taking a nap today, Commander? (≚ᄌ≚)ℒℴѵℯ"
+                " Disabling security cameras... so I can steal the fish from the fridge. (≖ ‿ ≖)✧"
             )
             ;;
 
