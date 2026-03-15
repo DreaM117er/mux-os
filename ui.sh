@@ -600,7 +600,6 @@ function _show_hud() {
         fi
         sleep 1.2
         _assistant_voice "sorry"
-        unset __MUX_CLUMSY_STATE
         sleep 0.5
     fi
 }

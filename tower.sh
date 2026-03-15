@@ -52,6 +52,7 @@ function _tct_init() {
             fi
         fi
     fi
+    unset __MUX_CLUMSY_STATE
     _system_unlock
 }
 
