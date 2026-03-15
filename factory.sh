@@ -2663,12 +2663,6 @@ function __fac_core() {
 
         # : Import Blueprint from XUM report
         "import")
-            # 限制鎖：必須啟動過 XUM 產生彈巢 (xum.csv) 才會解鎖此指令
-            if [ ! -f "$MUX_ROOT/xum.csv" ]; then
-                echo -e "${THEME_WARN} :: Unknown Directive: '$cmd'.${C_RESET}"
-                return 1
-            fi
-
             local report_file="$MUX_ROOT/.report"
             if [ ! -f "$report_file" ]; then
                 _bot_say "error" "No combat report (.report) found."
