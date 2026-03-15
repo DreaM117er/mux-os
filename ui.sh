@@ -1986,10 +1986,10 @@ local theme="$1"
             if [ "$tct_mode" == "reverse" ]; then
                 if [ "$pct" -le 0 ]; then
                     sleep 0.9
-                    footer_msg="Fixed it! Phew... ( ´ ▽ \` )ﾉ"
-                    sleep 1.2
                     pct=100
                     tct_mode="normal"
+                    footer_msg="Fixed it! Phew... ( ´ ▽ \` )ﾉ"
+                    tct_fixed_pause="true"
                     continue
                 fi
             elif [ "$tct_mode" == "overflow" ]; then
@@ -1998,7 +1998,12 @@ local theme="$1"
                     break
                 fi
             else
-                if [ "$pct" -ge 100 ]; then break; fi
+                if [ "$pct" -ge 100 ]; then 
+                    if [ "$tct_fixed_pause" == "true" ]; then
+                        sleep 1.5
+                    fi
+                    break
+                fi
             fi
         else
             if [ "$pct" -ge 100 ]; then break; fi

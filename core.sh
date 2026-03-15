@@ -108,6 +108,15 @@ function _voice_dispatch() {
     local detail="$2"
     local force_role="$3"
 
+    if [ "$MUX_MODE" == "TCT" ]; then
+        if command -v _assistant_voice &> /dev/null; then
+            _assistant_voice "$mood" "$detail"
+        else
+            echo -e "${C_PINKMEOW} :: ${detail} (*≧ω≦)${C_RESET}"
+        fi
+        return
+    fi
+
     # 如果有強制指定角色
     if [ "$force_role" == "bot" ]; then
         _bot_say "$mood" "$detail"
