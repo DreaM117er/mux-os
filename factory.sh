@@ -2669,82 +2669,86 @@ function __fac_core() {
                 return 1
             fi
 
-            # 1. 抓取非 Dry Fire 的發射記錄
-            local last_status=$(grep -E "^\[XUM_BLUEPRINT\]::|\[EMPTY CHAMBER / DRY FIRE\]|Success \(Test\)" "$report_file" | tail -n 1)
-
-            if [[ "$last_status" == *"EMPTY CHAMBER"* || "$last_status" == *"Success (Test)"* ]]; then
-                _bot_say "warn" "Report indicates a DRY FIRE (Empty Chamber)."
-                echo -e "${THEME_DESC}    ›› No blueprint payload to extract. Please load a real payload.${C_RESET}"
-                return 1
-            fi
-
-            local blueprint=$(echo "$last_status" | sed 's/^\[XUM_BLUEPRINT\]:://')
-            if [ -z "$blueprint" ]; then
+            # 1. 提取所有的 Blueprint (支援疊加掃描)
+            local blueprints=$(grep "^\[XUM_BLUEPRINT\]::" "$report_file" | sed 's/^\[XUM_BLUEPRINT\]:://')
+            if [ -z "$blueprints" ]; then
                 _bot_say "error" "No valid blueprint signature in .report."
                 return 1
             fi
-            
-            _bot_say "action" "XUM Blueprint Detected. Decoding..."
+
+            # 2. 建立 FZF 選單供使用者挑選
+            local menu_list=""
+            local bp_idx=1
+            while IFS= read -r bp; do
+                if [ -n "$bp" ]; then
+                    # 抓取特徵參數作為選單提示
+                    local p_pkg=$(echo "$bp" | awk -v FPAT='([^,]*)|("[^"]+")' '{print $5}' | tr -d '"')
+                    local p_tgt=$(echo "$bp" | awk -v FPAT='([^,]*)|("[^"]+")' '{print $6}' | tr -d '"')
+                    local p_uri=$(echo "$bp" | awk -v FPAT='([^,]*)|("[^"]+")' '{print $9}' | tr -d '"')
+                    
+                    local desc="$p_pkg"
+                    [ -n "$p_tgt" ] && desc="$desc/$p_tgt"
+                    [ -z "$desc" ] && [ -n "$p_uri" ] && desc="$p_uri"
+                    [ -z "$desc" ] && desc="Unknown Payload"
+                    
+                    menu_list+="[BP-${bp_idx}]\t\033[1;36m${desc}\033[0m\t${bp}\n"
+                    bp_idx=$((bp_idx + 1))
+                fi
+            done <<< "$blueprints"
+
+            local line_count=$(echo -e "$report" | wc -l)
+            local dynamic_height=$(( line_count + 4 ))
+
+            local fzf_sel=$(echo -e "$menu_list" | fzf --ansi \
+                --height="$dynamic_height" \
+                --layout=reverse \
+                --border=bottom \
+                --info=hidden \
+                --header=" :: Enter to Select, Esc to Return ::" \
+                --border-label=" :: SELECT BLUEPRINT :: " \
+                --prompt=" :: Import › " \
+                --delimiter="\t" \
+                --with-nth=1,2 \
+                --pointer="››" \
+                --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                --color=info:240,prompt:46,pointer:red,marker:208,border:46
+            )
+
+            if [ -z "$fzf_sel" ]; then
+                _bot_say "error" "Import aborted."
+                return 1
+            fi
+
+            local blueprint=$(echo "$fzf_sel" | awk -F'\t' '{print $3}')
+            _bot_say "action" "XUM Blueprint Selected. Decoding..."
             sleep 0.8
             
-            # 2. 補完 TYPE
-            _bot_say "warn" "Blueprint architecture undefined. Please specify TYPE:"
-            local type_sel=$(_factory_fzf_add_type_menu)
-            if [[ -z "$type_sel" || "$type_sel" == "Cancel" || "$type_sel" == *"------"* ]]; then
-                _bot_say "error" "Extraction aborted."
-                return 1
-            fi
-            local bp_type=$(echo "$type_sel" | awk '{print $2}') 
-
-            # 3. 補完名稱 (Identity)
-            _bot_say "action" "Assign an Identity (Command Name) for this Blueprint:"
-            read -e -p "    › " new_com_name
-            new_com_name=$(echo "$new_com_name" | sed 's/^[ \t]*//;s/[ \t]*$//')
-            
-            if [ -z "$new_com_name" ]; then
-                _bot_say "error" "Identity required. Aborting."
-                return 1
-            elif [ ${#new_com_name} -gt 8 ]; then
-                _bot_say "error" "Length Exceeded (Max: 8). Aborting."
-                return 1
-            fi
-
-            # 4. 準備新流水號
+            # 3. 準備臨時名稱與流水號
             local target_db="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
             local next_comno=$(awk -F, '$1==999 {gsub(/^"|"$/, "", $2); if(($2+0) > max) max=$2} END {print max+1}' "$target_db")
             if [ -z "$next_comno" ] || [ "$next_comno" -eq 1 ]; then next_comno=1; fi
             if ! [[ "$next_comno" =~ ^[0-9]+$ ]]; then next_comno=999; fi
             
-            # 5. 高精度神經映射 (29 cols -> 35 cols Schema Translation)
+            local ts=$(date +%s)
+            local temp_com_name="XUM_${ts}"
+
+            # 4. 高精度神經映射 (寫入臨時節點，TYPE 暫設為 Unknown)
             local final_row=$(echo "$blueprint" | awk -v FPAT='([^,]*)|("[^"]+")' -v OFS=, \
-                -v n_no="$next_comno" -v n_type="\"$bp_type\"" -v n_com="\"$new_com_name\"" '
+                -v n_no="$next_comno" -v n_type="\"Unknown\"" -v n_com="\"$temp_com_name\"" '
             {
-                # 建立 35 欄標準陣列
                 f[1]="999"; f[2]=n_no; f[3]="\"Others\""; f[4]=n_type; f[5]=n_com; 
                 f[6]="\"\""; f[7]="\"E\""; f[8]="\"\""; f[9]="\"\"";
                 
-                # 映射 XUM 參數至 Factory
-                f[10]=$5;  # PKG
-                f[11]=$6;  # TARGET
-                f[12]=$7;  # IHEAD
-                f[13]=$8;  # IBODY
-                f[14]=$9;  # URI
-                f[15]=$10; # MIME
-                f[16]=$11; # CATE1
-                f[17]=$12; # CATE2
-                f[18]=$13; # CATE3
-                f[19]=$29; # FLAG (XUM 29 -> FAC 19)
+                f[10]=$5; f[11]=$6; f[12]=$7; f[13]=$8; f[14]=$9; f[15]=$10;
+                f[16]=$11; f[17]=$12; f[18]=$13; f[19]=$29;
                 
-                # EXTRAs 對齊
-                f[20]=$14; f[21]=$15; f[22]=$16 # EXTRA 1
-                f[23]=$17; f[24]=$18; f[25]=$19 # EXTRA 2
-                f[26]=$20; f[27]=$21; f[28]=$22 # EXTRA 3
-                f[29]=$23; f[30]=$24; f[31]=$25 # EXTRA 4
-                f[32]=$26; f[33]=$27; f[34]=$28 # EXTRA 5
+                f[20]=$14; f[21]=$15; f[22]=$16
+                f[23]=$17; f[24]=$18; f[25]=$19
+                f[26]=$20; f[27]=$21; f[28]=$22
+                f[29]=$23; f[30]=$24; f[31]=$25
+                f[32]=$26; f[33]=$27; f[34]=$28
+                f[35]="\"\""
                 
-                f[35]="\"\"" # Padding
-                
-                # 輸出
                 for(i=1; i<=35; i++) {
                     if (f[i] == "") f[i]="\"\""
                     printf "%s%s", f[i], (i==35?"":OFS)
@@ -2752,13 +2756,65 @@ function __fac_core() {
                 print ""
             }')
             
-            # 6. 寫入與編輯
             if [ -s "$target_db" ] && [ "$(tail -c 1 "$target_db")" != "" ]; then echo "" >> "$target_db"; fi
             echo "$final_row" >> "$target_db"
             
-            _bot_say "success" "Blueprint Extracted & Reconstructed. Forging..."
+            # 5. 檢閱模式 (VIEW) - 讓使用者檢視載荷內容
+            _bot_say "action" "Displaying Blueprint Details..."
+            sleep 0.5
+            if command -v _factory_fzf_detail_view &> /dev/null; then
+                _factory_fzf_detail_view "$temp_com_name" "VIEW" > /dev/null
+            fi
+            
+            # 6. 選擇 TYPE
+            _bot_say "warn" "Blueprint architecture undefined. Please specify TYPE:"
+            local type_sel=$(_factory_fzf_add_type_menu)
+            if [[ -z "$type_sel" || "$type_sel" == "Cancel" || "$type_sel" == *"------"* ]]; then
+                _bot_say "error" "Import aborted. Blueprint discarded."
+                export __FAC_IO_STATE="E"
+                _fac_delete_node "$temp_com_name"
+                unset __FAC_IO_STATE
+                return 1
+            fi
+            local bp_type=$(echo "$type_sel" | awk '{print $2}') 
+
+            # 7. 隔離限制鎖：SYS 類型必須在 SYSTEM 沙盒中鍛造
+            if [ "$bp_type" == "SYS" ] && [ "${__FAC_ACTIVE_DB_NAME:-APP}" != "SYSTEM" ]; then
+                _bot_say "error" "SYS Architecture must be forged in the SYSTEM Database."
+                echo -e "${THEME_DESC}    ›› Current workspace is [${__FAC_ACTIVE_DB_NAME:-APP}]. Please execute 'fac switch'.${C_RESET}"
+                export __FAC_IO_STATE="E"
+                _fac_delete_node "$temp_com_name"
+                unset __FAC_IO_STATE
+                return 1
+            fi
+
+            # 8. 設定真正名稱 (套用 8 字元限制)
+            _bot_say "action" "Assign an Identity (Command Name) for this Blueprint:"
+            read -e -p "    › " new_com_name
+            new_com_name=$(echo "$new_com_name" | sed 's/^[ \t]*//;s/[ \t]*$//')
+            
+            if [ -z "$new_com_name" ]; then
+                _bot_say "error" "Identity required. Aborting."
+                export __FAC_IO_STATE="E"
+                _fac_delete_node "$temp_com_name"
+                unset __FAC_IO_STATE
+                return 1
+            elif [ ${#new_com_name} -gt 8 ]; then
+                _bot_say "error" "Length Exceeded (Max: 8). Aborting."
+                export __FAC_IO_STATE="E"
+                _fac_delete_node "$temp_com_name"
+                unset __FAC_IO_STATE
+                return 1
+            fi
+
+            # 9. 更新 TYPE 與名稱
+            _fac_neural_write "$temp_com_name" 4 "$bp_type"
+            _fac_neural_write "$temp_com_name" 5 "$new_com_name"
+            
+            _bot_say "success" "Blueprint Imported & Reconstructed. Forging..."
             sleep 1
             
+            # 10. 進入正常編輯流程
             _fac_safe_edit_protocol "$new_com_name" "EDIT"
             ;;
 
