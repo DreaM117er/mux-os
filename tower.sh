@@ -121,7 +121,6 @@ function __tct_core() {
             read final_confirm
             
             if [ "$final_confirm" == "CONFIRM" ]; then
-                echo ""
                 echo -e "${C_PINKMEOW} :: Tower Uplink Disconnected. See you, Commander! ( ´ ▽ \` )ﾉ${C_RESET}"
                 sleep 1
                 _update_mux_state "MUX" "DEFAULT"

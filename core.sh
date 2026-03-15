@@ -1900,6 +1900,7 @@ function _tct_login_protocol() {
         sleep 0.5
         echo ""
         echo -e "${THEME_ERR} :: ACCESS DENIED :: Signature Mismatch.${C_RESET}"
+        sleep 0.6
         echo -e "${C_PINKMEOW} :: Intruder alert! Or... did you just typo? ((((；゜Д゜)))${C_RESET}"
         sleep 0.5
         _system_unlock
