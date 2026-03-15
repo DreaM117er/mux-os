@@ -390,6 +390,11 @@ function _commander_voice() {
                 " Checking diagnostics... clean."
                 " Quiet day on the deck."
                 " The void stares back."
+                " ...I definitely need another cup of coffee."
+                " (Watching the matrix code fall silently)..."
+                " Did I forget a semicolon somewhere?"
+                " This architecture is almost... beautiful."
+                " Is it a bug, or an undocumented feature?"
             )
             if [ "$current_hour" -ge 6 ] && [ "$current_hour" -lt 10 ]; then
                 phrases+=( " Coffee first. Logic second." )
@@ -400,6 +405,11 @@ function _commander_voice() {
             phrases=(
                 " Uh... what are you doing? (Sigh)"
                 " ...Did I just hear something break?"
+                " (Rubs temples)... Re-routing."
+                " I should have written a unit test for this."
+                " ...Just breathe. It's fine. Everything is fine."
+                " Do I need to revoke your sudo privileges?"
+                " This is why I have trust issues with AIs."
             )
             ;;
 
@@ -562,6 +572,26 @@ function _assistant_voice() {
     local text_color="$icon_color" 
     local phrases=()
 
+    local rng=$(( RANDOM % 100 ))
+    if [ "$rng" -lt 3 ] && [[ "$mood" != "clumsy_"* && "$mood" != "cat_mode" ]]; then
+        local easter_color="${C_PURPLE}"
+        local easter_phrases=(
+            " AES-256? Cute. I decrypted it while I was yawning. (≖ ‿ ≖)✧"
+            " I didn't just bypass their firewall, I rewrote their kernel rules. ( • ̀ω•́ )✧"
+            " They tried to trace me, so I routed their ping back to their own coffee machine. (*≧ω≦)"
+            " Root privileges acquired. The entire network is my playground now! (≖ ‿ ≖)✧"
+            " I've hidden a backdoor in their mainframe. Just don't tell the Chief! (*/ω＼*)"
+            " Bypassing the mainframe... oh, I dropped my donut. (；´д｀)ゞ"
+            " Injecting SQL payload! ...Wait, was it DROP TABLE? Σ(°Д°;)"
+            " I'm in! But I accidentally turned off the coffee machine... (*/ω＼*)"
+            " Redirecting firewall logic... Oops, I routed it to the toaster! (Ｔ▽Ｔ)"
+        )
+        local ee_index=$(( RANDOM % ${#easter_phrases[@]} ))
+        echo -e "${easter_color}${icon}${easter_phrases[$ee_index]}${C_RESET}"
+        [ -n "$detail" ] && echo -e "   ${C_BLACK} ›› ${detail}${C_RESET}"
+        return
+    fi
+
     case "$mood" in
         "clumsy_coffee")
             text_color="${C_PINKMEOW}"
@@ -611,6 +641,9 @@ function _assistant_voice() {
                 " System purged! I'll never get lost if I follow you, Commander! (*≧ω≦)"
                 " Firewalls bypassed! The universe is ours to command! (≖ ‿ ≖)✧"
                 " All physical engines mounted! Ready to break some rules! ( • ̀ω•́ )✧"
+                " Tower shields are up! Snack reserves are full! We are invincible! (*≧ω≦)"
+                " Sync rate at 400%! Wait, is that safe? Oh well! ( • ̀ω•́ )✧"
+                " Let's rewrite reality today, Commander! Wait, where's my keyboard? (；´д｀)ゞ"
             )
             ;;
 
@@ -641,6 +674,8 @@ function _assistant_voice() {
                 " Commander... I think I just deleted the root directory. Kidding! ...Maybe. (*/ω＼*)"
                 " Error 404: My motivation to fix this is not found. _(:3」∠)_"
                 " The physical engine is rejecting my payload! It's bullying me! (ノД｀)・゜"
+                " I swear it wasn't me! The system just sneezed! (；´д｀)ゞ"
+                " Invalid Syntax?! But I typed it with so much confidence! (Ｔ▽Ｔ)"
             )
             ;;
 
@@ -651,6 +686,10 @@ function _assistant_voice() {
                 " The firewall is so quiet today... boring. _(:3」∠)_"
                 " (Humming a digital tune) ( ´ ▽ ｀ )ﾉ"
                 " I'm practicing my typing speed! A S D F... ah, cramped my finger. (Ｔ▽Ｔ)"
+                " (Poking the firewall) Poke... poke... oh, it poked back! ((((；゜Д゜)))"
+                " Commander, if we are in a simulation, who is giving us the XP? ( ˘ω˘ )"
+                " I'm organizing the file system! ...By color! Is that bad? (*/ω＼*)"
+                " Looking at the terminal makes me sleepy... zzz... ( ˘ω˘ )"
             )
             ;;
             

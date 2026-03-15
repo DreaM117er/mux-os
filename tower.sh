@@ -6,19 +6,6 @@ if [ -z "$__MUX_CORE_ACTIVE" ]; then
     return 1 2>/dev/null || exit 1
 fi
 
-# 武器靜音協議 (Weapons Cold)
-function command_not_found_handle() {
-    local cmd="$1"
-    
-    # 呼叫小助理的錯誤提示
-    if command -v _assistant_voice &> /dev/null; then
-        _assistant_voice "error" "Command '$cmd' not found. We are in Weapons Cold mode!"
-    else
-        echo -e "${THEME_WARN} :: Eh? I don't know what '$cmd' is... (；´д｀)ゞ${C_RESET}"
-    fi
-    return 127
-}
-
 # ==========================================
 # 2. 原生指令劫持 (Physical Engine Overrides)
 # ==========================================
@@ -62,6 +49,32 @@ function _tct_init() {
 # : Tower Command Entry
 function __tct_core() {
     local cmd="$1"
+
+    if [ "$MUX_MODE" != "TCT" ]; then
+        if command -v _assistant_voice &> /dev/null; then
+            _assistant_voice "error" "Commander! Tower protocols are strictly for the Command Tower! ( • ̀ω•́ )✧"
+        else
+            echo -e "${C_PINKMEOW} :: Commander! Tower protocols are strictly for the Command Tower! ( • ̀ω•́ )✧${C_RESET}"
+        fi
+        return 1
+    fi
+
+    if [ -z "$cmd" ]; then
+        if [ "$__MUX_CAT_OS" == "1" ]; then
+            if command -v _assistant_voice &> /dev/null; then
+                _assistant_voice "cat_mode"
+            else
+                echo -e "${C_PINKMEOW} :: Meow? (ฅ^•ﻌ•^ฅ)${C_RESET}"
+            fi
+        else
+            if command -v _voice_dispatch &> /dev/null; then
+                _voice_dispatch "idle"
+            else
+                echo -e "${C_PINKMEOW} :: Commander? I'm right here! Do you need something? (*≧ω≦)${C_RESET}"
+            fi
+        fi
+        return 0
+    fi
     
     case "$cmd" in
         # : Reload Tower UI and state

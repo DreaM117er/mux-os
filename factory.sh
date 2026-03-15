@@ -2669,16 +2669,16 @@ function __fac_core() {
                 return 1
             fi
 
-            # 0. 探測是否為空彈試射 (Dry Fire)
-            if grep -q "\[EMPTY CHAMBER / DRY FIRE\]" "$report_file" || grep -q "Success (Test)" "$report_file"; then
+            # 1. 抓取非 Dry Fire 的發射記錄
+            local last_status=$(grep -E "^\[XUM_BLUEPRINT\]::|\[EMPTY CHAMBER / DRY FIRE\]|Success \(Test\)" "$report_file" | tail -n 1)
+
+            if [[ "$last_status" == *"EMPTY CHAMBER"* || "$last_status" == *"Success (Test)"* ]]; then
                 _bot_say "warn" "Report indicates a DRY FIRE (Empty Chamber)."
                 echo -e "${THEME_DESC}    ›› No blueprint payload to extract. Please load a real payload.${C_RESET}"
                 return 1
             fi
-            
-            # 1. 提取隱藏暗碼
-            local blueprint=$(grep "^\[XUM_BLUEPRINT\]::" "$report_file" | sed 's/^\[XUM_BLUEPRINT\]:://' | tail -n 1)
-            
+
+            local blueprint=$(echo "$last_status" | sed 's/^\[XUM_BLUEPRINT\]:://')
             if [ -z "$blueprint" ]; then
                 _bot_say "error" "No valid blueprint signature in .report."
                 return 1

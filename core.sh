@@ -120,7 +120,6 @@ function _voice_dispatch() {
         fi
         return
     fi
-
     # 隨機分配
     if [ $((RANDOM % 2)) -eq 0 ]; then
         _bot_say "$mood" "$detail"
@@ -129,6 +128,49 @@ function _voice_dispatch() {
             _commander_voice "$mood" "$detail"
         else
             _bot_say "$mood" "$detail"
+        fi
+    fi
+
+    if [ $((RANDOM % 2)) -eq 0 ]; then
+        # 模式 A:
+        # 1. 小助理發言
+        if command -v _assistant_voice &> /dev/null; then
+            if [[ "$mood" == "hello" || "$mood" == "idle" ]] && [ $((RANDOM % 2)) -eq 0 ]; then
+                _assistant_voice "tower_ready" "$detail"
+            else
+                _assistant_voice "$mood" "$detail"
+            fi
+        else
+            _bot_say "$mood" "$detail"
+        fi
+        # 2. 指揮官隨機回應
+        if [ $((RANDOM % 10)) -lt 3 ] && command -v _commander_voice &> /dev/null; then
+             sleep 0.8
+             if [[ "$mood" == "error" || "$mood" == "warn" ]]; then
+                 _commander_voice "sigh"
+             else
+                 _commander_voice "default_idle"
+             fi
+        fi
+
+    else
+        # 模式 B:
+        # 1. 指揮官發言
+        if command -v _commander_voice &> /dev/null; then
+            _commander_voice "$mood" "$detail"
+        else
+             _bot_say "$mood" "$detail"
+        fi
+        # 2. 小助理回應
+        sleep 0.8
+        if command -v _assistant_voice &> /dev/null; then
+             if [[ "$mood" == "error" || "$mood" == "warn" ]]; then
+                 _assistant_voice "sorry"
+             else
+                 _assistant_voice "success"
+             fi
+        else
+             _bot_say "action" "Understood, Commander."
         fi
     fi
 }
@@ -2398,6 +2440,15 @@ function command_not_found_handle() {
     local cmd="$1"
     shift
     ! _mux_security_gate "$cmd" "$@" && return 0
+
+    if [ "$MUX_MODE" == "TCT" ]; then
+        if command -v _assistant_voice &> /dev/null; then
+            _assistant_voice "error" "Command '$cmd' not found. We are in Weapons Cold mode!"
+        else
+            echo -e "${C_PINKMEOW} :: Eh? I don't know what '$cmd' is... (；´д｀)ゞ${C_RESET}"
+        fi
+        return 127
+    fi
 
     if [ "$MUX_STATUS" != "LOGIN" ]; then
         return 127
