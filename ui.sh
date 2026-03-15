@@ -2032,6 +2032,7 @@ local theme="$1"
         
         if [ $(( RANDOM % 5 )) -eq 0 ]; then mem_val=$(( RANDOM % 65535 )); fi
     done
+    while read -r -s -t 0.05 -n 10000 garbage; do :; done 2>/dev/null
     
     sleep 0.015
     tput cnorm

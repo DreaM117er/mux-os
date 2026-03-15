@@ -2418,6 +2418,9 @@ function mux() {
 function command_not_found_handle() {
     local cmd="$1"
     shift
+    if [[ ! "$cmd" =~ ^[a-zA-Z0-9] ]]; then
+        return 127
+    fi
     ! _mux_security_gate "$cmd" "$@" && return 0
 
     if [ "$MUX_MODE" == "TCT" ]; then
