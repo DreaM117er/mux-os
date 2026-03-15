@@ -266,13 +266,11 @@ function _mux_reload_kernel() {
     fi
 
     if [ -f "$MUX_ROOT/.mux_state" ]; then
+        source "$MUX_ROOT/.mux_state"
         local current_entry=$(grep "^MUX_ENTRY_POINT=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2 | tr -d '\r\n ')
         
-        if [[ "$current_entry" == "OVERCLOCK" || "$current_entry" == "COOLDOWN" ]]; then
-            local safe_mode=$(grep "^MUX_MODE=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2 | tr -d '\r\n ')
-            local safe_status=$(grep "^MUX_STATUS=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2 | tr -d '\r\n ')
-            _update_mux_state "$safe_mode" "$safe_status"
-            export MUX_MODE="$safe_mode"
+        if [[ "$MUX_ENTRY_POINT" == "OVERCLOCK" || "$MUX_ENTRY_POINT" == "COOLDOWN" ]]; then
+            _update_mux_state "$MUX_MODE" "$MUX_STATUS"
         fi
     fi
 
@@ -2363,7 +2361,7 @@ case "$MUX_MODE" in
         THEME_MAIN="${C_PINKMEOW}"
 
         if [ -f "$TCT_MOD" ]; then
-            export PS1="\[${THEME_MAIN}\]Tct\[${C_RESET}\] \w ✨ "
+            export PS1="\[${C_PINKMEOW}\]Tct\[${C_RESET}\] \w \033[5m›\033[0m "
             
             source "$TCT_MOD"
             
