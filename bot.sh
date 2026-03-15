@@ -567,7 +567,6 @@ function _assistant_voice() {
     local detail="$2"
     
     local icon=" ::"
-    # 前綴永遠保持粉紅色，維持系統識別度
     local text_color="" 
     local phrases=()
 
@@ -645,16 +644,6 @@ function _assistant_voice() {
                 " Let's rewrite reality today, Commander! Wait, where's my keyboard? (；´д｀)ゞ"
             )
             ;;
-
-        "hacking")
-            text_color="${C_CYAN}"
-            phrases=(
-                " Bypassing the mainframe... oh, I dropped my donut. (；´д｀)ゞ"
-                " Injecting SQL payload! ...Wait, was it DROP TABLE? Σ(°Д°;)"
-                " I'm in! But I accidentally turned off the coffee machine... (*/ω＼*)"
-                " Redirecting firewall logic... Oops, I routed it to the toaster! (Ｔ▽Ｔ)"
-            )
-            ;;
             
         "success")
             text_color="${C_GREEN}"
@@ -679,7 +668,7 @@ function _assistant_voice() {
             ;;
 
         "idle")
-            text_color="${C_WHITE}"
+            text_color="${C_PINKMEOW}"
             phrases=(
                 " Commander... are you asleep? Should I play some music? ( ˘ω˘ )"
                 " The firewall is so quiet today... boring. _(:3」∠)_"
