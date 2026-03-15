@@ -257,8 +257,6 @@ function _mux_init() {
 
 # 重新載入核心模組
 function _mux_reload_kernel() {
-
-
     # 主函數邏輯
     _system_lock
     unset MUX_INITIALIZED

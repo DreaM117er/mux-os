@@ -95,7 +95,7 @@ function __tct_core() {
 
         "help")
             if command -v _tct_dynamic_help &> /dev/null; then
-                _tct_dynamic_help
+                _mux_dynamic_help_tower
             fi
             ;;
 

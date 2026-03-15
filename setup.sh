@@ -1,11 +1,6 @@
 #!/bin/bash
 # setup.sh - Mux-OS 生命週期管理器 (Lifecycle Manager)
 
-if [ -f "$HOME/.mux_panic" ]; then
-    echo "Panic mode active. Mux-OS bypassed."
-    return 0
-fi
-
 export __MUX_SETUP_ACTIVE=true
 
 # 定義身份

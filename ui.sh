@@ -856,9 +856,7 @@ function _mux_dynamic_help_core() {
         C_CMD="\033[1;30m" 
     fi
 
-    local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "Unknown")
-
-    echo -e "${C_PURPLE} :: Mux-OS Core Protocols :: @$current_branch :: ${C_RESET}"
+    echo -e "${C_PURPLE} :: Mux-OS Core Protocols ::${C_RESET}"
     
     awk -v cmd_color="$C_CMD" '
     /function mux\(\) \{/ { inside_mux=1; next }
@@ -925,25 +923,26 @@ function _mux_dynamic_help_factory() {
 }
 
 # 動態Help Command Tower選單檢測 - Dynamic Help Tower Detection
-function _tct_dynamic_help() {
-    echo -e "${C_PURPLE} :: Command Tower Protocols ::${C_RESET}"
+function _mux_dynamic_help_tower() {
+    local C_CMD="$C_PINKMEOW"
     
-    awk -v C_CMD="\033[1;37m" -v C_SEP="\033[1;30m" -v C_DESC="\033[1;36m" '
-    /function __tct_core\(\) \{/ { inside_tct=1; next }
-    /^}/ { inside_tct=0 }
+    echo -e "${C_PURPLE} :: Mux-OS Command Tower Protocols ::${C_RESET}"
+    
+    awk -v cmd_color="$C_CMD" '
+    /function cmt\(\) \{/ { inside_cmt=1; next }
+    /^}/ { inside_cmt=0 }
 
-    inside_tct {
+    inside_cmt {
         if ($0 ~ /^[[:space:]]*# :/) {
             desc = $0;
             sub(/^[[:space:]]*# :[[:space:]]*/, "", desc);
             
             getline;
             if ($0 ~ /"/) {
-                split($0, parts_cmd, "\"");
-                cmd_name = parts_cmd[2];
+                split($0, parts, "\"");
+                cmd_name = parts[2];
                 
-                # 格式化輸出： 指令(10字元寬) + " : " + 敘述
-                printf "    %s%-10s\033[0m%s : \033[0m%s%s\033[0m\n", C_CMD, cmd_name, C_SEP, C_DESC, desc;
+                printf "    %s%-10s\033[0m%s\n", cmd_color, cmd_name, desc;
             }
         }
     }
