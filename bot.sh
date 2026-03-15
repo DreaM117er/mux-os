@@ -711,7 +711,12 @@ function _assistant_voice() {
             ;;
     esac
 
-    local rand_index=$(( RANDOM % ${#phrases[@]} ))
-    echo -e "${text_color}${icon}${phrases[$rand_index]}${C_RESET}"
-    [ -n "$detail" ] && echo -e "   ${C_BLACK} ›› ${detail}${C_RESET}"
+    local custom_text="$2"
+
+    if [ -n "$custom_text" ]; then
+        echo -e "${icon_color}${icon} ${text_color}${custom_text}${C_RESET}"
+    else
+        local rand_index=$(( RANDOM % ${#phrases[@]} ))
+        echo -e "${icon_color}${icon} ${text_color}${phrases[$rand_index]}${C_RESET}"
+    fi
 }
