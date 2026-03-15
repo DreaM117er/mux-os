@@ -568,8 +568,7 @@ function _assistant_voice() {
     
     local icon=" ::"
     # 前綴永遠保持粉紅色，維持系統識別度
-    local icon_color="${C_PINKMEOW}"
-    local text_color="$icon_color" 
+    local text_color="" 
     local phrases=()
 
     local rng=$(( RANDOM % 100 ))
@@ -714,9 +713,9 @@ function _assistant_voice() {
     local custom_text="$2"
 
     if [ -n "$custom_text" ]; then
-        echo -e "${icon_color}${icon} ${text_color}${custom_text}${C_RESET}"
+        echo -e "${text_color}${icon}${custom_text}${C_RESET}"
     else
         local rand_index=$(( RANDOM % ${#phrases[@]} ))
-        echo -e "${icon_color}${icon} ${text_color}${phrases[$rand_index]}${C_RESET}"
+        echo -e "${text_color}${icon}${phrases[$rand_index]}${C_RESET}"
     fi
 }
