@@ -281,7 +281,7 @@ function _mux_reload_kernel() {
         gate_theme="default"
     elif [ "$MUX_MODE" == "XUM" ]; then
         gate_theme="xum"
-    elif [ "$MUX_MODE" == "TCT" ] || [ "$current_entry" == "TOWER" ]; then
+    elif [ "$MUX_MODE" == "TCT" ]; then
         gate_theme="tct"
     fi
 
@@ -2266,7 +2266,8 @@ function mux() {
             echo ""
             echo -e "${C_PINKMEOW} :: INITIATING COMMAND TOWER... ::${C_RESET}"
             
-            _update_mux_state "TCT" "LOGIN" "TOWER"
+            _update_mux_state "TCT" "LOGIN"
+            MUX_MODE="TCT"
             sleep 0.9
             _mux_reload_kernel
             return
@@ -2354,7 +2355,7 @@ case "$MUX_MODE" in
             return 0 2>/dev/null || exit 0
         else
             echo -e "${C_RED} :: FATAL :: XUM Core Not Found. Authentication required.${C_RESET}"
-            _update_mux_state "MUX" "LOGIN" "DEFAULT"
+            _update_mux_state "MUX" "LOGIN"
             exec bash
         fi
         ;;
@@ -2374,14 +2375,14 @@ case "$MUX_MODE" in
             return 0 2>/dev/null || exit 0
         else
             echo -e "${C_RED} :: FATAL :: Command Tower (tower.sh) Not Found. Reverting...${C_RESET}"
-            _update_mux_state "MUX" "LOGIN" "DEFAULT"
+            _update_mux_state "MUX" "DEFAULT"
             exec bash
         fi
         ;;
         
     *)
         if command -v _ui_fake_gate &> /dev/null; then _ui_fake_gate "core"; fi
-        _update_mux_state "MUX" "LOGIN"
+        _update_mux_state "MUX" "DEFAULT"
         exec bash
         ;;
 esac
