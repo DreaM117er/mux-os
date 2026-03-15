@@ -2744,7 +2744,8 @@ function __fac_core() {
                 }
             }')
 
-            # 狀態為 N 的原生寫入
+            # 強制將寫入權限鎖定在 "N" 狀態
+            export __FAC_IO_STATE="N"
             _fac_neural_write "$temp_com_name" 10 "${bp_f[5]}"   # PKG
             _fac_neural_write "$temp_com_name" 11 "${bp_f[6]}"   # TGT
             _fac_neural_write "$temp_com_name" 12 "${bp_f[7]}"   # IHEAD
@@ -2775,13 +2776,20 @@ function __fac_core() {
             _fac_neural_write "$temp_com_name" 32 "${bp_f[26]}"  # EX5
             _fac_neural_write "$temp_com_name" 33 "${bp_f[27]}"  # EXTRA5
             _fac_neural_write "$temp_com_name" 34 "${bp_f[28]}"  # BOOLEN5
+            unset __FAC_IO_STATE
 
-            # 5. 上帝視角檢閱
+            # 5. 檢閱資料
             _bot_say "action" "Displaying Blueprint Details..."
             sleep 0.5
+            
+            # 強制讀取剛寫入的參數
+            export __FAC_IO_STATE="N"
+            _fac_neural_read "$temp_com_name"
+            
             if command -v _factory_fzf_detail_view &> /dev/null; then
                 _factory_fzf_detail_view "$temp_com_name" "VIEW" > /dev/null
             fi
+            unset __FAC_IO_STATE
             
             # 6. 決定 TYPE 靈魂
             _bot_say "warn" "Blueprint architecture undefined. Please specify TYPE:"
