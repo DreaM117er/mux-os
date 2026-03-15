@@ -2663,55 +2663,58 @@ function __fac_core() {
 
         # : Import Blueprint from XUM report
         "import")
+            # 限制鎖：必須啟動過 XUM 產生彈巢 (xum.csv) 才會解鎖此指令
+            if [ ! -f "$MUX_ROOT/xum.csv" ]; then
+                echo -e "${THEME_WARN} :: Unknown Directive: '$cmd'.${C_RESET}"
+                return 1
+            fi
+
             local report_file="$MUX_ROOT/.report"
             if [ ! -f "$report_file" ]; then
                 _bot_say "error" "No combat report (.report) found."
                 return 1
             fi
 
-            # 1. 提取所有的 Blueprint (支援疊加掃描)
-            local blueprints=$(grep "^\[XUM_BLUEPRINT\]::" "$report_file" | sed 's/^\[XUM_BLUEPRINT\]:://')
-            if [ -z "$blueprints" ]; then
-                _bot_say "error" "No valid blueprint signature in .report."
-                return 1
-            fi
-
-            # 2. 建立 FZF 選單供使用者挑選
+            # 1 & 2. 掃描報告，抓取發射時間與藍圖，組合 [BP-00n] 選單
             local menu_list=""
             local bp_idx=1
-            while IFS= read -r bp; do
-                if [ -n "$bp" ]; then
-                    # 抓取特徵參數作為選單提示
-                    local p_pkg=$(echo "$bp" | awk -v FPAT='([^,]*)|("[^"]+")' '{print $5}' | tr -d '"')
-                    local p_tgt=$(echo "$bp" | awk -v FPAT='([^,]*)|("[^"]+")' '{print $6}' | tr -d '"')
-                    local p_uri=$(echo "$bp" | awk -v FPAT='([^,]*)|("[^"]+")' '{print $9}' | tr -d '"')
-                    
-                    local desc="$p_pkg"
-                    [ -n "$p_tgt" ] && desc="$desc/$p_tgt"
-                    [ -z "$desc" ] && [ -n "$p_uri" ] && desc="$p_uri"
-                    [ -z "$desc" ] && desc="Unknown Payload"
-                    
-                    menu_list+="[BP-${bp_idx}]\t\033[1;36m${desc}\033[0m\t${bp}\n"
+            local last_time="Unknown Time"
+            
+            while IFS= read -r line; do
+                # 抓取 XUM 報告中的時間標記 (例如 2026.03.15.23:22:42)
+                if [[ "$line" =~ ([0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{2}:[0-9]{2}:[0-9]{2}) ]]; then
+                    last_time="${BASH_REMATCH[1]}"
+                elif [[ "$line" == "[XUM_BLUEPRINT]::"* ]]; then
+                    local bp="${line#\[XUM_BLUEPRINT\]::}"
+                    local f_idx=$(printf "[BP-%03d]" "$bp_idx")
+                    # 隱藏雜亂參數，只顯示時間戳記
+                    menu_list+="${f_idx}\t\033[1;36mPayload Timestamp: ${last_time}\033[0m\t${bp}\n"
                     bp_idx=$((bp_idx + 1))
                 fi
-            done <<< "$blueprints"
+            done < "$report_file"
 
+            if [ -z "$menu_list" ]; then
+                _bot_say "error" "No valid blueprints detected in .report."
+                return 1
+            fi
+            
             local line_count=$(echo -e "$report" | wc -l)
             local dynamic_height=$(( line_count + 4 ))
 
             local fzf_sel=$(echo -e "$menu_list" | fzf --ansi \
                 --height="$dynamic_height" \
                 --layout=reverse \
-                --border=bottom \
-                --info=hidden \
                 --header=" :: Enter to Select, Esc to Return ::" \
+                --info=hidden \
+                --border=bottom \
                 --border-label=" :: SELECT BLUEPRINT :: " \
                 --prompt=" :: Import › " \
                 --delimiter="\t" \
                 --with-nth=1,2 \
                 --pointer="››" \
                 --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-                --color=info:240,prompt:46,pointer:red,marker:208,border:46
+                --color=info:240,prompt:46,pointer:red,marker:208,border:46 \
+                --bind="resize:clear-screen"
             )
 
             if [ -z "$fzf_sel" ]; then
@@ -2720,10 +2723,10 @@ function __fac_core() {
             fi
 
             local blueprint=$(echo "$fzf_sel" | awk -F'\t' '{print $3}')
-            _bot_say "action" "XUM Blueprint Selected. Decoding..."
+            _bot_say "action" "XUM Blueprint Selected. Reconstructing..."
             sleep 0.8
             
-            # 3. 準備臨時名稱與流水號
+            # 3. 準備臨時名稱與流水號，並建立「純淨空殼」
             local target_db="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
             local next_comno=$(awk -F, '$1==999 {gsub(/^"|"$/, "", $2); if(($2+0) > max) max=$2} END {print max+1}' "$target_db")
             if [ -z "$next_comno" ] || [ "$next_comno" -eq 1 ]; then next_comno=1; fi
@@ -2732,43 +2735,68 @@ function __fac_core() {
             local ts=$(date +%s)
             local temp_com_name="XUM_${ts}"
 
-            # 4. 高精度神經映射 (寫入臨時節點，TYPE 暫設為 Unknown)
-            local final_row=$(echo "$blueprint" | awk -v FPAT='([^,]*)|("[^"]+")' -v OFS=, \
-                -v n_no="$next_comno" -v n_type="\"Unknown\"" -v n_com="\"$temp_com_name\"" '
-            {
-                f[1]="999"; f[2]=n_no; f[3]="\"Others\""; f[4]=n_type; f[5]=n_com; 
-                f[6]="\"\""; f[7]="\"E\""; f[8]="\"\""; f[9]="\"\"";
-                
-                f[10]=$5; f[11]=$6; f[12]=$7; f[13]=$8; f[14]=$9; f[15]=$10;
-                f[16]=$11; f[17]=$12; f[18]=$13; f[19]=$29;
-                
-                f[20]=$14; f[21]=$15; f[22]=$16
-                f[23]=$17; f[24]=$18; f[25]=$19
-                f[26]=$20; f[27]=$21; f[28]=$22
-                f[29]=$23; f[30]=$24; f[31]=$25
-                f[32]=$26; f[33]=$27; f[34]=$28
-                f[35]="\"\""
-                
-                for(i=1; i<=35; i++) {
-                    if (f[i] == "") f[i]="\"\""
-                    printf "%s%s", f[i], (i==35?"":OFS)
-                }
-                print ""
-            }')
+            # 建立乾淨草稿 (CATNO=999)
+            local empty_row="999,${next_comno},\"Others\",\"Unknown\",\"${temp_com_name}\",,\"E\",,,,,,,,,,,,,,,,,,,,,,,,,,,,"
             
             if [ -s "$target_db" ] && [ "$(tail -c 1 "$target_db")" != "" ]; then echo "" >> "$target_db"; fi
-            echo "$final_row" >> "$target_db"
-            
-            # 5. 檢閱模式 (VIEW) - 讓使用者檢視載荷內容
+            echo "$empty_row" >> "$target_db"
+
+            # 4. 安全拆解藍圖參數
+            eval $(echo "$blueprint" | awk -v FPAT='([^,]*)|("[^"]+")' '{
+                for(i=1; i<=29; i++) {
+                    val = $i
+                    if (val ~ /^".*"$/) { val = substr(val, 2, length(val)-2) }
+                    
+                    gsub(/\047/, "\047\\\047\047", val)
+                    printf "bp_f[%d]=\047%s\047\n", i, val
+                }
+            }')
+
+            # 使用 _fac_neural_write 安全注入，完全免疫引號錯位
+            export __FAC_IO_STATE="E"
+            _fac_neural_write "$temp_com_name" 10 "${bp_f[5]}"   # PKG
+            _fac_neural_write "$temp_com_name" 11 "${bp_f[6]}"   # TGT
+            _fac_neural_write "$temp_com_name" 12 "${bp_f[7]}"   # IHEAD
+            _fac_neural_write "$temp_com_name" 13 "${bp_f[8]}"   # IBODY
+            _fac_neural_write "$temp_com_name" 14 "${bp_f[9]}"   # URI
+            _fac_neural_write "$temp_com_name" 15 "${bp_f[10]}"  # MIME
+            _fac_neural_write "$temp_com_name" 16 "${bp_f[11]}"  # CATE1
+            _fac_neural_write "$temp_com_name" 17 "${bp_f[12]}"  # CATE2
+            _fac_neural_write "$temp_com_name" 18 "${bp_f[13]}"  # CATE3
+            _fac_neural_write "$temp_com_name" 19 "${bp_f[29]}"  # FLAG
+
+            _fac_neural_write "$temp_com_name" 20 "${bp_f[14]}"  # EX1
+            _fac_neural_write "$temp_com_name" 21 "${bp_f[15]}"  # EXTRA1
+            _fac_neural_write "$temp_com_name" 22 "${bp_f[16]}"  # BOOLEN1
+
+            _fac_neural_write "$temp_com_name" 23 "${bp_f[17]}"  # EX2
+            _fac_neural_write "$temp_com_name" 24 "${bp_f[18]}"  # EXTRA2
+            _fac_neural_write "$temp_com_name" 25 "${bp_f[19]}"  # BOOLEN2
+
+            _fac_neural_write "$temp_com_name" 26 "${bp_f[20]}"  # EX3
+            _fac_neural_write "$temp_com_name" 27 "${bp_f[21]}"  # EXTRA3
+            _fac_neural_write "$temp_com_name" 28 "${bp_f[22]}"  # BOOLEN3
+
+            _fac_neural_write "$temp_com_name" 29 "${bp_f[23]}"  # EX4
+            _fac_neural_write "$temp_com_name" 30 "${bp_f[24]}"  # EXTRA4
+            _fac_neural_write "$temp_com_name" 31 "${bp_f[25]}"  # BOOLEN4
+
+            _fac_neural_write "$temp_com_name" 32 "${bp_f[26]}"  # EX5
+            _fac_neural_write "$temp_com_name" 33 "${bp_f[27]}"  # EXTRA5
+            _fac_neural_write "$temp_com_name" 34 "${bp_f[28]}"  # BOOLEN5
+            unset __FAC_IO_STATE
+
+            # 5. 上帝視角檢閱 (VIEW)
             _bot_say "action" "Displaying Blueprint Details..."
             sleep 0.5
             if command -v _factory_fzf_detail_view &> /dev/null; then
                 _factory_fzf_detail_view "$temp_com_name" "VIEW" > /dev/null
             fi
             
-            # 6. 選擇 TYPE
+            # 6. 決定 TYPE 靈魂
             _bot_say "warn" "Blueprint architecture undefined. Please specify TYPE:"
             local type_sel=$(_factory_fzf_add_type_menu)
+            
             if [[ -z "$type_sel" || "$type_sel" == "Cancel" || "$type_sel" == *"------"* ]]; then
                 _bot_say "error" "Import aborted. Blueprint discarded."
                 export __FAC_IO_STATE="E"
@@ -2788,7 +2816,7 @@ function __fac_core() {
                 return 1
             fi
 
-            # 8. 設定真正名稱 (套用 8 字元限制)
+            # 8. 設定名字 (8字元防線)
             _bot_say "action" "Assign an Identity (Command Name) for this Blueprint:"
             read -e -p "    › " new_com_name
             new_com_name=$(echo "$new_com_name" | sed 's/^[ \t]*//;s/[ \t]*$//')
@@ -2807,14 +2835,16 @@ function __fac_core() {
                 return 1
             fi
 
-            # 9. 更新 TYPE 與名稱
+            # 9. 原子寫入 TYPE 與 COM
+            export __FAC_IO_STATE="E"
             _fac_neural_write "$temp_com_name" 4 "$bp_type"
             _fac_neural_write "$temp_com_name" 5 "$new_com_name"
+            unset __FAC_IO_STATE
             
             _bot_say "success" "Blueprint Imported & Reconstructed. Forging..."
             sleep 1
             
-            # 10. 進入正常編輯流程
+            # 10. 全數安全通過後，才進入編輯流程
             _fac_safe_edit_protocol "$new_com_name" "EDIT"
             ;;
 
