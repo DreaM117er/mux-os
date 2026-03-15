@@ -2669,19 +2669,17 @@ function __fac_core() {
                 return 1
             fi
 
-            # 1 & 2. 掃描報告，抓取發射時間與藍圖，組合 [BP-00n] 選單
+            # 1 & 2. 掃描報告，抓取發射時間與藍圖
             local menu_list=""
             local bp_idx=1
             local last_time="Unknown Time"
             
             while IFS= read -r line; do
-                # 抓取 XUM 報告中的時間標記 (例如 2026.03.15.23:22:42)
                 if [[ "$line" =~ ([0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{2}:[0-9]{2}:[0-9]{2}) ]]; then
                     last_time="${BASH_REMATCH[1]}"
                 elif [[ "$line" == "[XUM_BLUEPRINT]::"* ]]; then
                     local bp="${line#\[XUM_BLUEPRINT\]::}"
                     local f_idx=$(printf "[BP-%03d]" "$bp_idx")
-                    # 隱藏雜亂參數，只顯示時間戳記
                     menu_list+="${f_idx}\t\033[1;36mPayload Timestamp: ${last_time}\033[0m\t${bp}\n"
                     bp_idx=$((bp_idx + 1))
                 fi
@@ -2720,7 +2718,7 @@ function __fac_core() {
             _bot_say "action" "XUM Blueprint Selected. Reconstructing..."
             sleep 0.8
             
-            # 3. 準備臨時名稱與流水號，並建立「純淨空殼」
+            # 3. 準備臨時名稱與流水號
             local target_db="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
             local next_comno=$(awk -F, '$1==999 {gsub(/^"|"$/, "", $2); if(($2+0) > max) max=$2} END {print max+1}' "$target_db")
             if [ -z "$next_comno" ] || [ "$next_comno" -eq 1 ]; then next_comno=1; fi
@@ -2729,25 +2727,24 @@ function __fac_core() {
             local ts=$(date +%s)
             local temp_com_name="XUM_${ts}"
 
-            # 建立乾淨草稿 (CATNO=999)
-            local empty_row="999,${next_comno},\"Others\",\"Unknown\",\"${temp_com_name}\",,\"E\",,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+            #  "N" 新建節點
+            local empty_row="999,${next_comno},\"Others\",\"Unknown\",\"${temp_com_name}\",,\"N\",,,,,,,,,,,,,,,,,,,,,,,,,,,,"
             
             if [ -s "$target_db" ] && [ "$(tail -c 1 "$target_db")" != "" ]; then echo "" >> "$target_db"; fi
             echo "$empty_row" >> "$target_db"
 
-            # 4. 安全拆解藍圖參數
+            # 4. 安全拆解藍圖參數，並透過原子寫入器逐格注入
+            local -a bp_f
             eval $(echo "$blueprint" | awk -v FPAT='([^,]*)|("[^"]+")' '{
                 for(i=1; i<=29; i++) {
                     val = $i
                     if (val ~ /^".*"$/) { val = substr(val, 2, length(val)-2) }
-                    
                     gsub(/\047/, "\047\\\047\047", val)
                     printf "bp_f[%d]=\047%s\047\n", i, val
                 }
             }')
 
-            # 使用 _fac_neural_write 安全注入，完全免疫引號錯位
-            export __FAC_IO_STATE="E"
+            # 狀態為 N 的原生寫入
             _fac_neural_write "$temp_com_name" 10 "${bp_f[5]}"   # PKG
             _fac_neural_write "$temp_com_name" 11 "${bp_f[6]}"   # TGT
             _fac_neural_write "$temp_com_name" 12 "${bp_f[7]}"   # IHEAD
@@ -2778,9 +2775,8 @@ function __fac_core() {
             _fac_neural_write "$temp_com_name" 32 "${bp_f[26]}"  # EX5
             _fac_neural_write "$temp_com_name" 33 "${bp_f[27]}"  # EXTRA5
             _fac_neural_write "$temp_com_name" 34 "${bp_f[28]}"  # BOOLEN5
-            unset __FAC_IO_STATE
 
-            # 5. 上帝視角檢閱 (VIEW)
+            # 5. 上帝視角檢閱
             _bot_say "action" "Displaying Blueprint Details..."
             sleep 0.5
             if command -v _factory_fzf_detail_view &> /dev/null; then
@@ -2793,18 +2789,18 @@ function __fac_core() {
             
             if [[ -z "$type_sel" || "$type_sel" == "Cancel" || "$type_sel" == *"------"* ]]; then
                 _bot_say "error" "Import aborted. Blueprint discarded."
-                export __FAC_IO_STATE="E"
+                export __FAC_IO_STATE="N"
                 _fac_delete_node "$temp_com_name"
                 unset __FAC_IO_STATE
                 return 1
             fi
             local bp_type=$(echo "$type_sel" | awk '{print $2}') 
 
-            # 7. 隔離限制鎖：SYS 類型必須在 SYSTEM 沙盒中鍛造
+            # 7. 隔離限制鎖
             if [ "$bp_type" == "SYS" ] && [ "${__FAC_ACTIVE_DB_NAME:-APP}" != "SYSTEM" ]; then
                 _bot_say "error" "SYS Architecture must be forged in the SYSTEM Database."
                 echo -e "${THEME_DESC}    ›› Current workspace is [${__FAC_ACTIVE_DB_NAME:-APP}]. Please execute 'fac switch'.${C_RESET}"
-                export __FAC_IO_STATE="E"
+                export __FAC_IO_STATE="N"
                 _fac_delete_node "$temp_com_name"
                 unset __FAC_IO_STATE
                 return 1
@@ -2817,29 +2813,27 @@ function __fac_core() {
             
             if [ -z "$new_com_name" ]; then
                 _bot_say "error" "Identity required. Aborting."
-                export __FAC_IO_STATE="E"
+                export __FAC_IO_STATE="N"
                 _fac_delete_node "$temp_com_name"
                 unset __FAC_IO_STATE
                 return 1
             elif [ ${#new_com_name} -gt 8 ]; then
                 _bot_say "error" "Length Exceeded (Max: 8). Aborting."
-                export __FAC_IO_STATE="E"
+                export __FAC_IO_STATE="N"
                 _fac_delete_node "$temp_com_name"
                 unset __FAC_IO_STATE
                 return 1
             fi
 
             # 9. 原子寫入 TYPE 與 COM
-            export __FAC_IO_STATE="E"
             _fac_neural_write "$temp_com_name" 4 "$bp_type"
             _fac_neural_write "$temp_com_name" 5 "$new_com_name"
-            unset __FAC_IO_STATE
             
             _bot_say "success" "Blueprint Imported & Reconstructed. Forging..."
             sleep 1
             
-            # 10. 全數安全通過後，才進入編輯流程
-            _fac_safe_edit_protocol "$new_com_name" "EDIT"
+            # 10. 進入 NEW 編輯流程
+            _fac_safe_edit_protocol "$new_com_name" "NEW"
             ;;
 
         # : Edit Neural (Edit Command)

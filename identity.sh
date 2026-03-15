@@ -411,7 +411,6 @@ function _grant_xp() {
                         "_core_pre_factory_auth"
                         "_core_eject_sequence"
                         "_mux_neural_fire_control"
-                        "_mux_uplink_sequence"
                         "_fac_edit_router"
                         "_fac_launch_test"
                         "_factory_deploy_sequence"

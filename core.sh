@@ -469,36 +469,6 @@ function _neural_link_deploy() {
     fi
 }
 
-function _mux_uplink_sequence() {
-    if command -v fzf &> /dev/null; then
-        _bot_say "success" "Neural Link is already active. Signal stable."
-        return
-    fi
-
-    _bot_say "system" "Initializing Neural Bridge Protocol..."
-    sleep 0.5
-    echo -e "${C_YELLOW} :: Scanning local synaptic ports...${C_RESET}"
-    sleep 0.8
-    echo -e "${C_CYAN} :: Constructing interface matrix (fzf)...${C_RESET}"
-    sleep 0.5
-
-    pkg install fzf -y > /dev/null 2>&1
-
-    if command -v fzf &> /dev/null; then
-        echo -e ""
-        if command -v _grant_xp &> /dev/null; then _grant_xp 100 "UPLINK_OK"; fi
-        echo -e "\033[1;35m :: SYNCHRONIZATION COMPLETE :: ${C_RESET}"
-        echo -e ""
-        sleep 0.5
-        _bot_say "neural" "Welcome to the Grid, Commander."
-        
-        sleep 1.4
-        mux reload
-    else
-        _bot_say "error" "Link failed. Neural rejection detected."
-    fi
-}
-
 # 神經資料解析器 (Neural Data Parser)
 function _mux_neural_data() {
     unset _VAL_CATNO _VAL_COMNO _VAL_CATNAME _VAL_TYPE _VAL_COM \
@@ -2042,7 +2012,7 @@ function mux() {
 
     if [ "$MUX_STATUS" != "LOGIN" ]; then
         case "$cmd" in
-            "login"|"setup"|"help"|"status"|"sts"|"info"|"reload"|"reset"|"factory"|"tofac"|"driveto"|"update"|"drive2"|"hof"|"tower"|"tocmt")
+            "login"|"setup"|"help"|"status"|"sts"|"info"|"reload"|"reset"|"factory"|"tofac"|"driveto"|"update"|"drive2"|"hof"|"tower"|"tocmt"|"link")
                 # 放行
                 ;;
             *)
@@ -2176,22 +2146,42 @@ function mux() {
         # : Install Dependencies
         "link")
             if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "System modification restricted during Overclock."; return 1; fi
+            
+            # 已經安裝過的防呆回饋
             if command -v fzf &> /dev/null; then
-                echo -e "\n${C_GREEN} :: Neural Link (fzf) Status: ${C_WHITE}ONLINE${C_RESET} ✅"
-                _bot_say "success" "Link is stable, Commander."
+                echo -e "\n${C_GREEN} :: VR Tactical Visor (fzf) Status: ${C_WHITE}EQUIPPED${C_RESET} ✅"
+                echo -e "${C_WHITE} :: Visor is already equipped. Spatial map is fully operational.${C_RESET}"
                 return
             fi
+            
+            # 開始扮演劇本 (純白色獨白)
             echo -e ""
-            echo -e "${C_YELLOW} :: Initialize Neural Link Protocol? ${C_RESET}"
+            echo -e "${C_WHITE} :: Ah, found it. Left it right here.${C_RESET}"
+            sleep 0.8
+            echo -e "${C_WHITE} :: Let's put this on... and hook into the hangar network for a map update.${C_RESET}"
             echo -e ""
-            echo -ne "${C_GREEN} :: Authorize construction? [Y/n]: ${C_RESET}"
+            echo -ne "${C_YELLOW} :: Equip Tactical Visor (Install fzf)? [Y/n]: ${C_RESET}"
             read choice
+            
             if [[ "$choice" == "y" || "$choice" == "Y" || "$choice" == "" ]]; then
-                if command -v _mux_uplink_sequence &> /dev/null; then
-                    _mux_uplink_sequence
+                echo -e "${C_CYAN} :: Downloading spatial matrix...${C_RESET}"
+                
+                # 在後台靜默安裝
+                pkg install fzf -y > /dev/null 2>&1
+                
+                if command -v fzf &> /dev/null; then
+                    echo -e ""
+                    echo -e "${C_WHITE} :: Retinal projection online... Phew, can't get used to walking around without it.${C_RESET}"
+                    
+                    # 首次戴上眼鏡的經驗值獎勵
+                    if command -v _grant_xp &> /dev/null; then _grant_xp 100 "UPLINK_OK"; fi
                 else
-                    pkg install fzf -y
+                    echo -e ""
+                    echo -e "${C_WHITE} :: Weird, the hangar network seems down. Visor can't sync...${C_RESET}"
                 fi
+            else
+                echo -e ""
+                echo -e "${C_WHITE} :: Whatever, I'll put it on later.${C_RESET}"
             fi
             ;;
         
@@ -2274,6 +2264,13 @@ function mux() {
                  echo -e "${C_BLACK}    ›› Protocol Violation: Cannot switch unit while piloted.${C_RESET}"
                  echo -e "${C_BLACK}    ›› Action Required : Execute 'mux logout' to disengage.${C_RESET}"
                  return 1
+            fi
+
+            # 0. 偵測戰術眼鏡 (fzf) 是否裝備
+            if ! command -v fzf &> /dev/null; then
+                echo -e "${C_WHITE} :: Damn... I forgot my tactical visor. Can't lock onto any coordinates without it.${C_RESET}"
+                echo -e "${THEME_DESC}    ›› System: Execute 'mux link' to retrieve and equip the tactical visor.${C_RESET}"
+                return 1
             fi
 
             # 1. 進入機庫 (Hangar Access)
