@@ -277,7 +277,7 @@ function _mux_reload_kernel() {
     fi
 
     local gate_theme="core"
-    if [ "$MUX_STATUS" == "DEFAULT" ]; then
+    if [[ "$MUX_STATUS" == "DEFAULT" && "$MUX_MODE" == "MUX" ]]; then
         gate_theme="default"
     elif [ "$MUX_MODE" == "XUM" ]; then
         gate_theme="xum"
@@ -2267,7 +2267,6 @@ function mux() {
             echo -e "${C_PINKMEOW} :: INITIATING COMMAND TOWER... ::${C_RESET}"
             
             _update_mux_state "TCT" "LOGIN"
-            MUX_MODE="TCT"
             sleep 0.9
             _mux_reload_kernel
             return
