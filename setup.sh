@@ -328,7 +328,7 @@ MUX_STATUS="DEFAULT"
 EOF
     else
         # 修復更新
-        if [[ "$CURRENT_MODE" == "XUM" || "$CURRENT_MODE" == "FAC" ]]; then
+        if [[ "$CURRENT_MODE" == "XUM" || "$CURRENT_MODE" == "FAC"  || "$CURRENT_MODE" == "TCT" ]]; then
             CURRENT_STATUS="LOGIN"
         fi
 

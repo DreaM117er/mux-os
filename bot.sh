@@ -557,100 +557,122 @@ function _assistant_voice() {
     local detail="$2"
     
     local icon=" ::"
-    local color="${C_PINKMEOW}"
+    # 前綴永遠保持粉紅色，維持系統識別度
+    local icon_color="${C_PINKMEOW:-\033[1;38;5;211m}"
+    local text_color="$icon_color" 
     local phrases=()
 
     case "$mood" in
         "clumsy_coffee")
+            text_color="${C_PINKMEOW}"
             phrases=(
-                " Coffee... coffee is so good... Wait, where did the cup go? 🤤"
-                " Ah! Wait! I spilled it on the mainframe! 💦"
-                " I successfully overclocked the coffee machine! But... it exploded! ☕💥"
-                " Just one more sip before decrypting... Oops! My elbow! 💦"
+                " Coffee... coffee is so good... Wait, where did the cup go? (；´д｀)ゞ"
+                " Ah! Wait! I spilled it on the mainframe! (ノД｀)・゜"
+                " I successfully overclocked the coffee machine! But... it exploded! Σ(°Д°;)"
+                " Just one more sip before decrypting... Oops! My elbow! (；´д｀)ゞ"
             )
             ;;
 
         "clumsy_panic")
+            text_color="${C_PINKMEOW}"
             phrases=(
-                " Ehh?! The Commander is here?! W-wait, I'm not ready yet! 😱"
-                " I bypassed the firewall in 0.1s, but forgot to load the UI! 🫣"
-                " W-Wait! The rendering engine is still in its pajamas! 💦"
-                " Commander?! I wasn't slacking off! Just... taking a tactical nap! 🛌"
+                " Ehh?! The Commander is here?! W-wait, I'm not ready yet! Σ(°Д°;)"
+                " I bypassed the firewall in 0.1s, but forgot to load the UI! (*/ω＼*)"
+                " W-Wait! The rendering engine is still in its pajamas! ((((；゜Д゜)))"
+                " Commander?! I wasn't slacking off! Just... taking a tactical nap! _(:3」∠)_"
             )
             ;;
 
         "clumsy_drop")
+            text_color="${C_PINKMEOW}"
             phrases=(
-                " Awawa... I dropped the important files... Uwaaa... 😭"
-                " I decrypted the payload, but... I tripped and scattered the packets! 📂💦"
-                " The database index is... rolling under the desk! Catch it! 🏃‍♀️💨"
-                " I-I tried to carry all the root permissions at once and... *crash*! 💥"
+                " Awawa... I dropped the important files... Uwaaa... (ノД｀)・゜"
+                " I decrypted the payload, but... I tripped and scattered the packets! (；´д｀)ゞ"
+                " The database index is... rolling under the desk! Catch it! ε=ε=ε=┌(；´ﾟｪﾟ)┘"
+                " I-I tried to carry all the root permissions at once and... *crash*! (Ｔ▽Ｔ)"
             )
             ;;
 
         "sorry")
+            text_color="${C_PINKMEOW}"
             phrases=(
-                " I-I'm so sorry... I'll fix the UI right away! 🥺"
-                " Uu... I'll clean up the console and re-index the data... 😭"
-                " P-Please don't revoke my sudo access! I'm cleaning it up! 🧹💦"
-                " I can hack the Pentagon, but I can't handle gravity... Sorry! 🙇‍♀️"
-                " R-Rebooting the visual module! Pretend you didn't see anything! 🫣"
+                " I-I'm so sorry... (wipes tears) I'll fix the UI right away! (Ｔ▽Ｔ)"
+                " Uu... I'll clean up the console and re-index the data... (ノД｀)・゜"
+                " P-Please don't revoke my sudo access! I'm cleaning it up! m(_ _)m"
+                " I can hack the Pentagon, but I can't handle gravity... Sorry! (Ｔ▽Ｔ)"
+                " R-Rebooting the visual module! Pretend you didn't see anything! (*/ω＼*)"
             )
             ;;
 
         "tower_ready")
+            text_color="${C_PINKMEOW}"
             phrases=(
-                " Command Tower linked! Let's do our best today! 🥰"
-                " System purged! I'll never get lost if I follow you, Commander! ✨"
-                " Firewalls bypassed! The universe is ours to command! 🚀"
-                " All physical engines mounted! Ready to break some rules! 😎"
+                " Command Tower linked! Let's do our best today! ( • ̀ω•́ )✧"
+                " System purged! I'll never get lost if I follow you, Commander! (*≧ω≦)"
+                " Firewalls bypassed! The universe is ours to command! (≖ ‿ ≖)✧"
+                " All physical engines mounted! Ready to break some rules! ( • ̀ω•́ )✧"
             )
             ;;
-        
+
         "hacking")
+            text_color="${C_CYAN}"
             phrases=(
-                " Bypassing the mainframe... oh, I dropped my donut. 🍩"
-                " Injecting SQL payload! ...Wait, was it DROP TABLE? 😱"
-                " I'm in! But I accidentally turned off the coffee machine... ☕"
-                " Redirecting firewall logic... Oops, I routed it to the toaster! 🍞"
+                " Bypassing the mainframe... oh, I dropped my donut. (；´д｀)ゞ"
+                " Injecting SQL payload! ...Wait, was it DROP TABLE? Σ(°Д°;)"
+                " I'm in! But I accidentally turned off the coffee machine... (*/ω＼*)"
+                " Redirecting firewall logic... Oops, I routed it to the toaster! (Ｔ▽Ｔ)"
             )
             ;;
             
         "success")
+            text_color="${C_GREEN}"
             phrases=(
-                " We did it! See? I'm not *always* clumsy! 😎"
-                " Target acquired! And I didn't even spill anything this time! ✨"
-                " Mission complete! Can we hack a pizza delivery drone now? 🍕"
-                " Core overridden! I'm a genius! (stumbles) Ah! 💦"
+                " We did it! See? I'm not *always* clumsy! ( • ̀ω•́ )✧"
+                " Target acquired! And I didn't even spill anything this time! (*≧ω≦)"
+                " Mission complete! Can we hack a pizza delivery drone now? (≖ ‿ ≖)✧"
+                " Core overridden! I'm a genius! (stumbles) Ah! (ノД｀)・゜"
             )
             ;;
 
         "error")
+            text_color="${C_RED}"
             phrases=(
-                " Uh oh... the terminal is glowing red. Is it supposed to do that? 🚨"
-                " Commander... I think I just deleted the root directory. Kidding! ...Maybe. 🫣"
-                " Error 404: My motivation to fix this is not found. 🫠"
-                " The physical engine is rejecting my payload! It's bullying me! 😭"
+                " Uh oh... the terminal is glowing red. Is it supposed to do that? ((((；゜Д゜)))"
+                " Commander... I think I just deleted the root directory. Kidding! ...Maybe. (*/ω＼*)"
+                " Error 404: My motivation to fix this is not found. _(:3」∠)_"
+                " The physical engine is rejecting my payload! It's bullying me! (ノД｀)・゜"
             )
             ;;
 
         "idle")
+            text_color="${C_WHITE}"
             phrases=(
-                " Commander... are you asleep? Should I play some music? 🎶"
-                " The firewall is so quiet today... boring. 🥱"
-                " (Humming a digital tune) 🎵"
-                " I'm practicing my typing speed! A S D F... ah, cramped my finger. 🤕"
+                " Commander... are you asleep? Should I play some music? ( ˘ω˘ )"
+                " The firewall is so quiet today... boring. _(:3」∠)_"
+                " (Humming a digital tune) ( ´ ▽ ｀ )ﾉ"
+                " I'm practicing my typing speed! A S D F... ah, cramped my finger. (Ｔ▽Ｔ)"
+            )
+            ;;
+            
+        "cat_mode")
+            text_color="${C_PINKMEOW}"
+            phrases=(
+                " Meow! Welcome to Cat-OS! (ฅ'ω'ฅ)"
+                " *purr* *purr* The mainframe is so warm... (=^-ω-^=)"
+                " Nyah! I caught a bug! Just kidding, it's a feature. (ฅ^•ﻌ•^ฅ)"
+                " Scanning for fish... Error 404! (；´д｀)ゞ"
             )
             ;;
 
         *)
+            text_color="${C_PINKMEOW}"
             phrases=(
-                "Copy that! On it right away! 🫡"
-                )
-                ;;
+                " Copy that! On it right away! ( • ̀ω•́ )✧"
+            )
+            ;;
     esac
 
     local rand_index=$(( RANDOM % ${#phrases[@]} ))
-    echo -e "${color}${icon} ${phrases[$rand_index]}${C_RESET}"
+    echo -e "${icon_color}${icon} ${text_color}${phrases[$rand_index]}${C_RESET}"
     [ -n "$detail" ] && echo -e "   ${C_BLACK} ›› ${detail}${C_RESET}"
 }

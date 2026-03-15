@@ -1882,6 +1882,11 @@ function mux() {
         _bot_say "error" "Core commands disabled during Factory session."
         return 1
     fi
+
+    if [ "$MUX_MODE" == "TCT" ]; then
+        _assistant_voice "error" "Core commands disabled during Command Tower session."
+        return 1
+    fi
     
     if [ -z "$cmd" ]; then
         if [ "$MUX_STATUS" == "LOGIN" ]; then
@@ -2236,11 +2241,33 @@ function mux() {
             fi
             ;;
 
-        "tct")
+        # : Enter the Command Tower
+        "tower"|"totct")
+            if [ "${MUX_LEVEL:-1}" -lt 8 ]; then
+                echo -e "${C_RED} :: ACCESS DENIED :: Clearance Level 8 Required for Command Tower.${C_RESET}"
+                return 1
+            fi
+
+            if ! command -v fzf &> /dev/null; then
+                echo -e "${C_RED} :: Commander! We need the visual engine to open the Tower! Please link it! (Ｔ▽Ｔ)"
+                return 1
+            fi
+
+            if [ "$MUX_MODE" == "XUM" ]; then
+                echo -e "${C_RED} :: SYSTEM OVERLOAD :: Core is unstable! Cannot establish Tower Uplink during XUM Overclocking!${C_RESET}"
+                return 1
+            fi
+            
+            if [ "$MUX_MODE" != "MUX" ] || [ "$MUX_STATUS" != "DEFAULT" ]; then
+                echo -e "${C_PINKMEOW} :: Commander! You need to return to the Hangar first before you can enter the Tower! 🥺"
+                return 1
+            fi
+
             echo ""
             echo -e "${C_PINKMEOW} :: INITIATING COMMAND TOWER... ::${C_RESET}"
-            sleep 1
+            
             _update_mux_state "TCT" "LOGIN" "TOWER"
+            sleep 0.9
             _mux_reload_kernel
             return
             ;;

@@ -315,8 +315,11 @@ function _draw_logo() {
             local rand_logo=$(( RANDOM % 100 ))
             if [ "$rand_logo" -lt 15 ]; then
                 tct_logo="cat"
+                export __MUX_CAT_OS=1
                 label=":: Cat-OS v$MUX_VERSION Meow Tower ::"
                 if [ "$cols" -ge 52 ]; then label+=" (ฅ^•ﻌ•^ฅ) ::"; fi
+            else
+                unset __MUX_CAT_OS
             fi
             ;;
         *)
@@ -431,21 +434,32 @@ function _system_check() {
                     3) _assistant_voice "clumsy_drop" ;;
                 esac
             else
-                echo -e "${C_PINKMEOW} :: Ah! Wait! I messed up! 💦\033[0m"
+                echo -e "${C_PINKMEOW} :: Ah! Wait! I messed up! (；´д｀)ゞ\033[0m"
             fi
             echo ""
             sleep 1.5
             return # 提早中斷
         fi
 
+        # 85% 正常啓動序列
         export __MUX_CLUMSY_STATE=0
-        steps=(
-            "Initializing Command Tower..."
-            "Bypassing Fire Control Systems..."
-            "Mounting Native Physical Engine..."
-            "Waking up Assistant AI... ✨"
-            "All Systems Green. Weapons Cold."
-        )
+        if [ "$__MUX_CAT_OS" == "1" ]; then
+            steps=(
+                "Waking up the cats..."
+                "Filling the food bowl..."
+                "Mounting Native Physical Engine..."
+                "Sharpening claws on the mainframe..."
+                "All Systems Green. Meow."
+            )
+        else
+            steps=(
+                "Initializing Command Tower..."
+                "Bypassing Fire Control Systems..."
+                "Mounting Native Physical Engine..."
+                "Waking up Assistant AI..."
+                "All Systems Green. Weapons Cold."
+            )
+        fi
     else
         local brand=$(getprop ro.product.brand | tr '[:lower:]' '[:upper:]')
         steps=(
@@ -512,7 +526,7 @@ function _show_hud() {
                     ;;
                 2) 
                     line1_k="SYS    "; line1_v="W-Wait! UI Not Ready!"
-                    line2_k="LOAD   "; line2_v="║░░░░░░░░░░║  0%"
+                    line2_k="LOAD   "; line2_v="[..........] 0%"
                     line3_k="WARN   "; line3_v="Dress Code: Pajamas"
                     ;;
                 3) 

@@ -3241,6 +3241,15 @@ function fac() {
             command cp "$MUX_ROOT/vendor.csv" "$MUX_ROOT/vendor.csv.temp"
         fi
         reboot_flag=1
+
+        echo ""
+        if command -v _assistant_voice &> /dev/null; then
+            echo -e "${C_PINKMEOW} :: Commander! The Command Tower is unlocked for you! You can come to find me now! ( • ̀ω•́ )✧"
+            sleep 1
+            echo -e "${C_ORANGE} :: ...Why is she in my comms?! Commander, exit the factory if you want to go play with her.${C_RESET}"
+            echo -e "${THEME_DESC}    ›› 'mux tower' command unlocked.${C_RESET}"
+            sleep 1
+        fi
     fi
     
     # SYSTEM 解鎖

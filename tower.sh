@@ -38,14 +38,27 @@ function _tct_init() {
     if command -v _show_hud &> /dev/null; then 
         _show_hud "tct"
     fi
-    
+
     export MUX_INITIALIZED="true"
     export PS1="\[${C_PINKMEOW}\]Tct\[${C_RESET}\] \w \033[5m›\033[0m "
-    
+
+    # 判斷如果沒有出包，就說出歡迎詞
+    if [ "${__MUX_CLUMSY_STATE:-0}" -eq 0 ]; then
+        if command -v _assistant_voice &> /dev/null; then
+            if [ "$__MUX_CAT_OS" == "1" ]; then
+                _assistant_voice "cat_mode"
+            else
+                _assistant_voice "tower_ready"
+            fi
+        fi
+    fi
     _system_unlock
 }
 
+# Mux-OS 指令入口 - Tower Command Entry
+# === Tct ===
 
+# : Tower Command Entry
 function __tct_core() {
     local cmd="$1"
     
@@ -76,6 +89,26 @@ function __tct_core() {
     esac
 }
 
+# 指揮塔全視之眼 (Omniscient Eyes of Tower)
 function tct() {
+    # 紀錄操作前的等級
+    local old_lv=${MUX_LEVEL:-1}
+    
+    # 執行指揮塔核心指令
     __tct_core "$@"
+    local ret_code=$?
+    
+    # 紀錄操作後的等級
+    local new_lv=${MUX_LEVEL:-1}
+    
+    # --- [提示] 塔內專屬解鎖檢查區 ---
+    # (如果指揮官你在塔內實作了獲得經驗值的機制，這裡就可以像 fac 一樣
+    #  寫入到達特定等級時，解鎖新外骨骼指令的劇情廣播！目前先留空)
+    
+    # if [ "$old_lv" -lt 10 ] && [ "$new_lv" -ge 10 ]; then
+    #     _assistant_voice "success" "Commander! We unlocked the rm tactical override!"
+    # fi
+    # --------------------------------
+    
+    return $ret_code
 }
