@@ -108,78 +108,48 @@ function _voice_dispatch() {
     local detail="$2"
     local force_role="$3"
 
+    # 1. 小助理
     if [ "$MUX_MODE" == "TCT" ]; then
         if command -v _assistant_voice &> /dev/null; then
             _assistant_voice "$mood" "$detail"
         else
-            echo -e "${C_PINKMEOW} :: ${detail} (*≧ω≦)${C_RESET}"
+            echo -e "${C_PINKMEOW} :: ${detail:-Processing...} (*≧ω≦)${C_RESET}"
         fi
         return
     fi
 
-    # 如果有強制指定角色
-    if [ "$force_role" == "bot" ]; then
+    # 2. 指定角色演出
+    if [ "$force_role" == "system" ]; then
         _bot_say "$mood" "$detail"
         return
     elif [ "$force_role" == "cmd" ]; then
         if command -v _commander_voice &> /dev/null; then
              _commander_voice "$mood" "$detail"
         else
-             _bot_say "$mood" "$detail" # Fallback
+             _bot_say "$mood" "$detail" # 防呆備案
+        fi
+        return
+    elif [ "$force_role" == "assistant" ]; then
+        if command -v _assistant_voice &> /dev/null; then
+             _assistant_voice "$mood" "$detail"
+        else
+             _bot_say "$mood" "$detail" # 防呆備案
         fi
         return
     fi
-    # 隨機分配
+
+    # 3. 雙人共舞
     if [ $((RANDOM % 2)) -eq 0 ]; then
-        _bot_say "$mood" "$detail"
+        if command -v _assistant_voice &> /dev/null; then
+            _assistant_voice "$mood" "$detail"
+        else
+            _bot_say "$mood" "$detail"
+        fi
     else
         if command -v _commander_voice &> /dev/null; then
             _commander_voice "$mood" "$detail"
         else
             _bot_say "$mood" "$detail"
-        fi
-    fi
-
-    if [ $((RANDOM % 2)) -eq 0 ]; then
-        # 模式 A:
-        # 1. 小助理發言
-        if command -v _assistant_voice &> /dev/null; then
-            if [[ "$mood" == "hello" || "$mood" == "idle" ]] && [ $((RANDOM % 2)) -eq 0 ]; then
-                _assistant_voice "tower_ready" "$detail"
-            else
-                _assistant_voice "$mood" "$detail"
-            fi
-        else
-            _bot_say "$mood" "$detail"
-        fi
-        # 2. 指揮官隨機回應
-        if [ $((RANDOM % 10)) -lt 3 ] && command -v _commander_voice &> /dev/null; then
-             sleep 0.8
-             if [[ "$mood" == "error" || "$mood" == "warn" ]]; then
-                 _commander_voice "sigh"
-             else
-                 _commander_voice "default_idle"
-             fi
-        fi
-
-    else
-        # 模式 B:
-        # 1. 指揮官發言
-        if command -v _commander_voice &> /dev/null; then
-            _commander_voice "$mood" "$detail"
-        else
-             _bot_say "$mood" "$detail"
-        fi
-        # 2. 小助理回應
-        sleep 0.8
-        if command -v _assistant_voice &> /dev/null; then
-             if [[ "$mood" == "error" || "$mood" == "warn" ]]; then
-                 _assistant_voice "sorry"
-             else
-                 _assistant_voice "success"
-             fi
-        else
-             _bot_say "action" "Understood, Commander."
         fi
     fi
 }
@@ -366,7 +336,7 @@ function _mux_force_reset() {
         chmod +x "$BASE_DIR/"*.sh
         echo ""
         if [ "$MUX_MODE" == "TCT" ] && command -v _assistant_voice &> /dev/null; then
-            _assistant_voice "success" "Timeline restored! Everything is back to normal! ( ´ ▽ \` )ﾉ"
+            _assistant_voice "success" "Timeline restored! Everything is back to normal!"
         else
             _bot_say "success" "Timeline restored."
         fi

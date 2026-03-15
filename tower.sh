@@ -21,7 +21,7 @@ function _tct_init() {
     _draw_logo "tct"
     _system_check "tct"
     
-    # 如果小助理出包了，這裡會畫出損壞的 HUD
+    # 損壞 HUD
     if command -v _show_hud &> /dev/null; then 
         _show_hud "tct"
     fi
@@ -35,7 +35,9 @@ function _tct_init() {
             if [ "$__MUX_CAT_OS" == "1" ]; then
                 _assistant_voice "cat_mode"
             else
-                _assistant_voice "tower_ready"
+                local greeting_moods=("hello" "tower_ready" "idle")
+                local rand_mood="${greeting_moods[$(( RANDOM % ${#greeting_moods[@]} ))]}"
+                _assistant_voice "$rand_mood"
             fi
         fi
     fi
@@ -64,7 +66,9 @@ function __tct_core() {
             fi
         else
             if command -v _voice_dispatch &> /dev/null; then
-                _voice_dispatch "idle"
+                local idle_moods=("idle" "hello" "tower_ready")
+                local rand_mood="${idle_moods[$(( RANDOM % ${#idle_moods[@]} ))]}"
+                _voice_dispatch "$rand_mood"
             else
                 echo -e "${C_PINKMEOW} :: Commander? I'm right here! Do you need something? (*≧ω≦)${C_RESET}"
             fi

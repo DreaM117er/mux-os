@@ -137,6 +137,27 @@ function _bot_say() {
                 )
             ;;
 
+        "action")
+            icon=" ::"
+            color=$C_YELLOW
+            phrases=(
+                " Executing protocol... ⚙️"
+                " Initiating process... 🔧"
+                " Task acknowledged. Working... 🛡️"
+                " Engaging parameters... 📡"
+            )
+            ;;
+        "warn")
+            icon=" ::"
+            color=$C_YELLOW
+            phrases=(
+                " Caution advised. ⚠️"
+                " Anomaly detected in logic gate. 🚨"
+                " Parameters outside normal bounds. ☢️"
+                " Alert condition orange. ✴️"
+            )
+            ;;
+
         "system")
             icon=" ::"
             color=$C_YELLOW
@@ -492,6 +513,15 @@ function _bot_factory_personality() {
             )
             ;;
 
+        "neural")
+            color=$THEME_MAIN
+            phrases=(
+                " Scanning neural pathways... 🧠"
+                " Tracing logic circuits... 🔍"
+                " Analyzing matrix signatures... 🧬"
+            )
+            ;;
+
         "warn")
             color=$C_RED
             phrases=(
@@ -591,6 +621,23 @@ function _assistant_voice() {
     fi
 
     case "$mood" in
+        "hello")
+            text_color="${C_PINKMEOW}"
+            phrases=(
+                " Commander! You're back! (*≧ω≦)"
+                " All systems green! I was waiting for you! ( • ̀ω•́ )✧"
+                " Tower active! Let's do something fun! (≖ ‿ ≖)✧"
+            )
+            ;;
+        "system")
+            text_color="${C_PINKMEOW}"
+            phrases=(
+                " Modulating the matrix! Hold on! (*≧ω≦)"
+                " Overriding core mechanics! ( • ̀ω•́ )✧"
+                " Injecting new rules into reality! (≖ ‿ ≖)✧"
+            )
+            ;;
+
         "clumsy_coffee")
             text_color="${C_PINKMEOW}"
             phrases=(
