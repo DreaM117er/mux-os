@@ -415,30 +415,35 @@ function _system_check() {
         C_PROC="${C_PINKMEOW}⟳\033[0m"
         C_CHECK="${C_PINKMEOW}✓\033[0m"
         
-        # 小助理的冒失彩蛋
-        local rand_glitch=$(( RANDOM % 100 ))
-        if [ "$rand_glitch" -lt 15 ]; then
-            export __MUX_CLUMSY_STATE=$(( (RANDOM % 3) + 1 ))
-            
-            _run_step "Initializing Command Tower..." 0
-            _run_step "Bypassing Fire Control Systems..." 0
-            
-            echo -ne " $C_PROC Waking up Assistant AI...\r"; sleep 0.6
-            echo -e " ${C_FAIL} Waking up Assistant AI... \033[1;31m[INTERRUPTED]\033[0m"
-            echo ""
-            
-            if command -v _assistant_voice &> /dev/null; then
-                case "$__MUX_CLUMSY_STATE" in
-                    1) _assistant_voice "clumsy_coffee" ;;
-                    2) _assistant_voice "clumsy_panic" ;;
-                    3) _assistant_voice "clumsy_drop" ;;
-                esac
-            else
-                echo -e "${C_PINKMEOW} :: Ah! Wait! I messed up! (；´д｀)ゞ\033[0m"
+        if [ "$__MUX_CAT_OS" == "1" ]; then
+            # 貓咪模式
+            export __MUX_CLUMSY_STATE=0
+        else
+            # 小助理的冒失彩蛋
+            local rand_glitch=$(( RANDOM % 100 ))
+            if [ "$rand_glitch" -lt 15 ]; then
+                export __MUX_CLUMSY_STATE=$(( (RANDOM % 3) + 1 ))
+                
+                _run_step "Initializing Command Tower..." 0
+                _run_step "Bypassing Fire Control Systems..." 0
+                
+                echo -ne " $C_PROC Waking up Assistant AI...\r"; sleep 0.6
+                echo -e " ${C_FAIL} Waking up Assistant AI... \033[1;31m[INTERRUPTED]\033[0m"
+                echo ""
+                
+                if command -v _assistant_voice &> /dev/null; then
+                    case "$__MUX_CLUMSY_STATE" in
+                        1) _assistant_voice "clumsy_coffee" ;;
+                        2) _assistant_voice "clumsy_panic" ;;
+                        3) _assistant_voice "clumsy_drop" ;;
+                    esac
+                else
+                    echo -e "${C_PINKMEOW} :: Ah! Wait! I messed up! (；´д｀)ゞ\033[0m"
+                fi
+                echo ""
+                sleep 1.5
+                return # 提早中斷
             fi
-            echo ""
-            sleep 1.5
-            return # 提早中斷
         fi
 
         # 85% 正常啓動序列
