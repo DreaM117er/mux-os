@@ -63,29 +63,29 @@ function __tct_core() {
     local cmd="$1"
     
     case "$cmd" in
-        # : Spatial Jump | Advanced directory navigation protocol
+        # : Advanced directory navigation protocol
         "comedisk")
             # (未來實作 cd 外骨骼)
             ;;
 
-        # : Tactical Annihilation | Destructive data dispersal
+        # : Destructive data dispersal
         "remove")
             # (未來實作 rm 外骨骼)
             ;;
 
-        # : Matter Transfer | Override native copy mechanics
+        # : Override native copy mechanics
         "copy")
             # (未來實作 cp 外骨骼)
             ;;
 
-        # : Refresh Interface | Reload Tower UI and state
+        # : Reload Tower UI and state
         "reload")
             echo -e "${C_PINKMEOW} :: Refreshing Tower Interface! Hold on tight! (*≧ω≦)${C_RESET}"
             sleep 1
             _mux_reload_kernel
             ;;
 
-        # : Core Reset | Emergency protocol override
+        # : Emergency protocol override
         "reset")
             _mux_force_reset
             if [ $? -eq 0 ]; then
@@ -94,11 +94,9 @@ function __tct_core() {
             ;;
 
         "help")
-            echo -e "${C_PINKMEOW} :: Command Tower Protocols ::${C_RESET}"
-            echo -e "    \033[1;37mcd\033[0m      Advanced Spatial Jump"
-            echo -e "    \033[1;37mrm\033[0m      Tactical Annihilation"
-            echo -e "    \033[1;37mcp\033[0m      Matter Transfer"
-            echo -e "    \033[1;37mexit\033[0m    Return to Mux-OS"
+            if command -v _tct_dynamic_help &> /dev/null; then
+                _tct_dynamic_help
+            fi
             ;;
 
         "logout")
@@ -110,7 +108,7 @@ function __tct_core() {
 
         *)
             if command -v "$cmd" &> /dev/null; then "$cmd" "${@:2}"; return; fi
-            echo -e "${C_YELLOW} :: Unrecognized Tower Directive: '$cmd'.${C_RESET}"
+            echo -e "${C_PINKMEOW} :: Eh? I don't know what '$cmd' is... (；´д｀)ゞ${C_RESET}"
             ;;
     esac
 }

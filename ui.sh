@@ -926,37 +926,24 @@ function _mux_dynamic_help_factory() {
 
 # 動態Help Command Tower選單檢測 - Dynamic Help Tower Detection
 function _tct_dynamic_help() {
-    echo -e "${C_PINKMEOW} :: Command Tower Protocols ::${C_RESET}"
+    echo -e "${C_PURPLE} :: Command Tower Protocols ::${C_RESET}"
     
-    awk -v C_CMD="\033[1;37m" -v C_SKILL="\033[1;36m" -v C_DESC="\033[1;30m" '
+    awk -v C_CMD="\033[1;37m" -v C_SEP="\033[1;30m" -v C_DESC="\033[1;36m" '
     /function __tct_core\(\) \{/ { inside_tct=1; next }
     /^}/ { inside_tct=0 }
 
     inside_tct {
         if ($0 ~ /^[[:space:]]*# :/) {
-            raw_desc = $0;
-            sub(/^[[:space:]]*# :[[:space:]]*/, "", raw_desc);
+            desc = $0;
+            sub(/^[[:space:]]*# :[[:space:]]*/, "", desc);
             
-            # 解析 "技能名稱 | 詳細說明"
-            split(raw_desc, parts_desc, "|");
-            skill_name = parts_desc[1];
-            sub(/^[[:space:]]+|[[:space:]]+$/, "", skill_name);
-            
-            detail = parts_desc[2];
-            sub(/^[[:space:]]+|[[:space:]]+$/, "", detail);
-            
-            # 讀取下一行尋找指令名稱 (例如 "cd"|"rm")
             getline;
             if ($0 ~ /"/) {
                 split($0, parts_cmd, "\"");
                 cmd_name = parts_cmd[2];
                 
-                # 渲染排版
-                if (detail != "") {
-                    printf "    %s%-10s\033[0m %s%-20s\033[0m %s%s\033[0m\n", C_CMD, cmd_name, C_SKILL, skill_name, C_DESC, detail;
-                } else {
-                    printf "    %s%-10s\033[0m %s%-20s\033[0m\n", C_CMD, cmd_name, C_DESC, skill_name;
-                }
+                # 格式化輸出： 指令(10字元寬) + " : " + 敘述
+                printf "    %s%-10s\033[0m%s : \033[0m%s%s\033[0m\n", C_CMD, cmd_name, C_SEP, C_DESC, desc;
             }
         }
     }
