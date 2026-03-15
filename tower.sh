@@ -14,7 +14,7 @@ function command_not_found_handle() {
     if command -v _assistant_voice &> /dev/null; then
         _assistant_voice "error" "Command '$cmd' not found. We are in Weapons Cold mode!"
     else
-        echo -e "${C_PINKMEOW} ✨ Eh? I don't know what '$cmd' is... 💦\033[0m"
+        echo -e "${C_PINKMEOW} :: Eh? I don't know what '$cmd' is... (；´д｀)ゞ\033[0m"
     fi
     return 127
 }
@@ -40,9 +40,9 @@ function _tct_init() {
     fi
 
     export MUX_INITIALIZED="true"
-    export PS1="\[${C_PINKMEOW}\]Tct\[${C_RESET}\] \w \033[5m›\033[0m "
+    export PS1="\[${C_PINKMEOW}\]Cmt\[${C_RESET}\] \w \033[5m›\033[0m "
 
-    # 判斷如果沒有出包，就說出歡迎詞
+    # 沒有出包，就說出歡迎詞
     if [ "${__MUX_CLUMSY_STATE:-0}" -eq 0 ]; then
         if command -v _assistant_voice &> /dev/null; then
             if [ "$__MUX_CAT_OS" == "1" ]; then
@@ -63,12 +63,34 @@ function __tct_core() {
     local cmd="$1"
     
     case "$cmd" in
-        "exit"|"logout")
-            echo ""
-            _assistant_voice "tower_ready" "Closing Tower Uplink. See you later, Commander! 👋"
+        # : Spatial Jump | Advanced directory navigation protocol
+        "comedisk")
+            # (未來實作 cd 外骨骼)
+            ;;
+
+        # : Tactical Annihilation | Destructive data dispersal
+        "remove")
+            # (未來實作 rm 外骨骼)
+            ;;
+
+        # : Matter Transfer | Override native copy mechanics
+        "copy")
+            # (未來實作 cp 外骨骼)
+            ;;
+
+        # : Refresh Interface | Reload Tower UI and state
+        "reload")
+            echo -e "${C_PINKMEOW} :: Refreshing Tower Interface! Hold on tight! (*≧ω≦)${C_RESET}"
             sleep 1
-            _update_mux_state "MUX" "DEFAULT"
             _mux_reload_kernel
+            ;;
+
+        # : Core Reset | Emergency protocol override
+        "reset")
+            _mux_force_reset
+            if [ $? -eq 0 ]; then
+                _mux_reload_kernel
+            fi
             ;;
 
         "help")
@@ -79,18 +101,22 @@ function __tct_core() {
             echo -e "    \033[1;37mexit\033[0m    Return to Mux-OS"
             ;;
 
+        "logout")
+            echo -e "${C_PINKMEOW} :: Closing Tower Uplink. See you later, Commander! ( ´ ▽ \` )ﾉ${C_RESET}"
+            sleep 1
+            _update_mux_state "MUX" "DEFAULT"
+            _mux_reload_kernel
+            ;;
+
         *)
-            if [ -z "$cmd" ]; then
-                _assistant_voice "tower_ready" "I'm here! What's the plan?"
-            else
-                echo -e "${C_PINKMEOW} :: Unrecognized Tower Directive: '$cmd'.${C_RESET}"
-            fi
+            if command -v "$cmd" &> /dev/null; then "$cmd" "${@:2}"; return; fi
+            echo -e "${C_YELLOW} :: Unrecognized Tower Directive: '$cmd'.${C_RESET}"
             ;;
     esac
 }
 
 # 指揮塔全視之眼 (Omniscient Eyes of Tower)
-function tct() {
+function cmt() {
     # 紀錄操作前的等級
     local old_lv=${MUX_LEVEL:-1}
     

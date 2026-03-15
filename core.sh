@@ -257,6 +257,16 @@ function _mux_init() {
 
 # 重新載入核心模組
 function _mux_reload_kernel() {
+    # 連環重啓安裝機制
+    export __MUX_RELOAD_COUNT=$(( ${__MUX_RELOAD_COUNT:-0} + 1 ))
+    if [ "$__MUX_RELOAD_COUNT" -gt 3 ]; then
+        echo -e "\033[1;31m :: SYSTEM PANIC :: Infinite Boot Loop Detected!\033[0m"
+        echo -e "\033[1;33m    Emergency abort. Dropping to vanilla shell.\033[0m"
+        unset __MUX_RELOAD_COUNT
+        exec bash --norc 
+    fi
+
+    # 主函數邏輯
     _system_lock
     unset MUX_INITIALIZED
     
@@ -1826,6 +1836,118 @@ function _core_eject_sequence() {
     exec bash
 }
 
+# 指揮塔登入協議 - Command Tower Login
+function _tct_login_protocol() {
+    if [ -d "$MUX_ROOT" ]; then cd "$MUX_ROOT"; fi
+
+    clear
+    _draw_logo "gray"
+
+    _system_lock
+    echo -e "${C_PINKMEOW} :: COMMAND TOWER SECURITY CHECKPOINT ::${C_RESET}"
+    
+    sleep 0.2
+    local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "unknown")
+    echo -e "${THEME_DESC}    ›› Tower Uplink Node : ${C_CYAN}$current_branch${C_RESET}"
+    sleep 0.3
+    echo -e "${THEME_DESC}    ›› Initializing Biometric Scan...${C_RESET}"
+    echo -e "${C_PINKMEOW} :: Commander? Is that you? Please verify your ID! ( • ̀ω•́ )✧${C_RESET}"
+    sleep 0.4
+    _system_unlock
+
+    echo ""
+    echo -ne "${C_PINKMEOW} :: Commander Identity: ${C_RESET}" 
+    read input_id
+
+    _system_lock
+    echo -e "${C_PINKMEOW} :: Checking the database... don't blink!${C_RESET}"
+    echo -e "${THEME_DESC}    ›› Verifying Hash Signature...${C_RESET}"
+    sleep 0.6
+    
+    local identity_valid=0
+    local REAL_ID=""
+    if [ -f "$MUX_ROOT/.mux_identity" ]; then
+        REAL_ID=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2 | tr -d '"')
+        if [ "$input_id" == "$REAL_ID" ]; then
+            identity_valid=1
+        fi
+    else
+        identity_valid=1
+        REAL_ID="$input_id"
+    fi
+
+    if [ "$identity_valid" -ne 1 ]; then
+        sleep 0.5
+        echo ""
+        echo -e "${THEME_ERR} :: ACCESS DENIED :: Signature Mismatch.${C_RESET}"
+        echo -e "${C_PINKMEOW} :: Intruder alert! Or... did you just typo? ((((；゜Д゜)))${C_RESET}"
+        sleep 0.5
+        _system_unlock
+        return 1
+    fi
+
+    local sync_status="GUEST"
+    local welcome_msg="WELCOME BACK, GUEST PILOT"
+    
+    # 轉小寫比對
+    local branch_lower=$(echo "$current_branch" | tr '[:upper:]' '[:lower:]')
+    local id_lower=$(echo "$REAL_ID" | tr '[:upper:]' '[:lower:]')
+
+    if [[ "$branch_lower" == *"$id_lower"* ]]; then
+        sync_status="COMMANDER"
+        welcome_msg="WELCOME BACK, COMMANDER $REAL_ID"
+    elif [[ "$branch_lower" == "main" || "$branch_lower" == "master" ]]; then
+        sync_status="ADMIN"
+        welcome_msg="ROOT ACCESS GRANTED :: $REAL_ID"
+    else
+        sync_status="GUEST"
+        welcome_msg="WARNING: FOREIGN PILOT DETECTED :: GUEST MODE"
+    fi
+
+    sleep 0.4
+    echo ""
+    echo -e "${THEME_OK} :: IDENTITY CONFIRMED :: ${C_RESET}"
+    sleep 0.6
+    
+    # 同步率結果與小助理專屬吐槽
+    echo ""
+    if [ "$sync_status" == "COMMANDER" ]; then
+        echo -e "${C_GREEN} :: SYNCHRONIZATION RATE: 100% (Owner)${C_RESET}"
+        echo -e "${C_PINKMEOW} :: Welcome back to the Tower! I missed you! (*≧ω≦)${C_RESET}"
+    elif [ "$sync_status" == "ADMIN" ]; then
+        echo -e "${C_YELLOW} :: SYNCHRONIZATION RATE: OVERRIDE (Root)${C_RESET}"
+        echo -e "${C_PINKMEOW} :: Root access? You are playing with fire, Commander! (≖ ‿ ≖)✧${C_RESET}"
+    else
+        echo -e "${C_RED} :: SYNCHRONIZATION RATE: 15% (Guest)${C_RESET}"
+        echo -e "${C_PINKMEOW} :: Guest mode? Please don't touch the red buttons! (；´д｀)ゞ${C_RESET}"
+    fi
+    sleep 0.8
+
+    echo -e "${THEME_DESC}    ›› Mount Point: /dev/tct_core${C_RESET}"
+    sleep 0.2
+    
+    if command -v _core_system_scan &> /dev/null; then
+        _core_system_scan "silent"
+    fi
+    
+    _update_mux_state "TCT" "LOGIN"
+
+    echo ""
+    echo -e "${THEME_OK} :: $welcome_msg :: ${C_RESET}"
+    sleep 1.2
+    
+    export MUX_MODE="TCT"
+    export MUX_STATUS="LOGIN"
+    unset MUX_INITIALIZED
+
+    # 經驗值獎勵
+    if command -v _grant_xp &> /dev/null; then
+        _grant_xp 1 "LOGIN"
+    fi
+
+    _mux_reload_kernel
+}
+
 # 極速開啟捷徑 (Fast Open)
 function o() {
     local target="$1"
@@ -1902,7 +2024,7 @@ function mux() {
 
     if [ "$MUX_STATUS" != "LOGIN" ]; then
         case "$cmd" in
-            "login"|"setup"|"help"|"status"|"sts"|"info"|"reload"|"reset"|"factory"|"tofac"|"driveto"|"update"|"drive2"|"hof"|"tower"|"totct")
+            "login"|"setup"|"help"|"status"|"sts"|"info"|"reload"|"reset"|"factory"|"tofac"|"driveto"|"update"|"drive2"|"hof"|"tower"|"tocmt")
                 # 放行
                 ;;
             *)
@@ -2241,7 +2363,7 @@ function mux() {
             ;;
 
         # : Enter the Command Tower
-        "tower"|"totct")
+        "tower"|"tocmt")
             if [ "${MUX_LEVEL:-1}" -lt 8 ]; then
                 echo -e "${C_RED} :: ACCESS DENIED :: Clearance Level 8 Required for Command Tower.${C_RESET}"
                 return 1
@@ -2262,12 +2384,7 @@ function mux() {
                 return 1
             fi
 
-            echo ""
-            echo -e "${C_PINKMEOW} :: INITIATING COMMAND TOWER... ::${C_RESET}"
-            
-            _update_mux_state "TCT" "LOGIN"
-            sleep 0.9
-            _mux_reload_kernel
+            _tct_login_protocol
             return
             ;;
         
