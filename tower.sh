@@ -14,7 +14,7 @@ function command_not_found_handle() {
     if command -v _assistant_voice &> /dev/null; then
         _assistant_voice "error" "Command '$cmd' not found. We are in Weapons Cold mode!"
     else
-        echo -e "${C_PINKMEOW} :: Eh? I don't know what '$cmd' is... (；´д｀)ゞ\033[0m"
+        echo -e "${THEME_WARN} :: Eh? I don't know what '$cmd' is... (；´д｀)ゞ${C_RESET}"
     fi
     return 127
 }
@@ -63,21 +63,6 @@ function __tct_core() {
     local cmd="$1"
     
     case "$cmd" in
-        # : Advanced directory navigation protocol
-        "comedisk")
-            # (未來實作 cd 外骨骼)
-            ;;
-
-        # : Destructive data dispersal
-        "remove")
-            # (未來實作 rm 外骨骼)
-            ;;
-
-        # : Override native copy mechanics
-        "copy")
-            # (未來實作 cp 外骨骼)
-            ;;
-
         # : Reload Tower UI and state
         "reload")
             echo -e "${C_PINKMEOW} :: Refreshing Tower Interface! Hold on tight! (*≧ω≦)${C_RESET}"
@@ -118,7 +103,6 @@ function __tct_core() {
 
         # : Exit Command Tower
         "logout")
-            echo ""
             echo -ne "${C_RED} :: EXIT COMMAND TOWER? TYPE 'CONFIRM' TO PROCEED: ${C_RESET}"
             read final_confirm
             
@@ -129,13 +113,13 @@ function __tct_core() {
                 _update_mux_state "MUX" "DEFAULT"
                 _mux_reload_kernel
             else
-                echo -e "${C_PINKMEOW}    ›› Aborted. We are staying! (*≧ω≦)${C_RESET}"
+                echo -e "${THEME_DESC}    ›› Aborted. We are staying! (*≧ω≦)${C_RESET}"
             fi
             ;;
 
         *)
             if command -v "$cmd" &> /dev/null; then "$cmd" "${@:2}"; return; fi
-            echo -e "${C_PINKMEOW} :: Eh? I don't know what '$cmd' is... (；´д｀)ゞ${C_RESET}"
+            echo -e "${THEME_WARN} :: Eh? I don't know what '$cmd' is... (；´д｀)ゞ${C_RESET}"
             ;;
     esac
 }
