@@ -1987,10 +1987,10 @@ local theme="$1"
             if [ "$tct_mode" == "reverse" ]; then
                 if [ "$pct" -le 0 ]; then
                     sleep 0.9
-                    pct=100
-                    tct_mode="normal"
                     footer_msg="Fixed it! Phew... ( ´ ▽ \` )ﾉ"
                     sleep 1.2
+                    pct=100
+                    tct_mode="normal"
                     continue
                 fi
             elif [ "$tct_mode" == "overflow" ]; then
