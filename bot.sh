@@ -702,10 +702,7 @@ function _assistant_voice() {
 
     local custom_text="$2"
 
-    if [ -n "$custom_text" ]; then
-        echo -e "${text_color}${icon}${custom_text}${C_RESET}"
-    else
-        local rand_index=$(( RANDOM % ${#phrases[@]} ))
-        echo -e "${text_color}${icon}${phrases[$rand_index]}${C_RESET}"
-    fi
+    local rand_index=$(( RANDOM % ${#phrases[@]} ))
+    echo -e "${text_color}${icon}${phrases[$rand_index]}${C_RESET}"
+    [ -n "$detail" ] && echo -e "   ${C_BLACK} ›› ${detail}${C_RESET}"
 }

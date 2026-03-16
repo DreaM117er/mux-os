@@ -902,7 +902,7 @@ function _tct_show_info() {
         else
             echo ""
             if command -v _voice_dispatch &> /dev/null; then
-                _voice_dispatch "idle" "Taking a break then! ( ˘ω˘ )" "assistant"
+                _voice_dispatch "idle" "Taking a break then!" "assistant"
             else
                 echo -e " ${C_PINKMEOW}:: Taking a break! ( ˘ω˘ )${C_RESET}"
             fi
