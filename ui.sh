@@ -863,7 +863,7 @@ function _tct_show_info() {
         echo -e "  ${THEME_DESC}\"Meow. (I see no god up here, other than me.)\"${C_RESET}"
         echo ""
         
-        echo -ne " ${C_PINKMEOW}:: Offer a tuna can? [Y/n]: ${C_RESET}"
+        echo -ne " ${C_GREEN}:: Offer a tuna can? [Y/n]: ${C_RESET}"
         read choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" || -z "$choice" ]]; then
@@ -888,10 +888,12 @@ function _tct_show_info() {
         echo -e "  ${THEME_DESC}\"Programming languages have no limits, and neither do I;\"${C_RESET}"
         echo -e "  ${THEME_DESC}\"I saw through this world, and found that it is composed of numbers.\"${C_RESET}"
         echo ""
-        echo -e "  ${C_PINKMEOW}  ...Wait, did the system just print my diary?! D-Don't look! ⁄(⁄ ⁄•⁄-⁄•⁄ ⁄)⁄${C_RESET}"
+        echo -e "${C_PINKMEOW} :: ...Wait, did the system just print my diary?!${C_RESET}"
+        sleep 1
+        echo -e "${C_PINKMEOW} :: D-Don't look! ⁄(⁄ ⁄•⁄-⁄•⁄ ⁄)⁄${C_RESET}"
         echo ""
         
-        echo -ne " ${C_PINKMEOW}:: Return to the Tower Console? [Y/n]: ${C_RESET}"
+        echo -ne "${C_GREEN} :: Return to the Tower Console? [Y/n]: ${C_RESET}"
         read choice
         
         if [[ "$choice" == "y" || "$choice" == "Y" || -z "$choice" ]]; then
