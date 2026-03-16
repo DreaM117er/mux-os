@@ -2669,175 +2669,179 @@ function __fac_core() {
                 return 1
             fi
 
-            # 1 & 2. 掃描報告，抓取發射時間與藍圖
-            local menu_list=""
-            local bp_idx=1
-            local last_time="Unknown Time"
-            
-            while IFS= read -r line; do
-                if [[ "$line" =~ ([0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{2}:[0-9]{2}:[0-9]{2}) ]]; then
-                    last_time="${BASH_REMATCH[1]}"
-                elif [[ "$line" == "[XUM_BLUEPRINT]::"* ]]; then
-                    local bp="${line#\[XUM_BLUEPRINT\]::}"
-                    local f_idx=$(printf "[BP-%03d]" "$bp_idx")
-                    menu_list+="${f_idx}\t\033[1;36mPayload Timestamp: ${last_time}\033[0m\t${bp}\n"
-                    bp_idx=$((bp_idx + 1))
+            while true; do
+                local menu_list=""
+                local bp_idx=1
+                local last_time="Unknown Time"
+                
+                while IFS= read -r line; do
+                    if [[ "$line" =~ ([0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{2}:[0-9]{2}:[0-9]{2}) ]]; then
+                        last_time="${BASH_REMATCH[1]}"
+                    elif [[ "$line" == "[XUM_BLUEPRINT]::"* ]]; then
+                        local bp="${line#\[XUM_BLUEPRINT\]::}"
+                        local f_idx=$(printf "[BP-%03d]" "$bp_idx")
+                        menu_list+="${f_idx}\t\033[1;36mPayload Timestamp: ${last_time}\033[0m\t${bp}\n"
+                        bp_idx=$((bp_idx + 1))
+                    fi
+                done < "$report_file"
+
+                if [ -z "$menu_list" ]; then
+                    _bot_say "error" "No valid blueprints detected in .report."
+                    return 1
                 fi
-            done < "$report_file"
+                
+                local line_count=$(echo -e "$menu_list" | wc -l)
+                local dynamic_height=$(( line_count + 4 ))
 
-            if [ -z "$menu_list" ]; then
-                _bot_say "error" "No valid blueprints detected in .report."
-                return 1
-            fi
-            
-            local line_count=$(echo -e "$report" | wc -l)
-            local dynamic_height=$(( line_count + 4 ))
+                local fzf_sel=$(echo -e "$menu_list" | fzf --ansi \
+                    --height="$dynamic_height" \
+                    --layout=reverse \
+                    --header=" :: Enter to Select, Esc to Return ::" \
+                    --info=hidden \
+                    --border=bottom \
+                    --border-label=" :: SELECT BLUEPRINT :: " \
+                    --prompt=" :: Import › " \
+                    --delimiter="\t" \
+                    --with-nth=1,2 \
+                    --pointer="››" \
+                    --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                    --color=info:240,prompt:46,pointer:red,marker:208,border:46 \
+                    --bind="resize:clear-screen"
+                )
 
-            local fzf_sel=$(echo -e "$menu_list" | fzf --ansi \
-                --height="$dynamic_height" \
-                --layout=reverse \
-                --header=" :: Enter to Select, Esc to Return ::" \
-                --info=hidden \
-                --border=bottom \
-                --border-label=" :: SELECT BLUEPRINT :: " \
-                --prompt=" :: Import › " \
-                --delimiter="\t" \
-                --with-nth=1,2 \
-                --pointer="››" \
-                --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-                --color=info:240,prompt:46,pointer:red,marker:208,border:46 \
-                --bind="resize:clear-screen"
-            )
+                if [ -z "$fzf_sel" ]; then
+                    break
+                fi
 
-            if [ -z "$fzf_sel" ]; then
-                _bot_say "error" "Import aborted."
-                return 1
-            fi
+                local blueprint=$(echo "$fzf_sel" | awk -F'\t' '{print $3}')
+                _bot_say "action" "XUM Blueprint Selected. Reconstructing..."
+                sleep 0.8
+                
+                # 3. 準備指令空殼
+                local target_db="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
+                local next_comno=$(awk -F, '$1==999 {gsub(/^"|"$/, "", $2); if(($2+0) > max) max=$2} END {print max+1}' "$target_db")
+                if [ -z "$next_comno" ] || [ "$next_comno" -eq 1 ]; then next_comno=1; fi
+                if ! [[ "$next_comno" =~ ^[0-9]+$ ]]; then next_comno=999; fi
+                
+                local ts=$(date +%s)
+                local temp_com_name="XUM_${ts}"
 
-            local blueprint=$(echo "$fzf_sel" | awk -F'\t' '{print $3}')
-            _bot_say "action" "XUM Blueprint Selected. Reconstructing..."
-            sleep 0.8
-            
-            # 3. 準備臨時名稱與流水號
-            local target_db="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
-            local next_comno=$(awk -F, '$1==999 {gsub(/^"|"$/, "", $2); if(($2+0) > max) max=$2} END {print max+1}' "$target_db")
-            if [ -z "$next_comno" ] || [ "$next_comno" -eq 1 ]; then next_comno=1; fi
-            if ! [[ "$next_comno" =~ ^[0-9]+$ ]]; then next_comno=999; fi
-            
-            local ts=$(date +%s)
-            local temp_com_name="XUM_${ts}"
+                local empty_row="999,${next_comno},\"Others\",\"Unknown\",\"${temp_com_name}\",,\"N\",,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+                
+                if [ -s "$target_db" ] && [ "$(tail -c 1 "$target_db")" != "" ]; then echo "" >> "$target_db"; fi
+                echo "$empty_row" >> "$target_db"
 
-            #  "N" 新建節點
-            local empty_row="999,${next_comno},\"Others\",\"Unknown\",\"${temp_com_name}\",,\"N\",,,,,,,,,,,,,,,,,,,,,,,,,,,,"
-            
-            if [ -s "$target_db" ] && [ "$(tail -c 1 "$target_db")" != "" ]; then echo "" >> "$target_db"; fi
-            echo "$empty_row" >> "$target_db"
+                # 4. 安全拆解藍圖參數
+                local -a bp_f
+                eval $(echo "$blueprint" | awk -v FPAT='([^,]*)|("[^"]+")' '{
+                    for(i=1; i<=29; i++) {
+                        val = $i
+                        if (val ~ /^".*"$/) { val = substr(val, 2, length(val)-2) }
+                        gsub(/\047/, "\047\\\047\047", val)
+                        printf "bp_f[%d]=\047%s\047\n", i, val
+                    }
+                }')
 
-            # 4. 安全拆解藍圖參數，並透過原子寫入器逐格注入
-            local -a bp_f
-            eval $(echo "$blueprint" | awk -v FPAT='([^,]*)|("[^"]+")' '{
-                for(i=1; i<=29; i++) {
-                    val = $i
-                    if (val ~ /^".*"$/) { val = substr(val, 2, length(val)-2) }
-                    gsub(/\047/, "\047\\\047\047", val)
-                    printf "bp_f[%d]=\047%s\047\n", i, val
-                }
-            }')
-
-            # 狀態為 N 的原生寫入
-            export __FAC_IO_STATE="N"
-            _fac_neural_write "$temp_com_name" 10 "${bp_f[5]}"   # PKG
-            _fac_neural_write "$temp_com_name" 11 "${bp_f[6]}"   # TGT
-            _fac_neural_write "$temp_com_name" 12 "${bp_f[7]}"   # IHEAD
-            _fac_neural_write "$temp_com_name" 13 "${bp_f[8]}"   # IBODY
-            _fac_neural_write "$temp_com_name" 14 "${bp_f[9]}"   # URI
-            _fac_neural_write "$temp_com_name" 15 "${bp_f[10]}"  # MIME
-            _fac_neural_write "$temp_com_name" 16 "${bp_f[11]}"  # CATE1
-            _fac_neural_write "$temp_com_name" 17 "${bp_f[12]}"  # CATE2
-            _fac_neural_write "$temp_com_name" 18 "${bp_f[13]}"  # CATE3
-            _fac_neural_write "$temp_com_name" 19 "${bp_f[29]}"  # FLAG
-
-            _fac_neural_write "$temp_com_name" 20 "${bp_f[14]}"  # EX1
-            _fac_neural_write "$temp_com_name" 21 "${bp_f[15]}"  # EXTRA1
-            _fac_neural_write "$temp_com_name" 22 "${bp_f[16]}"  # BOOLEN1
-
-            _fac_neural_write "$temp_com_name" 23 "${bp_f[17]}"  # EX2
-            _fac_neural_write "$temp_com_name" 24 "${bp_f[18]}"  # EXTRA2
-            _fac_neural_write "$temp_com_name" 25 "${bp_f[19]}"  # BOOLEN2
-
-            _fac_neural_write "$temp_com_name" 26 "${bp_f[20]}"  # EX3
-            _fac_neural_write "$temp_com_name" 27 "${bp_f[21]}"  # EXTRA3
-            _fac_neural_write "$temp_com_name" 28 "${bp_f[22]}"  # BOOLEN3
-
-            _fac_neural_write "$temp_com_name" 29 "${bp_f[23]}"  # EX4
-            _fac_neural_write "$temp_com_name" 30 "${bp_f[24]}"  # EXTRA4
-            _fac_neural_write "$temp_com_name" 31 "${bp_f[25]}"  # BOOLEN4
-
-            _fac_neural_write "$temp_com_name" 32 "${bp_f[26]}"  # EX5
-            _fac_neural_write "$temp_com_name" 33 "${bp_f[27]}"  # EXTRA5
-            _fac_neural_write "$temp_com_name" 34 "${bp_f[28]}"  # BOOLEN5
-            unset __FAC_IO_STATE
-            export __FAC_IO_STATE="E"
-
-            # 5. 上帝視角檢閱
-            _bot_say "action" "Displaying Blueprint Details..."
-            _fac_neural_read "$temp_com_name"
-            sleep 0.5
-            if command -v _factory_fzf_detail_view &> /dev/null; then
-                _factory_fzf_detail_view "$temp_com_name" "VIEW" > /dev/null
-            fi
-            
-            # 6. 決定 TYPE 靈魂
-            _bot_say "warn" "Blueprint architecture undefined. Please specify TYPE:"
-            local type_sel=$(_factory_fzf_add_type_menu)
-            
-            if [[ -z "$type_sel" || "$type_sel" == "Cancel" || "$type_sel" == *"------"* ]]; then
-                _bot_say "error" "Import aborted. Blueprint discarded."
+                # 授權寫入
                 export __FAC_IO_STATE="N"
-                _fac_delete_node "$temp_com_name"
+                _fac_neural_write "$temp_com_name" 10 "${bp_f[5]}"   
+                _fac_neural_write "$temp_com_name" 11 "${bp_f[6]}"   
+                _fac_neural_write "$temp_com_name" 12 "${bp_f[7]}"   
+                _fac_neural_write "$temp_com_name" 13 "${bp_f[8]}"   
+                _fac_neural_write "$temp_com_name" 14 "${bp_f[9]}"   
+                _fac_neural_write "$temp_com_name" 15 "${bp_f[10]}"  
+                _fac_neural_write "$temp_com_name" 16 "${bp_f[11]}"  
+                _fac_neural_write "$temp_com_name" 17 "${bp_f[12]}"  
+                _fac_neural_write "$temp_com_name" 18 "${bp_f[13]}"  
+                _fac_neural_write "$temp_com_name" 19 "${bp_f[29]}"  
+                _fac_neural_write "$temp_com_name" 20 "${bp_f[14]}"  
+                _fac_neural_write "$temp_com_name" 21 "${bp_f[15]}"  
+                _fac_neural_write "$temp_com_name" 22 "${bp_f[16]}"  
+                _fac_neural_write "$temp_com_name" 23 "${bp_f[17]}"  
+                _fac_neural_write "$temp_com_name" 24 "${bp_f[18]}"  
+                _fac_neural_write "$temp_com_name" 25 "${bp_f[19]}"  
+                _fac_neural_write "$temp_com_name" 26 "${bp_f[20]}"  
+                _fac_neural_write "$temp_com_name" 27 "${bp_f[21]}"  
+                _fac_neural_write "$temp_com_name" 28 "${bp_f[22]}"  
+                _fac_neural_write "$temp_com_name" 29 "${bp_f[23]}"  
+                _fac_neural_write "$temp_com_name" 30 "${bp_f[24]}"  
+                _fac_neural_write "$temp_com_name" 31 "${bp_f[25]}"  
+                _fac_neural_write "$temp_com_name" 32 "${bp_f[26]}"  
+                _fac_neural_write "$temp_com_name" 33 "${bp_f[27]}"  
+                _fac_neural_write "$temp_com_name" 34 "${bp_f[28]}"  
                 unset __FAC_IO_STATE
-                return 1
-            fi
-            local bp_type=$(echo "$type_sel" | awk '{print $2}') 
 
-            # 7. 隔離限制鎖
-            if [ "$bp_type" == "SYS" ] && [ "${__FAC_ACTIVE_DB_NAME:-APP}" != "SYSTEM" ]; then
-                _bot_say "error" "SYS Architecture must be forged in the SYSTEM Database."
-                echo -e "${THEME_DESC}    ›› Current workspace is [${__FAC_ACTIVE_DB_NAME:-APP}]. Please execute 'fac switch'.${C_RESET}"
-                export __FAC_IO_STATE="N"
-                _fac_delete_node "$temp_com_name"
-                unset __FAC_IO_STATE
-                return 1
-            fi
+                local import_success=0
+                while true; do
+                    # 5. 檢閱資料 (VIEW)
+                    export __FAC_IO_STATE="N"
+                    _fac_neural_read "$temp_com_name"
+                    
+                    local view_sel=""
+                    if command -v _factory_fzf_detail_view &> /dev/null; then
+                        view_sel=$(_factory_fzf_detail_view "$temp_com_name" "VIEW")
+                    fi
+                    unset __FAC_IO_STATE
+                    
+                    if [ -z "$view_sel" ]; then
+                        export __FAC_IO_STATE="N"
+                        _fac_delete_node "$temp_com_name"
+                        unset __FAC_IO_STATE
+                        _bot_say "warn" "Blueprint discarded."
+                        break
+                    fi
+                    
+                    # 6. 決定 TYPE 靈魂
+                    _bot_say "warn" "Blueprint architecture undefined. Please specify TYPE:"
+                    local type_sel=$(_factory_fzf_add_type_menu)
+                    
+                    if [[ -z "$type_sel" || "$type_sel" == "Cancel" || "$type_sel" == *"------"* ]]; then
+                        continue
+                    fi
+                    local bp_type=$(echo "$type_sel" | awk '{print $2}') 
 
-            # 8. 設定名字 (8字元防線)
-            _bot_say "action" "Assign an Identity (Command Name) for this Blueprint:"
-            read -e -p "    › " new_com_name
-            new_com_name=$(echo "$new_com_name" | sed 's/^[ \t]*//;s/[ \t]*$//')
-            
-            if [ -z "$new_com_name" ]; then
-                _bot_say "error" "Identity required. Aborting."
-                export __FAC_IO_STATE="N"
-                _fac_delete_node "$temp_com_name"
-                unset __FAC_IO_STATE
-                return 1
-            elif [ ${#new_com_name} -gt 8 ]; then
-                _bot_say "error" "Length Exceeded (Max: 8). Aborting."
-                export __FAC_IO_STATE="N"
-                _fac_delete_node "$temp_com_name"
-                unset __FAC_IO_STATE
-                return 1
-            fi
+                    # 7. 隔離限制鎖
+                    if [ "$bp_type" == "SYS" ] && [ "${__FAC_ACTIVE_DB_NAME:-APP}" != "SYSTEM" ]; then
+                        _bot_say "error" "SYS Architecture must be forged in the SYSTEM Database."
+                        echo -e "${THEME_DESC}    ›› Current workspace is [${__FAC_ACTIVE_DB_NAME:-APP}]. Please execute 'fac switch'.${C_RESET}"
+                        sleep 1
+                        continue # 退回 VIEW 畫面
+                    fi
 
-            # 9. 原子寫入 TYPE 與 COM
-            _fac_neural_write "$temp_com_name" 4 "$bp_type"
-            _fac_neural_write "$temp_com_name" 5 "$new_com_name"
-            
-            _bot_say "success" "Blueprint Imported & Reconstructed. Forging..."
-            sleep 1
-            
-            # 10. 進入 NEW 編輯流程
-            _fac_safe_edit_protocol "$new_com_name" "NEW"
+                    # 8. 設定名字 (8字元防線)
+                    _bot_say "action" "Assign an Identity (Command Name) for this Blueprint:"
+                    read -e -p "    › " new_com_name
+                    new_com_name=$(echo "$new_com_name" | sed 's/^[ \t]*//;s/[ \t]*$//')
+                    
+                    if [ -z "$new_com_name" ]; then
+                        _bot_say "error" "Identity required."
+                        sleep 0.8
+                        continue # 退回 VIEW 畫面
+                    elif [ ${#new_com_name} -gt 8 ]; then
+                        _bot_say "error" "Length Exceeded (Max: 8)."
+                        sleep 0.8
+                        continue # 退回 VIEW 畫面
+                    fi
+
+                    # 9. 原子寫入 TYPE 與 COM
+                    export __FAC_IO_STATE="N"
+                    _fac_neural_write "$temp_com_name" 4 "$bp_type"
+                    _fac_neural_write "$temp_com_name" 5 "$new_com_name"
+                    unset __FAC_IO_STATE
+                    
+                    _bot_say "success" "Blueprint Imported & Reconstructed. Forging..."
+                    sleep 1
+                    
+                    import_success=1
+                    break
+                done
+
+                # 編輯結束
+                if [ "$import_success" -eq 1 ]; then
+                    _fac_safe_edit_protocol "$new_com_name" "NEW"
+                    break
+                fi
+            done
             ;;
 
         # : Edit Neural (Edit Command)
