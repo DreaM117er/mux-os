@@ -2808,36 +2808,99 @@ function __fac_core() {
                     fi
 
                     # 8. 設定名字 (8字元防線)
-                    _bot_say "action" "Assign an Identity (Command Name) for this Blueprint:"
-                    read -e -p "    › " new_com_name
-                    new_com_name=$(echo "$new_com_name" | sed 's/^[ \t]*//;s/[ \t]*$//')
+                    local temp_com=""
+                    local temp_sub=""
+                    local name_confirmed=0
                     
-                    if [ -z "$new_com_name" ]; then
-                        _bot_say "error" "Identity required."
-                        sleep 0.8
-                        continue # 退回 VIEW 畫面
-                    elif [ ${#new_com_name} -gt 8 ]; then
-                        _bot_say "error" "Length Exceeded (Max: 8)."
-                        sleep 0.8
-                        continue # 退回 VIEW 畫面
+                    while true; do
+                        local menu_list=$(
+                            echo -e " COMMAND \t\033[1;37m${temp_com:-[Empty]}\033[0m"
+                            echo -e " SUBCOM  \t\033[1;37m${temp_sub:-[Empty]}\033[0m"
+                            echo -e "\033[1;30m----------\033[0m"
+                            echo -e "\033[1;32m[Confirm]\033[0m"
+                        )
+
+                        local choice=$(echo -e "$menu_list" | fzf --ansi \
+                            --height=8 \
+                            --layout=reverse \
+                            --border-label=" :: ASSIGN IDENTITY :: " \
+                            --border=bottom \
+                            --prompt=" :: Setting › " \
+                            --info=hidden \
+                            --pointer="››" \
+                            --delimiter="\t" \
+                            --with-nth=1,2 \
+                            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                            --color=info:240,prompt:46,pointer:red,marker:208,border:46 \
+                            --bind="resize:clear-screen"
+                        )
+
+                        # 按 Esc 退回上一步 (VIEW 畫面)
+                        if [ -z "$choice" ]; then
+                            name_confirmed=0
+                            break 
+                        fi
+
+                        if echo "$choice" | grep -q " COM"; then
+                            _bot_say "action" "Edit Command (Trigger):"
+                            read -e -p "    › " -i "$temp_com" new_com
+                            new_com=$(echo "$new_com" | sed 's/^[ \t]*//;s/[ \t]*$//')
+                            
+                            if [ ${#new_com} -gt 8 ]; then
+                                _bot_say "error" "Length Exceeded. COM must be <= 8 chars."
+                                sleep 0.8
+                            else
+                                temp_com="$new_com"
+                            fi
+
+                        elif echo "$choice" | grep -q " SUB"; then
+                            _bot_say "action" "Edit Sub-Command (Optional):"
+                            read -e -p "    › " -i "$temp_sub" new_sub
+                            new_sub=$(echo "$new_sub" | sed 's/^[ \t]*//;s/[ \t]*$//')
+                            
+                            if [ ${#new_sub} -gt 8 ]; then
+                                _bot_say "error" "Length Exceeded. SUBCOM must be <= 8 chars."
+                                sleep 0.8
+                            else
+                                temp_sub="$new_sub"
+                            fi
+
+                        elif echo "$choice" | grep -q "Confirm"; then
+                            if [ -z "$temp_com" ]; then
+                                _bot_say "error" "Identity (COM) is required."
+                                sleep 0.8
+                                continue
+                            fi
+                            name_confirmed=1
+                            break
+                        fi
+                    done
+
+                    if [ "$name_confirmed" -eq 0 ]; then
+                        continue # 取消命名
                     fi
 
-                    # 9. 原子寫入 TYPE 與 COM
+                    # 9. 批次原子寫入
                     export __FAC_IO_STATE="N"
                     _fac_neural_write "$temp_com_name" 4 "$bp_type"
-                    _fac_neural_write "$temp_com_name" 5 "$new_com_name"
+                    _fac_neural_write "$temp_com_name" 6 "$temp_sub"
+                    _fac_neural_write "$temp_com_name" 5 "$temp_com" 
                     unset __FAC_IO_STATE
                     
                     _bot_say "success" "Blueprint Imported & Reconstructed. Forging..."
                     sleep 1
                     
+                    # 組合全新的 Target Key
+                    local new_key="$temp_com"
+                    [ -n "$temp_sub" ] && new_key="$temp_com '$temp_sub'"
+
                     import_success=1
                     break
                 done
 
-                # 編輯結束
+                # 進入正式編輯並結束
                 if [ "$import_success" -eq 1 ]; then
-                    _fac_safe_edit_protocol "$new_com_name" "NEW"
+                    _fac_safe_edit_protocol "$new_key" "NEW"
                     break
                 fi
             done
