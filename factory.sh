@@ -2725,8 +2725,7 @@ function __fac_core() {
                 
                 local ts=$(date +%s)
                 local temp_com_name="XUM_${ts}"
-
-                local empty_row="999,${next_comno},\"Others\",\"Unknown\",\"${temp_com_name}\",,\"N\",,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+                local empty_row="999,${next_comno},\"Others\",\"NB\",\"${temp_com_name}\",,\"N\",,,,,,,,,,,,,,,,,,,,,,,,,,,,"
                 
                 if [ -s "$target_db" ] && [ "$(tail -c 1 "$target_db")" != "" ]; then echo "" >> "$target_db"; fi
                 echo "$empty_row" >> "$target_db"
