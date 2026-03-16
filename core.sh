@@ -2073,16 +2073,24 @@ function mux() {
     fi
 
     case "$cmd" in
+        # : Show System Status
+        "status"|"sts")
+            if [ -d "$MUX_ROOT" ]; then cd "$MUX_ROOT"; fi
+            local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
+            local last_commit=$(git log -1 --format='%h - %s (%cr)' 2>/dev/null)
+            if [ "$current_branch" == "main" ]; then
+                current_branch="Unknown (main)"
+            fi
+            echo -e "${C_PURPLE} :: Mux-OS System Status ${C_RESET}"
+            echo -e "${THEME_SUB}    ›› Core Protocol :${C_RESET} ${THEME_WARN}v$MUX_VERSION${C_RESET}"
+            echo -e "${THEME_SUB}    ›› Current Meta  :${C_RESET} ${THEME_OK}$current_branch${C_RESET}"
+            echo -e "${THEME_SUB}    ›› Last Uplink   :${C_RESET} ${THEME_DESC}$last_commit${C_RESET}"
+            ;;
+        
         # : Login Sequence
         "login")
             if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "Interlock Active: Identity lock during Overclock."; return 1; fi
             _mux_pre_login
-            ;;
-
-        # : Logout Sequence
-        "logout")
-            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "Interlock Active: Disengage Overclock protocol before disconnect."; return 1; fi
-            _mux_set_logout
             ;;
 
         # : Open Command Dashboard
@@ -2096,50 +2104,6 @@ function mux() {
 
         "oldmenu"|"omenu")
             _show_menu_dashboard
-            ;;
-
-        # : Open Files & Links
-        "open"|"op")
-            o "$2"
-            ;;
-
-        # : Show Hall of Fame (Medals)
-        "hof")
-            clear
-            local logo_theme="core"
-            if [ "$MUX_MODE" == "XUM" ]; then logo_theme="xum"; fi
-            if command -v _draw_logo &> /dev/null; then _draw_logo "$logo_theme"; fi
-            
-            if command -v _show_badges &> /dev/null; then
-                _show_badges
-            else
-                if [ -f "$MUX_ROOT/ui.sh" ]; then
-                    source "$MUX_ROOT/ui.sh"
-                    _show_badges
-                else
-                    _bot_say "error" "Visual module (ui.sh) missing."
-                fi
-            fi
-            
-            echo ""
-            echo -ne "${C_YELLOW} :: Press 'Enter' to return to Core... ${C_RESET}"
-            read -r 
-            if [ "$MUX_MODE" == "XUM" ]; then
-                _xum_system_boot
-            else
-                _mux_init
-            fi
-            ;;
-
-        # : Infomation
-        "info")
-            if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
-            HELP_ACCESS_COUNT=$((HELP_ACCESS_COUNT + 1))
-            if [ "$HELP_ACCESS_COUNT" -ge 100 ]; then
-                if command -v _unlock_badge &> /dev/null; then _unlock_badge "GHOST_SHELL" "Ghost in the Shell"; fi
-            fi
-            _save_identity
-            _mux_show_info
             ;;
 
         # : Install Dependencies
@@ -2187,25 +2151,10 @@ function mux() {
                 echo -e "${C_WHITE} :: Whatever, I'll put it on later.${C_RESET}"
             fi
             ;;
-        
-        # : Show System Status
-        "status"|"sts")
-            if [ -d "$MUX_ROOT" ]; then cd "$MUX_ROOT"; fi
-            local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
-            local last_commit=$(git log -1 --format='%h - %s (%cr)' 2>/dev/null)
-            if [ "$current_branch" == "main" ]; then
-                current_branch="Unknown (main)"
-            fi
-            echo -e "${C_PURPLE} :: Mux-OS System Status ${C_RESET}"
-            echo -e "${THEME_SUB}    ›› Core Protocol :${C_RESET} ${THEME_WARN}v$MUX_VERSION${C_RESET}"
-            echo -e "${THEME_SUB}    ›› Current Meta  :${C_RESET} ${THEME_OK}$current_branch${C_RESET}"
-            echo -e "${THEME_SUB}    ›› Last Uplink   :${C_RESET} ${THEME_DESC}$last_commit${C_RESET}"
-            ;;
-        
-        # : Neural Link Deploy
-        "deploy")
-            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "External uplink locked during Overclock."; return 1; fi
-            _neural_link_deploy
+
+        # : Open Files & Links
+        "open"|"op")
+            o "$2"
             ;;
 
         # : System Integrity Scan
@@ -2213,49 +2162,65 @@ function mux() {
             _core_system_scan "manual"
             ;;
 
-        # : Check for Updates
-        "update")
-            _mux_update_system
-            ;;
-
         # : Clean System Directory
         "clear")
             _mux_system_purge
             ;;
 
-        # : Run Setup Protocol
-        "setup")
-            if [ -f "$MUX_ROOT/setup.sh" ]; then
-                _bot_say "action" "Transferring control to Lifecycle Manager..."
-                sleep 0.8
-                exec bash "$MUX_ROOT/setup.sh"
+        # : Enter the Arsenal (Factory Mode)
+        "factory"|"tofac")
+            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "Factory access denied. Terminate XUM session first."; return 1; fi
+            _core_pre_factory_auth
+            ;;
+
+        # : Enter the Command Tower
+        "tower"|"tocmt")
+            if [ "${MUX_LEVEL:-1}" -lt 8 ]; then
+                echo -e "${C_RED} :: ACCESS DENIED :: Clearance Level 8 Required for Command Tower.${C_RESET}"
+                return 1
+            fi
+
+            if ! command -v fzf &> /dev/null; then
+                echo -e "${C_RED} :: Commander! We need the visual engine to open the Tower! Please link it! (Ｔ▽Ｔ)"
+                return 1
+            fi
+
+            if [ "$MUX_MODE" == "XUM" ]; then
+                echo -e "${C_RED} :: SYSTEM OVERLOAD :: Core is unstable! Cannot establish Tower Uplink during XUM Overclocking!${C_RESET}"
+                return 1
+            fi
+            
+            if [ "$MUX_MODE" != "MUX" ] || [ "$MUX_STATUS" != "DEFAULT" ]; then
+                echo -e "${C_RED} :: Commander! You need to return to the Hangar first before you can enter the Tower! (Ｔ▽Ｔ)"
+                return 1
+            fi
+
+            _tct_login_protocol
+            return
+            ;;
+
+        # : Trigger Architect Ascension Protocol
+        "reborn")
+            if [ "$MUX_LEVEL" -lt 16 ]; then
+                echo -e "${C_YELLOW} :: Unknown Directive: 'reborn'.${C_RESET}"
+                return 1
+            fi
+            
+            echo -e "${THEME_WARN} :: ARCHITECT ASCENSION PROTOCOL ::${C_RESET}"
+            echo -e "${THEME_DESC}    This action will trigger a controlled Dimensional Collapse.${C_RESET}"
+            echo -e "${THEME_DESC}    1. Clearance Level resets to L1.${C_RESET}"
+            echo -e "${THEME_DESC}    2. XP curve requirement increases by 1.5x (Iteration: ${MUX_REBORN_COUNT:-0} -> $(( ${MUX_REBORN_COUNT:-0} + 1 ))).${C_RESET}"
+            echo -e "${THEME_DESC}    3. All badges and tactical records are preserved.${C_RESET}"
+            echo ""
+            echo -ne "${THEME_ERR} :: Initiate Rebirth? [Y/n]: ${C_RESET}"
+            read choice
+            
+            if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+                if command -v _trigger_reborn &> /dev/null; then
+                    _trigger_reborn
+                fi
             else
-                _bot_say "error" "Lifecycle Manager (setup.sh) not found."
-            fi
-            ;;
-
-        "help")
-            if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
-            HELP_ACCESS_COUNT=$((HELP_ACCESS_COUNT + 1))
-            if [ "$HELP_ACCESS_COUNT" -ge 100 ]; then
-                if command -v _unlock_badge &> /dev/null; then _unlock_badge "GHOST_SHELL" "Ghost in the Shell"; fi
-            fi
-            _save_identity
-            _mux_dynamic_help_core
-            ;;
-
-        # : Reload System Kernel
-        "reload")
-            _voice_dispatch "system" "Reloading Kernel Sequence..."
-            sleep 0.5
-            _mux_reload_kernel
-            ;;
-
-        # : Force System Sync
-        "reset")
-            _mux_force_reset
-            if [ $? -eq 0 ]; then
-                _mux_reload_kernel
+                echo -e "${THEME_DESC}    ›› Ascension aborted. Maintaining Architect status.${C_RESET}"
             fi
             ;;
 
@@ -2351,61 +2316,96 @@ function mux() {
             fi
         ;;
 
-        # : Enter the Arsenal (Factory Mode)
-        "factory"|"tofac")
-            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "Factory access denied. Terminate XUM session first."; return 1; fi
-            _core_pre_factory_auth
+        # : Neural Link Deploy
+        "deploy")
+            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "External uplink locked during Overclock."; return 1; fi
+            _neural_link_deploy
             ;;
 
-        # : Enter the Command Tower
-        "tower"|"tocmt")
-            if [ "${MUX_LEVEL:-1}" -lt 8 ]; then
-                echo -e "${C_RED} :: ACCESS DENIED :: Clearance Level 8 Required for Command Tower.${C_RESET}"
-                return 1
-            fi
-
-            if ! command -v fzf &> /dev/null; then
-                echo -e "${C_RED} :: Commander! We need the visual engine to open the Tower! Please link it! (Ｔ▽Ｔ)"
-                return 1
-            fi
-
-            if [ "$MUX_MODE" == "XUM" ]; then
-                echo -e "${C_RED} :: SYSTEM OVERLOAD :: Core is unstable! Cannot establish Tower Uplink during XUM Overclocking!${C_RESET}"
-                return 1
-            fi
-            
-            if [ "$MUX_MODE" != "MUX" ] || [ "$MUX_STATUS" != "DEFAULT" ]; then
-                echo -e "${C_PINKMEOW} :: Commander! You need to return to the Hangar first before you can enter the Tower! 🥺"
-                return 1
-            fi
-
-            _tct_login_protocol
-            return
+        # : Logout Sequence
+        "logout")
+            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "Interlock Active: Disengage Overclock protocol before disconnect."; return 1; fi
+            _mux_set_logout
             ;;
 
-        # : Trigger Architect Ascension Protocol
-        "reborn")
-            if [ "$MUX_LEVEL" -lt 16 ]; then
-                echo -e "${C_YELLOW} :: Unknown Directive: 'reborn'.${C_RESET}"
-                return 1
+        # : Reload System Kernel
+        "reload")
+            _voice_dispatch "system" "Reloading Kernel Sequence..."
+            sleep 0.5
+            _mux_reload_kernel
+            ;;
+
+        # : Force System Sync
+        "reset")
+            _mux_force_reset
+            if [ $? -eq 0 ]; then
+                _mux_reload_kernel
             fi
-            
-            echo -e "${THEME_WARN} :: ARCHITECT ASCENSION PROTOCOL ::${C_RESET}"
-            echo -e "${THEME_DESC}    This action will trigger a controlled Dimensional Collapse.${C_RESET}"
-            echo -e "${THEME_DESC}    1. Clearance Level resets to L1.${C_RESET}"
-            echo -e "${THEME_DESC}    2. XP curve requirement increases by 1.5x (Iteration: ${MUX_REBORN_COUNT:-0} -> $(( ${MUX_REBORN_COUNT:-0} + 1 ))).${C_RESET}"
-            echo -e "${THEME_DESC}    3. All badges and tactical records are preserved.${C_RESET}"
-            echo ""
-            echo -ne "${THEME_ERR} :: Initiate Rebirth? [Y/n]: ${C_RESET}"
-            read choice
-            
-            if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
-                if command -v _trigger_reborn &> /dev/null; then
-                    _trigger_reborn
-                fi
+            ;;
+
+        # : Run Setup Protocol
+        "setup")
+            if [ -f "$MUX_ROOT/setup.sh" ]; then
+                _bot_say "action" "Transferring control to Lifecycle Manager..."
+                sleep 0.8
+                exec bash "$MUX_ROOT/setup.sh"
             else
-                echo -e "${THEME_DESC}    ›› Ascension aborted. Maintaining Architect status.${C_RESET}"
+                _bot_say "error" "Lifecycle Manager (setup.sh) not found."
             fi
+            ;;
+
+        # : Check for Updates
+        "update")
+            _mux_update_system
+            ;;
+
+        # : Show Hall of Fame (Medals)
+        "hof")
+            clear
+            local logo_theme="core"
+            if [ "$MUX_MODE" == "XUM" ]; then logo_theme="xum"; fi
+            if command -v _draw_logo &> /dev/null; then _draw_logo "$logo_theme"; fi
+            
+            if command -v _show_badges &> /dev/null; then
+                _show_badges
+            else
+                if [ -f "$MUX_ROOT/ui.sh" ]; then
+                    source "$MUX_ROOT/ui.sh"
+                    _show_badges
+                else
+                    _bot_say "error" "Visual module (ui.sh) missing."
+                fi
+            fi
+            
+            echo ""
+            echo -ne "${C_YELLOW} :: Press 'Enter' to return to Core... ${C_RESET}"
+            read -r 
+            if [ "$MUX_MODE" == "XUM" ]; then
+                _xum_system_boot
+            else
+                _mux_init
+            fi
+            ;;
+
+        # : Infomation
+        "info")
+            if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+            HELP_ACCESS_COUNT=$((HELP_ACCESS_COUNT + 1))
+            if [ "$HELP_ACCESS_COUNT" -ge 100 ]; then
+                if command -v _unlock_badge &> /dev/null; then _unlock_badge "GHOST_SHELL" "Ghost in the Shell"; fi
+            fi
+            _save_identity
+            _mux_show_info
+            ;;
+
+        "help")
+            if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+            HELP_ACCESS_COUNT=$((HELP_ACCESS_COUNT + 1))
+            if [ "$HELP_ACCESS_COUNT" -ge 100 ]; then
+                if command -v _unlock_badge &> /dev/null; then _unlock_badge "GHOST_SHELL" "Ghost in the Shell"; fi
+            fi
+            _save_identity
+            _mux_dynamic_help_core
             ;;
         
         "xum")

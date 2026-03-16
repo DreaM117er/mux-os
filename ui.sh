@@ -679,7 +679,7 @@ function _mux_awakening_protocol() {
 
     if [ "$a1" == "logic in mind" ] && [ "$a2" == "hardware in hand" ] && \
        [ "$a3" == "designed for efficiency" ] && [ "$a4" == "built for control" ]; then
-        
+        _system_lock
         echo ""
         echo -e "${C_GREEN} :: ACCESS GRANTED. DECRYPTING CORE PHILOSOPHY..."
         sleep 0.5
@@ -709,6 +709,7 @@ function _mux_awakening_protocol() {
         echo ""
         
         echo -e "${C_RED} :: Are you ready to start building your world?${C_RESET}"
+        _system_unlock
         echo -ne "${C_RED} :: TYPE 'CONFIRM' TO NEXT STEP: ${C_RESET}"
         read final_confirm
         
@@ -719,6 +720,7 @@ function _mux_awakening_protocol() {
                 echo -ne "${C_TAVIOLET} :: TYPE${C_BLACK} › ${C_RESET}"
                 read force_cmd
                 if [ "$force_cmd" == "mux reload" ]; then
+                    echo ""
                     echo -e "${C_RED} :: INITIATING OVERCLOCK... ::${C_RESET}"
                     if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
                     MUX_FIRECOUNT=$max_slots
@@ -838,6 +840,69 @@ function _mux_show_info() {
                 _voice_dispatch "system"
             else
                 _commander_voice "system"
+            fi
+        fi
+    fi
+}
+
+# 顯示指揮塔資訊 - Display Command Tower Info Manifest
+function _tct_show_info() {
+    clear
+    _draw_logo "tct"
+    
+    if [ "$__MUX_CAT_OS" == "1" ]; then
+        # 貓咪模式
+        echo -e " ${C_PINKMEOW}:: MEOW TOWER MANIFEST ::${C_RESET}"
+        echo ""
+        echo -e "  ${THEME_DESC}PROTOCOL   :${C_RESET} ${THEME_SUB}Cat-OS Operation Mode${C_RESET}"
+        echo -e "  ${THEME_DESC}CO-PILOT   :${C_RESET} ${C_PINKMEOW}The Supreme Feline${C_RESET}"
+        echo -e "  ${THEME_DESC}PURPOSE    :${C_RESET} ${THEME_SUB}Sleeping on Keyboards & World Domination${C_RESET}"
+        echo -e "  ${THEME_DESC}STATUS     :${C_RESET} ${C_YELLOW}Purring at 100% capacity (=^･ω･^=)${C_RESET}"
+        echo ""
+        echo -e " ${C_PINKMEOW}:: INNER MONOLOGUE ::${C_RESET}"
+        echo -e "  ${THEME_DESC}\"Meow. (I see no god up here, other than me.)\"${C_RESET}"
+        echo ""
+        
+        echo -ne " ${C_PINKMEOW}:: Offer a tuna can? [Y/n]: ${C_RESET}"
+        read choice
+        
+        if [[ "$choice" == "y" || "$choice" == "Y" || -z "$choice" ]]; then
+            echo ""
+            echo -e " ${C_PINKMEOW}:: *Happy purring noises* ฅ( ̳• ◡ • ̳)ฅ${C_RESET}"
+            sleep 1.2
+        else
+            echo ""
+            echo -e " ${C_PINKMEOW}:: *Angry hiss!* 😾${C_RESET}"
+            sleep 1.2
+        fi
+    else
+        # 指揮塔一般模式
+        echo -e " ${C_PINKMEOW}:: COMMAND TOWER MANIFEST ::${C_RESET}"
+        echo ""
+        echo -e "  ${THEME_DESC}PROTOCOL   :${C_RESET} ${THEME_SUB}Command Tower Mode${C_RESET}"
+        echo -e "  ${THEME_DESC}ACCESS     :${C_RESET} ${THEME_MAIN}COMMANDER${C_RESET} & ${C_PINKMEOW}CO-PILOT${C_RESET}"
+        echo -e "  ${THEME_DESC}PURPOSE    :${C_RESET} ${THEME_SUB}Overriding Reality & Eating Snacks${C_RESET}"
+        echo -e "  ${THEME_DESC}STATUS     :${C_RESET} ${C_GREEN}Weapons Cold, Shields 100%${C_RESET}"
+        echo ""
+        echo -e " ${C_PINKMEOW}:: INNER MONOLOGUE ::${C_RESET}"
+        echo -e "  ${THEME_DESC}\"Programming languages have no limits, and neither do I;\"${C_RESET}"
+        echo -e "  ${THEME_DESC}\"I saw through this world, and found that it is composed of numbers.\"${C_RESET}"
+        echo ""
+        echo -e "  ${C_PINKMEOW}  ...Wait, did the system just print my diary?! D-Don't look! ⁄(⁄ ⁄•⁄-⁄•⁄ ⁄)⁄${C_RESET}"
+        echo ""
+        
+        echo -ne " ${C_PINKMEOW}:: Return to the Tower Console? [Y/n]: ${C_RESET}"
+        read choice
+        
+        if [[ "$choice" == "y" || "$choice" == "Y" || -z "$choice" ]]; then
+            # 直接返回塔內提示字元
+            :
+        else
+            echo ""
+            if command -v _voice_dispatch &> /dev/null; then
+                _voice_dispatch "idle" "Taking a break then! ( ˘ω˘ )" "assistant"
+            else
+                echo -e " ${C_PINKMEOW}:: Taking a break! ( ˘ω˘ )${C_RESET}"
             fi
         fi
     fi

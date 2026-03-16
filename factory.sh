@@ -2470,6 +2470,15 @@ function __fac_core() {
     fi
 
     case "$cmd" in
+        # : Show Factory Status
+        "status"|"sts")
+            if command -v _factory_show_status &> /dev/null; then
+                _factory_show_status
+            else
+                echo -e "${THEME_WARN} :: UI Module Link Failed.${C_RESET}"
+            fi
+            ;;
+
         # : Change Temp Target
         "switch")
             local has_reborn=${MUX_REBORN_COUNT:-0}
@@ -2479,6 +2488,14 @@ function __fac_core() {
                 return 1
             fi
             _fac_cmd_db
+            ;;
+
+        # : List all links
+        "list"|"ls")
+            if command -v _grant_xp &> /dev/null; then
+                _grant_xp 3 "FAC_LIST"
+            fi
+            _fac_list
             ;;
 
         # : Open Neural Forge Menu
@@ -2545,23 +2562,6 @@ function __fac_core() {
             _fac_matrix_defrag
             if _fac_neural_read "coffee" >/dev/null 2>&1 && _fac_neural_read "tea" >/dev/null 2>&1; then
                 if command -v _unlock_badge &> /dev/null; then _unlock_badge "TEAPOT" "Protocol 418"; fi
-            fi
-            ;;
-
-        # : List all links
-        "list"|"ls")
-            if command -v _grant_xp &> /dev/null; then
-                _grant_xp 3 "FAC_LIST"
-            fi
-            _fac_list
-            ;;
-
-        # : Show Factory Status
-        "status"|"sts")
-            if command -v _factory_show_status &> /dev/null; then
-                _factory_show_status
-            else
-                echo -e "${THEME_WARN} :: UI Module Link Failed.${C_RESET}"
             fi
             ;;
 
@@ -3156,16 +3156,6 @@ function __fac_core() {
             done
             ;;
 
-        # : Time Stone Undo (Rebak)
-        "undo"|"rebak")
-            _fac_rebak_wizard
-            ;;
-
-        # : Purge Auto-Backups
-        "clear")
-            _fac_clear_backups
-            ;;
-
         # : Load Neural (Test Command)
         "load"|"test") 
             local input_1="$2"
@@ -3212,33 +3202,14 @@ function __fac_core() {
             fi
             ;;
 
-        # : Show Factory Info
-        "info")
-            if command -v _factory_show_info &> /dev/null; then
-                _factory_show_info
-            fi
+        # : Time Stone Undo (Rebak)
+        "undo"|"rebak")
+            _fac_rebak_wizard
             ;;
 
-        # : Show Hall of Fame (Medals)
-        "hof")
-            clear
-            if command -v _draw_logo &> /dev/null; then _draw_logo "factory"; fi
-
-            if command -v _show_badges &> /dev/null; then
-                _show_badges
-            else
-                if [ -f "$MUX_ROOT/ui.sh" ]; then
-                    source "$MUX_ROOT/ui.sh"
-                    _show_badges
-                else
-                    _bot_say "error" "Visual module (ui.sh) missing."
-                fi
-            fi
-            
-            echo ""
-            echo -ne "${C_YELLOW} :: Press 'Enter' to return to Neural Forge... ${C_RESET}"
-            read -r
-            _fac_init
+        # : Purge Auto-Backups
+        "clear")
+            _fac_clear_backups
             ;;
 
         # : Reload Factory
@@ -3262,40 +3233,6 @@ function __fac_core() {
                 if [ $? -ne 0 ]; then return; fi 
             fi
             _factory_reset
-            ;;
-
-        # : Deploy Changes
-        "deploy")
-            local e_found=0
-            for db_chk in app vendor system; do
-                if [ -f "$MUX_ROOT/$db_chk.csv.temp" ] && grep -q ',"E",' "$MUX_ROOT/$db_chk.csv.temp"; then
-                    e_found=1
-                    break
-                fi
-            done
-            _fac_maintenance
-            if [ "$e_found" -eq 1 ]; then
-                echo -e "\n${C_RED} :: DEPLOY ABORTED :: Active Drafts (E) Detected.${C_RESET}"
-                echo -e "${C_BLACK}    Please finish editing or delete drafts before deployment.${C_RESET}"
-                echo -ne "\n${C_YELLOW}    ›› Acknowledge and Return? [Y/n]: ${C_RESET}"
-                read -n 1 -r
-                echo ""
-                return
-            fi
-            _fac_sort_optimization
-            _fac_matrix_defrag
-            _factory_deploy_sequence
-            ;;
-
-        # : Run Setup Protocol
-        "setup")
-            if [ -f "$MUX_ROOT/setup.sh" ]; then
-                _bot_say "action" "Transferring control to Lifecycle Manager..."
-                sleep 0.8
-                exec bash "$MUX_ROOT/setup.sh"
-            else
-                _bot_say "error" "Lifecycle Manager (setup.sh) not found."
-            fi
             ;;
         
         "eject")
@@ -3350,6 +3287,69 @@ function __fac_core() {
                     echo -e "${C_ORANGE} :: Just dusting it off? Okay. Don't scare me like that.${C_RESET}"
                     echo -e "${THEME_DESC}    ›› Action Canceled.${C_RESET}"
                 fi
+            fi
+            ;;
+
+        # : Deploy Changes
+        "deploy")
+            local e_found=0
+            for db_chk in app vendor system; do
+                if [ -f "$MUX_ROOT/$db_chk.csv.temp" ] && grep -q ',"E",' "$MUX_ROOT/$db_chk.csv.temp"; then
+                    e_found=1
+                    break
+                fi
+            done
+            _fac_maintenance
+            if [ "$e_found" -eq 1 ]; then
+                echo -e "\n${C_RED} :: DEPLOY ABORTED :: Active Drafts (E) Detected.${C_RESET}"
+                echo -e "${C_BLACK}    Please finish editing or delete drafts before deployment.${C_RESET}"
+                echo -ne "\n${C_YELLOW}    ›› Acknowledge and Return? [Y/n]: ${C_RESET}"
+                read -n 1 -r
+                echo ""
+                return
+            fi
+            _fac_sort_optimization
+            _fac_matrix_defrag
+            _factory_deploy_sequence
+            ;;
+
+        # : Run Setup Protocol
+        "setup")
+            if [ -f "$MUX_ROOT/setup.sh" ]; then
+                _bot_say "action" "Transferring control to Lifecycle Manager..."
+                sleep 0.8
+                exec bash "$MUX_ROOT/setup.sh"
+            else
+                _bot_say "error" "Lifecycle Manager (setup.sh) not found."
+            fi
+            ;;
+
+        # : Show Hall of Fame (Medals)
+        "hof")
+            clear
+            if command -v _draw_logo &> /dev/null; then _draw_logo "factory"; fi
+
+            if command -v _show_badges &> /dev/null; then
+                _show_badges
+            else
+                if [ -f "$MUX_ROOT/ui.sh" ]; then
+                    source "$MUX_ROOT/ui.sh"
+                    _show_badges
+                else
+                    _bot_say "error" "Visual module (ui.sh) missing."
+                fi
+            fi
+            
+            echo ""
+            echo -ne "${C_YELLOW} :: Press 'Enter' to return to Neural Forge... ${C_RESET}"
+            read -r
+            _fac_init
+            ;;
+
+        # : Show Factory Info
+        "info")
+            if command -v _factory_show_info &> /dev/null; then
+                _factory_show_info
             fi
             ;;
 

@@ -77,6 +77,21 @@ function __tct_core() {
     fi
     
     case "$cmd" in
+        # : Exit Command Tower
+        "logout")
+            echo -ne "${C_RED} :: EXIT COMMAND TOWER? TYPE 'CONFIRM' TO PROCEED: ${C_RESET}"
+            read final_confirm
+            
+            if [ "$final_confirm" == "CONFIRM" ]; then
+                echo -e "${C_PINKMEOW} :: Tower Uplink Disconnected. See you, Commander! ( ´ ▽ \` )ﾉ${C_RESET}"
+                sleep 1
+                _update_mux_state "MUX" "DEFAULT"
+                _mux_reload_kernel
+            else
+                echo -e "${THEME_DESC}    ›› Aborted. We are staying! (*≧ω≦)${C_RESET}"
+            fi
+            ;;
+
         # : Reload Tower UI and state
         "reload")
             echo -e "${C_PINKMEOW} :: Refreshing Tower Interface! Hold on tight! (*≧ω≦)${C_RESET}"
@@ -109,24 +124,14 @@ function __tct_core() {
             fi
             ;;
 
+        # : Infomation
+        "info")
+            _tct_show_info
+            ;;
+
         "help")
             if command -v _mux_dynamic_help_tower &> /dev/null; then
                 _mux_dynamic_help_tower
-            fi
-            ;;
-
-        # : Exit Command Tower
-        "logout")
-            echo -ne "${C_RED} :: EXIT COMMAND TOWER? TYPE 'CONFIRM' TO PROCEED: ${C_RESET}"
-            read final_confirm
-            
-            if [ "$final_confirm" == "CONFIRM" ]; then
-                echo -e "${C_PINKMEOW} :: Tower Uplink Disconnected. See you, Commander! ( ´ ▽ \` )ﾉ${C_RESET}"
-                sleep 1
-                _update_mux_state "MUX" "DEFAULT"
-                _mux_reload_kernel
-            else
-                echo -e "${THEME_DESC}    ›› Aborted. We are staying! (*≧ω≦)${C_RESET}"
             fi
             ;;
 
