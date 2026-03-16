@@ -1889,16 +1889,21 @@ local theme="$1"
 
     # TCT 的自訂 Footer 與起始數值
     local pct=0
+    local footer_emo=""
     if [ "$theme" == "tct" ]; then
         if [ "$tct_mode" == "reverse" ]; then
             pct=100
-            footer_msg="Wait, wrong way! Reverse! (；´д｀)ゞ"
+            footer_msg="Wait, wrong way! Reverse!"
+            footer_emo="(；´д｀)ゞ"
         elif [ "$tct_mode" == "overflow" ]; then
-            footer_msg="Limiter broken! Overflow! Σ(°Д°;)"
+            footer_msg="Limiter broken! Overflow!"
+            footer_emo="Σ(°Д°;)"
         elif [ "$tct_mode" == "heart" ]; then
-            footer_msg="Welcome to the Tower! (*≧ω≦)"
+            footer_msg="Welcome to the Tower!"
+            footer_emo="(*≧ω≦)"
         else
-            footer_msg="Command Tower Uplink... ( • ̀ω•́ )✧"
+            footer_msg="Command Tower Uplink..."
+            footer_emo="( • ̀ω•́ )✧"
         fi
     fi
 
@@ -1985,7 +1990,14 @@ local theme="$1"
         echo -ne "${c_border}║${C_RESET} \033[K"
         
         tput cup $((start_row + 3)) $start_col
-        echo -ne "${c_border}╚ ${C_BLACK}${footer_msg}${C_RESET} \033[K"
+        if [ "$theme" == "tct" ]; then
+            echo -ne "${c_border}╠ ${C_BLACK}${footer_msg}${C_RESET} \033[K"
+            
+            tput cup $((start_row + 4)) $start_col
+            echo -ne "${c_border}╚ ${current_color}${footer_emo}${C_RESET} \033[K"
+        else
+            echo -ne "${c_border}╚ ${C_BLACK}${footer_msg}${C_RESET} \033[K"
+        fi
         
         # 根據不同模式判斷是否結束迴圈
         if [ "$theme" == "tct" ]; then
@@ -1994,7 +2006,8 @@ local theme="$1"
                     sleep 0.2
                     pct=100
                     tct_mode="normal"
-                    footer_msg="Fixed it! Phew... ( ´ ▽ \` )ﾉ"
+                    footer_msg="Fixed it! Phew..."
+                    footer_emo="( ´ ▽ \` )ﾉ"
                     tct_fixed_pause="true"
                     unset tct_stall_ticks
                     continue
@@ -2004,7 +2017,8 @@ local theme="$1"
                     sleep 0.9
                     pct=100
                     tct_mode="normal"
-                    footer_msg="Fixed it! Phew... ( ´ ▽ \` )ﾉ"
+                    footer_msg="Fixed it! Phew..."
+                    footer_emo="( ´ ▽ \` )ﾉ"
                     tct_fixed_pause="true"
                     continue
                 fi
@@ -2042,9 +2056,11 @@ local theme="$1"
                     pct=14
                     tct_stall_ticks=$(( ${tct_stall_ticks:-0} + 1 ))
                     if [ "$tct_stall_ticks" -eq 15 ]; then
-                        footer_msg="Wait... why isn't it moving? (；´д｀)ゞ"
+                        footer_msg="Wait... why isn't it moving?"
+                        footer_emo="(；´д｀)ゞ"
                     elif [ "$tct_stall_ticks" -eq 40 ]; then
-                        footer_msg="Hold on! Let me hit it with a wrench! ≡(ง •̀_•́)ง"
+                        footer_msg="Hold on! Let me hit it with a wrench!"
+                        footer_emo="≡(ง •̀_•́)ง"
                     fi
                 fi
             elif [ "$theme" == "tct" ] && [ "$tct_mode" == "reverse" ]; then

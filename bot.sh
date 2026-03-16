@@ -171,65 +171,6 @@ function _bot_say() {
                 )
             ;;
 
-        "warp")
-        local state="$2" 
-        local target="$3"
-        local quotes=()
-        
-        if [ $((RANDOM % 10)) -eq 0 ]; then
-             local eggs=(
-                "Maintenance Log #404: Who left a cat in the cockpit? 🐈"
-                "Scanning hangar... Unauthorized paint job detected on Unit 02."
-                "Sync complete. The mechanic left a note: 'Good luck'. 🔧"
-                "Warning: Coffee stain detected on control panel. Cleaning..."
-             )
-             echo -e "${C_PURPLE} :: ${eggs[$((RANDOM % ${#eggs[@]}))]}${C_RESET}"
-        fi
-
-        case "$state" in
-            "start_local")
-                quotes=(
-                    "Transferring neural link to Unit [$target]..."
-                    "Hangar hatch open. Boarding Unit [$target]..."
-                    "Drive System engaged. Target frame: [$target]."
-                    "Cockpit sealed. Initializing [$target] OS. Systems Green. 🟢"
-                    "Neural synchronization complete. You have control of [$target]. 🤖"
-                )
-                ;;
-            "start_remote")
-                quotes=(
-                    "Hijacking uplink to [$target]'s Unit..."
-                    "Scanning foreign MS signature... Access granted."
-                    "You are now piloting [$target]'s custom frame. Don't crash it. 😈"
-                    "Remote Neural Link established. Syncing with [$target]'s logic."
-                    "Bypassing bio-metric lock... Welcome to [$target]'s machine."
-                )
-                ;;
-            "home")
-                quotes=(
-                    "Returning to Prime Unit..."
-                    "Main System restoring. Welcome home, Pilot."
-                    "All systems normalized. Back in the main seat. Vibes good. 😌"
-                    "Drive cycle complete. Prime Unit active."
-                )
-                ;;
-            "fail")
-                quotes=(
-                    "Unit not found in Hangar... Did you scrap it?"
-                    "Ignition failed! ...Just a typo. Try again. 🔧"
-                    "Drive System stalled. Target frame identification failed."
-                    "Cannot board target. Permission denied or unit missing."
-                )
-                ;;
-        esac
-
-        if [ ${#quotes[@]} -gt 0 ]; then
-            local msg="${quotes[$((RANDOM % ${#quotes[@]}))]}"
-            echo -e "${C_BLUE}    ›› $msg${C_RESET}"
-        fi
-        return
-        ;;
-
         *)
             icon=" ::"
             color=$C_CYAN
@@ -372,15 +313,6 @@ function _commander_voice() {
             )
             ;;
 
-        "warp_ready")
-            phrases=(
-                " Engaging Warp Drive. Coordinates locked."
-                " Switching units. Don't scratch the paint."
-                " Let's jump to a better timeline."
-                " Initiating phase shift. Hold on."
-            )
-            ;;
-
         "success")
             phrases=(
                 " As expected."
@@ -420,6 +352,20 @@ function _commander_voice() {
             if [ "$current_hour" -ge 6 ] && [ "$current_hour" -lt 10 ]; then
                 phrases+=( " Coffee first. Logic second." )
             fi
+            ;;
+
+        "visor_equipped")
+            phrases=(
+                " Visor is already equipped. Spatial map is fully operational."
+                " I'm already wearing them. The HUD is crystal clear."
+                " Spatial matrix is already syncing with my retina. No need to patch it again."
+                " Tactical glasses online. I can see the whole grid from here."
+                " I never take these off. The augmented reality is way better than the real one."
+                " Visor's strapped tight. I'm seeing data streams overlaying the hangar."
+                " Retinal sync at 100%. Don't tell me to equip what's already a part of me."
+                " The spatial matrix is humming right behind my eyes. I'm good to go."
+                " If I take these off, I'll go blind in the data sea. They stay on."
+            )
             ;;
 
         "sigh")

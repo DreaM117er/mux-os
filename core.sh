@@ -108,9 +108,11 @@ function _voice_dispatch() {
     local detail="$2"
     local force_role="$3"
 
-    # 1. 小助理
+    # 小助理
     if [ "$MUX_MODE" == "TCT" ]; then
-        if command -v _assistant_voice &> /dev/null; then
+        if [ "$force_role" == "cmd" ] && command -v _commander_voice &> /dev/null; then
+            _commander_voice "$mood" "$detail"
+        elif command -v _assistant_voice &> /dev/null; then
             _assistant_voice "$mood" "$detail"
         else
             echo -e "${C_PINKMEOW} :: ${detail:-Processing...} (*≧ω≦)${C_RESET}"
@@ -118,7 +120,7 @@ function _voice_dispatch() {
         return
     fi
 
-    # 2. 指定角色演出
+    # 1. 強制指定角色
     if [ "$force_role" == "system" ]; then
         _bot_say "$mood" "$detail"
         return
@@ -130,27 +132,20 @@ function _voice_dispatch() {
         fi
         return
     elif [ "$force_role" == "assistant" ]; then
-        if command -v _assistant_voice &> /dev/null; then
-             _assistant_voice "$mood" "$detail"
-        else
-             _bot_say "$mood" "$detail" # 防呆備案
-        fi
+        _bot_say "$mood" "$detail"
         return
     fi
 
-    # 3. 雙人共舞
+    # 2. 雙人共舞
     if [ $((RANDOM % 2)) -eq 0 ]; then
-        if command -v _assistant_voice &> /dev/null; then
-            _assistant_voice "$mood" "$detail"
-        else
-            _bot_say "$mood" "$detail"
-        fi
-    else
         if command -v _commander_voice &> /dev/null; then
             _commander_voice "$mood" "$detail"
         else
             _bot_say "$mood" "$detail"
         fi
+    else
+        # 沒有小助理了，機甲裡只有系統的回音
+        _bot_say "$mood" "$detail"
     fi
 }
 
@@ -2150,7 +2145,11 @@ function mux() {
             # 已經安裝過的防呆回饋
             if command -v fzf &> /dev/null; then
                 echo -e "\n${C_GREEN} :: VR Tactical Visor (fzf) Status: ${C_WHITE}EQUIPPED${C_RESET} ✅"
-                echo -e "${C_WHITE} :: Visor is already equipped. Spatial map is fully operational.${C_RESET}"
+                if command -v _commander_voice &> /dev/null; then
+                    _commander_voice "visor_equipped"
+                else
+                    echo -e "${C_WHITE} :: Visor is already equipped. Spatial map is fully operational.${C_RESET}"
+                fi
                 return
             fi
             
@@ -2300,17 +2299,21 @@ function mux() {
             )
             
             target_branch="${target_branch// /}"
-            if [ -z "$target_branch" ]; then _bot_say "warp" "fail"; return 1; fi
 
-            # 語音回饋
-            local warp_type="start_local"
-            if [ "$target_branch" == "main" ] || [ "$target_branch" == "master" ]; then 
-                warp_type="home"
-            elif [[ "$target_branch" != *"$(whoami)"* ]]; then 
-                warp_type="start_remote"
+            if [ -z "$target_branch" ]; then 
+                echo -e "\n${C_WHITE} :: Visor map closed. Spatial jump aborted.${C_RESET}"
+                return 1 
             fi
-            _voice_dispatch "warp_ready" "" "cmd"
-            _bot_say "warp" "$warp_type" "$target_branch"
+
+            echo -e ""
+            if [ "$target_branch" == "main" ] || [ "$target_branch" == "master" ]; then 
+                echo -e "${C_WHITE} :: Visor locked onto the Root Timeline. Heading back to the origin.${C_RESET}"
+            elif [[ "$target_branch" != *"$(whoami)"* ]]; then 
+                echo -e "${C_WHITE} :: Visor routing to an external coordinate: [${target_branch}]. Engaging...${C_RESET}"
+            else
+                echo -e "${C_WHITE} :: Visor locked onto parallel sector: [${target_branch}]. Engaging...${C_RESET}"
+            fi
+            sleep 0.8
             
             # 3. 執行換乘 (Checkout)
             if [ -n "$(git status --porcelain)" ]; then 
@@ -2339,7 +2342,8 @@ function mux() {
                     exec bash
                 fi
             else
-                _bot_say "warp" "fail"
+                echo -e ""
+                echo -e "${C_WHITE} :: The visor lost the quantum lock. Jump failed.${C_RESET}"
             fi
         ;;
 

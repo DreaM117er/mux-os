@@ -2825,6 +2825,7 @@ function __fac_core() {
                             --layout=reverse \
                             --border-label=" :: ASSIGN IDENTITY :: " \
                             --border=bottom \
+                            --header=" :: Enter to Select, Esc to Return ::" \
                             --prompt=" :: Setting › " \
                             --info=hidden \
                             --pointer="››" \
