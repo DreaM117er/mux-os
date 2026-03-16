@@ -333,7 +333,11 @@ function _mux_force_reset() {
         if [ "$MUX_MODE" == "TCT" ] && command -v _assistant_voice &> /dev/null; then
             _assistant_voice "success" "Timeline restored! Everything is back to normal!"
         else
-            _bot_say "success" "Timeline restored."
+            if [ "$MUX_STATUS" == "LOGIN" ]; then
+                _voice_dispatch "success" "Timeline restored." "cmd"
+            else
+                _commander_voice "success" "Timeline restored."
+            fi
         fi
         _system_unlock
         sleep 1
