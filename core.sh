@@ -943,13 +943,13 @@ function _mux_neural_fire_control() {
                 # 2. 備援 PKG 檢查與覆寫
                 if [ -f "$MUX_ROOT/.setting" ]; then
                     source "$MUX_ROOT/.setting"
-                    if [ -n "$APKLIST_BACKUP_PKG" ]; then
+                    # 必須同時擁有 PKG 與 TARGET
+                    if [ -n "$APKLIST_BACKUP_PKG" ] && [ -n "$APKLIST_BACKUP_TARGET" ]; then
                         _bot_say "warn" "Fallback Protocol Engaged: Targeting '$APKLIST_BACKUP_PKG'"
                         _VAL_PKG="$APKLIST_BACKUP_PKG"
-                        _VAL_TARGET=""
-
-                        _VAL_EX1="-a android.intent.action.MAIN"
-                        _VAL_CATE1="LAUNCHER"
+                        _VAL_TARGET="$APKLIST_BACKUP_TARGET"
+                        _VAL_EX1=""
+                        _VAL_CATE1=""
                     fi
                 fi
             fi
@@ -1933,12 +1933,15 @@ function _tct_login_protocol() {
     echo ""
     if [ "$sync_status" == "COMMANDER" ]; then
         echo -e "${C_GREEN} :: SYNCHRONIZATION RATE: 100% (Owner)${C_RESET}"
+        sleep 0.6
         echo -e "${C_PINKMEOW} :: Welcome back to the Tower! I missed you! (*≧ω≦)${C_RESET}"
     elif [ "$sync_status" == "ADMIN" ]; then
         echo -e "${C_YELLOW} :: SYNCHRONIZATION RATE: OVERRIDE (Root)${C_RESET}"
+        sleep 0.6
         echo -e "${C_PINKMEOW} :: Root access? You are playing with fire, Commander! (≖ ‿ ≖)✧${C_RESET}"
     else
         echo -e "${C_RED} :: SYNCHRONIZATION RATE: 15% (Guest)${C_RESET}"
+        sleep 0.6
         echo -e "${C_PINKMEOW} :: Guest mode? Please don't touch the red buttons! (；´д｀)ゞ${C_RESET}"
     fi
     sleep 1
