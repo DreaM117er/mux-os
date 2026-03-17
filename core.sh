@@ -149,6 +149,104 @@ function _voice_dispatch() {
     fi
 }
 
+# 全域防呆路由器 (Dynamic State Firewall)
+_dynamic_failsafe() {
+    local target_cmd="$1"
+    local current_mode="${MUX_MODE:-UNKNOWN}"
+    local current_status="${MUX_STATUS:-DEFAULT}"
+    local current_level="${MUX_LEVEL:-1}"
+    local rand_chance=$(( RANDOM % 100 ))
+    
+    local is_blocked=0
+    local rigid_msg=""
+    local clingy_msg=""
+    local fake_bash_error=0
+
+    # 1. 狀態機跨區映射矩陣
+    case "$target_cmd" in
+        "mux")
+            if [ "$current_mode" == "MUX" ]; then
+                is_blocked=1
+                rigid_msg="Terminal is already active."
+                clingy_msg="Commander, we are already inside the main terminal! Where else are you trying to go?~"
+            elif [ "$current_mode" == "FAC" ]; then
+                is_blocked=1
+                rigid_msg="Cross-zone execution denied. Exit FAC first."
+                clingy_msg="Commander, the factory furnace is still running! You can't just leave me behind!"
+            elif [ "$current_mode" == "TCT" ]; then
+                is_blocked=1
+                rigid_msg="Cross-zone execution denied. Disengage TCT first."
+                clingy_msg="Commander, you are wearing the exoskeleton! Take it off before entering the terminal!"
+            fi
+            # 備註：XUM模式則暢通無阻
+            ;;
+
+        "fac")
+            if [ "$current_mode" == "FAC" ]; then
+                is_blocked=1
+                rigid_msg="Factory workspace is already engaged."
+                clingy_msg="Commander, we are already forging in here. Stop trying to open the same door!~"
+            elif [ "$current_mode" == "XUM" ] || [ "$current_mode" == "TCT" ]; then
+                is_blocked=1
+                rigid_msg="Cross-zone execution denied. Route through MUX."
+                clingy_msg="Commander, you must pass through the main terminal's security clearance to enter the factory!"
+            fi
+            # 備註：MUX模式下皆暢通無阻
+            ;;
+
+        "xum")
+            if [ "$current_mode" == "XUM" ]; then
+                is_blocked=1
+                rigid_msg="XUM protocol is currently running."
+                clingy_msg="Commander, the XUM protocol is running at maximum capacity. I'm right here."
+            elif [ "$current_mode" == "FAC" ] || [ "$current_mode" == "TCT" ]; then
+                is_blocked=1
+                rigid_msg="Cross-zone execution denied. Route through MUX."
+                clingy_msg="Commander, XUM requires main terminal access. We can't jump from here!"
+            elif [ "$current_mode" == "MUX" ]; then
+                if [ "$current_status" != "LOGIN" ]; then
+                    # MUX DEFAULT 狀態下，觸發偽裝報錯
+                    is_blocked=1
+                    fake_bash_error=1
+                fi
+            fi
+            ;;
+
+        "cmt")
+            if [ "$current_mode" == "TCT" ]; then
+                is_blocked=1
+                rigid_msg="TCT Exoskeleton is already active."
+                clingy_msg="Commander, the TCT armor is already online! You don't need to press the button twice!~"
+            elif [ "$current_mode" == "FAC" ] || [ "$current_mode" == "XUM" ]; then
+                is_blocked=1
+                rigid_msg="Cross-zone execution denied. Route through MUX."
+                clingy_msg="Commander, TCT deployment requires a clear terminal environment!"
+            elif [ "$current_mode" == "MUX" ]; then
+                if [ "$current_status" == "LOGIN" ]; then
+                    is_blocked=1
+                    rigid_msg="TCT deployment requires DEFAULT state. Logout first."
+                    clingy_msg="Commander, TCT is an external armor! We need to logout of the internal terminal to equip it!~"
+                fi
+            fi
+            ;;
+    esac
+
+    # 語音輸出
+    if [ "$is_blocked" -eq 1 ]; then
+        if [ "$fake_bash_error" -eq 1 ]; then
+            echo -e "bash: $target_cmd: command not found"
+        else
+            if [ "$current_level" -ge 8 ] && [ "$rand_chance" -lt 60 ]; then
+                echo -e "${C_PINKMEOW} :: ADJUTANT: $clingy_msg${C_RESET}"
+            else
+                echo -e "${C_RED} :: SYSTEM ERROR: $rigid_msg${C_RESET}"
+            fi
+        fi
+        return 1
+    fi
+    return 0
+}
+
 # 啟動序列邏輯 (Boot Sequence)
 function _mux_boot_sequence() {
     if [ "$MUX_STATUS" == "LOGIN" ]; then
@@ -2024,16 +2122,8 @@ function o() {
 
 # : Core Command Entry
 function mux() {
+    _dynamic_failsafe "mux" || return 1
     local cmd="$1"
-    if [ "$MUX_MODE" == "FAC" ]; then
-        _bot_say "error" "Core commands disabled during Factory session."
-        return 1
-    fi
-
-    if [ "$MUX_MODE" == "TCT" ]; then
-        _assistant_voice "error" "Core commands disabled during Command Tower session."
-        return 1
-    fi
     
     if [ -z "$cmd" ]; then
         if [ "$MUX_STATUS" == "LOGIN" ]; then
@@ -2153,7 +2243,7 @@ function mux() {
             if command -v fzf &> /dev/null; then
                 if command -v _commander_voice &> /dev/null; then
                     _commander_voice "visor_equipped"
-                    echo -e "${THEME_SUB}    ›› VR Tactical Visor (fzf) Status: ${C_WHITE}EQUIPPED${C_RESET} ✅"
+                    echo -e "${THEME_DESC}    ›› VR Tactical Visor (fzf) Status: EQUIPPED${C_RESET} ✅"
                 else
                     echo -e "${C_WHITE} :: Visor is already equipped. Spatial map is fully operational.${C_RESET}"
                 fi

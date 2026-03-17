@@ -50,12 +50,8 @@ function _tct_init() {
 
 # : Tower Command Entry
 function __tct_core() {
+    _dynamic_failsafe "cmt" || return 1
     local cmd="$1"
-
-    if [ "$MUX_MODE" != "TCT" ]; then
-        echo -e "${THEME_ERR} :: Commander! Tower protocols are strictly for the Command Tower! ( • ̀ω•́ )✧${C_RESET}"
-        return 1
-    fi
 
     if [ -z "$cmd" ]; then
         if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
