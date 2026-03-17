@@ -450,7 +450,8 @@ if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
         2) _reauth_protocol ;;
         3) _backup_identity_protocol ;;
         4) _uninstall_protocol ;;
-        5) _apklist_fallback_protocol
+        5) _apklist_fallback_protocol ;;
+        6) _exit_protocol ;;
         *) _exit_protocol ;;
     esac
 
