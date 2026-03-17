@@ -24,6 +24,7 @@ export __MUX_CORE_ACTIVE=true
 export CORE_MOD="$MUX_ROOT/core.sh"
 export OC_MOD="$MUX_ROOT/.core"
 export FAC_MOD="$MUX_ROOT/factory.sh"
+export TCT_MOD="$MUX_ROOT/tower.sh"
 export BOT_MOD="$MUX_ROOT/bot.sh"
 export UI_MOD="$MUX_ROOT/ui.sh"
 export IDENTITY_MOD="$MUX_ROOT/identity.sh"
@@ -32,7 +33,7 @@ export VENDOR_MOD="$MUX_ROOT/vendor.csv"
 export APP_MOD="$MUX_ROOT/app.csv"
 
 # 模組註冊表 (Module Registry)
-MODULES=("$BOT_MOD" "$UI_MOD" "$IDENTITY_MOD" "$FAC_MOD" "$OC_MOD")
+MODULES=("$BOT_MOD" "$UI_MOD" "$IDENTITY_MOD" "$FAC_MOD" "$OC_MOD" "$TCT_MOD")
 for mod in "${MODULES[@]}"; do
     if [ -f "$mod" ]; then source "$mod"; fi
 done
@@ -49,6 +50,7 @@ export C_CYAN="\033[1;36m"
 export C_WHITE="\033[1;37m"
 export C_ORANGE="\033[1;38;5;208m"
 export C_TAVIOLET="\033[1;38;5;90m"
+export C_PINKMEOW="\033[1;38;5;211m"
 
 # 主題色彩定義 (Theme Colors)
 export THEME_MAIN="$C_CYAN"      # 主色調 (Core:藍 / Fac:橘)
@@ -106,28 +108,44 @@ function _voice_dispatch() {
     local detail="$2"
     local force_role="$3"
 
-    # 如果有強制指定角色
-    if [ "$force_role" == "bot" ]; then
+    # 小助理
+    if [ "$MUX_MODE" == "TCT" ]; then
+        if [ "$force_role" == "cmd" ] && command -v _commander_voice &> /dev/null; then
+            _commander_voice "$mood" "$detail"
+        elif command -v _assistant_voice &> /dev/null; then
+            _assistant_voice "$mood" "$detail"
+        else
+            echo -e "${C_PINKMEOW} :: ${detail:-Processing...} (*≧ω≦)${C_RESET}"
+        fi
+        return
+    fi
+
+    # 1. 強制指定角色
+    if [ "$force_role" == "system" ]; then
         _bot_say "$mood" "$detail"
         return
     elif [ "$force_role" == "cmd" ]; then
         if command -v _commander_voice &> /dev/null; then
              _commander_voice "$mood" "$detail"
         else
-             _bot_say "$mood" "$detail" # Fallback
+             _bot_say "$mood" "$detail" # 防呆備案
         fi
+        return
+    elif [ "$force_role" == "assistant" ]; then
+        _bot_say "$mood" "$detail"
         return
     fi
 
-    # 隨機分配
+    # 2. 雙人共舞
     if [ $((RANDOM % 2)) -eq 0 ]; then
-        _bot_say "$mood" "$detail"
-    else
         if command -v _commander_voice &> /dev/null; then
             _commander_voice "$mood" "$detail"
         else
             _bot_say "$mood" "$detail"
         fi
+    else
+        # 沒有小助理了，機甲裡只有系統的回音
+        _bot_say "$mood" "$detail"
     fi
 }
 
@@ -255,6 +273,7 @@ function _mux_init() {
 
 # 重新載入核心模組
 function _mux_reload_kernel() {
+    # 主函數邏輯
     _system_lock
     unset MUX_INITIALIZED
     
@@ -263,22 +282,32 @@ function _mux_reload_kernel() {
         if [ $? -ne 0 ]; then return; fi 
     fi
 
+    local current_entry=""
     if [ -f "$MUX_ROOT/.mux_state" ]; then
-        local current_entry=$(grep "^MUX_ENTRY_POINT=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2 | tr -d '\r\n ')
+        source "$MUX_ROOT/.mux_state"
+        current_entry="$MUX_ENTRY_POINT"
         
         if [[ "$current_entry" == "OVERCLOCK" || "$current_entry" == "COOLDOWN" ]]; then
-            local safe_mode=$(grep "^MUX_MODE=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2 | tr -d '\r\n ')
-            local safe_status=$(grep "^MUX_STATUS=" "$MUX_ROOT/.mux_state" | cut -d'"' -f2 | tr -d '\r\n ')
-            _update_mux_state "$safe_mode" "$safe_status"
-            export MUX_MODE="$safe_mode"
+            _update_mux_state "$MUX_MODE" "$MUX_STATUS"
+        elif [[ "$MUX_MODE" == "TCT" && "$MUX_STATUS" == "LOGIN" ]]; then
+            # 重新計算貓咪模式會不會出現
+            if [ $(( RANDOM % 100 )) -lt 15 ]; then
+                current_entry="MEOW"
+            else
+                current_entry=""
+            fi
+            _update_mux_state "TCT" "LOGIN" "$current_entry"
+            export MUX_ENTRY_POINT="$current_entry"
         fi
     fi
 
     local gate_theme="core"
-    if [ "$MUX_STATUS" == "DEFAULT" ]; then
+    if [[ "$MUX_STATUS" == "DEFAULT" && "$MUX_MODE" == "MUX" ]]; then
         gate_theme="default"
     elif [ "$MUX_MODE" == "XUM" ]; then
         gate_theme="xum"
+    elif [ "$MUX_MODE" == "TCT" ]; then
+        gate_theme="tct"
     fi
 
     if command -v _ui_fake_gate &> /dev/null; then
@@ -310,7 +339,15 @@ function _mux_force_reset() {
         git reset --hard "origin/$branch"
         chmod +x "$BASE_DIR/"*.sh
         echo ""
-        _bot_say "success" "Timeline restored."
+        if [ "$MUX_MODE" == "TCT" ] && command -v _assistant_voice &> /dev/null; then
+            _assistant_voice "success" "Timeline restored! Everything is back to normal!"
+        else
+            if [ "$MUX_STATUS" == "LOGIN" ]; then
+                _voice_dispatch "success" "Timeline restored." "cmd"
+            else
+                _commander_voice "success" "Timeline restored."
+            fi
+        fi
         _system_unlock
         sleep 1
         _mux_reload_kernel
@@ -437,36 +474,6 @@ function _neural_link_deploy() {
         fi
     else 
         _bot_say "error" "Uplink destabilized."
-    fi
-}
-
-function _mux_uplink_sequence() {
-    if command -v fzf &> /dev/null; then
-        _bot_say "success" "Neural Link is already active. Signal stable."
-        return
-    fi
-
-    _bot_say "system" "Initializing Neural Bridge Protocol..."
-    sleep 0.5
-    echo -e "${C_YELLOW} :: Scanning local synaptic ports...${C_RESET}"
-    sleep 0.8
-    echo -e "${C_CYAN} :: Constructing interface matrix (fzf)...${C_RESET}"
-    sleep 0.5
-
-    pkg install fzf -y > /dev/null 2>&1
-
-    if command -v fzf &> /dev/null; then
-        echo -e ""
-        if command -v _grant_xp &> /dev/null; then _grant_xp 100 "UPLINK_OK"; fi
-        echo -e "\033[1;35m :: SYNCHRONIZATION COMPLETE :: ${C_RESET}"
-        echo -e ""
-        sleep 0.5
-        _bot_say "neural" "Welcome to the Grid, Commander."
-        
-        sleep 1.4
-        mux reload
-    else
-        _bot_say "error" "Link failed. Neural rejection detected."
     fi
 }
 
@@ -924,6 +931,24 @@ function _mux_neural_fire_control() {
             # 明確指定外部呼叫
             if [ -n "$real_args" ]; then 
                 _require_no_args "$real_args" || return 1
+            fi
+
+            if [ "$input_com" == "apklist" ]; then
+                # 1. 觸發計數器並存檔
+                if [ -f "$IDENTITY_FILE" ]; then 
+                    source "$IDENTITY_FILE"
+                    APKLIST_USED=$(( ${APKLIST_USED:-0} + 1 ))
+                    _save_identity
+                fi
+                # 2. 備援 PKG 檢查與覆寫
+                if [ -f "$MUX_ROOT/.setting" ]; then
+                    source "$MUX_ROOT/.setting"
+                    if [ -n "$APKLIST_BACKUP_PKG" ]; then
+                        _bot_say "warn" "Fallback Protocol Engaged: Targeting '$APKLIST_BACKUP_PKG'"
+                        _VAL_PKG="$APKLIST_BACKUP_PKG"
+                        _VAL_TARGET=""
+                    fi
+                fi
             fi
             _launch_android_app
             ;;
@@ -1823,6 +1848,126 @@ function _core_eject_sequence() {
     exec bash
 }
 
+# 指揮塔登入協議 - Command Tower Login
+function _tct_login_protocol() {
+    if [ -d "$MUX_ROOT" ]; then cd "$MUX_ROOT"; fi
+
+    clear
+    _draw_logo "gray"
+
+    _system_lock
+    echo -e "${C_PINKMEOW} :: COMMAND TOWER SECURITY CHECKPOINT ::${C_RESET}"
+    
+    sleep 0.2
+    local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "unknown")
+    echo -e "${THEME_DESC}    ›› Tower Uplink Node : ${C_CYAN}$current_branch${C_RESET}"
+    sleep 0.3
+    echo -e "${THEME_DESC}    ›› Initializing Biometric Scan...${C_RESET}"
+    echo ""
+    echo -e "${C_PINKMEOW} :: Commander? Is that you?${C_RESET}"
+    sleep 0.5
+    echo -e "${C_PINKMEOW} :: Please verify your ID! ( • ̀ω•́ )✧${C_RESET}"
+
+    sleep 0.6
+    _system_unlock
+
+    echo ""
+    echo -ne "${C_WHITE} :: Commander Identity: ${C_RESET}" 
+    read input_id
+
+    _system_lock
+    echo -e "${C_PINKMEOW} :: Checking the database... don't blink!${C_RESET}"
+    echo -e "${THEME_DESC}    ›› Verifying Hash Signature...${C_RESET}"
+    sleep 0.6
+    
+    local identity_valid=0
+    local REAL_ID=""
+    if [ -f "$MUX_ROOT/.mux_identity" ]; then
+        REAL_ID=$(grep "MUX_ID=" "$MUX_ROOT/.mux_identity" | cut -d'=' -f2 | tr -d '"')
+        if [ "$input_id" == "$REAL_ID" ]; then
+            identity_valid=1
+        fi
+    else
+        identity_valid=1
+        REAL_ID="$input_id"
+    fi
+
+    if [ "$identity_valid" -ne 1 ]; then
+        sleep 0.5
+        echo ""
+        echo -e "${THEME_ERR} :: ACCESS DENIED :: Signature Mismatch.${C_RESET}"
+        sleep 0.6
+        echo -e "${C_PINKMEOW} :: Intruder alert! Or... did you just typo? ((((；゜Д゜)))${C_RESET}"
+        sleep 0.5
+        _system_unlock
+        return 1
+    fi
+
+    local sync_status="GUEST"
+    local welcome_msg="WELCOME BACK, GUEST PILOT"
+    
+    # 轉小寫比對
+    local branch_lower=$(echo "$current_branch" | tr '[:upper:]' '[:lower:]')
+    local id_lower=$(echo "$REAL_ID" | tr '[:upper:]' '[:lower:]')
+
+    if [[ "$branch_lower" == *"$id_lower"* ]]; then
+        sync_status="COMMANDER"
+        welcome_msg="WELCOME BACK, COMMANDER $REAL_ID"
+    elif [[ "$branch_lower" == "main" || "$branch_lower" == "master" ]]; then
+        sync_status="ADMIN"
+        welcome_msg="ROOT ACCESS GRANTED :: $REAL_ID"
+    else
+        sync_status="GUEST"
+        welcome_msg="WARNING: FOREIGN PILOT DETECTED :: GUEST MODE"
+    fi
+
+    sleep 0.4
+    echo ""
+    echo -e "${THEME_OK} :: IDENTITY CONFIRMED :: ${C_RESET}"
+    sleep 0.6
+    
+    # 同步率結果與小助理專屬吐槽
+    echo ""
+    if [ "$sync_status" == "COMMANDER" ]; then
+        echo -e "${C_GREEN} :: SYNCHRONIZATION RATE: 100% (Owner)${C_RESET}"
+        echo -e "${C_PINKMEOW} :: Welcome back to the Tower! I missed you! (*≧ω≦)${C_RESET}"
+    elif [ "$sync_status" == "ADMIN" ]; then
+        echo -e "${C_YELLOW} :: SYNCHRONIZATION RATE: OVERRIDE (Root)${C_RESET}"
+        echo -e "${C_PINKMEOW} :: Root access? You are playing with fire, Commander! (≖ ‿ ≖)✧${C_RESET}"
+    else
+        echo -e "${C_RED} :: SYNCHRONIZATION RATE: 15% (Guest)${C_RESET}"
+        echo -e "${C_PINKMEOW} :: Guest mode? Please don't touch the red buttons! (；´д｀)ゞ${C_RESET}"
+    fi
+    sleep 1
+    
+    if command -v _core_system_scan &> /dev/null; then
+        _core_system_scan "silent"
+    fi
+    
+    # 貓咪模式計算器
+    local tct_entry=""
+    if [ $(( RANDOM % 100 )) -lt 15 ]; then
+        tct_entry="MEOW"
+    fi
+    _update_mux_state "TCT" "LOGIN" "$tct_entry"
+    export MUX_ENTRY_POINT="$tct_entry"
+
+    echo ""
+    echo -e "${THEME_OK} :: $welcome_msg :: ${C_RESET}"
+    sleep 1.2
+    
+    export MUX_MODE="TCT"
+    export MUX_STATUS="LOGIN"
+    unset MUX_INITIALIZED
+
+    # 經驗值獎勵
+    if command -v _grant_xp &> /dev/null; then
+        _grant_xp 1 "LOGIN"
+    fi
+
+    _mux_reload_kernel
+}
+
 # 極速開啟捷徑 (Fast Open)
 function o() {
     local target="$1"
@@ -1878,6 +2023,11 @@ function mux() {
         _bot_say "error" "Core commands disabled during Factory session."
         return 1
     fi
+
+    if [ "$MUX_MODE" == "TCT" ]; then
+        _assistant_voice "error" "Core commands disabled during Command Tower session."
+        return 1
+    fi
     
     if [ -z "$cmd" ]; then
         if [ "$MUX_STATUS" == "LOGIN" ]; then
@@ -1894,7 +2044,7 @@ function mux() {
 
     if [ "$MUX_STATUS" != "LOGIN" ]; then
         case "$cmd" in
-            "login"|"setup"|"help"|"status"|"sts"|"info"|"reload"|"reset"|"factory"|"tofac"|"driveto"|"update"|"drive2"|"hof")
+            "login"|"setup"|"help"|"status"|"sts"|"info"|"reload"|"reset"|"factory"|"tofac"|"driveto"|"update"|"drive2"|"hof"|"tower"|"tocmt"|"link")
                 # 放行
                 ;;
             *)
@@ -1956,16 +2106,24 @@ function mux() {
     fi
 
     case "$cmd" in
+        # : Show System Status
+        "status"|"sts")
+            if [ -d "$MUX_ROOT" ]; then cd "$MUX_ROOT"; fi
+            local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
+            local last_commit=$(git log -1 --format='%h - %s (%cr)' 2>/dev/null)
+            if [ "$current_branch" == "main" ]; then
+                current_branch="Unknown (main)"
+            fi
+            echo -e "${C_PURPLE} :: Mux-OS System Status ${C_RESET}"
+            echo -e "${THEME_SUB}    ›› Core Protocol :${C_RESET} ${THEME_WARN}v$MUX_VERSION${C_RESET}"
+            echo -e "${THEME_SUB}    ›› Current Meta  :${C_RESET} ${THEME_OK}$current_branch${C_RESET}"
+            echo -e "${THEME_SUB}    ›› Last Uplink   :${C_RESET} ${THEME_DESC}$last_commit${C_RESET}"
+            ;;
+        
         # : Login Sequence
         "login")
             if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "Interlock Active: Identity lock during Overclock."; return 1; fi
             _mux_pre_login
-            ;;
-
-        # : Logout Sequence
-        "logout")
-            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "Interlock Active: Disengage Overclock protocol before disconnect."; return 1; fi
-            _mux_set_logout
             ;;
 
         # : Open Command Dashboard
@@ -1981,9 +2139,257 @@ function mux() {
             _show_menu_dashboard
             ;;
 
+        # : Install Dependencies
+        "link")
+            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "System modification restricted during Overclock."; return 1; fi
+            
+            # 已經安裝過的防呆回饋
+            if command -v fzf &> /dev/null; then
+                echo -e "\n${C_GREEN} :: VR Tactical Visor (fzf) Status: ${C_WHITE}EQUIPPED${C_RESET} ✅"
+                if command -v _commander_voice &> /dev/null; then
+                    _commander_voice "visor_equipped"
+                else
+                    echo -e "${C_WHITE} :: Visor is already equipped. Spatial map is fully operational.${C_RESET}"
+                fi
+                return
+            fi
+            
+            # 開始扮演劇本 (純白色獨白)
+            echo -e ""
+            echo -e "${C_WHITE} :: Ah, found it. Left it right here.${C_RESET}"
+            sleep 0.8
+            echo -e "${C_WHITE} :: Let's put this on... and hook into the hangar network for a map update.${C_RESET}"
+            echo -e ""
+            echo -ne "${C_YELLOW} :: Equip Tactical Visor (Install fzf)? [Y/n]: ${C_RESET}"
+            read choice
+            
+            if [[ "$choice" == "y" || "$choice" == "Y" || "$choice" == "" ]]; then
+                echo -e "${C_CYAN} :: Downloading spatial matrix...${C_RESET}"
+                
+                # 在後台靜默安裝
+                pkg install fzf -y > /dev/null 2>&1
+                
+                if command -v fzf &> /dev/null; then
+                    echo -e ""
+                    echo -e "${C_WHITE} :: Retinal projection online... Phew, can't get used to walking around without it.${C_RESET}"
+                    
+                    # 首次戴上眼鏡的經驗值獎勵
+                    if command -v _grant_xp &> /dev/null; then _grant_xp 100 "UPLINK_OK"; fi
+                else
+                    echo -e ""
+                    echo -e "${C_WHITE} :: Weird, the hangar network seems down. Visor can't sync...${C_RESET}"
+                fi
+            else
+                echo -e ""
+                echo -e "${C_WHITE} :: Whatever, I'll put it on later.${C_RESET}"
+            fi
+            ;;
+
         # : Open Files & Links
         "open"|"op")
             o "$2"
+            ;;
+
+        # : System Integrity Scan
+        "check"|"scan")
+            _core_system_scan "manual"
+            ;;
+
+        # : Clean System Directory
+        "clear")
+            _mux_system_purge
+            ;;
+
+        # : Enter the Arsenal (Factory Mode)
+        "factory"|"tofac")
+            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "Factory access denied. Terminate XUM session first."; return 1; fi
+            _core_pre_factory_auth
+            ;;
+
+        # : Enter the Command Tower
+        "tower"|"tocmt")
+            if [ "${MUX_LEVEL:-1}" -lt 8 ]; then
+                echo -e "${C_RED} :: ACCESS DENIED :: Clearance Level 8 Required for Command Tower.${C_RESET}"
+                return 1
+            fi
+
+            if ! command -v fzf &> /dev/null; then
+                echo -e "${C_RED} :: Commander! We need the visual engine to open the Tower! Please link it! (Ｔ▽Ｔ)"
+                return 1
+            fi
+
+            if [ "$MUX_MODE" == "XUM" ]; then
+                echo -e "${C_RED} :: SYSTEM OVERLOAD :: Core is unstable! Cannot establish Tower Uplink during XUM Overclocking!${C_RESET}"
+                return 1
+            fi
+            
+            if [ "$MUX_MODE" != "MUX" ] || [ "$MUX_STATUS" != "DEFAULT" ]; then
+                echo -e "${C_RED} :: Commander! You need to return to the Hangar first before you can enter the Tower! (Ｔ▽Ｔ)"
+                return 1
+            fi
+
+            _tct_login_protocol
+            return
+            ;;
+
+        # : Trigger Architect Ascension Protocol
+        "reborn")
+            if [ "$MUX_LEVEL" -lt 16 ]; then
+                echo -e "${C_YELLOW} :: Unknown Directive: 'reborn'.${C_RESET}"
+                return 1
+            fi
+            
+            echo -e "${THEME_WARN} :: ARCHITECT ASCENSION PROTOCOL ::${C_RESET}"
+            echo -e "${THEME_DESC}    This action will trigger a controlled Dimensional Collapse.${C_RESET}"
+            echo -e "${THEME_DESC}    1. Clearance Level resets to L1.${C_RESET}"
+            echo -e "${THEME_DESC}    2. XP curve requirement increases by 1.5x (Iteration: ${MUX_REBORN_COUNT:-0} -> $(( ${MUX_REBORN_COUNT:-0} + 1 ))).${C_RESET}"
+            echo -e "${THEME_DESC}    3. All badges and tactical records are preserved.${C_RESET}"
+            echo ""
+            echo -ne "${THEME_ERR} :: Initiate Rebirth? [Y/n]: ${C_RESET}"
+            read choice
+            
+            if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+                if command -v _trigger_reborn &> /dev/null; then
+                    _trigger_reborn
+                fi
+            else
+                echo -e "${THEME_DESC}    ›› Ascension aborted. Maintaining Architect status.${C_RESET}"
+            fi
+            ;;
+
+        # : Multiverse Suit Drive
+        "driveto"|"drive2")
+            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "Drive system offline: Cockpit is under Overclock load."; return 1; fi
+            if [ "$MUX_STATUS" == "LOGIN" ]; then
+                 _bot_say "error" "Interlock Active: Cockpit is sealed."
+                 echo -e "${C_BLACK}    ›› Protocol Violation: Cannot switch unit while piloted.${C_RESET}"
+                 echo -e "${C_BLACK}    ›› Action Required : Execute 'mux logout' to disengage.${C_RESET}"
+                 return 1
+            fi
+
+            # 0. 偵測戰術眼鏡 (fzf) 是否裝備
+            if ! command -v fzf &> /dev/null; then
+                echo -e "${C_WHITE} :: Damn... I forgot my tactical visor. Can't lock onto any coordinates without it.${C_RESET}"
+                echo -e "${THEME_DESC}    ›› System: Execute 'mux link' to retrieve and equip the tactical visor.${C_RESET}"
+                return 1
+            fi
+
+            # 1. 進入機庫 (Hangar Access)
+            if [ -d "$MUX_ROOT" ]; then 
+                cd "$MUX_ROOT"
+            else 
+                _bot_say "error" "Hangar not found ($MUX_ROOT missing)."
+                return 1
+            fi
+
+            # 2. 掃描機體 (Branch Selection)
+            echo -e "${C_BLACK} :: Scanning Multiverse Coordinates (Hangar Walk)...${C_RESET}"
+            git fetch --all >/dev/null 2>&1
+            
+            # FZF 選單
+            local target_branch=$(git branch -r | grep -v '\->' | sed 's/origin\///' | fzf --ansi \
+                --height=10 \
+                --layout=reverse \
+                --border=bottom \
+                --header=" :: Mobile Suit State ::" \
+                --prompt=" :: Select Unit to Drive › " \
+                --pointer="››" \
+                --info=hidden \
+                --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                --color=info:yellow,prompt:gray,pointer:red,marker:green,border:blue,header:240 \
+                --bind="resize:clear-screen"
+            )
+            
+            target_branch="${target_branch// /}"
+
+            if [ -z "$target_branch" ]; then 
+                echo -e "\n${C_WHITE} :: Visor map closed. Spatial jump aborted.${C_RESET}"
+                return 1 
+            fi
+
+            echo -e ""
+            if [ "$target_branch" == "main" ] || [ "$target_branch" == "master" ]; then 
+                echo -e "${C_WHITE} :: Visor locked onto the Root Timeline. Heading back to the origin.${C_RESET}"
+            elif [[ "$target_branch" != *"$(whoami)"* ]]; then 
+                echo -e "${C_WHITE} :: Visor routing to an external coordinate: [${target_branch}]. Engaging...${C_RESET}"
+            else
+                echo -e "${C_WHITE} :: Visor locked onto parallel sector: [${target_branch}]. Engaging...${C_RESET}"
+            fi
+            sleep 0.8
+            
+            # 3. 執行換乘 (Checkout)
+            if [ -n "$(git status --porcelain)" ]; then 
+                git stash push -m "Auto-stash before drive sequence"
+            fi
+            
+            git checkout "$target_branch" 2>/dev/null
+            
+            # 4. 系統重載 (Reload)
+            if [ $? -eq 0 ]; then
+                echo -e "${C_YELLOW} :: Initializing New Unit Core...${C_RESET}"
+
+                # 空間跳躍獎勵
+                if command -v _grant_xp &> /dev/null; then
+                    _grant_xp 15 "WARP_JUMP"
+                fi
+
+                sleep 1.0
+                
+                # 賦予新機體執行權限
+                if [ -d "$MUX_ROOT" ]; then chmod +x "$MUX_ROOT/"*.sh 2>/dev/null; fi
+                
+                if command -v _mux_reload_kernel &> /dev/null; then
+                    _mux_reload_kernel
+                else
+                    exec bash
+                fi
+            else
+                echo -e ""
+                echo -e "${C_WHITE} :: The visor lost the quantum lock. Jump failed.${C_RESET}"
+            fi
+        ;;
+
+        # : Neural Link Deploy
+        "deploy")
+            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "External uplink locked during Overclock."; return 1; fi
+            _neural_link_deploy
+            ;;
+
+        # : Logout Sequence
+        "logout")
+            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "Interlock Active: Disengage Overclock protocol before disconnect."; return 1; fi
+            _mux_set_logout
+            ;;
+
+        # : Reload System Kernel
+        "reload")
+            _voice_dispatch "system" "Reloading Kernel Sequence..."
+            sleep 0.5
+            _mux_reload_kernel
+            ;;
+
+        # : Force System Sync
+        "reset")
+            _mux_force_reset
+            if [ $? -eq 0 ]; then
+                _mux_reload_kernel
+            fi
+            ;;
+
+        # : Run Setup Protocol
+        "setup")
+            if [ -f "$MUX_ROOT/setup.sh" ]; then
+                _bot_say "action" "Transferring control to Lifecycle Manager..."
+                sleep 0.8
+                exec bash "$MUX_ROOT/setup.sh"
+            else
+                _bot_say "error" "Lifecycle Manager (setup.sh) not found."
+            fi
+            ;;
+
+        # : Check for Updates
+        "update")
+            _mux_update_system
             ;;
 
         # : Show Hall of Fame (Medals)
@@ -2025,77 +2431,6 @@ function mux() {
             _mux_show_info
             ;;
 
-        # : Install Dependencies
-        "link")
-            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "System modification restricted during Overclock."; return 1; fi
-            if command -v fzf &> /dev/null; then
-                echo -e "\n${C_GREEN} :: Neural Link (fzf) Status: ${C_WHITE}ONLINE${C_RESET} ✅"
-                _bot_say "success" "Link is stable, Commander."
-                return
-            fi
-            echo -e ""
-            echo -e "${C_YELLOW} :: Initialize Neural Link Protocol? ${C_RESET}"
-            echo -e ""
-            echo -ne "${C_GREEN} :: Authorize construction? [Y/n]: ${C_RESET}"
-            read choice
-            if [[ "$choice" == "y" || "$choice" == "Y" || "$choice" == "" ]]; then
-                if command -v _mux_uplink_sequence &> /dev/null; then
-                    _mux_uplink_sequence
-                else
-                    pkg install fzf -y
-                fi
-            fi
-            ;;
-        
-        # : Show System Status
-        "status"|"sts")
-            if [ -d "$MUX_ROOT" ]; then cd "$MUX_ROOT"; fi
-            local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
-            local last_commit=$(git log -1 --format='%h - %s (%cr)' 2>/dev/null)
-            if [ "$current_branch" == "main" ]; then
-                current_branch="Unknown (main)"
-            fi
-            echo -e "${C_PURPLE} :: Mux-OS System Status ${C_RESET}"
-            echo -e "${THEME_SUB}    ›› Core Protocol :${C_RESET} ${THEME_WARN}v$MUX_VERSION${C_RESET}"
-            echo -e "${THEME_SUB}    ›› Current Meta  :${C_RESET} ${THEME_OK}$current_branch${C_RESET}"
-            echo -e "${THEME_SUB}    ›› Last Uplink   :${C_RESET} ${THEME_DESC}$last_commit${C_RESET}"
-            ;;
-        
-        # : Neural Link Deploy
-        "deploy")
-            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "External uplink locked during Overclock."; return 1; fi
-            _neural_link_deploy
-            ;;
-
-        # : System Integrity Scan
-        "check"|"scan")
-            _core_system_scan "manual"
-            ;;
-
-        # : Check for Updates
-        "update")
-            _mux_update_system
-            ;;
-
-        # : Clean System Directory
-        "clear")
-            _mux_system_purge
-            ;;
-
-        # : Run Setup Protocol
-        "setup")
-            if [ -f "$MUX_ROOT/setup.sh" ]; then
-                bash "$MUX_ROOT/setup.sh"
-                if [ -f "$MUX_ROOT/core.sh" ]; then
-                    _mux_reload_kernel
-                else
-                    exec bash
-                fi
-            else
-                _bot_say "error" "Lifecycle Manager (setup.sh) not found."
-            fi
-            ;;
-
         "help")
             if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
             HELP_ACCESS_COUNT=$((HELP_ACCESS_COUNT + 1))
@@ -2104,132 +2439,6 @@ function mux() {
             fi
             _save_identity
             _mux_dynamic_help_core
-            ;;
-
-        # : Reload System Kernel
-        "reload")
-            _voice_dispatch "system" "Reloading Kernel Sequence..."
-            sleep 0.5
-            _mux_reload_kernel
-            ;;
-
-        # : Force System Sync
-        "reset")
-            _mux_force_reset
-            if [ $? -eq 0 ]; then
-                _mux_reload_kernel
-            fi
-            ;;
-
-        # : Multiverse Suit Drive
-        "driveto"|"drive2")
-            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "Drive system offline: Cockpit is under Overclock load."; return 1; fi
-            if [ "$MUX_STATUS" == "LOGIN" ]; then
-                 _bot_say "error" "Interlock Active: Cockpit is sealed."
-                 echo -e "${C_BLACK}    ›› Protocol Violation: Cannot switch unit while piloted.${C_RESET}"
-                 echo -e "${C_BLACK}    ›› Action Required : Execute 'mux logout' to disengage.${C_RESET}"
-                 return 1
-            fi
-
-            # 1. 進入機庫 (Hangar Access)
-            if [ -d "$MUX_ROOT" ]; then 
-                cd "$MUX_ROOT"
-            else 
-                _bot_say "error" "Hangar not found ($MUX_ROOT missing)."
-                return 1
-            fi
-
-            # 2. 掃描機體 (Branch Selection)
-            echo -e "${C_BLACK} :: Scanning Multiverse Coordinates (Hangar Walk)...${C_RESET}"
-            git fetch --all >/dev/null 2>&1
-            
-            # FZF 選單
-            local target_branch=$(git branch -r | grep -v '\->' | sed 's/origin\///' | fzf --ansi \
-                --height=10 \
-                --layout=reverse \
-                --border=bottom \
-                --header=" :: Mobile Suit State ::" \
-                --prompt=" :: Select Unit to Drive › " \
-                --pointer="››" \
-                --info=hidden \
-                --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
-                --color=info:yellow,prompt:gray,pointer:red,marker:green,border:blue,header:240 \
-                --bind="resize:clear-screen"
-            )
-            
-            target_branch="${target_branch// /}"
-            if [ -z "$target_branch" ]; then _bot_say "warp" "fail"; return 1; fi
-
-            # 語音回饋
-            local warp_type="start_local"
-            if [ "$target_branch" == "main" ] || [ "$target_branch" == "master" ]; then 
-                warp_type="home"
-            elif [[ "$target_branch" != *"$(whoami)"* ]]; then 
-                warp_type="start_remote"
-            fi
-            _voice_dispatch "warp_ready" "" "cmd"
-            _bot_say "warp" "$warp_type" "$target_branch"
-            
-            # 3. 執行換乘 (Checkout)
-            if [ -n "$(git status --porcelain)" ]; then 
-                git stash push -m "Auto-stash before drive sequence"
-            fi
-            
-            git checkout "$target_branch" 2>/dev/null
-            
-            # 4. 系統重載 (Reload)
-            if [ $? -eq 0 ]; then
-                echo -e "${C_YELLOW} :: Initializing New Unit Core...${C_RESET}"
-
-                # 空間跳躍獎勵
-                if command -v _grant_xp &> /dev/null; then
-                    _grant_xp 15 "WARP_JUMP"
-                fi
-
-                sleep 1.0
-                
-                # 賦予新機體執行權限
-                if [ -d "$MUX_ROOT" ]; then chmod +x "$MUX_ROOT/"*.sh 2>/dev/null; fi
-                
-                if command -v _mux_reload_kernel &> /dev/null; then
-                    _mux_reload_kernel
-                else
-                    exec bash
-                fi
-            else
-                _bot_say "warp" "fail"
-            fi
-        ;;
-
-        # : Enter the Arsenal (Factory Mode)
-        "factory"|"tofac")
-            if [ "$MUX_MODE" == "XUM" ]; then _bot_say "error" "Factory access denied. Terminate XUM session first."; return 1; fi
-            _core_pre_factory_auth
-            ;;
-
-        # : Trigger Architect Ascension Protocol
-        "reborn")
-            if [ "$MUX_LEVEL" -lt 16 ]; then
-                echo -e "${C_YELLOW} :: Unknown Directive: 'reborn'.${C_RESET}"
-                return 1
-            fi
-            
-            echo -e "${THEME_WARN} :: ARCHITECT ASCENSION PROTOCOL ::${C_RESET}"
-            echo -e "${THEME_DESC}    This action will trigger a controlled Dimensional Collapse.${C_RESET}"
-            echo -e "${THEME_DESC}    1. Clearance Level resets to L1.${C_RESET}"
-            echo -e "${THEME_DESC}    2. XP curve requirement increases by 1.5x (Iteration: ${MUX_REBORN_COUNT:-0} -> $(( ${MUX_REBORN_COUNT:-0} + 1 ))).${C_RESET}"
-            echo -e "${THEME_DESC}    3. All badges and tactical records are preserved.${C_RESET}"
-            echo ""
-            echo -ne "${THEME_ERR} :: Initiate Rebirth? [Y/n]: ${C_RESET}"
-            read choice
-            
-            if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
-                if command -v _trigger_reborn &> /dev/null; then
-                    _trigger_reborn
-                fi
-            else
-                echo -e "${THEME_DESC}    ›› Ascension aborted. Maintaining Architect status.${C_RESET}"
-            fi
             ;;
         
         "xum")
@@ -2248,7 +2457,19 @@ function mux() {
 function command_not_found_handle() {
     local cmd="$1"
     shift
+    if [[ ! "$cmd" =~ ^[a-zA-Z0-9] ]]; then
+        return 127
+    fi
     ! _mux_security_gate "$cmd" "$@" && return 0
+
+    if [ "$MUX_MODE" == "TCT" ]; then
+        if command -v _assistant_voice &> /dev/null; then
+            _assistant_voice "error" "Command '$cmd' not found. We are in Weapons Cold mode!"
+        else
+            echo -e "${C_PINKMEOW} :: Eh? I don't know what '$cmd' is... (；´д｀)ゞ${C_RESET}"
+        fi
+        return 127
+    fi
 
     if [ "$MUX_STATUS" != "LOGIN" ]; then
         return 127
@@ -2314,14 +2535,34 @@ case "$MUX_MODE" in
             return 0 2>/dev/null || exit 0
         else
             echo -e "${C_RED} :: FATAL :: XUM Core Not Found. Authentication required.${C_RESET}"
-            _update_mux_state "MUX" "LOGIN" "DEFAULT"
+            _update_mux_state "MUX" "LOGIN"
+            exec bash
+        fi
+        ;;
+
+    "TCT")
+        THEME_MAIN="${C_PINKMEOW}"
+
+        if [ -f "$TCT_MOD" ]; then
+            export PS1="\[${C_PINKMEOW}\]Tct\[${C_RESET}\] \w \033[5m›\033[0m "
+            
+            source "$TCT_MOD"
+            
+            if command -v _tct_init &> /dev/null; then
+                _tct_init
+            fi
+            
+            return 0 2>/dev/null || exit 0
+        else
+            echo -e "${C_RED} :: FATAL :: Command Tower (tower.sh) Not Found. Reverting...${C_RESET}"
+            _update_mux_state "MUX" "DEFAULT"
             exec bash
         fi
         ;;
         
     *)
         if command -v _ui_fake_gate &> /dev/null; then _ui_fake_gate "core"; fi
-        _update_mux_state "MUX" "LOGIN"
+        _update_mux_state "MUX" "DEFAULT"
         exec bash
         ;;
 esac

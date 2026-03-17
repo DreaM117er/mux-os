@@ -2470,6 +2470,15 @@ function __fac_core() {
     fi
 
     case "$cmd" in
+        # : Show Factory Status
+        "status"|"sts")
+            if command -v _factory_show_status &> /dev/null; then
+                _factory_show_status
+            else
+                echo -e "${THEME_WARN} :: UI Module Link Failed.${C_RESET}"
+            fi
+            ;;
+
         # : Change Temp Target
         "switch")
             local has_reborn=${MUX_REBORN_COUNT:-0}
@@ -2479,6 +2488,14 @@ function __fac_core() {
                 return 1
             fi
             _fac_cmd_db
+            ;;
+
+        # : List all links
+        "list"|"ls")
+            if command -v _grant_xp &> /dev/null; then
+                _grant_xp 3 "FAC_LIST"
+            fi
+            _fac_list
             ;;
 
         # : Open Neural Forge Menu
@@ -2545,23 +2562,6 @@ function __fac_core() {
             _fac_matrix_defrag
             if _fac_neural_read "coffee" >/dev/null 2>&1 && _fac_neural_read "tea" >/dev/null 2>&1; then
                 if command -v _unlock_badge &> /dev/null; then _unlock_badge "TEAPOT" "Protocol 418"; fi
-            fi
-            ;;
-
-        # : List all links
-        "list"|"ls")
-            if command -v _grant_xp &> /dev/null; then
-                _grant_xp 3 "FAC_LIST"
-            fi
-            _fac_list
-            ;;
-
-        # : Show Factory Status
-        "status"|"sts")
-            if command -v _factory_show_status &> /dev/null; then
-                _factory_show_status
-            else
-                echo -e "${THEME_WARN} :: UI Module Link Failed.${C_RESET}"
             fi
             ;;
 
@@ -2669,97 +2669,242 @@ function __fac_core() {
                 return 1
             fi
 
-            # 0. 探測是否為空彈試射 (Dry Fire)
-            if grep -q "\[EMPTY CHAMBER / DRY FIRE\]" "$report_file" || grep -q "Success (Test)" "$report_file"; then
-                _bot_say "warn" "Report indicates a DRY FIRE (Empty Chamber)."
-                echo -e "${THEME_DESC}    ›› No blueprint payload to extract. Please load a real payload.${C_RESET}"
-                return 1
-            fi
-            
-            # 1. 提取隱藏暗碼
-            local blueprint=$(grep "^\[XUM_BLUEPRINT\]::" "$report_file" | sed 's/^\[XUM_BLUEPRINT\]:://' | tail -n 1)
-            
-            if [ -z "$blueprint" ]; then
-                _bot_say "error" "No valid blueprint signature in .report."
-                return 1
-            fi
-            
-            _bot_say "action" "XUM Blueprint Detected. Decoding..."
-            sleep 0.8
-            
-            # 2. 補完 TYPE
-            _bot_say "warn" "Blueprint architecture undefined. Please specify TYPE:"
-            local type_sel=$(_factory_fzf_add_type_menu)
-            if [[ -z "$type_sel" || "$type_sel" == "Cancel" || "$type_sel" == *"------"* ]]; then
-                _bot_say "error" "Extraction aborted."
-                return 1
-            fi
-            local bp_type=$(echo "$type_sel" | awk '{print $2}') 
+            while true; do
+                local menu_list=""
+                local bp_idx=1
+                local last_time="Unknown Time"
+                
+                while IFS= read -r line; do
+                    if [[ "$line" =~ ([0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{2}:[0-9]{2}:[0-9]{2}) ]]; then
+                        last_time="${BASH_REMATCH[1]}"
+                    elif [[ "$line" == "[XUM_BLUEPRINT]::"* ]]; then
+                        local bp="${line#\[XUM_BLUEPRINT\]::}"
+                        local f_idx=$(printf "[BP-%03d]" "$bp_idx")
+                        menu_list+="${f_idx}\t\033[1;36mPayload Timestamp: ${last_time}\033[0m\t${bp}\n"
+                        bp_idx=$((bp_idx + 1))
+                    fi
+                done < "$report_file"
 
-            # 3. 補完名稱 (Identity)
-            _bot_say "action" "Assign an Identity (Command Name) for this Blueprint:"
-            read -e -p "    › " new_com_name
-            new_com_name=$(echo "$new_com_name" | sed 's/^[ \t]*//;s/[ \t]*$//')
-            
-            if [ -z "$new_com_name" ]; then
-                _bot_say "error" "Identity required. Aborting."
-                return 1
-            elif [ ${#new_com_name} -gt 8 ]; then
-                _bot_say "error" "Length Exceeded (Max: 8). Aborting."
-                return 1
-            fi
+                if [ -z "$menu_list" ]; then
+                    _bot_say "error" "No valid blueprints detected in .report."
+                    return 1
+                fi
+                
+                local line_count=$(echo -e "$menu_list" | wc -l)
+                local dynamic_height=$(( line_count + 4 ))
 
-            # 4. 準備新流水號
-            local target_db="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
-            local next_comno=$(awk -F, '$1==999 {gsub(/^"|"$/, "", $2); if(($2+0) > max) max=$2} END {print max+1}' "$target_db")
-            if [ -z "$next_comno" ] || [ "$next_comno" -eq 1 ]; then next_comno=1; fi
-            if ! [[ "$next_comno" =~ ^[0-9]+$ ]]; then next_comno=999; fi
-            
-            # 5. 高精度神經映射 (29 cols -> 35 cols Schema Translation)
-            local final_row=$(echo "$blueprint" | awk -v FPAT='([^,]*)|("[^"]+")' -v OFS=, \
-                -v n_no="$next_comno" -v n_type="\"$bp_type\"" -v n_com="\"$new_com_name\"" '
-            {
-                # 建立 35 欄標準陣列
-                f[1]="999"; f[2]=n_no; f[3]="\"Others\""; f[4]=n_type; f[5]=n_com; 
-                f[6]="\"\""; f[7]="\"E\""; f[8]="\"\""; f[9]="\"\"";
+                local fzf_sel=$(echo -e "$menu_list" | fzf --ansi \
+                    --height="$dynamic_height" \
+                    --layout=reverse \
+                    --header=" :: Enter to Select, Esc to Return ::" \
+                    --info=hidden \
+                    --border=bottom \
+                    --border-label=" :: SELECT BLUEPRINT :: " \
+                    --prompt=" :: Import › " \
+                    --delimiter="\t" \
+                    --with-nth=1,2 \
+                    --pointer="››" \
+                    --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                    --color=info:240,prompt:46,pointer:red,marker:208,border:46 \
+                    --bind="resize:clear-screen"
+                )
+
+                if [ -z "$fzf_sel" ]; then
+                    break
+                fi
+
+                local blueprint=$(echo "$fzf_sel" | awk -F'\t' '{print $3}')
+                _bot_say "action" "XUM Blueprint Selected. Reconstructing..."
+                sleep 0.8
                 
-                # 映射 XUM 參數至 Factory
-                f[10]=$5;  # PKG
-                f[11]=$6;  # TARGET
-                f[12]=$7;  # IHEAD
-                f[13]=$8;  # IBODY
-                f[14]=$9;  # URI
-                f[15]=$10; # MIME
-                f[16]=$11; # CATE1
-                f[17]=$12; # CATE2
-                f[18]=$13; # CATE3
-                f[19]=$29; # FLAG (XUM 29 -> FAC 19)
+                # 3. 準備指令空殼
+                local target_db="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
+                local next_comno=$(awk -F, '$1==999 {gsub(/^"|"$/, "", $2); if(($2+0) > max) max=$2} END {print max+1}' "$target_db")
+                if [ -z "$next_comno" ] || [ "$next_comno" -eq 1 ]; then next_comno=1; fi
+                if ! [[ "$next_comno" =~ ^[0-9]+$ ]]; then next_comno=999; fi
                 
-                # EXTRAs 對齊
-                f[20]=$14; f[21]=$15; f[22]=$16 # EXTRA 1
-                f[23]=$17; f[24]=$18; f[25]=$19 # EXTRA 2
-                f[26]=$20; f[27]=$21; f[28]=$22 # EXTRA 3
-                f[29]=$23; f[30]=$24; f[31]=$25 # EXTRA 4
-                f[32]=$26; f[33]=$27; f[34]=$28 # EXTRA 5
+                local ts=$(date +%s)
+                local temp_com_name="XUM_${ts}"
+                local empty_row="999,${next_comno},\"Others\",\"NB\",\"${temp_com_name}\",,\"N\",,,,,,,,,,,,,,,,,,,,,,,,,,,,"
                 
-                f[35]="\"\"" # Padding
-                
-                # 輸出
-                for(i=1; i<=35; i++) {
-                    if (f[i] == "") f[i]="\"\""
-                    printf "%s%s", f[i], (i==35?"":OFS)
-                }
-                print ""
-            }')
-            
-            # 6. 寫入與編輯
-            if [ -s "$target_db" ] && [ "$(tail -c 1 "$target_db")" != "" ]; then echo "" >> "$target_db"; fi
-            echo "$final_row" >> "$target_db"
-            
-            _bot_say "success" "Blueprint Extracted & Reconstructed. Forging..."
-            sleep 1
-            
-            _fac_safe_edit_protocol "$new_com_name" "EDIT"
+                if [ -s "$target_db" ] && [ "$(tail -c 1 "$target_db")" != "" ]; then echo "" >> "$target_db"; fi
+                echo "$empty_row" >> "$target_db"
+
+                # 4. 安全拆解藍圖參數
+                local -a bp_f
+                eval $(echo "$blueprint" | awk -v FPAT='([^,]*)|("[^"]+")' '{
+                    for(i=1; i<=29; i++) {
+                        val = $i
+                        if (val ~ /^".*"$/) { val = substr(val, 2, length(val)-2) }
+                        gsub(/\047/, "\047\\\047\047", val)
+                        printf "bp_f[%d]=\047%s\047\n", i, val
+                    }
+                }')
+
+                # 授權寫入
+                export __FAC_IO_STATE="N"
+                _fac_neural_write "$temp_com_name" 10 "${bp_f[5]}"   
+                _fac_neural_write "$temp_com_name" 11 "${bp_f[6]}"   
+                _fac_neural_write "$temp_com_name" 12 "${bp_f[7]}"   
+                _fac_neural_write "$temp_com_name" 13 "${bp_f[8]}"   
+                _fac_neural_write "$temp_com_name" 14 "${bp_f[9]}"   
+                _fac_neural_write "$temp_com_name" 15 "${bp_f[10]}"  
+                _fac_neural_write "$temp_com_name" 16 "${bp_f[11]}"  
+                _fac_neural_write "$temp_com_name" 17 "${bp_f[12]}"  
+                _fac_neural_write "$temp_com_name" 18 "${bp_f[13]}"  
+                _fac_neural_write "$temp_com_name" 19 "${bp_f[29]}"  
+                _fac_neural_write "$temp_com_name" 20 "${bp_f[14]}"  
+                _fac_neural_write "$temp_com_name" 21 "${bp_f[15]}"  
+                _fac_neural_write "$temp_com_name" 22 "${bp_f[16]}"  
+                _fac_neural_write "$temp_com_name" 23 "${bp_f[17]}"  
+                _fac_neural_write "$temp_com_name" 24 "${bp_f[18]}"  
+                _fac_neural_write "$temp_com_name" 25 "${bp_f[19]}"  
+                _fac_neural_write "$temp_com_name" 26 "${bp_f[20]}"  
+                _fac_neural_write "$temp_com_name" 27 "${bp_f[21]}"  
+                _fac_neural_write "$temp_com_name" 28 "${bp_f[22]}"  
+                _fac_neural_write "$temp_com_name" 29 "${bp_f[23]}"  
+                _fac_neural_write "$temp_com_name" 30 "${bp_f[24]}"  
+                _fac_neural_write "$temp_com_name" 31 "${bp_f[25]}"  
+                _fac_neural_write "$temp_com_name" 32 "${bp_f[26]}"  
+                _fac_neural_write "$temp_com_name" 33 "${bp_f[27]}"  
+                _fac_neural_write "$temp_com_name" 34 "${bp_f[28]}"  
+                unset __FAC_IO_STATE
+
+                local import_success=0
+                while true; do
+                    # 5. 檢閱資料 (VIEW)
+                    export __FAC_IO_STATE="N"
+                    _fac_neural_read "$temp_com_name"
+                    
+                    local view_sel=""
+                    if command -v _factory_fzf_detail_view &> /dev/null; then
+                        view_sel=$(_factory_fzf_detail_view "$temp_com_name" "VIEW")
+                    fi
+                    unset __FAC_IO_STATE
+                    
+                    if [ -z "$view_sel" ]; then
+                        export __FAC_IO_STATE="N"
+                        _fac_delete_node "$temp_com_name"
+                        unset __FAC_IO_STATE
+                        _bot_say "warn" "Blueprint discarded."
+                        break
+                    fi
+                    
+                    # 6. 決定 TYPE 靈魂
+                    _bot_say "warn" "Blueprint architecture undefined. Please specify TYPE:"
+                    local type_sel=$(_factory_fzf_add_type_menu)
+                    
+                    if [[ -z "$type_sel" || "$type_sel" == "Cancel" || "$type_sel" == *"------"* ]]; then
+                        continue
+                    fi
+                    local bp_type=$(echo "$type_sel" | awk '{print $2}') 
+
+                    # 7. 隔離限制鎖
+                    if [ "$bp_type" == "SYS" ] && [ "${__FAC_ACTIVE_DB_NAME:-APP}" != "SYSTEM" ]; then
+                        _bot_say "error" "SYS Architecture must be forged in the SYSTEM Database."
+                        echo -e "${THEME_DESC}    ›› Current workspace is [${__FAC_ACTIVE_DB_NAME:-APP}]. Please execute 'fac switch'.${C_RESET}"
+                        sleep 1
+                        continue # 退回 VIEW 畫面
+                    fi
+
+                    # 8. 設定名字 (8字元防線)
+                    local temp_com=""
+                    local temp_sub=""
+                    local name_confirmed=0
+                    
+                    while true; do
+                        local menu_list=$(
+                            echo -e " COMMAND \t\033[1;37m${temp_com:-[Empty]}\033[0m"
+                            echo -e " SUBCOM  \t\033[1;37m${temp_sub:-[Empty]}\033[0m"
+                            echo -e "\033[1;30m----------\033[0m"
+                            echo -e "\033[1;32m[Confirm]\033[0m"
+                        )
+
+                        local choice=$(echo -e "$menu_list" | fzf --ansi \
+                            --height=8 \
+                            --layout=reverse \
+                            --border-label=" :: ASSIGN IDENTITY :: " \
+                            --border=bottom \
+                            --header=" :: Enter to Select, Esc to Return ::" \
+                            --prompt=" :: Setting › " \
+                            --info=hidden \
+                            --pointer="››" \
+                            --delimiter="\t" \
+                            --with-nth=1,2 \
+                            --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+                            --color=info:240,prompt:46,pointer:red,marker:208,border:46 \
+                            --bind="resize:clear-screen"
+                        )
+
+                        # 按 Esc 退回上一步 (VIEW 畫面)
+                        if [ -z "$choice" ]; then
+                            name_confirmed=0
+                            break 
+                        fi
+
+                        if echo "$choice" | grep -q " COM"; then
+                            _bot_say "action" "Edit Command (Trigger):"
+                            read -e -p "    › " -i "$temp_com" new_com
+                            new_com=$(echo "$new_com" | sed 's/^[ \t]*//;s/[ \t]*$//')
+                            
+                            if [ ${#new_com} -gt 8 ]; then
+                                _bot_say "error" "Length Exceeded. COM must be <= 8 chars."
+                                sleep 0.8
+                            else
+                                temp_com="$new_com"
+                            fi
+
+                        elif echo "$choice" | grep -q " SUB"; then
+                            _bot_say "action" "Edit Sub-Command (Optional):"
+                            read -e -p "    › " -i "$temp_sub" new_sub
+                            new_sub=$(echo "$new_sub" | sed 's/^[ \t]*//;s/[ \t]*$//')
+                            
+                            if [ ${#new_sub} -gt 8 ]; then
+                                _bot_say "error" "Length Exceeded. SUBCOM must be <= 8 chars."
+                                sleep 0.8
+                            else
+                                temp_sub="$new_sub"
+                            fi
+
+                        elif echo "$choice" | grep -q "Confirm"; then
+                            if [ -z "$temp_com" ]; then
+                                _bot_say "error" "Identity (COM) is required."
+                                sleep 0.8
+                                continue
+                            fi
+                            name_confirmed=1
+                            break
+                        fi
+                    done
+
+                    if [ "$name_confirmed" -eq 0 ]; then
+                        continue # 取消命名
+                    fi
+
+                    # 9. 批次原子寫入
+                    export __FAC_IO_STATE="N"
+                    _fac_neural_write "$temp_com_name" 4 "$bp_type"
+                    _fac_neural_write "$temp_com_name" 6 "$temp_sub"
+                    _fac_neural_write "$temp_com_name" 5 "$temp_com" 
+                    unset __FAC_IO_STATE
+                    
+                    _bot_say "success" "Blueprint Imported & Reconstructed. Forging..."
+                    sleep 1
+                    
+                    # 組合全新的 Target Key
+                    local new_key="$temp_com"
+                    [ -n "$temp_sub" ] && new_key="$temp_com '$temp_sub'"
+
+                    import_success=1
+                    break
+                done
+
+                # 進入正式編輯並結束
+                if [ "$import_success" -eq 1 ]; then
+                    _fac_safe_edit_protocol "$new_key" "NEW"
+                    break
+                fi
+            done
             ;;
 
         # : Edit Neural (Edit Command)
@@ -3011,16 +3156,6 @@ function __fac_core() {
             done
             ;;
 
-        # : Time Stone Undo (Rebak)
-        "undo"|"rebak")
-            _fac_rebak_wizard
-            ;;
-
-        # : Purge Auto-Backups
-        "clear")
-            _fac_clear_backups
-            ;;
-
         # : Load Neural (Test Command)
         "load"|"test") 
             local input_1="$2"
@@ -3067,33 +3202,14 @@ function __fac_core() {
             fi
             ;;
 
-        # : Show Factory Info
-        "info")
-            if command -v _factory_show_info &> /dev/null; then
-                _factory_show_info
-            fi
+        # : Time Stone Undo (Rebak)
+        "undo"|"rebak")
+            _fac_rebak_wizard
             ;;
 
-        # : Show Hall of Fame (Medals)
-        "hof")
-            clear
-            if command -v _draw_logo &> /dev/null; then _draw_logo "factory"; fi
-
-            if command -v _show_badges &> /dev/null; then
-                _show_badges
-            else
-                if [ -f "$MUX_ROOT/ui.sh" ]; then
-                    source "$MUX_ROOT/ui.sh"
-                    _show_badges
-                else
-                    _bot_say "error" "Visual module (ui.sh) missing."
-                fi
-            fi
-            
-            echo ""
-            echo -ne "${C_YELLOW} :: Press 'Enter' to return to Neural Forge... ${C_RESET}"
-            read -r
-            _fac_init
+        # : Purge Auto-Backups
+        "clear")
+            _fac_clear_backups
             ;;
 
         # : Reload Factory
@@ -3117,40 +3233,6 @@ function __fac_core() {
                 if [ $? -ne 0 ]; then return; fi 
             fi
             _factory_reset
-            ;;
-
-        # : Deploy Changes
-        "deploy")
-            local e_found=0
-            for db_chk in app vendor system; do
-                if [ -f "$MUX_ROOT/$db_chk.csv.temp" ] && grep -q ',"E",' "$MUX_ROOT/$db_chk.csv.temp"; then
-                    e_found=1
-                    break
-                fi
-            done
-            _fac_maintenance
-            if [ "$e_found" -eq 1 ]; then
-                echo -e "\n${C_RED} :: DEPLOY ABORTED :: Active Drafts (E) Detected.${C_RESET}"
-                echo -e "${C_BLACK}    Please finish editing or delete drafts before deployment.${C_RESET}"
-                echo -ne "\n${C_YELLOW}    ›› Acknowledge and Return? [Y/n]: ${C_RESET}"
-                read -n 1 -r
-                echo ""
-                return
-            fi
-            _fac_sort_optimization
-            _fac_matrix_defrag
-            _factory_deploy_sequence
-            ;;
-
-        # : Run Setup Protocol
-        "setup")
-            if [ -f "$MUX_ROOT/setup.sh" ]; then
-                _bot_say "action" "Transferring control to Lifecycle Manager..."
-                sleep 0.8
-                exec bash "$MUX_ROOT/setup.sh"
-            else
-                _bot_say "error" "Lifecycle Manager (setup.sh) not found."
-            fi
             ;;
         
         "eject")
@@ -3208,6 +3290,69 @@ function __fac_core() {
             fi
             ;;
 
+        # : Deploy Changes
+        "deploy")
+            local e_found=0
+            for db_chk in app vendor system; do
+                if [ -f "$MUX_ROOT/$db_chk.csv.temp" ] && grep -q ',"E",' "$MUX_ROOT/$db_chk.csv.temp"; then
+                    e_found=1
+                    break
+                fi
+            done
+            _fac_maintenance
+            if [ "$e_found" -eq 1 ]; then
+                echo -e "\n${C_RED} :: DEPLOY ABORTED :: Active Drafts (E) Detected.${C_RESET}"
+                echo -e "${C_BLACK}    Please finish editing or delete drafts before deployment.${C_RESET}"
+                echo -ne "\n${C_YELLOW}    ›› Acknowledge and Return? [Y/n]: ${C_RESET}"
+                read -n 1 -r
+                echo ""
+                return
+            fi
+            _fac_sort_optimization
+            _fac_matrix_defrag
+            _factory_deploy_sequence
+            ;;
+
+        # : Run Setup Protocol
+        "setup")
+            if [ -f "$MUX_ROOT/setup.sh" ]; then
+                _bot_say "action" "Transferring control to Lifecycle Manager..."
+                sleep 0.8
+                exec bash "$MUX_ROOT/setup.sh"
+            else
+                _bot_say "error" "Lifecycle Manager (setup.sh) not found."
+            fi
+            ;;
+
+        # : Show Hall of Fame (Medals)
+        "hof")
+            clear
+            if command -v _draw_logo &> /dev/null; then _draw_logo "factory"; fi
+
+            if command -v _show_badges &> /dev/null; then
+                _show_badges
+            else
+                if [ -f "$MUX_ROOT/ui.sh" ]; then
+                    source "$MUX_ROOT/ui.sh"
+                    _show_badges
+                else
+                    _bot_say "error" "Visual module (ui.sh) missing."
+                fi
+            fi
+            
+            echo ""
+            echo -ne "${C_YELLOW} :: Press 'Enter' to return to Neural Forge... ${C_RESET}"
+            read -r
+            _fac_init
+            ;;
+
+        # : Show Factory Info
+        "info")
+            if command -v _factory_show_info &> /dev/null; then
+                _factory_show_info
+            fi
+            ;;
+
         "help")
             _mux_dynamic_help_factory
             ;;
@@ -3241,6 +3386,15 @@ function fac() {
             command cp "$MUX_ROOT/vendor.csv" "$MUX_ROOT/vendor.csv.temp"
         fi
         reboot_flag=1
+
+        echo ""
+        if command -v _assistant_voice &> /dev/null; then
+            echo -e "${C_PINKMEOW} :: Commander! The Command Tower is unlocked for you! You can come to find me now! ( • ̀ω•́ )✧"
+            sleep 1
+            echo -e "${C_ORANGE} :: ...Why is she in my comms?! Commander, exit the factory if you want to go play with her.${C_RESET}"
+            echo -e "${THEME_DESC}    ›› 'mux tower' command unlocked.${C_RESET}"
+            sleep 1
+        fi
     fi
     
     # SYSTEM 解鎖

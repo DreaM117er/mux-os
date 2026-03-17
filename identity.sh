@@ -28,6 +28,7 @@ MUX_OCDATE="${MUX_OCDATE:-0}"
 MUX_CDDATE="${MUX_CDDATE:-0}"
 MUX_CHECK="${MUX_CHECK:-0}"
 MUX_REBORN_COUNT="${MUX_REBORN_COUNT:-0}"
+APKLIST_USED="${APKLIST_USED:-0}"
 HEAP_ALLOCATION_IDX="${HEAP_ALLOCATION_IDX:-0}"
 IO_WRITE_CYCLES="${IO_WRITE_CYCLES:-0}"
 KERNEL_PANIC_OFFSET="${KERNEL_PANIC_OFFSET:-0}"
@@ -69,6 +70,7 @@ if [ ! -f "$IDENTITY_FILE" ]; then
         MUX_CDDATE=0
         MUX_CHECK=0
         MUX_REBORN_COUNT=0
+        APKLIST_USED=0
         HEAP_ALLOCATION_IDX=0
         IO_WRITE_CYCLES=0
         KERNEL_PANIC_OFFSET=0
@@ -411,7 +413,6 @@ function _grant_xp() {
                         "_core_pre_factory_auth"
                         "_core_eject_sequence"
                         "_mux_neural_fire_control"
-                        "_mux_uplink_sequence"
                         "_fac_edit_router"
                         "_fac_launch_test"
                         "_factory_deploy_sequence"
