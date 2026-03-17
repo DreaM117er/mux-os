@@ -312,14 +312,12 @@ function _draw_logo() {
             color_primary="$C_PINKMEOW"
             label=":: Mux-OS v$MUX_VERSION Command Tower ::"
             if [ "$cols" -ge 52 ]; then label+=" Weapons Cold ::"; fi
-            local rand_logo=$(( RANDOM % 100 ))
-            if [ "$rand_logo" -lt 15 ]; then
+            
+            if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
                 tct_logo="cat"
                 export __MUX_CAT_OS=1
                 label=":: Cat-OS v$MUX_VERSION Meow Tower ::"
                 if [ "$cols" -ge 52 ]; then label+=" (ฅ^•ﻌ•^ฅ) ::"; fi
-            else
-                unset __MUX_CAT_OS
             fi
             ;;
         *)
@@ -415,7 +413,7 @@ function _system_check() {
         C_PROC="${C_PINKMEOW}⟳\033[0m"
         C_CHECK="${C_PINKMEOW}✓\033[0m"
         
-        if [ "$__MUX_CAT_OS" == "1" ]; then
+        if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
             # 貓咪模式
             export __MUX_CLUMSY_STATE=0
         else
@@ -448,7 +446,7 @@ function _system_check() {
 
         # 85% 正常啓動序列
         export __MUX_CLUMSY_STATE=0
-        if [ "$__MUX_CAT_OS" == "1" ]; then
+        if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
             steps=(
                 "Waking up the cats..."
                 "Filling the food bowl..."
@@ -850,7 +848,7 @@ function _tct_show_info() {
     clear
     _draw_logo "tct"
     
-    if [ "$__MUX_CAT_OS" == "1" ]; then
+    if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
         # 貓咪模式
         echo -e " ${C_PINKMEOW}:: MEOW TOWER MANIFEST ::${C_RESET}"
         echo ""

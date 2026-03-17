@@ -32,7 +32,7 @@ function _tct_init() {
     # 沒有出包，就說出歡迎詞
     if [ "${__MUX_CLUMSY_STATE:-0}" -eq 0 ]; then
         if command -v _assistant_voice &> /dev/null; then
-            if [ "$__MUX_CAT_OS" == "1" ]; then
+            if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
                 _assistant_voice "cat_mode"
             else
                 local greeting_moods=("hello" "tower_ready" "idle")
@@ -58,7 +58,7 @@ function __tct_core() {
     fi
 
     if [ -z "$cmd" ]; then
-        if [ "$__MUX_CAT_OS" == "1" ]; then
+        if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
             if command -v _assistant_voice &> /dev/null; then
                 _assistant_voice "cat_mode"
             else

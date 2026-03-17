@@ -171,6 +171,25 @@ function _backup_identity_protocol() {
     _exit_protocol
 }
 
+# 核心指令 apklist 備援機制
+function _apklist_fallback_protocol() {
+    echo ""
+    echo -e "${C_CYAN} :: APKList Fallback Protocol ::${C_RESET}"
+    echo -e "${C_GRAY}    Enter the package name of your alternative APP for querying PKGs.${C_RESET}"
+    echo -e "${C_GRAY}    (e.g., com.example.appinspector)${C_RESET}"
+    echo -ne "${C_YELLOW} :: Fallback PKG › ${C_RESET}"
+    read backup_pkg
+
+    if [ -n "$backup_pkg" ]; then
+        # 寫入備援 PKG 至 .setting
+        echo "APKLIST_BACKUP_PKG=\"$backup_pkg\"" > "$MUX_ROOT/.setting"
+        echo -e "${C_GREEN}    ›› Fallback Protocol Locked: $backup_pkg${C_RESET}"
+    else
+        echo -e "${C_RED}    ›› Operation aborted. No configurations were written.${C_RESET}"
+    fi
+    sleep 1.5
+}
+
 # 安裝協議
 function _install_protocol() {
     local cols=$(tput cols)
@@ -315,6 +334,20 @@ EOF
         fi
     fi
 
+    [ -f "$MUX_ROOT/.mux_identity" ] && source "$MUX_ROOT/.mux_identity"
+    if [ "${APKLIST_USED:-0}" -eq 0 ]; then
+        echo ""
+        echo -e "${C_YELLOW} :: INITIAL BOOT SEQUENCE CHECK ::${C_RESET}"
+        echo -e "${C_GRAY}    After login, please test if the \033[1;36m'apklist'\033[1;30m command works properly.${C_RESET}"
+        echo -e "${C_GRAY}    If not installed, please search and install \"Package Name Viewer 2.0\" from the Play Store.${C_RESET}"
+        echo -e "${C_GRAY}    If this APP is incompatible with your device, run \033[1;36m'mux setup'\033[1;30m to configure the fallback protocol.${C_RESET}"
+        echo ""
+        echo -ne "${C_CYAN} :: Press 'Enter' to acknowledge and continue... ${C_RESET}"
+        read -r  
+        echo ""
+    fi
+
+
     echo ""
     echo -e "${C_GREEN} :: System Ready. Returning to Core...${C_RESET}"
     sleep 1
@@ -406,7 +439,8 @@ if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
     echo " [2] Reset Identity (Re-auth)"
     echo " [3] Backup Identity (Export)"
     echo " [4] Uninstall (Self-Destruct)"
-    echo " [5] Cancel (Reload Core)"
+    echo " [5] Configure 'apklist' Fallback"
+    echo " [6] Cancel (Reload Core)"
     echo ""
     echo -ne "${C_CYAN} :: Select Protocol [1-5]: ${C_RESET}"
     read choice
@@ -416,6 +450,7 @@ if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
         2) _reauth_protocol ;;
         3) _backup_identity_protocol ;;
         4) _uninstall_protocol ;;
+        5) _apklist_fallback_protocol
         *) _exit_protocol ;;
     esac
 

@@ -289,6 +289,15 @@ function _mux_reload_kernel() {
         
         if [[ "$current_entry" == "OVERCLOCK" || "$current_entry" == "COOLDOWN" ]]; then
             _update_mux_state "$MUX_MODE" "$MUX_STATUS"
+        elif [[ "$MUX_MODE" == "TCT" && "$MUX_STATUS" == "LOGIN" ]]; then
+            # 重新計算貓咪模式會不會出現
+            if [ $(( RANDOM % 100 )) -lt 15 ]; then
+                current_entry="MEOW"
+            else
+                current_entry=""
+            fi
+            _update_mux_state "TCT" "LOGIN" "$current_entry"
+            export MUX_ENTRY_POINT="$current_entry"
         fi
     fi
 
@@ -922,6 +931,24 @@ function _mux_neural_fire_control() {
             # 明確指定外部呼叫
             if [ -n "$real_args" ]; then 
                 _require_no_args "$real_args" || return 1
+            fi
+
+            if [ "$input_com" == "apklist" ]; then
+                # 1. 觸發計數器並存檔
+                if [ -f "$IDENTITY_FILE" ]; then 
+                    source "$IDENTITY_FILE"
+                    APKLIST_USED=$(( ${APKLIST_USED:-0} + 1 ))
+                    _save_identity
+                fi
+                # 2. 備援 PKG 檢查與覆寫
+                if [ -f "$MUX_ROOT/.setting" ]; then
+                    source "$MUX_ROOT/.setting"
+                    if [ -n "$APKLIST_BACKUP_PKG" ]; then
+                        _bot_say "warn" "Fallback Protocol Engaged: Targeting '$APKLIST_BACKUP_PKG'"
+                        _VAL_PKG="$APKLIST_BACKUP_PKG"
+                        _VAL_TARGET=""
+                    fi
+                fi
             fi
             _launch_android_app
             ;;
@@ -1917,7 +1944,13 @@ function _tct_login_protocol() {
         _core_system_scan "silent"
     fi
     
-    _update_mux_state "TCT" "LOGIN"
+    # 貓咪模式計算器
+    local tct_entry=""
+    if [ $(( RANDOM % 100 )) -lt 15 ]; then
+        tct_entry="MEOW"
+    fi
+    _update_mux_state "TCT" "LOGIN" "$tct_entry"
+    export MUX_ENTRY_POINT="$tct_entry"
 
     echo ""
     echo -e "${THEME_OK} :: $welcome_msg :: ${C_RESET}"
