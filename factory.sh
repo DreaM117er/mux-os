@@ -2458,8 +2458,11 @@ function _fac_launch_test() {
 
 # : Factory Command Entry
 function __fac_core() {
-    _dynamic_failsafe "fac" || return 1
     local cmd="$1"
+    if [ "$MUX_MODE" != "FAC" ]; then
+        _bot_say "error" "Factory commands disabled during Core session."
+        return 1
+    fi
 
     if [ -z "$cmd" ]; then
         _bot_say "factory_welcome"
