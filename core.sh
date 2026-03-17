@@ -947,6 +947,9 @@ function _mux_neural_fire_control() {
                         _bot_say "warn" "Fallback Protocol Engaged: Targeting '$APKLIST_BACKUP_PKG'"
                         _VAL_PKG="$APKLIST_BACKUP_PKG"
                         _VAL_TARGET=""
+
+                        _VAL_EX1="-a android.intent.action.MAIN"
+                        _VAL_CATE1="LAUNCHER"
                     fi
                 fi
             fi
