@@ -2025,12 +2025,11 @@ function o() {
 # : Core Command Entry
 function mux() {
     local cmd="$1"
+    
     if [ "$MUX_MODE" == "FAC" ]; then
         _bot_say "error" "Core commands disabled during Factory session."
         return 1
-    fi
-
-    if [ "$MUX_MODE" == "TCT" ]; then
+    elif [ "$MUX_MODE" == "TCT" ]; then
         _assistant_voice "error" "Core commands disabled during Command Tower session."
         return 1
     fi

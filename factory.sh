@@ -2459,13 +2459,21 @@ function _fac_launch_test() {
 # : Factory Command Entry
 function __fac_core() {
     local cmd="$1"
-    if [ "$MUX_MODE" != "FAC" ]; then
-        _bot_say "error" "Factory commands disabled during Core session."
+
+    if [[ "$MUX_MODE" == "MUX" || "$MUX_MODE" == "XUM" ]]; then
+        if [ "$MUX_STATUS" == "DEFAULT" ]; then
+            echo -e "${C_WHITE} :: I need to login into Factory first.${C_RESET}"
+        else
+            _bot_say "error" "Factory commands disabled during Core session."
+        fi
+        return 1
+    elif [ "$MUX_MODE" == "TCT" ]; then
+        _assistant_voice "error" "Factory commands disabled during Command Tower session."
         return 1
     fi
 
     if [ -z "$cmd" ]; then
-        _bot_say "factory_welcome"
+        _bot_factory_personality "factory_welcome"
         return
     fi
 
