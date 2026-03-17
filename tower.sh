@@ -51,9 +51,25 @@ function _tct_init() {
 # : Tower Command Entry
 function __tct_core() {
     local cmd="$1"
+    local current_level="${MUX_LEVEL:-1}"
+    local rand_chance=$(( RANDOM % 100 ))
 
-    if [ "$MUX_MODE" != "TCT" ]; then
-        echo -e "${THEME_ERR} :: Commander! Tower protocols are strictly for the Command Tower! ( • ̀ω•́ )✧${C_RESET}"
+    if [ "$MUX_MODE" == "MUX" ]; then
+        if [ "$current_level" -ge 8 ] && [ "$rand_chance" -lt 60 ]; then
+            echo -e "${C_WHITE} :: I need to back to Hanger first.${C_RESET}"
+        else
+            echo -e "${C_PINKMEOW} :: Commander, are you calling me? But you're not in the Command Tower. ( • ̀ω•́ )✧"
+        fi
+        return 1
+    elif [ "$MUX_MODE" == "FAC" ]; then
+        if [ "$current_level" -ge 8 ] && [ "$rand_chance" -lt 60 ]; then
+            echo -e "${C_WHITE} :: I need to back to Hanger first.${C_RESET}"
+        else
+            echo -e "${C_PINKMEOW} :: Commander, I see you're inside the Factory. Please remember to come out of the Factory before heading to the command tower. ( • ̀ω•́ )✧"
+        fi
+        return 1
+    elif [ "$MUX_MODE" == "XUM" ]; then
+        _voice_dispatch "error" "Command Tower commands disabled during the Chamber System."
         return 1
     fi
 
