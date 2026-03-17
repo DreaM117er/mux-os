@@ -2151,9 +2151,9 @@ function mux() {
             
             # 已經安裝過的防呆回饋
             if command -v fzf &> /dev/null; then
-                echo -e "\n${C_GREEN} :: VR Tactical Visor (fzf) Status: ${C_WHITE}EQUIPPED${C_RESET} ✅"
                 if command -v _commander_voice &> /dev/null; then
                     _commander_voice "visor_equipped"
+                    echo -e "${THEME_SUB}    ›› VR Tactical Visor (fzf) Status: ${C_WHITE}EQUIPPED${C_RESET} ✅"
                 else
                     echo -e "${C_WHITE} :: Visor is already equipped. Spatial map is fully operational.${C_RESET}"
                 fi
@@ -2161,7 +2161,6 @@ function mux() {
             fi
             
             # 開始扮演劇本 (純白色獨白)
-            echo -e ""
             echo -e "${C_WHITE} :: Ah, found it. Left it right here.${C_RESET}"
             sleep 0.8
             echo -e "${C_WHITE} :: Let's put this on... and hook into the hangar network for a map update.${C_RESET}"
@@ -2170,6 +2169,7 @@ function mux() {
             read choice
             
             if [[ "$choice" == "y" || "$choice" == "Y" || "$choice" == "" ]]; then
+                echo ""
                 echo -e "${C_CYAN} :: Downloading spatial matrix...${C_RESET}"
                 
                 # 在後台靜默安裝

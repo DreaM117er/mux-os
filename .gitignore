@@ -1,6 +1,7 @@
 # .gitignore - Mux-OS Stealth Layer
 
 # :: Identity Matrix (DO NOT REMOVE)
+.setting
 .mux_identity
 .mux_state
 vendor.csv
