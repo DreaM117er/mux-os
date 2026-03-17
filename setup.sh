@@ -188,6 +188,7 @@ function _apklist_fallback_protocol() {
         echo -e "${C_RED}    ›› Operation aborted. No configurations were written.${C_RESET}"
     fi
     sleep 1.5
+    _exit_protocol
 }
 
 # 安裝協議
