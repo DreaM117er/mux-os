@@ -180,12 +180,17 @@ function _apklist_fallback_protocol() {
     echo -ne "${C_YELLOW} :: Fallback PKG › ${C_RESET}"
     read backup_pkg
 
-    if [ -n "$backup_pkg" ]; then
-        # 寫入備援 PKG 至 .setting
+    echo -e "${C_GRAY}    Enter the TARGET Activity of your alternative APP.${C_RESET}"
+    echo -e "${C_GRAY}    (e.g., com.example.appinspector.MainActivity)${C_RESET}"
+    echo -ne "${C_YELLOW} :: Fallback TARGET › ${C_RESET}"
+    read backup_target
+
+    if [ -n "$backup_pkg" ] && [ -n "$backup_target" ]; then
         echo "APKLIST_BACKUP_PKG=\"$backup_pkg\"" > "$MUX_ROOT/.setting"
+        echo "APKLIST_BACKUP_TARGET=\"$backup_target\"" >> "$MUX_ROOT/.setting"
         echo -e "${C_GREEN}    ›› Fallback Protocol Locked: $backup_pkg${C_RESET}"
     else
-        echo -e "${C_RED}    ›› Operation aborted. No configurations were written.${C_RESET}"
+        echo -e "${C_RED}    ›› Operation aborted. Missing PKG or TARGET.${C_RESET}"
     fi
     sleep 1.5
     _exit_protocol
@@ -347,9 +352,6 @@ EOF
         read -r  
         echo ""
     fi
-
-
-    echo ""
     echo -e "${C_GREEN} :: System Ready. Returning to Core...${C_RESET}"
     sleep 1
     
