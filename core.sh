@@ -153,7 +153,6 @@ function _voice_dispatch() {
 _dynamic_failsafe() {
     local target_cmd="$1"
     local current_mode="${MUX_MODE:-UNKNOWN}"
-    local current_status="${MUX_STATUS:-DEFAULT}"
     local current_level="${MUX_LEVEL:-1}"
     local rand_chance=$(( RANDOM % 100 ))
     
@@ -162,76 +161,70 @@ _dynamic_failsafe() {
     local clingy_msg=""
     local fake_bash_error=0
 
-    # 1. 狀態機跨區映射矩陣
-    case "$target_cmd" in
-        "mux")
-            if [ "$current_mode" == "MUX" ]; then
-                is_blocked=1
+    # Rule 1: 自己是什麼模式，無法呼叫自己
+    if [[ ("$current_mode" == "MUX" && "$target_cmd" == "mux") || \
+          ("$current_mode" == "FAC" && "$target_cmd" == "fac") || \
+          ("$current_mode" == "TCT" && "$target_cmd" == "cmt") || \
+          ("$current_mode" == "XUM" && "$target_cmd" == "xum") ]]; then
+        
+        is_blocked=1
+        case "$target_cmd" in
+            "mux")
                 rigid_msg="Terminal is already active."
                 clingy_msg="Commander, we are already inside the main terminal! Where else are you trying to go?~"
-            elif [ "$current_mode" == "FAC" ]; then
-                is_blocked=1
-                rigid_msg="Cross-zone execution denied. Exit FAC first."
-                clingy_msg="Commander, the factory furnace is still running! You can't just leave me behind!"
-            elif [ "$current_mode" == "TCT" ]; then
-                is_blocked=1
-                rigid_msg="Cross-zone execution denied. Disengage TCT first."
-                clingy_msg="Commander, you are wearing the exoskeleton! Take it off before entering the terminal!"
-            fi
-            # 備註：XUM模式則暢通無阻
-            ;;
-
-        "fac")
-            if [ "$current_mode" == "FAC" ]; then
-                is_blocked=1
+                ;;
+            "fac")
                 rigid_msg="Factory workspace is already engaged."
                 clingy_msg="Commander, we are already forging in here. Stop trying to open the same door!~"
-            elif [ "$current_mode" == "XUM" ] || [ "$current_mode" == "TCT" ]; then
-                is_blocked=1
-                rigid_msg="Cross-zone execution denied. Route through MUX."
-                clingy_msg="Commander, you must pass through the main terminal's security clearance to enter the factory!"
-            fi
-            # 備註：MUX模式下皆暢通無阻
-            ;;
-
-        "xum")
-            if [ "$current_mode" == "XUM" ]; then
-                is_blocked=1
-                rigid_msg="XUM protocol is currently running."
-                clingy_msg="Commander, the XUM protocol is running at maximum capacity. I'm right here."
-            elif [ "$current_mode" == "FAC" ] || [ "$current_mode" == "TCT" ]; then
-                is_blocked=1
-                rigid_msg="Cross-zone execution denied. Route through MUX."
-                clingy_msg="Commander, XUM requires main terminal access. We can't jump from here!"
-            elif [ "$current_mode" == "MUX" ]; then
-                if [ "$current_status" != "LOGIN" ]; then
-                    # MUX DEFAULT 狀態下，觸發偽裝報錯
-                    is_blocked=1
-                    fake_bash_error=1
-                fi
-            fi
-            ;;
-
-        "cmt")
-            if [ "$current_mode" == "TCT" ]; then
-                is_blocked=1
+                ;;
+            "cmt")
                 rigid_msg="TCT Exoskeleton is already active."
                 clingy_msg="Commander, the TCT armor is already online! You don't need to press the button twice!~"
-            elif [ "$current_mode" == "FAC" ] || [ "$current_mode" == "XUM" ]; then
-                is_blocked=1
-                rigid_msg="Cross-zone execution denied. Route through MUX."
-                clingy_msg="Commander, TCT deployment requires a clear terminal environment!"
-            elif [ "$current_mode" == "MUX" ]; then
-                if [ "$current_status" == "LOGIN" ]; then
-                    is_blocked=1
-                    rigid_msg="TCT deployment requires DEFAULT state. Logout first."
-                    clingy_msg="Commander, TCT is an external armor! We need to logout of the internal terminal to equip it!~"
-                fi
-            fi
-            ;;
-    esac
+                ;;
+            "xum")
+                rigid_msg="XUM protocol is currently running."
+                clingy_msg="Commander, the XUM protocol is running at maximum capacity. I'm right here."
+                ;;
+        esac
 
-    # 語音輸出
+    # Rule 2~5: 跨區呼叫絕對封鎖矩陣
+    else
+        case "$current_mode" in
+            "MUX")
+                # Rule 2: mux不能呼叫fac、cmt、xum
+                if [[ "$target_cmd" == "fac" || "$target_cmd" == "cmt" || "$target_cmd" == "xum" ]]; then
+                    is_blocked=1
+                    fake_bash_error=1 # MUX 模式下維持終端機偽裝
+                fi
+                ;;
+            "FAC")
+                # Rule 3: fac不能呼叫mux、cmt、xum
+                if [[ "$target_cmd" == "mux" || "$target_cmd" == "cmt" || "$target_cmd" == "xum" ]]; then
+                    is_blocked=1
+                    rigid_msg="Cross-zone execution denied. Exit FAC first."
+                    clingy_msg="Commander, you must exit the factory before running '$target_cmd'! The furnace is still hot!"
+                fi
+                ;;
+            "TCT")
+                # Rule 4: cmt不能呼叫mux、fac、xum
+                if [[ "$target_cmd" == "mux" || "$target_cmd" == "fac" || "$target_cmd" == "xum" ]]; then
+                    is_blocked=1
+                    rigid_msg="Cross-zone execution denied. Disengage TCT first."
+                    clingy_msg="Commander, please take off the TCT exoskeleton before running '$target_cmd'!~"
+                fi
+                ;;
+            "XUM")
+                # Rule 5: xum不能呼叫fac、cmt (唯獨沒有擋 mux)
+                if [[ "$target_cmd" == "fac" || "$target_cmd" == "cmt" ]]; then
+                    is_blocked=1
+                    rigid_msg="Cross-zone execution denied. Exit XUM first."
+                    clingy_msg="Commander, please close the XUM protocol before running '$target_cmd'!~"
+                fi
+                ;;
+        esac
+    fi
+
+    # 攔截執行與動態語音輸出
     if [ "$is_blocked" -eq 1 ]; then
         if [ "$fake_bash_error" -eq 1 ]; then
             echo -e "bash: $target_cmd: command not found"
