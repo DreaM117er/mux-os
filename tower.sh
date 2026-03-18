@@ -57,8 +57,8 @@ function cd() {
         local line_count=$(echo -e "$menu_items" | wc -l)
         local dynamic_height=$(( line_count + 4 ))
 
-        local target
-        target=$(echo -e "$menu_items" | fzf \
+        local raw_target
+        raw_target=$(echo -e "$menu_items" | fzf --ansi \
             --height="$dynamic_height" \
             --layout=reverse \
             --prompt=" :: $PWD › " \
