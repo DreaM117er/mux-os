@@ -21,37 +21,39 @@ function cd() {
         return $?
     fi
 
-    local origin_pwd="$PWD"
-    local show_hidden="false" # 隱藏資料夾的預設狀態開關
+    # [修正] 絕對原點：鎖定為家目錄 (cd ~)
+    local origin_pwd="$HOME"
+    local show_hidden="false"
 
     # 2. 啟動雷達迴圈 (Active Sonar Loop)
     while true; do
         local dirs
         if [ "$show_hidden" == "true" ]; then
-            # 顯示所有實體資料夾
             dirs=$(find . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sed 's|^\./||' | sort)
         else
-            # 掛載濾鏡：利用 grep -v '^\.' 物理過濾掉隱藏資料夾
             dirs=$(find . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sed 's|^\./||' | grep -v '^\.' | sort)
         fi
 
         local menu_items=""
         
-        # 戰術按鈕注入 (帶有純粹的色票)
-        menu_items+="${C_RED}[ ↺ ] Revert to Origin${C_RESET}\n"
-        if [ "$PWD" != "/" ]; then
-            menu_items+="${C_YELLOW}[ ↑ ] Ascend (..)${C_RESET}\n"
-        fi
+        # 排序 1：[cd] 回歸原點 (紅色)
+        menu_items+="${C_RED}[cd]${C_RESET} Revert to Origin\n"
         
-        # 動態隱藏開關切換按鈕
-        if [ "$show_hidden" == "true" ]; then
-            menu_items+="${C_CYAN}[ ◉ ] Hide Hidden (.*)${C_RESET}\n"
-        else
-            menu_items+="${C_CYAN}[ ◉ ] Show Hidden (.*)${C_RESET}\n"
-        fi
-        
+        # 排序 2：實體資料夾列表
         if [ -n "$dirs" ]; then
-            menu_items+="$dirs"
+            menu_items+="${dirs}\n"
+        fi
+        
+        # 排序 3：[..] 返回上一層 (黃色)
+        if [ "$PWD" != "/" ]; then
+            menu_items+="${C_YELLOW}[..]${C_RESET} Backto\n"
+        fi
+        
+        # 排序 4：[.*] 隱藏開關 (C_BLACK 深灰色)
+        if [ "$show_hidden" == "true" ]; then
+            menu_items+="${C_BLACK}[.*]${C_RESET} Hide Hidden"
+        else
+            menu_items+="${C_BLACK}[.*]${C_RESET} Show Hidden"
         fi
 
         local line_count=$(echo -e "$menu_items" | wc -l)
@@ -77,18 +79,20 @@ function cd() {
             break
         fi
 
+        # ANSI 物理剝除
         local target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
 
-        if [ "$target" == "[ ↺ ] Revert to Origin" ]; then
+        # 根據純淨字串進行精準咬合
+        if [ "$target" == "[cd] Revert to Origin" ]; then
             builtin cd "$origin_pwd"
             break
-        elif [ "$target" == "[ ↑ ] Ascend (..)" ]; then
+        elif [ "$target" == "[..] Backto" ]; then
             builtin cd ..
             show_hidden="false"
-        elif [ "$target" == "[ ◉ ] Show Hidden (.*)" ]; then
+        elif [ "$target" == "[.*] Show Hidden" ]; then
             show_hidden="true"
             continue
-        elif [ "$target" == "[ ◉ ] Hide Hidden (.*)" ]; then
+        elif [ "$target" == "[.*] Hide Hidden" ]; then
             show_hidden="false"
             continue
         else
