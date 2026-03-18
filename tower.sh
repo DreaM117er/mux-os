@@ -6,50 +6,62 @@ if [ -z "$__MUX_CORE_ACTIVE" ]; then
     return 1 2>/dev/null || exit 1
 fi
 
-# ==========================================
-# 2. 原生指令劫持 (Physical Engine Overrides)
-# ==========================================
-# (這裡將會實作進化的 cd, rm, cp 等指令)
-
-# 原生指令劫持：TCT 專屬戰術雷達 (cd)
-# ==========================================
-
+# 原生指令劫持: cd (Command cd for TCT)
 function cd() {
-    # 0 & 1. 模式鎖定與旁路判定 (OR Gate Bypass Circuit)
     if [ "$MUX_MODE" != "TCT" ] || [ "$#" -gt 0 ]; then
         builtin cd "$@"
         return $?
     fi
 
-    # [修正] 絕對原點：鎖定為家目錄 (cd ~)
+    # 原點及旗標
     local origin_pwd="$HOME"
     local show_hidden="false"
 
-    # 2. 啟動雷達迴圈 (Active Sonar Loop)
     while true; do
+        # 當前資料夾及系統捷徑
         local dirs
         if [ "$show_hidden" == "true" ]; then
-            dirs=$(find . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sed 's|^\./||' | sort)
+            dirs=$(find -L . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sed 's|^\./||' | sort)
         else
-            dirs=$(find . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sed 's|^\./||' | grep -v '^\.' | sort)
+            dirs=$(find -L . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sed 's|^\./||' | grep -v '^\.' | sort)
+        fi
+
+        # 資料夾排版
+        local formatted_dirs=""
+        if [ -n "$dirs" ]; then
+            formatted_dirs=$(echo "$dirs" | awk -v c_dir="\033[1;37m" -v c_rst="\033[0m" '{print "\033[1;30m[  ]\033[0m " c_dir $0 c_rst}')
         fi
 
         local menu_items=""
-        
-        # 排序 1：[cd] 回歸原點 (紅色)
+        if [ -n "$formatted_dirs" ]; then menu_items+="${formatted_dirs}\n"; fi
+
+        menu_items+="${C_BLACK}----------${C_RESET}\n"
         menu_items+="${C_RED}[cd]${C_RESET} Revert to Origin\n"
         
-        # 排序 2：實體資料夾列表
-        if [ -n "$dirs" ]; then
-            menu_items+="${dirs}\n"
+        # ==========================================
+        # [狀態機接口預留] : 邊界鎖定與 UI 顯示簡化
+        # 未來對接 .setting。例如：local jail_active="${TCT_BUFF_JAIL:-true}"
+        # ==========================================
+        local jail_active="true" 
+        local display_prompt="$origin_pwd" # 預設 Prompt 顯示變數
+
+        if [ "$jail_active" == "true" ]; then
+            # 1. 物理屏障限制
+            if [[ "$PWD" != "$origin_pwd" && "$PWD" == "$origin_pwd"* ]]; then
+                menu_items+="${C_YELLOW}[..]${C_RESET} Backto\n"
+            fi
+            
+            # 2. UI 視覺簡化：將長串的 /data/data.../home 替換為乾淨的 ~
+            display_prompt="${origin_pwd/#$HOME/\~}"
+        else
+            # 旁通狀態：無限制模式 (Root 可達)
+            if [ "$PWD" != "/" ]; then
+                menu_items+="${C_YELLOW}[..]${C_RESET} Backto\n"
+            fi
+            # 駭客模式：顯示絕對真實物理路徑，不再掩飾
+            display_prompt="$origin_pwd"
         fi
-        
-        # 排序 3：[..] 返回上一層 (黃色)
-        if [ "$PWD" != "/" ]; then
-            menu_items+="${C_YELLOW}[..]${C_RESET} Backto\n"
-        fi
-        
-        # 排序 4：[.*] 隱藏開關 (C_BLACK 深灰色)
+
         if [ "$show_hidden" == "true" ]; then
             menu_items+="${C_BLACK}[.*]${C_RESET} Hide Hidden"
         else
@@ -63,7 +75,7 @@ function cd() {
         raw_target=$(echo -e "$menu_items" | fzf --ansi \
             --height="$dynamic_height" \
             --layout=reverse \
-            --prompt=" :: $PWD › " \
+            --prompt=" :: $display_prompt › " \
             --info=hidden \
             --header=" :: Enter to Select, Esc to Return ::" \
             --border=bottom \
@@ -74,18 +86,16 @@ function cd() {
             --bind="resize:clear-screen"
             )
 
-        # 4. 狀態判定與物理位移
-        if [ -z "$raw_target" ]; then
-            break
-        fi
+        # 按 Esc 跳出
+        if [ -z "$raw_target" ]; then break; fi
 
-        # ANSI 物理剝除
         local target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
 
-        # 根據純淨字串進行精準咬合
+        # 按鈕效果
+        if [ "$target" == "----------" ]; then continue; fi
         if [ "$target" == "[cd] Revert to Origin" ]; then
             builtin cd "$origin_pwd"
-            break
+            continue 
         elif [ "$target" == "[..] Backto" ]; then
             builtin cd ..
             show_hidden="false"
@@ -96,7 +106,8 @@ function cd() {
             show_hidden="false"
             continue
         else
-            builtin cd "$target"
+            local clean_dir=$(echo "$target" | sed 's/^\[  \] //')
+            builtin cd "$clean_dir"
             show_hidden="false"
         fi
     done
