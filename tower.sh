@@ -22,15 +22,32 @@ function cd() {
     fi
 
     local origin_pwd="$PWD"
+    local show_hidden="false" # 隱藏資料夾的預設狀態開關
+
+    # 2. 啟動雷達迴圈 (Active Sonar Loop)
     while true; do
         local dirs
-        dirs=$(find . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sed 's|^\./||' | sort)
+        if [ "$show_hidden" == "true" ]; then
+            # 顯示所有實體資料夾
+            dirs=$(find . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sed 's|^\./||' | sort)
+        else
+            # 掛載濾鏡：利用 grep -v '^\.' 物理過濾掉隱藏資料夾
+            dirs=$(find . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sed 's|^\./||' | grep -v '^\.' | sort)
+        fi
 
         local menu_items=""
         
-        menu_items+="${C_RED}[Revert to Origin]${C_RESET}\n"
+        # 戰術按鈕注入 (帶有純粹的色票)
+        menu_items+="${C_RED}[ ↺ ] Revert to Origin${C_RESET}\n"
         if [ "$PWD" != "/" ]; then
-            menu_items+="${C_YELLOW}[Backto]${C_RESET}\n"
+            menu_items+="${C_YELLOW}[ ↑ ] Ascend (..)${C_RESET}\n"
+        fi
+        
+        # 動態隱藏開關切換按鈕
+        if [ "$show_hidden" == "true" ]; then
+            menu_items+="${C_CYAN}[ ◉ ] Hide Hidden (.*)${C_RESET}\n"
+        else
+            menu_items+="${C_CYAN}[ ◉ ] Show Hidden (.*)${C_RESET}\n"
         fi
         
         if [ -n "$dirs" ]; then
@@ -55,22 +72,28 @@ function cd() {
             --bind="resize:clear-screen"
             )
 
-        if [ -z "$target" ]; then
-            # 狀態：按下 ESC，直接原地登出雷達，不改變當前位置
+        # 4. 狀態判定與物理位移
+        if [ -z "$raw_target" ]; then
             break
-        elif [[ "$target" == *"[Revert to Origin]"* ]]; then
-            # 狀態：觸發紅色彈射鈕
-            # 動作：拉動安全繫繩，瞬間位移回原點，並切斷雷達
+        fi
+
+        local target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+
+        if [ "$target" == "[ ↺ ] Revert to Origin" ]; then
             builtin cd "$origin_pwd"
             break
-        elif [[ "$target" == *"[Backto]"* ]]; then
-            # 狀態：觸發黃色攀爬點
-            # 動作：向上層跳躍
+        elif [ "$target" == "[ ↑ ] Ascend (..)" ]; then
             builtin cd ..
+            show_hidden="false"
+        elif [ "$target" == "[ ◉ ] Show Hidden (.*)" ]; then
+            show_hidden="true"
+            continue
+        elif [ "$target" == "[ ◉ ] Hide Hidden (.*)" ]; then
+            show_hidden="false"
+            continue
         else
-            # 狀態：鎖定目標資料夾
-            # 動作：向內層跳躍 (因為 target 不含色碼，這裡可以直接跳躍)
             builtin cd "$target"
+            show_hidden="false"
         fi
     done
 }
