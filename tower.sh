@@ -16,63 +16,60 @@ fi
 
 function cd() {
     # 0 & 1. 模式鎖定與旁路判定 (OR Gate Bypass Circuit)
-    # 只要「不是 TCT 模式」或「帶有具體參數」，就直接走原生旁通電路
     if [ "$MUX_MODE" != "TCT" ] || [ "$#" -gt 0 ]; then
         builtin cd "$@"
         return $?
     fi
 
-    # 2. 啟動雷達迴圈 (Active Sonar Loop)
+    local origin_pwd="$PWD"
     while true; do
-        # 抓取當前實體資料夾，過濾掉檔案與隱藏檔，並剝除 "./" 前綴
         local dirs
         dirs=$(find . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sed 's|^\./||' | sort)
 
-        # 構建選單資料流
         local menu_items=""
         
-        # 防呆機制：如果不是在根目錄，才掛載 [Backto] 退回接點
+        menu_items+="${C_RED}[Revert to Origin]${C_RESET}\n"
         if [ "$PWD" != "/" ]; then
-            menu_items+="[Backto]\n"
+            menu_items+="${C_YELLOW}[Backto]${C_RESET}\n"
         fi
         
-        # 將實體資料夾清單注入選單
         if [ -n "$dirs" ]; then
             menu_items+="$dirs"
         fi
 
-        # 3. 渲染 fzf 介面 (TCT 視覺綁定)
-        # 修正變數名稱：$menu_list -> $menu_items，確保高度計算正確
         local line_count=$(echo -e "$menu_items" | wc -l)
         local dynamic_height=$(( line_count + 4 ))
 
         local target
         target=$(echo -e "$menu_items" | fzf \
             --height="$dynamic_height" \
-            --prompt=" :: cd › " \
             --layout=reverse \
-            --header=" :: Enter to Select, Esc to Return ::" \
+            --prompt=" :: $PWD › " \
             --info=hidden \
-            --border-label=" :: Commander's Radar: $PWD :: " \
+            --header=" :: Enter to Select, Esc to Return ::" \
             --border=bottom \
+            --border-label=" :: TARGET DIRECTORY :: " \
             --pointer="››" \
-            --color=fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:211 \
-            --color=info:240,prompt:211,pointer:211,marker:211,border:211,header:240 \
+            --color=fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:240 \
+            --color=info:240,prompt:211,pointer:red,marker:211,border:211,header:240 \
             --bind="resize:clear-screen"
             )
 
-        # 4. 狀態判定與物理位移
         if [ -z "$target" ]; then
-            # 狀態：指揮官按下 ESC 或是 Ctrl+C
-            # 動作：切斷迴圈，將終端機控制權交還
+            # 狀態：按下 ESC，直接原地登出雷達，不改變當前位置
             break
-        elif [ "$target" == "[Backto]" ]; then
-            # 狀態：觸發退回接點
-            # 動作：向上層跳躍，隨後迴圈會自動重新掃描上一層的環境
+        elif [[ "$target" == *"[Revert to Origin]"* ]]; then
+            # 狀態：觸發紅色彈射鈕
+            # 動作：拉動安全繫繩，瞬間位移回原點，並切斷雷達
+            builtin cd "$origin_pwd"
+            break
+        elif [[ "$target" == *"[Backto]"* ]]; then
+            # 狀態：觸發黃色攀爬點
+            # 動作：向上層跳躍
             builtin cd ..
         else
             # 狀態：鎖定目標資料夾
-            # 動作：向內層跳躍，隨後迴圈自動掃描新環境
+            # 動作：向內層跳躍 (因為 target 不含色碼，這裡可以直接跳躍)
             builtin cd "$target"
         fi
     done
