@@ -11,6 +11,72 @@ fi
 # ==========================================
 # (這裡將會實作進化的 cd, rm, cp 等指令)
 
+# 原生指令劫持：TCT 專屬戰術雷達 (cd)
+# ==========================================
+
+function cd() {
+    # 0 & 1. 模式鎖定與旁路判定 (OR Gate Bypass Circuit)
+    # 只要「不是 TCT 模式」或「帶有具體參數」，就直接走原生旁通電路
+    if [ "$MUX_MODE" != "TCT" ] || [ "$#" -gt 0 ]; then
+        builtin cd "$@"
+        return $?
+    fi
+
+    # 2. 啟動雷達迴圈 (Active Sonar Loop)
+    while true; do
+        # 抓取當前實體資料夾，過濾掉檔案與隱藏檔，並剝除 "./" 前綴
+        local dirs
+        dirs=$(find . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sed 's|^\./||' | sort)
+
+        # 構建選單資料流
+        local menu_items=""
+        
+        # 防呆機制：如果不是在根目錄，才掛載 [Backto] 退回接點
+        if [ "$PWD" != "/" ]; then
+            menu_items+="[Backto]\n"
+        fi
+        
+        # 將實體資料夾清單注入選單
+        if [ -n "$dirs" ]; then
+            menu_items+="$dirs"
+        fi
+
+        # 3. 渲染 fzf 介面 (TCT 視覺綁定)
+        # 修正變數名稱：$menu_list -> $menu_items，確保高度計算正確
+        local line_count=$(echo -e "$menu_items" | wc -l)
+        local dynamic_height=$(( line_count + 4 ))
+
+        local target
+        target=$(echo -e "$menu_items" | fzf \
+            --height="$dynamic_height" \
+            --prompt=" :: cd › " \
+            --layout=reverse \
+            --header=" :: Enter to Select, Esc to Return ::" \
+            --info=hidden \
+            --border-label=" :: Commander's Radar: $PWD :: " \
+            --border=bottom \
+            --pointer="››" \
+            --color=fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:211 \
+            --color=info:240,prompt:211,pointer:211,marker:211,border:211,header:240 \
+            --bind="resize:clear-screen"
+            )
+
+        # 4. 狀態判定與物理位移
+        if [ -z "$target" ]; then
+            # 狀態：指揮官按下 ESC 或是 Ctrl+C
+            # 動作：切斷迴圈，將終端機控制權交還
+            break
+        elif [ "$target" == "[Backto]" ]; then
+            # 狀態：觸發退回接點
+            # 動作：向上層跳躍，隨後迴圈會自動重新掃描上一層的環境
+            builtin cd ..
+        else
+            # 狀態：鎖定目標資料夾
+            # 動作：向內層跳躍，隨後迴圈自動掃描新環境
+            builtin cd "$target"
+        fi
+    done
+}
 
 # 指揮塔初始化 (Tower Initialization)
 function _tct_init() {
