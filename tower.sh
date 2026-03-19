@@ -28,20 +28,28 @@ function _bypass_guard() {
 
 # 原生指令劫持: cd (Command cd for TCT)
 function cd() {
-    # 模式鎖定
-    if [ "$MUX_MODE" != "TCT" ] || [ "$#" -gt 0 ] || [ "$CMT_COMMAND" != "true" ] || [ "$COMMAND_CD" != "true" ]; then
-        # 防爆閘門
+    # 狀態機讀取
+    local setting_file="$HOME/mux-os/.setting"
+    if [ -f "$setting_file" ]; then source "$setting_file"; fi
+
+    local allow_radar="false"
+    if [ "$MUX_MODE" == "TCT" ] && [ "$#" -eq 0 ]; then
+        if [ "$COMMAND_CD" == "forever" ]; then
+            allow_radar="true"
+        elif [ "$CMT_COMMAND" == "true" ] && [ "$COMMAND_CD" == "true" ]; then
+            allow_radar="true"
+        fi
+    fi
+
+    # 防爆閘門
+    if [ "$allow_radar" != "true" ]; then
         if _bypass_guard "builtin cd" "$@"; then
             return $?
         else
             builtin cd "$@"
             return $?
         fi
-    fi
-
-    # 狀態機讀取
-    local setting_file="$HOME/mux-os/.setting"
-    if [ -f "$setting_file" ]; then source "$setting_file"; fi
+    fi    
 
     # 原點及旗標
     local origin_pwd="$HOME"
@@ -157,9 +165,22 @@ function cd() {
 
 # 原生指令劫持: ls (Command ls for TCT)
 function ls() {
+    # 狀態機讀取
+    local setting_file="$HOME/mux-os/.setting"
+    if [ -f "$setting_file" ]; then source "$setting_file"; fi
+
     # 模式鎖定
-    if [ "$MUX_MODE" != "TCT" ] || [ "$#" -gt 0 ] || [ "$CMT_COMMAND" != "true" ] || [ "$COMMAND_LS" != "true" ]; then
-        # 防爆閘門
+    local allow_radar="false"
+    if [ "$MUX_MODE" == "TCT" ] && [ "$#" -eq 0 ]; then
+        if [ "$COMMAND_LS" == "forever" ]; then
+            allow_radar="true"
+        elif [ "$CMT_COMMAND" == "true" ] && [ "$COMMAND_LS" == "true" ]; then
+            allow_radar="true"
+        fi
+    fi
+
+    # 防爆閘門
+    if [ "$allow_radar" != "true" ]; then
         if _bypass_guard "command ls --color=auto" "$@"; then
             return $?
         else
@@ -167,9 +188,6 @@ function ls() {
             return $?
         fi
     fi
-
-    local setting_file="$HOME/mux-os/.setting"
-    if [ -f "$setting_file" ]; then source "$setting_file"; fi
 
     local origin_pwd="$HOME"
     local show_hidden="${TCT_RADAR_HIDDEN:-false}"
@@ -375,18 +393,69 @@ function __tct_core() {
     case "$cmd" in
         # : System 'cd' Override
         "cd")
+            # 暫存原本的狀態
+            local prev_cmt="$CMT_COMMAND"
+            local prev_cd="$COMMAND_CD"
+            
             export CMT_COMMAND="true"
             export COMMAND_CD="true"
             cd "${@:2}"
-            unset CMT_COMMAND COMMAND_CD
+            
+            # 執行完畢後恢復為原本的狀態，不觸發 _save_settings
+            export CMT_COMMAND="$prev_cmt"
+            export COMMAND_CD="$prev_cd"
             ;;
             
         # : System 'ls' Override
         "ls")
+            local prev_cmt="$CMT_COMMAND"
+            local prev_ls="$COMMAND_LS"
+            
             export CMT_COMMAND="true"
             export COMMAND_LS="true"
             ls "${@:2}"
-            unset CMT_COMMAND COMMAND_LS
+            
+            export CMT_COMMAND="$prev_cmt"
+            export COMMAND_LS="$prev_ls"
+            ;;
+
+        # : TCT Settings Toggle
+        "set")
+            local target_cmd="$2"
+            if [ -z "$target_cmd" ]; then
+                echo -e "${C_PINKMEOW} :: Commander, set what? (・_・)${C_RESET}"
+                return 1
+            fi
+            
+            case "$target_cmd" in
+                "cd") export COMMAND_CD="forever" ;;
+                "ls") export COMMAND_LS="forever" ;;
+                "jail") export TCT_RADAR_JAIL="true" ;;
+                "hidden") export TCT_RADAR_HIDDEN="true" ;;
+                *) echo -e "${C_PINKMEOW} :: I don't know how to set '$target_cmd'... (；´д｀)ゞ${C_RESET}"; return 1 ;;
+            esac
+            
+            if command -v _save_settings &> /dev/null; then _save_settings; fi
+            echo -e "${C_PINKMEOW} :: Setting applied: $target_cmd is now active! (*≧ω≦)${C_RESET}"
+            ;;
+
+        "unset")
+            local target_cmd="$2"
+            if [ -z "$target_cmd" ]; then
+                echo -e "${C_PINKMEOW} :: Commander, unset what? (・_・)${C_RESET}"
+                return 1
+            fi
+            
+            case "$target_cmd" in
+                "cd") export COMMAND_CD="false" ;;
+                "ls") export COMMAND_LS="false" ;;
+                "jail") export TCT_RADAR_JAIL="false" ;;
+                "hidden") export TCT_RADAR_HIDDEN="false" ;;
+                *) echo -e "${C_PINKMEOW} :: I don't know how to unset '$target_cmd'... (；´д｀)ゞ${C_RESET}"; return 1 ;;
+            esac
+            
+            if command -v _save_settings &> /dev/null; then _save_settings; fi
+            echo -e "${C_PINKMEOW} :: Setting removed: $target_cmd is now disabled! ( ´ ▽ \` )ﾉ${C_RESET}"
             ;;
 
         # : Exit Command Tower
