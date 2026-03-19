@@ -8,6 +8,7 @@ fi
 
 # 原生指令劫持: cd (Command cd for TCT)
 function cd() {
+    # 0 & 1. 模式鎖定與旁路判定 (OR Gate Bypass Circuit)
     if [ "$MUX_MODE" != "TCT" ] || [ "$#" -gt 0 ]; then
         builtin cd "$@"
         return $?
@@ -17,8 +18,9 @@ function cd() {
     local origin_pwd="$HOME"
     local show_hidden="false"
 
+    # 2. 啟動雷達迴圈 (Active Sonar Loop)
     while true; do
-        # 當前資料夾及系統捷徑
+        # 當前資料夾及系統捷徑 (實體穿透)
         local dirs
         if [ "$show_hidden" == "true" ]; then
             dirs=$(find -L . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sed 's|^\./||' | sort)
@@ -37,11 +39,14 @@ function cd() {
             menu_items+="${formatted_dirs}\n"
             menu_items+="${C_BLACK}----------${C_RESET}\n"
         fi
-        
+
         # ==========================================
         # [狀態機接口預留] : 邊界鎖定與 UI 顯示簡化
         # 未來對接 .setting。例如：local jail_active="${TCT_BUFF_JAIL:-true}"
         # ==========================================
+        local jail_active="true" 
+        local display_prompt="$PWD"
+
         if [ "$jail_active" == "true" ]; then
             if [[ "$PWD" != "$origin_pwd" && "$PWD" == "$origin_pwd"* ]]; then
                 menu_items+="${C_RED}[cd]${C_RESET} Revert to Origin\n"
@@ -56,6 +61,7 @@ function cd() {
             display_prompt="$PWD"
         fi
 
+        # 隱藏檔光學濾鏡開關
         if [ "$show_hidden" == "true" ]; then
             menu_items+="${C_BLACK}[.*]${C_RESET} Hide Hidden"
         else
