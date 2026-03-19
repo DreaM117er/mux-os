@@ -54,13 +54,11 @@ EOF
 # 設定存檔核心 (Setting Save Protocol)
 function _save_settings() {
     cat > "$SETTING_FILE" <<EOF
-AAPKLIST_BACKUP_PKG="${APKLIST_BACKUP_PKG}"
+APKLIST_BACKUP_PKG="${APKLIST_BACKUP_PKG}"
 APKLIST_BACKUP_TARGET="${APKLIST_BACKUP_TARGET}"
 TCT_RADAR_JAIL="${TCT_RADAR_JAIL:-true}"
 TCT_RADAR_HIDDEN="${TCT_RADAR_HIDDEN:-false}"
-CMT_COMMAND="${CMT_COMMAND:-false}"
-COMMAND_CD="${COMMAND_CD:-false}"
-COMMAND_LS="${COMMAND_LS:-false}"
+COMMAND_CDLS="${COMMAND_CDLS:-false}"
 EOF
 }
 
@@ -144,9 +142,7 @@ if [ ! -f "$IDENTITY_FILE" ]; then
         # 建立預設值，並觸發存檔
         TCT_RADAR_JAIL="true"
         TCT_RADAR_HIDDEN="false"
-        CMT_COMMAND="false"
-        COMMAND_CD="false"
-        COMMAND_LS="false"
+        COMMAND_CDLS="false"
         _save_settings
     else
         # 讀取現有設定
@@ -156,9 +152,7 @@ if [ ! -f "$IDENTITY_FILE" ]; then
         local setting_changed="false"
         if [ -z "$TCT_RADAR_JAIL" ]; then TCT_RADAR_JAIL="true"; setting_changed="true"; fi
         if [ -z "$TCT_RADAR_HIDDEN" ]; then TCT_RADAR_HIDDEN="false"; setting_changed="true"; fi
-        if [ -z "$CMT_COMMAND" ]; then CMT_COMMAND="false"; setting_changed="true"; fi
-        if [ -z "$COMMAND_CD" ]; then COMMAND_CD="false"; setting_changed="true"; fi
-        if [ -z "$COMMAND_LS" ]; then COMMAND_LS="false"; setting_changed="true"; fi
+        if [ -z "$COMMAND_CDLS" ]; then COMMAND_CDLS="false"; setting_changed="true"; fi
         
         if [ "$setting_changed" == "true" ]; then
             _save_settings

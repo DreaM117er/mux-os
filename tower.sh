@@ -26,30 +26,19 @@ function _bypass_guard() {
     fi
 }
 
-# 原生指令劫持: cd (Command cd for TCT)
-function cd() {
-    # 狀態機讀取
+# 狀態機讀取
     local setting_file="$HOME/mux-os/.setting"
     if [ -f "$setting_file" ]; then source "$setting_file"; fi
 
-    local allow_radar="false"
-    if [ "$MUX_MODE" == "TCT" ] && [ "$#" -eq 0 ]; then
-        if [ "$COMMAND_CD" == "forever" ]; then
-            allow_radar="true"
-        elif [ "$CMT_COMMAND" == "true" ] && [ "$COMMAND_CD" == "true" ]; then
-            allow_radar="true"
-        fi
-    fi
-
-    # 防爆閘門
-    if [ "$allow_radar" != "true" ]; then
+    if [ "$MUX_MODE" != "TCT" ] || [ "$#" -gt 0 ] || { [ "$COMMAND_CDLS" != "true" ] && [ "$COMMAND_CDLS" != "forever" ]; }; then
+        # 防爆閘門
         if _bypass_guard "builtin cd" "$@"; then
             return $?
         else
             builtin cd "$@"
             return $?
         fi
-    fi    
+    fi
 
     # 原點及旗標
     local origin_pwd="$HOME"
@@ -103,7 +92,7 @@ function cd() {
         local dynamic_height=$(( line_count + 4 ))
 
         local ui_prompt=" :: $display_prompt › "
-        if [ "$CMT_COMMAND" == "true" ] && [ "$COMMAND_CD" == "true" ]; then
+        if [ "$COMMAND_CDLS" == "true" ]; then
             ui_prompt=" :: cmt › cd › $display_prompt :: "
         fi
 
@@ -128,16 +117,9 @@ function cd() {
 
         if [ "$target" == "----------" ]; then continue; fi
         
+        # [修正] 無縫切換，直接呼叫 ls，拋棄冗餘變數
         if [ "$target" == "[ls] Show Files" ]; then
-            if [ "$CMT_COMMAND" == "true" ]; then
-                export COMMAND_CD="false"
-                export COMMAND_LS="true"
-            fi
             ls
-            if [ "$CMT_COMMAND" == "true" ]; then
-                export COMMAND_CD="true"
-                export COMMAND_LS="false"
-            fi
             break
         elif [ "$target" == "[cd] Revert to Origin" ]; then
             builtin cd "$origin_pwd"
@@ -170,17 +152,8 @@ function ls() {
     if [ -f "$setting_file" ]; then source "$setting_file"; fi
 
     # 模式鎖定
-    local allow_radar="false"
-    if [ "$MUX_MODE" == "TCT" ] && [ "$#" -eq 0 ]; then
-        if [ "$COMMAND_LS" == "forever" ]; then
-            allow_radar="true"
-        elif [ "$CMT_COMMAND" == "true" ] && [ "$COMMAND_LS" == "true" ]; then
-            allow_radar="true"
-        fi
-    fi
-
-    # 防爆閘門
-    if [ "$allow_radar" != "true" ]; then
+    if [ "$MUX_MODE" != "TCT" ] || [ "$#" -gt 0 ] || { [ "$COMMAND_CDLS" != "true" ] && [ "$COMMAND_CDLS" != "forever" ]; }; then
+        # 防爆閘門
         if _bypass_guard "command ls --color=auto" "$@"; then
             return $?
         else
@@ -242,7 +215,7 @@ function ls() {
         [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
         local ui_prompt=" :: ls › $display_prompt :: "
-        if [ "$CMT_COMMAND" == "true" ] && [ "$COMMAND_LS" == "true" ]; then
+        if [ "$COMMAND_CDLS" == "true" ]; then
             ui_prompt=" :: cmt › ls › $display_prompt :: "
         fi
 
@@ -267,16 +240,9 @@ function ls() {
 
         if [ "$target" == "----------" ]; then continue; fi
         
+        # [修正] 無縫切換，直接呼叫 cd，拋棄冗餘變數
         if [ "$target" == "[cd] Hide Files" ]; then
-            if [ "$CMT_COMMAND" == "true" ]; then
-                export COMMAND_LS="false"
-                export COMMAND_CD="true"
-            fi
             cd
-            if [ "$CMT_COMMAND" == "true" ]; then
-                export COMMAND_LS="true"
-                export COMMAND_CD="false"
-            fi
             break
         elif [ "$target" == "[cd] Revert to Origin" ]; then
             builtin cd "$origin_pwd"
@@ -339,6 +305,7 @@ function _tct_init() {
     _system_unlock
 }
 
+
 # Mux-OS 指令入口 - Tower Command Entry
 # === Tct ===
 
@@ -393,30 +360,16 @@ function __tct_core() {
     case "$cmd" in
         # : System 'cd' Override
         "cd")
-            # 暫存原本的狀態
-            local prev_cmt="$CMT_COMMAND"
-            local prev_cd="$COMMAND_CD"
-            
-            export CMT_COMMAND="true"
-            export COMMAND_CD="true"
+            export COMMAND_CDLS="true"
             cd "${@:2}"
-            
-            # 執行完畢後恢復為原本的狀態，不觸發 _save_settings
-            export CMT_COMMAND="$prev_cmt"
-            export COMMAND_CD="$prev_cd"
+            unset COMMAND_CDLS
             ;;
             
         # : System 'ls' Override
         "ls")
-            local prev_cmt="$CMT_COMMAND"
-            local prev_ls="$COMMAND_LS"
-            
-            export CMT_COMMAND="true"
-            export COMMAND_LS="true"
+            export COMMAND_CDLS="true"
             ls "${@:2}"
-            
-            export CMT_COMMAND="$prev_cmt"
-            export COMMAND_LS="$prev_ls"
+            unset COMMAND_CDLS
             ;;
 
         # : TCT Settings Toggle
@@ -428,8 +381,7 @@ function __tct_core() {
             fi
             
             case "$target_cmd" in
-                "cd") export COMMAND_CD="forever" ;;
-                "ls") export COMMAND_LS="forever" ;;
+                "cdls") export COMMAND_CDLS="forever" ;;
                 "jail") export TCT_RADAR_JAIL="true" ;;
                 "hidden") export TCT_RADAR_HIDDEN="true" ;;
                 *) echo -e "${C_PINKMEOW} :: I don't know how to set '$target_cmd'... (；´д｀)ゞ${C_RESET}"; return 1 ;;
@@ -439,6 +391,7 @@ function __tct_core() {
             echo -e "${C_PINKMEOW} :: Setting applied: $target_cmd is now active! (*≧ω≦)${C_RESET}"
             ;;
 
+        # : TCT Settings Toggle
         "unset")
             local target_cmd="$2"
             if [ -z "$target_cmd" ]; then
@@ -447,8 +400,7 @@ function __tct_core() {
             fi
             
             case "$target_cmd" in
-                "cd") export COMMAND_CD="false" ;;
-                "ls") export COMMAND_LS="false" ;;
+                "cdls") export COMMAND_CDLS="false" ;;
                 "jail") export TCT_RADAR_JAIL="false" ;;
                 "hidden") export TCT_RADAR_HIDDEN="false" ;;
                 *) echo -e "${C_PINKMEOW} :: I don't know how to unset '$target_cmd'... (；´д｀)ゞ${C_RESET}"; return 1 ;;
