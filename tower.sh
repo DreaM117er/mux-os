@@ -9,7 +9,7 @@ fi
 # 原生指令劫持: cd (Command cd for TCT)
 function cd() {
     # 模式鎖定
-    if [ "$MUX_MODE" != "TCT" ] || [ "$#" -gt 0 ]; then
+    if [ "$MUX_MODE" != "TCT" ] || [ "$#" -gt 0 ] || [ "$CMT_COMMAND" != "true" ] || [ "$COMMAND_CD" != "true" ]; then
         builtin cd "$@"
         return $?
     fi
@@ -133,7 +133,7 @@ function cd() {
 # 原生指令劫持: ls (Command ls for TCT)
 function ls() {
     # 模式鎖定
-    if [ "$MUX_MODE" != "TCT" ] || [ "$#" -gt 0 ]; then
+    if [ "$MUX_MODE" != "TCT" ] || [ "$#" -gt 0 ] || [ "$CMT_COMMAND" != "true" ] || [ "$COMMAND_LS" != "true" ]; then
         command ls --color=auto "$@"
         return $?
     fi
