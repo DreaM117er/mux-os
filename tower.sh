@@ -14,12 +14,16 @@ function cd() {
         return $?
     fi
 
+    # 狀態機讀取
+    local setting_file="$HOME/mux-os/.setting"
+    if [ -f "$setting_file" ]; then source "$setting_file"; fi
+
     # 原點及旗標
     local origin_pwd="$HOME"
-    local show_hidden="false"
+    local show_hidden="${TCT_RADAR_HIDDEN:-false}"
+    local jail_active="${TCT_RADAR_JAIL:-true}"
 
     while true; do
-        # 顯示當前資料夾及系統捷徑
         local dirs
         if [ "$show_hidden" == "true" ]; then
             dirs=$(find -L . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sed 's|^\./||' | sort)
@@ -27,7 +31,6 @@ function cd() {
             dirs=$(find -L . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sed 's|^\./||' | grep -v '^\.' | sort)
         fi
 
-        # 資料夾排版
         local formatted_dirs=""
         if [ -n "$dirs" ]; then
             formatted_dirs=$(echo "$dirs" | awk -v c_dir="\033[1;37m" -v c_rst="\033[0m" '{print "\033[1;30m[  ]\033[0m " c_dir $0 c_rst}')
@@ -39,15 +42,8 @@ function cd() {
             menu_items+="${C_BLACK}----------${C_RESET}\n"
         fi
 
-        # ==========================================
-        # [雙生狀態機切換接點] : 切換為 ls 模式 (顯示所有檔案)
-        # ==========================================
         menu_items+="${C_GREEN}[ls]${C_RESET} Show Files\n"
 
-        # ==========================================
-        # [狀態機接口預留] : 邊界鎖定與 UI 顯示簡化
-        # ==========================================
-        local jail_active="true" 
         local display_prompt="$PWD"
 
         if [ "$jail_active" == "true" ]; then
@@ -64,7 +60,6 @@ function cd() {
             display_prompt="$PWD"
         fi
 
-        # 隱藏檔光學濾鏡開關
         if [ "$show_hidden" == "true" ]; then
             menu_items+="${C_BLACK}[.*]${C_RESET} Hide Hidden"
         else
@@ -74,11 +69,16 @@ function cd() {
         local line_count=$(echo -e "$menu_items" | wc -l)
         local dynamic_height=$(( line_count + 4 ))
 
+        local ui_prompt=" :: $display_prompt › "
+        if [ "$CMT_COMMAND" == "true" ] && [ "$COMMAND_CD" == "true" ]; then
+            ui_prompt=" :: cmt › cd › $display_prompt :: "
+        fi
+
         local raw_target
         raw_target=$(echo -e "$menu_items" | fzf --ansi \
             --height="$dynamic_height" \
             --layout=reverse \
-            --prompt=" :: $display_prompt › " \
+            --prompt="$ui_prompt" \
             --info=hidden \
             --header=" :: Enter to Select, Esc to Return ::" \
             --border=bottom \
@@ -89,33 +89,43 @@ function cd() {
             --bind="resize:clear-screen"
             )
 
-        # 按 Esc 跳出
         if [ -z "$raw_target" ]; then break; fi
 
         local target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
 
-        # 按鈕效果
         if [ "$target" == "----------" ]; then continue; fi
         
         if [ "$target" == "[ls] Show Files" ]; then
+            if [ "$CMT_COMMAND" == "true" ]; then
+                export COMMAND_CD="false"
+                export COMMAND_LS="true"
+            fi
             ls
+            if [ "$CMT_COMMAND" == "true" ]; then
+                export COMMAND_CD="true"
+                export COMMAND_LS="false"
+            fi
             break
         elif [ "$target" == "[cd] Revert to Origin" ]; then
             builtin cd "$origin_pwd"
             continue
         elif [ "$target" == "[..] Backto" ]; then
             builtin cd ..
-            show_hidden="false"
+            export TCT_RADAR_HIDDEN="false"; show_hidden="false"
+            if command -v _save_settings &> /dev/null; then _save_settings; fi
         elif [ "$target" == "[.*] Show Hidden" ]; then
-            show_hidden="true"
+            export TCT_RADAR_HIDDEN="true"; show_hidden="true"
+            if command -v _save_settings &> /dev/null; then _save_settings; fi
             continue
         elif [ "$target" == "[.*] Hide Hidden" ]; then
-            show_hidden="false"
+            export TCT_RADAR_HIDDEN="false"; show_hidden="false"
+            if command -v _save_settings &> /dev/null; then _save_settings; fi
             continue
         else
             local clean_dir=$(echo "$target" | sed 's/^\[  \] //')
             builtin cd "$clean_dir"
-            show_hidden="false"
+            export TCT_RADAR_HIDDEN="false"; show_hidden="false"
+            if command -v _save_settings &> /dev/null; then _save_settings; fi
         fi
     done
 }
@@ -128,8 +138,12 @@ function ls() {
         return $?
     fi
 
+    local setting_file="$HOME/mux-os/.setting"
+    if [ -f "$setting_file" ]; then source "$setting_file"; fi
+
     local origin_pwd="$HOME"
-    local show_hidden="false"
+    local show_hidden="${TCT_RADAR_HIDDEN:-false}"
+    local jail_active="${TCT_RADAR_JAIL:-true}"
 
     while true; do
         local files
@@ -151,12 +165,8 @@ function ls() {
             menu_items+="${C_BLACK}----------${C_RESET}\n"
         fi
 
-        # ==========================================
-        # [雙生狀態機切換接點] : 切換回 cd 模式 (隱藏檔案)
-        # ==========================================
         menu_items+="${C_PINKMEOW}[cd]${C_RESET} Hide Files\n"
 
-        local jail_active="true" 
         local display_prompt="$PWD"
 
         if [ "$jail_active" == "true" ]; then
@@ -183,11 +193,16 @@ function ls() {
         local dynamic_height=$(( line_count + 4 ))
         [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
+        local ui_prompt=" :: ls › $display_prompt :: "
+        if [ "$CMT_COMMAND" == "true" ] && [ "$COMMAND_LS" == "true" ]; then
+            ui_prompt=" :: cmt › ls › $display_prompt :: "
+        fi
+
         local raw_target
         raw_target=$(echo -e "$menu_items" | fzf --ansi \
             --height="$dynamic_height" \
             --layout=reverse \
-            --prompt=" :: $display_prompt › :: " \
+            --prompt="$ui_prompt" \
             --info=hidden \
             --header=" :: Enter to Inspect, Esc to Return ::" \
             --border=bottom \
@@ -198,7 +213,6 @@ function ls() {
             --bind="resize:clear-screen"
             )
 
-        # Esc 跳出迴圈
         if [ -z "$raw_target" ]; then break; fi
 
         local target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
@@ -206,27 +220,38 @@ function ls() {
         if [ "$target" == "----------" ]; then continue; fi
         
         if [ "$target" == "[cd] Hide Files" ]; then
+            if [ "$CMT_COMMAND" == "true" ]; then
+                export COMMAND_LS="false"
+                export COMMAND_CD="true"
+            fi
             cd
+            if [ "$CMT_COMMAND" == "true" ]; then
+                export COMMAND_LS="true"
+                export COMMAND_CD="false"
+            fi
             break
         elif [ "$target" == "[cd] Revert to Origin" ]; then
             builtin cd "$origin_pwd"
             continue
         elif [ "$target" == "[..] Backto" ]; then
             builtin cd ..
-            show_hidden="false"
+            export TCT_RADAR_HIDDEN="false"; show_hidden="false"
+            if command -v _save_settings &> /dev/null; then _save_settings; fi
         elif [ "$target" == "[.*] Show Hidden" ]; then
-            show_hidden="true"
+            export TCT_RADAR_HIDDEN="true"; show_hidden="true"
+            if command -v _save_settings &> /dev/null; then _save_settings; fi
             continue
         elif [ "$target" == "[.*] Hide Hidden" ]; then
-            show_hidden="false"
+            export TCT_RADAR_HIDDEN="false"; show_hidden="false"
+            if command -v _save_settings &> /dev/null; then _save_settings; fi
             continue
         else
             local clean_target=$(echo "$target" | sed 's/^\[  \] //')
             if [ -d "$clean_target" ]; then
                 builtin cd "$clean_target"
-                show_hidden="false"
+                export TCT_RADAR_HIDDEN="false"; show_hidden="false"
+                if command -v _save_settings &> /dev/null; then _save_settings; fi
             elif [ -f "$clean_target" ]; then
-                # 預留單純檢視檔案的接口
                 continue
             fi
         fi
@@ -318,6 +343,22 @@ function __tct_core() {
     fi
     
     case "$cmd" in
+        # : System 'cd' Override
+        "cd")
+            export CMT_COMMAND="true"
+            export COMMAND_CD="true"
+            cd "${@:2}"
+            unset CMT_COMMAND COMMAND_CD
+            ;;
+            
+        # : System 'ls' Override
+        "ls")
+            export CMT_COMMAND="true"
+            export COMMAND_LS="true"
+            ls "${@:2}"
+            unset CMT_COMMAND COMMAND_LS
+            ;;
+
         # : Exit Command Tower
         "logout")
             echo -ne "${C_RED} :: EXIT COMMAND TOWER? TYPE 'CONFIRM' TO PROCEED: ${C_RESET}"

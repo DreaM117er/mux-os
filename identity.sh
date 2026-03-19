@@ -3,13 +3,14 @@
 
 export MUX_ROOT="${MUX_ROOT:-$HOME/mux-os}"
 export IDENTITY_FILE="$MUX_ROOT/.mux_identity"
+export SETTING_FILE="$MUX_ROOT/.setting"
 
 if [ -z "$__MUX_CORE_ACTIVE" ]; then
     echo -e "\033[1;31m :: ACCESS DENIED :: Core Uplink Required.\033[0m"
     return 1 2>/dev/null || exit 1
 fi
 
-# 存檔核心 (Identity Save Protocol)
+# 身份存檔核心 (Identity Save Protocol)
 function _save_identity() {
     cat > "$IDENTITY_FILE" <<EOF
 MUX_ID="$MUX_ID"
@@ -47,6 +48,16 @@ CMD_NANO_COUNT="${CMD_NANO_COUNT:-0}"
 CMD_CP_COUNT="${CMD_CP_COUNT:-0}"
 CMD_SED_COUNT="${CMD_SED_COUNT:-0}"
 CMD_MICRO_COUNT="${CMD_MICRO_COUNT:-0}"
+EOF
+}
+
+# 設定存檔核心 (Setting Save Protocol)
+function _save_settings() {
+    cat > "$SETTING_FILE" <<EOF
+APKLIST_BACKUP_PKG="${APKLIST_BACKUP_PKG}"
+APKLIST_BACKUP_TARGET="${APKLIST_BACKUP_TARGET}"
+TCT_RADAR_JAIL="${TCT_RADAR_JAIL:-true}"
+TCT_RADAR_HIDDEN="${TCT_RADAR_HIDDEN:-false}"
 EOF
 }
 
@@ -91,45 +102,58 @@ if [ ! -f "$IDENTITY_FILE" ]; then
         CMD_MICRO_COUNT=0
         
         _save_identity
-        return
+    else
+        source "$IDENTITY_FILE"
+        # 舊用戶遷移
+        if [ -z "$MUX_DATE" ]; then
+            MUX_DATE=${MUX_DATE:-$(date +%s)}
+            MUX_LF=${MUX_BF:-$now_ts}
+            MUX_BF=$now_ts
+            MUX_FIRECOUNT=0
+            MUX_OCDATE=0
+            MUX_CDDATE=0
+            MUX_CHECK=${MUX_CHECK:-0}
+            MUX_REBORN_COUNT="${MUX_REBORN_COUNT:-0}"
+            HEAP_ALLOCATION_IDX=${HEAP_ALLOCATION_IDX:-0}
+            IO_WRITE_CYCLES=${IO_WRITE_CYCLES:-0}
+            KERNEL_PANIC_OFFSET=${KERNEL_PANIC_OFFSET:-0}
+            UPLINK_LATENCY_MS=${UPLINK_LATENCY_MS:-0}
+            ENTROPY_DISCHARGE=${ENTROPY_DISCHARGE:-0}
+            NEURAL_SYNAPSE_FIRING=${NEURAL_SYNAPSE_FIRING:-0}
+            EJECTION_COUNT=${EJECTION_COUNT:-0}
+            SUDO_ATTEMPT_COUNT=${SUDO_ATTEMPT_COUNT:-0}
+            HELP_ACCESS_COUNT=${HELP_ACCESS_COUNT:-0}
+            FACTORY_ABUSE_COUNT=${FACTORY_ABUSE_COUNT:-0}
+            TEST_LAUNCH_COUNT=${TEST_LAUNCH_COUNT:-0}
+            WARP_JUMP_COUNT=${WARP_JUMP_COUNT:-0}
+            LOGIN_COUNT=${LOGIN_COUNT:-0}
+            CMD_CD_COUNT=${CMD_CD_COUNT:-0}
+            CMD_NANO_COUNT=${CMD_NANO_COUNT:-0}
+            CMD_CP_COUNT=${CMD_CP_COUNT:-0}
+            CMD_SED_COUNT=${CMD_SED_COUNT:-0}
+            CMD_MICRO_COUNT=${CMD_MICRO_COUNT:-0}
+            
+            save_required=true
+        fi
     fi
     
-    source "$IDENTITY_FILE"
-    
-    # 舊用戶遷移
-    if [ -z "$MUX_DATE" ]; then
-        MUX_DATE=${MUX_DATE:-$(date +%s)}
-        MUX_LF=${MUX_BF:-$now_ts}
-        MUX_BF=$now_ts
-        MUX_FIRECOUNT=0
-        MUX_OCDATE=0
-        MUX_CDDATE=0
-        MUX_CHECK=${MUX_CHECK:-0}
-        MUX_REBORN_COUNT="${MUX_REBORN_COUNT:-0}"
-        HEAP_ALLOCATION_IDX=${HEAP_ALLOCATION_IDX:-0}
-        IO_WRITE_CYCLES=${IO_WRITE_CYCLES:-0}
-        KERNEL_PANIC_OFFSET=${KERNEL_PANIC_OFFSET:-0}
-        UPLINK_LATENCY_MS=${UPLINK_LATENCY_MS:-0}
-        ENTROPY_DISCHARGE=${ENTROPY_DISCHARGE:-0}
-        NEURAL_SYNAPSE_FIRING=${NEURAL_SYNAPSE_FIRING:-0}
-        EJECTION_COUNT=${EJECTION_COUNT:-0}
-        SUDO_ATTEMPT_COUNT=${SUDO_ATTEMPT_COUNT:-0}
-        HELP_ACCESS_COUNT=${HELP_ACCESS_COUNT:-0}
-        FACTORY_ABUSE_COUNT=${FACTORY_ABUSE_COUNT:-0}
-        TEST_LAUNCH_COUNT=${TEST_LAUNCH_COUNT:-0}
-        WARP_JUMP_COUNT=${WARP_JUMP_COUNT:-0}
-        LOGIN_COUNT=${LOGIN_COUNT:-0}
-        CMD_CD_COUNT=${CMD_CD_COUNT:-0}
-        CMD_NANO_COUNT=${CMD_NANO_COUNT:-0}
-        CMD_CP_COUNT=${CMD_CP_COUNT:-0}
-        CMD_SED_COUNT=${CMD_SED_COUNT:-0}
-        CMD_MICRO_COUNT=${CMD_MICRO_COUNT:-0}
+    if [ ! -f "$SETTING_FILE" ]; then
+        # 建立預設值，並觸發存檔
+        TCT_RADAR_JAIL="true"
+        TCT_RADAR_HIDDEN="false"
+        _save_settings
+    else
+        # 讀取現有設定
+        source "$SETTING_FILE"
         
-        save_required=true
-    fi
-    
-    if [ "$save_required" == "true" ]; then
-        _save_identity
+        # 檢查是否有遺漏的旗標 (向下相容)
+        local setting_changed="false"
+        if [ -z "$TCT_RADAR_JAIL" ]; then TCT_RADAR_JAIL="true"; setting_changed="true"; fi
+        if [ -z "$TCT_RADAR_HIDDEN" ]; then TCT_RADAR_HIDDEN="false"; setting_changed="true"; fi
+        
+        if [ "$setting_changed" == "true" ]; then
+            _save_settings
+        fi
     fi
 }
 
