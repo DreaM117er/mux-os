@@ -391,7 +391,7 @@ function __tct_core() {
             fi
             
             case "$target_cmd" in
-                "cdls") export COMMAND_CDLS="forever" ;;
+                "cdls"|"cd"|"ls") export COMMAND_CDLS="forever" ;;
                 "jail") export TCT_RADAR_JAIL="true" ;;
                 "hidden") export TCT_RADAR_HIDDEN="true" ;;
                 *) echo -e "${C_PINKMEOW} :: I don't know how to set '$target_cmd'... (；´д｀)ゞ${C_RESET}"; return 1 ;;
@@ -410,7 +410,7 @@ function __tct_core() {
             fi
             
             case "$target_cmd" in
-                "cdls") export COMMAND_CDLS="false" ;;
+                "cdls"|"cd"|"ls") export COMMAND_CDLS="false" ;;
                 "jail") export TCT_RADAR_JAIL="false" ;;
                 "hidden") export TCT_RADAR_HIDDEN="false" ;;
                 *) echo -e "${C_PINKMEOW} :: I don't know how to unset '$target_cmd'... (；´д｀)ゞ${C_RESET}"; return 1 ;;
