@@ -10,13 +10,9 @@ fi
 function _bypass_guard() {
     # 接收傳入的完整指令
     local raw_input="$*"
-    
-    if [ -z "$raw_input" ]; then
-        return 1
-    fi
+    if [ -z "$raw_input" ]; then return 1; fi
 
     local main_cmd="${raw_input%% *}"
-    
     # 比對指令
     if [ "${#raw_input}" -gt "${#main_cmd}" ]; then
         eval "$raw_input"

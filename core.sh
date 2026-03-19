@@ -87,6 +87,17 @@ if [ -t 0 ]; then
     fi
 }
 
+# 實體防寫鎖 (Write-Protect Interlock)
+function _mux_hardware_lock() {
+    chmod 555 "$MUX_ROOT"/*.sh 2>/dev/null
+    chmod 444 "$MUX_ROOT"/*.csv 2>/dev/null
+}
+
+function _mux_hardware_unlock() {
+    chmod 755 "$MUX_ROOT"/*.sh 2>/dev/null
+    chmod 644 "$MUX_ROOT"/*.csv 2>/dev/null
+}
+
 # 安全介面寬度計算 (Safe UI Width Calculation)
 function _safe_ui_calc() {
     local width=$(tput cols)
