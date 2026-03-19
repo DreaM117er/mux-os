@@ -33,10 +33,10 @@ function cd() {
         fi
 
         local menu_items=""
-        if [ -n "$formatted_dirs" ]; then menu_items+="${formatted_dirs}\n"; fi
-
-        menu_items+="${C_BLACK}----------${C_RESET}\n"
-        menu_items+="${C_RED}[cd]${C_RESET} Revert to Origin\n"
+        if [ -n "$formatted_dirs" ]; then 
+            menu_items+="${formatted_dirs}\n"
+            menu_items+="${C_BLACK}----------${C_RESET}\n"
+        fi
         
         # ==========================================
         # [狀態機接口預留] : 邊界鎖定與 UI 顯示簡化
@@ -89,7 +89,7 @@ function cd() {
         if [ "$target" == "----------" ]; then continue; fi
         if [ "$target" == "[cd] Revert to Origin" ]; then
             builtin cd "$origin_pwd"
-            continue 
+            continue
         elif [ "$target" == "[..] Backto" ]; then
             builtin cd ..
             show_hidden="false"
