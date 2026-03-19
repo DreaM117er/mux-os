@@ -6,6 +6,31 @@ if [ -z "$__MUX_CORE_ACTIVE" ]; then
     return 1 2>/dev/null || exit 1
 fi
 
+# 指令劫持器 (Bypass Guard)
+function _bypass_guard() {
+    # 接收傳入的完整指令陣列，並拼裝成單一字串 (例如 "cd mux-os" 或 "ls -la")
+    local raw_input="$*"
+    
+    # 防呆：如果字串為空，代表只有純指令，拒絕旁路，交給後續 fzf 處理
+    if [ -z "$raw_input" ]; then
+        return 1
+    fi
+
+    # 物理截取：抓出第一個空格前的「主指令」（例如 cd 或 ls）
+    local main_cmd="${raw_input%% *}"
+    
+    # 物理公差比對：比較「完整字串長度」與「主指令長度」
+    # 如果大於，代表指令後方有接續參數或空格，觸發旁路機制
+    if [ "${#raw_input}" -gt "${#main_cmd}" ]; then
+        # 旁路閥門全開！直接交給底層核心脫殼執行
+        eval "$raw_input"
+        return 0  # 回傳 0 代表旁路執行成功，通知母函數中斷後續 UI 渲染
+    else
+        # 只有主指令，無參數，閥門關閉，要求進入 fzf 雷達
+        return 1
+    fi
+}
+
 # 原生指令劫持: cd (Command cd for TCT)
 function cd() {
     # 模式鎖定
@@ -13,6 +38,9 @@ function cd() {
         builtin cd "$@"
         return $?
     fi
+
+    # 防爆閘門
+    if _bypass_guard "builtin cd" "$@"; then return $?; fi
 
     # 狀態機讀取
     local setting_file="$HOME/mux-os/.setting"
@@ -137,6 +165,9 @@ function ls() {
         command ls --color=auto "$@"
         return $?
     fi
+
+    # 防爆閘門
+    if _bypass_guard "command ls --color=auto" "$@"; then return $?; fi
 
     local setting_file="$HOME/mux-os/.setting"
     if [ -f "$setting_file" ]; then source "$setting_file"; fi
