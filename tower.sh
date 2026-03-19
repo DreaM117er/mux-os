@@ -45,21 +45,24 @@ function cd() {
         local jail_active="true" 
         local display_prompt="$origin_pwd" # 預設 Prompt 顯示變數
 
+        local jail_active="true" 
+        local display_prompt="$PWD" # [修正] 追蹤當前的動態路徑 $PWD
+
         if [ "$jail_active" == "true" ]; then
             # 1. 物理屏障限制
             if [[ "$PWD" != "$origin_pwd" && "$PWD" == "$origin_pwd"* ]]; then
                 menu_items+="${C_YELLOW}[..]${C_RESET} Backto\n"
             fi
             
-            # 2. UI 視覺簡化：將長串的 /data/data.../home 替換為乾淨的 ~
-            display_prompt="${origin_pwd/#$HOME/\~}"
+            # 2. UI 視覺簡化：將動態路徑 $PWD 中的 $HOME 字串替換為 ~
+            display_prompt="${PWD/#$HOME/\~}"
         else
             # 旁通狀態：無限制模式 (Root 可達)
             if [ "$PWD" != "/" ]; then
                 menu_items+="${C_YELLOW}[..]${C_RESET} Backto\n"
             fi
-            # 駭客模式：顯示絕對真實物理路徑，不再掩飾
-            display_prompt="$origin_pwd"
+            # 駭客模式：顯示絕對真實物理路徑
+            display_prompt="$PWD"
         fi
 
         if [ "$show_hidden" == "true" ]; then
