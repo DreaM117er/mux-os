@@ -31,7 +31,7 @@ function cd() {
     # 邏輯判定
     local allow_radar="false"
     if [ "$MUX_MODE" == "TCT" ] && [ "$#" -eq 0 ]; then
-        if [ "$COMMAND_CDLS" == "forever" ] || [ "$COMMAND_CDLS" == "true" ]; then
+        if [ "$COMMAND_CDLS" == "forever" ] || [ "$CMT_COMMAND" == "true" ]; then
             allow_radar="true"
         fi
     fi
@@ -102,7 +102,7 @@ function cd() {
         local dynamic_height=$(( line_count + 4 ))
 
         local ui_prompt=" :: $display_prompt › "
-        if [ "$COMMAND_CDLS" == "true" ]; then
+        if [ "$CMT_COMMAND" == "true" ]; then
             ui_prompt=" :: cmt › cd › $display_prompt :: "
         fi
 
@@ -159,7 +159,7 @@ function ls() {
     # 邏輯判定
     local allow_radar="false"
     if [ "$MUX_MODE" == "TCT" ] && [ "$#" -eq 0 ]; then
-        if [ "$COMMAND_CDLS" == "forever" ] || [ "$COMMAND_CDLS" == "true" ]; then
+        if [ "$COMMAND_CDLS" == "forever" ] || [ "$CMT_COMMAND" == "true" ]; then
             allow_radar="true"
         fi
     fi
@@ -231,8 +231,8 @@ function ls() {
         local dynamic_height=$(( line_count + 4 ))
         [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
-        local ui_prompt=" :: ls › $display_prompt :: "
-        if [ "$COMMAND_CDLS" == "true" ]; then
+        local ui_prompt=" :: $display_prompt › "
+        if [ "$CMT_COMMAND" == "true" ]; then
             ui_prompt=" :: cmt › ls › $display_prompt :: "
         fi
 
@@ -376,18 +376,16 @@ function __tct_core() {
     case "$cmd" in
         # : System 'cd' Override
         "cd")
-            local prev_cdls="$COMMAND_CDLS" 
-            export COMMAND_CDLS="true"
+            export CMT_COMMAND="true"
             cd "${@:2}"
-            export COMMAND_CDLS="$prev_cdls"
+            unset CMT_COMMAND
             ;;
             
         # : System 'ls' Override
         "ls")
-            local prev_cdls="$COMMAND_CDLS"
-            export COMMAND_CDLS="true"
+            export CMT_COMMAND="true"
             ls "${@:2}"
-            export COMMAND_CDLS="$prev_cdls"
+            unset CMT_COMMAND
             ;;
 
         # : TCT Sett Toggle
