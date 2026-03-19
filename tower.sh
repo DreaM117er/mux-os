@@ -28,6 +28,10 @@ function _bypass_guard() {
 
 # 原生指令劫持: cd (Command cd for TCT)
 function cd() {
+    # 狀態機讀取
+    local setting_file="$HOME/mux-os/.setting"
+    if [ -f "$setting_file" ]; then source "$setting_file"; fi
+
     # 邏輯判定
     local allow_radar="false"
     if [ "$MUX_MODE" == "TCT" ] && [ "$#" -eq 0 ]; then
@@ -45,11 +49,6 @@ function cd() {
             return $?
         fi
     fi
-
-    # 狀態機讀取
-    # 不要亂動它的位置
-    local setting_file="$HOME/mux-os/.setting"
-    if [ -f "$setting_file" ]; then source "$setting_file"; fi
 
     local origin_pwd="$HOME"
     local show_hidden="${TCT_RADAR_HIDDEN:-false}"
@@ -156,6 +155,10 @@ function cd() {
 
 # 原生指令劫持: ls (Command ls for TCT)
 function ls() {
+    # 狀態機讀取
+    local setting_file="$HOME/mux-os/.setting"
+    if [ -f "$setting_file" ]; then source "$setting_file"; fi
+
     # 邏輯判定
     local allow_radar="false"
     if [ "$MUX_MODE" == "TCT" ] && [ "$#" -eq 0 ]; then
@@ -173,11 +176,6 @@ function ls() {
             return $?
         fi
     fi
-
-    # 狀態機讀取
-    # 不要亂動它的位置
-    local setting_file="$HOME/mux-os/.setting"
-    if [ -f "$setting_file" ]; then source "$setting_file"; fi
 
     local origin_pwd="$HOME"
     local show_hidden="${TCT_RADAR_HIDDEN:-false}"
