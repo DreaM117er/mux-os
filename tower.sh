@@ -113,6 +113,130 @@ function cd() {
     done
 }
 
+# 原生指令劫持: ls (Command ls for TCT)
+function ls() {
+    # 0 & 1. 模式鎖定與旁路判定 (ls 為外部指令，使用 command 呼叫)
+    if [ "$MUX_MODE" != "TCT" ] || [ "$#" -gt 0 ]; then
+        command ls --color=auto "$@"
+        return $?
+    fi
+
+    # 原點及旗標預留
+    local origin_pwd="$HOME"
+    local show_hidden="false"
+
+    # 2. 啟動雷達迴圈 (Active Scanner Loop)
+    while true; do
+        # 利用原生 ls 獲取檔案列表，自帶實體顏色
+        local files
+        if [ "$show_hidden" == "true" ]; then
+            files=$(command ls -1A --color=always 2>/dev/null)
+        else
+            files=$(command ls -1 --color=always 2>/dev/null)
+        fi
+
+        # 資料夾與檔案排版：補上深灰色 [  ] 前綴，維持垂直絕對對齊
+        local formatted_files=""
+        if [ -n "$files" ]; then
+            # 利用 sed 在每一行開頭注入 ANSI 格式的 [  ]
+            formatted_files=$(echo "$files" | sed 's/^/\x1b[1;30m[  ]\x1b[0m /')
+        fi
+
+        local menu_items=""
+        
+        # 動態分隔線：只有在存在檔案/資料夾時才焊上
+        if [ -n "$formatted_files" ]; then 
+            menu_items+="${formatted_files}\n"
+            menu_items+="${C_BLACK}----------${C_RESET}\n"
+        fi
+
+        # ==========================================
+        # [狀態機接口預留] : 邊界鎖定與 UI 顯示簡化
+        # ==========================================
+        local jail_active="true" 
+        local display_prompt="$PWD"
+
+        if [ "$jail_active" == "true" ]; then
+            # 物理屏障限制
+            if [[ "$PWD" != "$origin_pwd" && "$PWD" == "$origin_pwd"* ]]; then
+                menu_items+="${C_RED}[cd]${C_RESET} Revert to Origin\n"
+                menu_items+="${C_YELLOW}[..]${C_RESET} Backto\n"
+            fi
+            display_prompt="${PWD/#$HOME/\~}"
+        else
+            # 旁通狀態
+            menu_items+="${C_RED}[cd]${C_RESET} Revert to Origin\n"
+            if [ "$PWD" != "/" ]; then
+                menu_items+="${C_YELLOW}[..]${C_RESET} Backto\n"
+            fi
+            display_prompt="$PWD"
+        fi
+
+        # 隱藏檔光學濾鏡開關
+        if [ "$show_hidden" == "true" ]; then
+            menu_items+="${C_BLACK}[.*]${C_RESET} Hide Hidden"
+        else
+            menu_items+="${C_BLACK}[.*]${C_RESET} Show Hidden"
+        fi
+
+        # 3. 渲染 fzf 介面 (切換為綠色系 46)
+        local line_count=$(echo -e "$menu_items" | wc -l)
+        local dynamic_height=$(( line_count + 4 ))
+        # 檔案數量可能極多，設定最高高度防溢出
+        [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
+
+        local raw_target
+        raw_target=$(echo -e "$menu_items" | fzf --ansi \
+            --height="$dynamic_height" \
+            --layout=reverse \
+            --prompt=" :: ls › $display_prompt :: " \
+            --info=hidden \
+            --header=" :: Enter to Inspect, Esc to Return ::" \
+            --border=bottom \
+            --border-label=" :: FILE SCANNER :: " \
+            --pointer="››" \
+            --color=fg:white,bg:-1,hl:46,fg+:white,bg+:235,hl+:240 \
+            --color=info:240,prompt:46,pointer:46,marker:46,border:46,header:240 \
+            --bind="resize:clear-screen"
+            )
+
+        # 4. 狀態判定與物理位移
+        if [ -z "$raw_target" ]; then break; fi
+
+        # ANSI 物理剝除
+        local target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+
+        # 按鈕效果
+        if [ "$target" == "----------" ]; then continue; fi
+        if [ "$target" == "[cd] Revert to Origin" ]; then
+            builtin cd "$origin_pwd"
+            continue
+        elif [ "$target" == "[..] Backto" ]; then
+            builtin cd ..
+            show_hidden="false"
+        elif [ "$target" == "[.*] Show Hidden" ]; then
+            show_hidden="true"
+            continue
+        elif [ "$target" == "[.*] Hide Hidden" ]; then
+            show_hidden="false"
+            continue
+        else
+            # 狀態：選擇了實體檔案或資料夾
+            # 剝除排版用的 "[  ] "
+            local clean_target=$(echo "$target" | sed 's/^\[  \] //')
+            
+            if [ -d "$clean_target" ]; then
+                # 若為資料夾，直接跳躍並刷新掃描
+                builtin cd "$clean_target"
+                show_hidden="false"
+            elif [ -f "$clean_target" ]; then
+                # 若為檔案，預留檢視接口 (目前防呆不動作)
+                continue
+            fi
+        fi
+    done
+}
+
 # 指揮塔初始化 (Tower Initialization)
 function _tct_init() {
     _system_lock
