@@ -26,6 +26,8 @@ function _bypass_guard() {
     fi
 }
 
+# 原生指令劫持: cd (Command cd for TCT)
+function cd() {
 # 狀態機讀取
     local setting_file="$HOME/mux-os/.setting"
     if [ -f "$setting_file" ]; then source "$setting_file"; fi
