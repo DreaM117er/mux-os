@@ -28,12 +28,20 @@ function _bypass_guard() {
 
 # 原生指令劫持: cd (Command cd for TCT)
 function cd() {
-# 狀態機讀取
+    # 狀態機讀取
     local setting_file="$HOME/mux-os/.setting"
     if [ -f "$setting_file" ]; then source "$setting_file"; fi
 
-    if [ "$MUX_MODE" != "TCT" ] || [ "$#" -gt 0 ] || { [ "$COMMAND_CDLS" != "true" ] && [ "$COMMAND_CDLS" != "forever" ]; }; then
-        # 防爆閘門
+    # 邏輯判定
+    local allow_radar="false"
+    if [ "$MUX_MODE" == "TCT" ] && [ "$#" -eq 0 ]; then
+        if [ "$COMMAND_CDLS" == "forever" ] || [ "$COMMAND_CDLS" == "true" ]; then
+            allow_radar="true"
+        fi
+    fi
+
+    # 防爆閘門
+    if [ "$allow_radar" != "true" ]; then
         if _bypass_guard "builtin cd" "$@"; then
             return $?
         else
@@ -42,7 +50,6 @@ function cd() {
         fi
     fi
 
-    # 原點及旗標
     local origin_pwd="$HOME"
     local show_hidden="${TCT_RADAR_HIDDEN:-false}"
     local jail_active="${TCT_RADAR_JAIL:-true}"
@@ -119,7 +126,6 @@ function cd() {
 
         if [ "$target" == "----------" ]; then continue; fi
         
-        # [修正] 無縫切換，直接呼叫 ls，拋棄冗餘變數
         if [ "$target" == "[ls] Show Files" ]; then
             ls
             break
@@ -153,9 +159,16 @@ function ls() {
     local setting_file="$HOME/mux-os/.setting"
     if [ -f "$setting_file" ]; then source "$setting_file"; fi
 
-    # 模式鎖定
-    if [ "$MUX_MODE" != "TCT" ] || [ "$#" -gt 0 ] || { [ "$COMMAND_CDLS" != "true" ] && [ "$COMMAND_CDLS" != "forever" ]; }; then
-        # 防爆閘門
+    # 邏輯判定
+    local allow_radar="false"
+    if [ "$MUX_MODE" == "TCT" ] && [ "$#" -eq 0 ]; then
+        if [ "$COMMAND_CDLS" == "forever" ] || [ "$COMMAND_CDLS" == "true" ]; then
+            allow_radar="true"
+        fi
+    fi
+
+    # 防爆閘門
+    if [ "$allow_radar" != "true" ]; then
         if _bypass_guard "command ls --color=auto" "$@"; then
             return $?
         else
@@ -242,7 +255,6 @@ function ls() {
 
         if [ "$target" == "----------" ]; then continue; fi
         
-        # [修正] 無縫切換，直接呼叫 cd，拋棄冗餘變數
         if [ "$target" == "[cd] Hide Files" ]; then
             cd
             break
@@ -362,19 +374,21 @@ function __tct_core() {
     case "$cmd" in
         # : System 'cd' Override
         "cd")
+            local prev_cdls="$COMMAND_CDLS" 
             export COMMAND_CDLS="true"
             cd "${@:2}"
-            unset COMMAND_CDLS
+            export COMMAND_CDLS="$prev_cdls"
             ;;
             
         # : System 'ls' Override
         "ls")
+            local prev_cdls="$COMMAND_CDLS"
             export COMMAND_CDLS="true"
             ls "${@:2}"
-            unset COMMAND_CDLS
+            export COMMAND_CDLS="$prev_cdls"
             ;;
 
-        # : TCT Settings Toggle
+        # : TCT Set Toggle
         "set")
             local target_cmd="$2"
             if [ -z "$target_cmd" ]; then
@@ -393,7 +407,7 @@ function __tct_core() {
             echo -e "${C_PINKMEOW} :: Setting applied: $target_cmd is now active! (*≧ω≦)${C_RESET}"
             ;;
 
-        # : TCT Settings Toggle
+        # : TCT Unset Toggle
         "unset")
             local target_cmd="$2"
             if [ -z "$target_cmd" ]; then
