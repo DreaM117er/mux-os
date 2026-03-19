@@ -36,10 +36,6 @@ function cd() {
         fi
     fi
 
-    # 狀態機讀取
-    local setting_file="$HOME/mux-os/.setting"
-    if [ -f "$setting_file" ]; then source "$setting_file"; fi
-
     # 防爆閘門
     if [ "$allow_radar" != "true" ]; then
         if _bypass_guard "builtin cd" "$@"; then
@@ -49,6 +45,11 @@ function cd() {
             return $?
         fi
     fi
+
+    # 狀態機讀取
+    # 不要亂動它的位置
+    local setting_file="$HOME/mux-os/.setting"
+    if [ -f "$setting_file" ]; then source "$setting_file"; fi
 
     local origin_pwd="$HOME"
     local show_hidden="${TCT_RADAR_HIDDEN:-false}"
@@ -163,10 +164,6 @@ function ls() {
         fi
     fi
 
-    # 狀態機讀取
-    local setting_file="$HOME/mux-os/.setting"
-    if [ -f "$setting_file" ]; then source "$setting_file"; fi
-
     # 防爆閘門
     if [ "$allow_radar" != "true" ]; then
         if _bypass_guard "command ls --color=auto" "$@"; then
@@ -176,6 +173,11 @@ function ls() {
             return $?
         fi
     fi
+
+    # 狀態機讀取
+    # 不要亂動它的位置
+    local setting_file="$HOME/mux-os/.setting"
+    if [ -f "$setting_file" ]; then source "$setting_file"; fi
 
     local origin_pwd="$HOME"
     local show_hidden="${TCT_RADAR_HIDDEN:-false}"
