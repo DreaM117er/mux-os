@@ -382,7 +382,7 @@ function __tct_core() {
             unset CMT_COMMAND
             ;;
 
-        # : TCT Sett Toggle
+        # : Overwrite Command Toggle
         "set")
             local target_cmd="$2"
             if [ -z "$target_cmd" ]; then
@@ -401,7 +401,7 @@ function __tct_core() {
             echo -e "${C_PINKMEOW} :: Setting applied: $target_cmd is now active! (*≧ω≦)${C_RESET}"
             ;;
 
-        # : TCT Unset Toggle
+        # : Overwrite Command Toggle
         "unset")
             local target_cmd="$2"
             if [ -z "$target_cmd" ]; then
