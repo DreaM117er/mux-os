@@ -28,10 +28,6 @@ function _bypass_guard() {
 
 # 原生指令劫持: cd (Command cd for TCT)
 function cd() {
-    # 狀態機讀取
-    local setting_file="$HOME/mux-os/.setting"
-    if [ -f "$setting_file" ]; then source "$setting_file"; fi
-
     # 邏輯判定
     local allow_radar="false"
     if [ "$MUX_MODE" == "TCT" ] && [ "$#" -eq 0 ]; then
@@ -39,6 +35,10 @@ function cd() {
             allow_radar="true"
         fi
     fi
+
+    # 狀態機讀取
+    local setting_file="$HOME/mux-os/.setting"
+    if [ -f "$setting_file" ]; then source "$setting_file"; fi
 
     # 防爆閘門
     if [ "$allow_radar" != "true" ]; then
@@ -155,10 +155,6 @@ function cd() {
 
 # 原生指令劫持: ls (Command ls for TCT)
 function ls() {
-    # 狀態機讀取
-    local setting_file="$HOME/mux-os/.setting"
-    if [ -f "$setting_file" ]; then source "$setting_file"; fi
-
     # 邏輯判定
     local allow_radar="false"
     if [ "$MUX_MODE" == "TCT" ] && [ "$#" -eq 0 ]; then
@@ -166,6 +162,10 @@ function ls() {
             allow_radar="true"
         fi
     fi
+
+    # 狀態機讀取
+    local setting_file="$HOME/mux-os/.setting"
+    if [ -f "$setting_file" ]; then source "$setting_file"; fi
 
     # 防爆閘門
     if [ "$allow_radar" != "true" ]; then
@@ -388,7 +388,7 @@ function __tct_core() {
             export COMMAND_CDLS="$prev_cdls"
             ;;
 
-        # : TCT Set Toggle
+        # : TCT Sett Toggle
         "set")
             local target_cmd="$2"
             if [ -z "$target_cmd" ]; then
