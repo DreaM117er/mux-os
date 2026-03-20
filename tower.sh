@@ -488,6 +488,7 @@ function _tct_init() {
     if command -v _show_hud &> /dev/null; then 
         _show_hud "tct"
     fi
+    if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
 
     export MUX_INITIALIZED="true"
     export PS1="\[${C_PINKMEOW}\]Cmt\[${C_RESET}\] \w \033[5m›\033[0m "

@@ -223,6 +223,7 @@ function _mux_init() {
     
     if command -v _system_check &> /dev/null; then _system_check; fi
     if command -v _show_hud &> /dev/null; then _show_hud; fi
+    if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
     
     export MUX_INITIALIZED="true"
     _system_unlock
@@ -393,8 +394,17 @@ function _mux_update_system() {
         read choice
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
             _system_lock
-            if git pull; then sleep 2.2; _mux_reload_kernel; else _bot_say "error" "Update conflict detected."; _system_unlock; fi
+            if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
+            if git pull; then 
+                sleep 2.2
+                _mux_reload_kernel
+            else 
+                _bot_say "error" "Update conflict detected."
+                if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi # [新增] 失敗時也要記得上鎖
+                _system_unlock
+            fi
         else
+            if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
             _system_unlock
         fi
     fi
@@ -826,43 +836,58 @@ function _mux_fs_guard() {
     shift
     local args="$*"
     
-    local in_mux=0
-    if [[ "$PWD" == *"/mux-os"* ]]; then
-        in_mux=1
-    fi
-    
     local blocked=0
+    local reason=""
+
+    # 絕對路徑
+    local real_mux_root
+    real_mux_root=$(realpath "$MUX_ROOT" 2>/dev/null || echo "$MUX_ROOT")
+    
     for arg in "$@"; do
         if [[ "$arg" == -* ]]; then continue; fi # 跳過參數如 -rf
         
-        # 條件 1：防禦外部跨資料夾操作
-        if [[ "$arg" == *"mux-os"* ]]; then
-            blocked=1; break;
+        local target_path
+        target_path=$(realpath "$arg" 2>/dev/null || echo "$PWD/$arg")
+        local target_name=$(basename "$target_path")
+        
+        # 判斷核心特徵
+        if [ -d "$target_path" ]; then
+            local core_seal="$target_path/.matrix"
+            if [ -f "$core_seal" ]; then
+                local seal_content=$(head -n 1 "$core_seal" 2>/dev/null)
+                if [[ "$seal_content" == *"MUX_CORE_INTEGRITY_SEAL_ACTIVE"* ]]; then
+                    blocked=1
+                    reason="Target locked by Mux-OS Physical Seal (.matrix)"
+                    break
+                fi
+            fi
         fi
         
-        # 條件 2：MUX_ROOT 內部
-        if [ "$in_mux" -eq 1 ]; then
-            local target_file=$(basename "$arg")
-
-            # A. 核心主程序防護
-            if [[ "$target_file" =~ ^(core\.sh|ui\.sh|factory\.sh|bot\.sh|identity\.sh|system\.csv|app\.csv|\.matrix)$ ]]; then
-                blocked=1; break;
+        # 判斷目標內部
+        if [[ "$target_path" == "$real_mux_root" ]]; then
+            blocked=1
+            reason="Direct targeting of Mux-OS Root Structure"
+            break
+        elif [[ "$target_path" == "$real_mux_root"/* ]]; then
+            
+            if [[ "$target_name" =~ ^(core\.sh|ui\.sh|factory\.sh|bot\.sh|identity\.sh|system\.csv|app\.csv|\.matrix)$ ]]; then
+                blocked=1
+                reason="Core Organ Protection Activated ($target_name)"
+                break
             fi
 
-            # B. 幽靈與暫存檔防護
-            if [ -f "$MUX_ROOT/.gitignore" ]; then
+            if [ -f "$real_mux_root/.gitignore" ]; then
                 while IFS= read -r ignore_rule || [ -n "$ignore_rule" ]; do
-                    # 跳過註解與空行
                     [[ "$ignore_rule" =~ ^# ]] && continue
                     [[ -z "$ignore_rule" ]] && continue
                     
                     local clean_rule="${ignore_rule%/}"
-                    # 動態比對萬用字元
-                    if [[ "$target_file" == $clean_rule ]]; then
+                    if [[ "$target_name" == $clean_rule ]]; then
                         blocked=1
+                        reason="Protected by .gitignore Registry ($clean_rule)"
                         break 2
                     fi
-                done < "$MUX_ROOT/.gitignore"
+                done < "$real_mux_root/.gitignore"
             fi
         fi
     done
@@ -870,6 +895,7 @@ function _mux_fs_guard() {
     if [ "$blocked" -eq 1 ]; then
         echo ""
         echo -e "${C_RED} :: ERROR :: Core Integrity Protection Active.${C_RESET}"
+        echo -e "${C_YELLOW}    ›› BLOCKED REASON : ${reason}${C_RESET}"
         echo -e "${C_BLACK}    ›› Direct manipulation ('$cmd') threatens system stability.${C_RESET}"
         echo -e "${C_BLACK}    ›› Please use standard Mux protocols or Factory Mode.${C_RESET}"
         return 1
@@ -1788,6 +1814,7 @@ function _core_pre_factory_auth() {
     if command -v _ui_fake_gate &> /dev/null; then
         _ui_fake_gate "factory"
     fi
+    if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
 
     # 工廠通行證獎勵
     if command -v _grant_xp &> /dev/null; then
@@ -1868,6 +1895,7 @@ function _core_eject_sequence() {
 
     _safe_ui_calc
     unset MUX_INITIALIZED
+    if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
     _system_unlock
     exec bash
 }

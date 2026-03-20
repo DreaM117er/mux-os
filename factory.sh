@@ -1,4 +1,5 @@
 #!/bin/bash
+# factory.sh - Mux-OS 兵工廠
 
 if [ -z "$MUX_ROOT" ]; then export MUX_ROOT="$HOME/mux-os"; fi
 if [ -z "$MUX_BAK" ]; then export MUX_BAK="$MUX_ROOT/bak"; fi
@@ -13,9 +14,6 @@ if [ -z "$__MUX_CORE_ACTIVE" ]; then
         return 1 2>/dev/null
     fi
 fi
-
-# factory.sh - Mux-OS 兵工廠
-
 
 # 神經資料讀取器 - Neural Data Reader
 # 用法: _fac_neural_read "chrome" 或 _fac_neural_read "chrome 'incognito'"
@@ -325,6 +323,8 @@ function _fac_list() {
 function _factory_system_boot() {
     MUX_MODE="FAC"
     export PS1="\[${THEME_MAIN}\]Fac\[${C_RESET}\] \w › "
+
+    if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
 
     local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
     if [ ! -d "$bak_dir" ]; then mkdir -p "$bak_dir"; fi
@@ -995,6 +995,7 @@ function _factory_deploy_sequence() {
                         command mv "$MUX_ROOT/$db.csv.temp" "$MUX_ROOT/$db.csv"
                     fi
                 done
+                if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
 
                 echo ""
                 echo -e "${THEME_OK} :: DEPLOYMENT SUCCESSFUL ::${C_RESET}"
@@ -1108,6 +1109,7 @@ EOF
             command cp "$prod_file" "$target_file"
         fi
     done
+    if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
 
     echo ""
     echo -e "${THEME_OK} :: DEPLOYMENT SUCCESSFUL ::${C_RESET}"
@@ -3326,6 +3328,7 @@ function __fac_core() {
             if [ -f "$MUX_ROOT/setup.sh" ]; then
                 _bot_say "action" "Transferring control to Lifecycle Manager..."
                 sleep 0.8
+                if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
                 exec bash "$MUX_ROOT/setup.sh"
             else
                 _bot_say "error" "Lifecycle Manager (setup.sh) not found."
