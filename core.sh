@@ -90,11 +90,13 @@ if [ -t 0 ]; then
 # 實體防寫鎖 (Write-Protect Interlock)
 function _mux_hardware_lock() {
     chmod 555 "$MUX_ROOT"/*.sh 2>/dev/null
+    chmod 555 "$MUX_ROOT"/.core 2>/dev/null
     chmod 444 "$MUX_ROOT"/*.csv 2>/dev/null
 }
 
 function _mux_hardware_unlock() {
     chmod 755 "$MUX_ROOT"/*.sh 2>/dev/null
+    chmod 755 "$MUX_ROOT"/.core 2>/dev/null
     chmod 644 "$MUX_ROOT"/*.csv 2>/dev/null
 }
 
@@ -195,6 +197,8 @@ function _update_mux_state() {
     local new_mode="$1"
     local new_status="$2"
     local new_entry="$3"
+
+    if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
     
     # 1. 定義需要「持久化」的旗標清單
     local persistence_keys=("FAC_EJMODE")
@@ -225,6 +229,7 @@ EOF
     if [ -n "$preserved_data" ]; then
         echo -n "$preserved_data" >> "$MUX_ROOT/.mux_state"
     fi
+    if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
 }
 
 # 主程式初始化 (Main Initialization)
