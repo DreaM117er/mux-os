@@ -502,6 +502,7 @@ function __core_rm() {
             
             echo -e "${C_GREEN} :: Execution complete. Area clear. ( • ̀ω•́ )✧${C_RESET}"
             break
+        fi
     done
 }
 
