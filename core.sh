@@ -400,7 +400,7 @@ function _mux_update_system() {
                 _mux_reload_kernel
             else 
                 _bot_say "error" "Update conflict detected."
-                if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi # [新增] 失敗時也要記得上鎖
+                if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
                 _system_unlock
             fi
         else
