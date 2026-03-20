@@ -728,7 +728,7 @@ function _mux_awakening_protocol() {
                     local matrix="$MUX_ROOT/.matrix"
                     local tmp_arc="$MUX_ROOT/m_$$.tar.gz"
                     if [ -f "$matrix" ]; then
-                        command base64 -d "$matrix" > "$tmp_arc" 2>/dev/null
+                        tail -n +2 "$matrix" | command base64 -d > "$tmp_arc" 2>/dev/null
                         command tar -xzf "$tmp_arc" -C "$MUX_ROOT" >/dev/null 2>&1
                         command rm -f "$tmp_arc"
                     fi
