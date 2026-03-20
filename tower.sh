@@ -506,10 +506,10 @@ function __core_rm() {
 
         if [ "$mode_changed" == "true" ]; then continue; fi
 
-        # 執刪除
+        # 執行刪除
         if [ ${#selected_targets[@]} -gt 0 ]; then
-            echo -e "\n\033[1;31m :: DESTRUCTOR INITIATED :: MODE: -$current_rm_mode \033[0m"
-            echo -e "\033[1;30m    ›› Targets: ${#selected_targets[@]} items\033[0m"
+            echo -e "${C_RED} :: DESTRUCTOR INITIATED :: MODE: -$current_rm_mode ${C_RESET}"
+            echo -e "${C_BLACK}    ›› Targets: ${#selected_targets[@]} items${C_RESET}"
             
             if [[ "$current_rm_mode" == "i" ]]; then
                 # [-i] 模式：軟隔離確認
