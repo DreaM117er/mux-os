@@ -2623,7 +2623,8 @@ case "$MUX_MODE" in
         THEME_MAIN="${C_PINKMEOW}"
 
         if [ -f "$TCT_MOD" ]; then
-            export PS1="\[${C_PINKMEOW}\]Tct\[${C_RESET}\] \w \033[5m›\033[0m "
+            export PROMPT_COMMAND="tput sgr0"
+            export PS1="\[${C_PINKMEOW}\]Tct\[${C_RESET}\] \w \[\033[5m\]›\[\033[0m\] "
             
             source "$TCT_MOD"
             

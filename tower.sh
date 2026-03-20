@@ -553,7 +553,7 @@ function _tct_init() {
     if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
 
     export MUX_INITIALIZED="true"
-    export PS1="\[${C_PINKMEOW}\]Cmt\[${C_RESET}\] \w \033[5m›\033[0m "
+    export PS1="\[${C_PINKMEOW}\]Cmt\[${C_RESET}\] \w \[\033[5m\]›\[\033[0m\] "
 
     # 沒有出包，就說出歡迎詞
     if [ "${__MUX_CLUMSY_STATE:-0}" -eq 0 ]; then
