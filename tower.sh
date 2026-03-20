@@ -514,7 +514,7 @@ function __core_rm() {
             if [[ "$current_rm_mode" == "i" ]]; then
                 # [-i] 模式：軟隔離確認
                 echo -ne "${C_RED} :: Initiate soft-deletion for these ${#selected_targets[@]} targets? [Y/n]: ${C_RESET}"
-                read confirm
+                read -r confirm
                 if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
                     echo -e "${C_GREEN} :: Destructor aborted. Target(s) secured.${C_RESET}"
                     break
@@ -523,7 +523,7 @@ function __core_rm() {
                 # [-f], [-r], [rf] 模式：實體抹除的最終防線
                 echo -e "${C_RED} :: WARNING: Permanent deletion selected. Targets will NOT be sent to .trash.${C_RESET}"
                 echo -ne "${C_RED} :: TYPE 'CONFIRM' TO OBLITERATE: ${C_RESET}"
-                read confirm
+                read -r confirm
                 if [ "$confirm" != "CONFIRM" ]; then
                     echo -e "${C_GREEN} :: Destructor aborted. Target(s) secured.${C_RESET}"
                     break
