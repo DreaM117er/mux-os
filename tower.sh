@@ -290,8 +290,49 @@ function ls() {
 function __core_rm() {
     # 軌道直通
     if [ "$#" -gt 0 ]; then
-        command rm "$@"
-        return $?
+        local current_rm_mode=""
+        local selected_targets=()
+        
+        # 參數解析
+        for arg in "$@"; do
+            if [[ "$arg" == -* ]]; then
+                current_rm_mode="${arg#-}"
+            else
+                selected_targets+=("$arg")
+            fi
+        done
+
+        if [ ${#selected_targets[@]} -eq 0 ]; then return 0; fi
+
+        # 判斷是否為實體抹除模式 (包含 r 或 f)
+        if [[ "$current_rm_mode" == *"r"* ]] || [[ "$current_rm_mode" == *"f"* ]]; then
+            # 軌道 1-A: 實體抹除直通 (Native Execution)
+            command rm "-$current_rm_mode" "${selected_targets[@]}"
+            return $?
+        else
+            # 軌道 1-B: 軟隔離 (-i 或是預設無參數)
+            local trash_dir="$HOME/.trash"
+            if [ ! -d "$trash_dir" ]; then mkdir -p "$trash_dir"; fi
+            local timestamp=$(date +%Y%m%d_%H%M%S)
+
+            for item in "${selected_targets[@]}"; do
+                if [ -d "$item" ]; then
+                    # 目錄：使用 rmdir 嘗試防爆銷毀空殼
+                    command rmdir "$item" 2>/dev/null
+                    if [ $? -ne 0 ]; then
+                        echo -e "${C_YELLOW}    ›› [BLOCKED] '$item' is not empty. (Requires -r mode)${C_RESET}"
+                    else
+                        echo -e "${C_BLACK}    ›› [WIPED] '$item' (Empty Shell Destroyed)${C_RESET}"
+                    fi
+                elif [ -f "$item" ] || [ -L "$item" ]; then
+                    # 檔案：軟隔離轉移
+                    local safe_name="${item}_${timestamp}"
+                    command mv "$item" "$trash_dir/$safe_name" 2>/dev/null
+                    echo -e "${C_BLACK}    ›› [TRASHED] '$item' › .trash/${safe_name}${C_RESET}"
+                fi
+            done
+            return 0
+        fi
     fi
 
     # 視覺戰術雷達
@@ -305,14 +346,13 @@ function __core_rm() {
         fi
     fi
 
-    # 若無權限且無參數，觸發原生報錯 (rm: missing operand)
     if [ "$allow_radar" != "true" ]; then 
         command rm
         return $?
     fi
 
     local show_hidden="${TCT_RADAR_HIDDEN:-false}"
-    local current_rm_mode="i" # 雷達預設裝填 -i 彈藥
+    local current_rm_mode="i" 
 
     while true; do
         local targets
@@ -329,7 +369,6 @@ function __core_rm() {
 
         local menu_items=""
         
-        # 動態模式按鈕
         [ "$current_rm_mode" != "i" ] && menu_items+="${C_YELLOW}[-i]${C_RESET} Interactive\n"
         [ "$current_rm_mode" != "f" ] && menu_items+="${C_YELLOW}[-f]${C_RESET} Force\n"
         [ "$current_rm_mode" != "r" ] && menu_items+="${C_RED}[-r]${C_RESET} Recursive\n"
@@ -342,7 +381,6 @@ function __core_rm() {
             menu_items+="${C_BLACK}----------${C_RESET}\n"
         fi
         
-        # 視圖切換按鈕
         menu_items+="${C_GREEN}[ls]${C_RESET} File Scanner\n"
         menu_items+="${C_PINKMEOW}[cd]${C_RESET} Navigate\n"
 
@@ -352,7 +390,6 @@ function __core_rm() {
             menu_items+="${C_BLACK}[.*]${C_RESET} Show Hidden"
         fi
 
-        # 簡化路徑顯示
         local display_prompt="${PWD/#$HOME/\~}"
         local ui_prompt=" :: rm -$current_rm_mode › $display_prompt :: "
         if [ "$CMT_COMMAND" == "true" ]; then
@@ -388,20 +425,17 @@ function __core_rm() {
             
             if [ "$clean_line" == "----------" ]; then continue; fi
             
-            # 模式切換
             if [[ "$clean_line" == "[-i]"* ]]; then current_rm_mode="i"; mode_changed="true"; break; fi
             if [[ "$clean_line" == "[-f]"* ]]; then current_rm_mode="f"; mode_changed="true"; break; fi
             if [[ "$clean_line" == "[-r]"* ]]; then current_rm_mode="r"; mode_changed="true"; break; fi
-            if [[ "$clean_line" == "[rf]"* ]]; then current_rm_mode="rf"; mode_changed="true"; break; break; fi
+            if [[ "$clean_line" == "[rf]"* ]]; then current_rm_mode="rf"; mode_changed="true"; break; fi
             
-            # 視圖跳躍
             if [[ "$clean_line" == "[ls]"* ]]; then export CMT_COMMAND="true"; ls; unset CMT_COMMAND; break 2; fi
             if [[ "$clean_line" == "[cd]"* ]]; then export CMT_COMMAND="true"; cd; unset CMT_COMMAND; break 2; fi
 
             if [[ "$clean_line" == "[.*] Show Hidden" ]]; then export TCT_RADAR_HIDDEN="true"; show_hidden="true"; mode_changed="true"; break; fi
             if [[ "$clean_line" == "[.*] Hide Hidden" ]]; then export TCT_RADAR_HIDDEN="false"; show_hidden="false"; mode_changed="true"; break; fi
             
-            # 目標收集
             local target_item=$(echo "$clean_line" | sed 's/^\[  \] //')
             if [ -n "$target_item" ] && [[ ! "$target_item" == \[*\]* ]]; then
                 selected_targets+=("$target_item")
@@ -410,23 +444,29 @@ function __core_rm() {
 
         if [ "$mode_changed" == "true" ]; then continue; fi
 
-        # 執行刪除
+        # 執刪除
         if [ ${#selected_targets[@]} -gt 0 ]; then
-            echo -e "${C_RED} :: DESTRUCTOR INITIATED :: MODE: -$current_rm_mode ${C_RESET}"
-            echo -e "${C_BLACK}    ›› Targets: ${#selected_targets[@]} items.${C_RESET}"
+            echo -e "\n\033[1;31m :: DESTRUCTOR INITIATED :: MODE: -$current_rm_mode \033[0m"
+            echo -e "\033[1;30m    ›› Targets: ${#selected_targets[@]} items\033[0m"
             
-            # 純淨的 -i 審查迴圈
-            if [[ "$current_rm_mode" == *"i"* ]]; then
-                echo -ne "${C_RED} :: Are you sure you want to delete these ${#selected_targets[@]} targets? [Y/n]: ${C_RESET}"
+            if [[ "$current_rm_mode" == "i" ]]; then
+                # [-i] 模式：軟隔離確認
+                echo -ne "${C_RED} :: Initiate soft-deletion for these ${#selected_targets[@]} targets? [Y/n]: ${C_RESET}"
                 read confirm
                 if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
                     echo -e "${C_GREEN} :: Destructor aborted. Target(s) secured.${C_RESET}"
                     break
                 fi
-                current_rm_mode="${current_rm_mode/i/}"
-                current_rm_mode="${current_rm_mode}f"
+            else
+                # [-f], [-r], [rf] 模式：實體抹除的最終防線
+                echo -e "${C_RED} :: WARNING: Permanent deletion selected. Targets will NOT be sent to .trash.${C_RESET}"
+                echo -ne "${C_RED} :: TYPE 'CONFIRM' TO OBLITERATE: ${C_RESET}"
+                read confirm
+                if [ "$confirm" != "CONFIRM" ]; then
+                    echo -e "${C_GREEN} :: Destructor aborted. Target(s) secured.${C_RESET}"
+                    break
+                fi
             fi
-            
             rm "-$current_rm_mode" "${selected_targets[@]}"
             
             if command -v _grant_xp &> /dev/null; then _grant_xp 5 "CMD_EXEC"; fi
