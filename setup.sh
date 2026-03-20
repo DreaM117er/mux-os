@@ -300,6 +300,30 @@ function _install_protocol() {
 
     echo "    ›› Installing Bootloader..."
 
+    # 建立 .trash 資料夾
+    local trash_dir="$HOME/.trash"
+    if [ ! -d "$trash_dir" ]; then
+        mkdir -p "$trash_dir"
+        echo "    ›› Quarantine Zone (.trash) established."
+    fi
+    
+    # 寫入 30 天清理資料夾的代碼自動化
+    local TRASH_BLOCK_START="# >>> Mux-OS Trash Guard >>>"
+    local TRASH_BLOCK_END="# <<< Mux-OS Trash Guard <<<"
+
+    if ! grep -qF "$TRASH_BLOCK_START" "$RC_FILE"; then
+        cat << EOF >> "$RC_FILE"
+
+$TRASH_BLOCK_START
+# Mux-OS Quarantine Auto-Cleanup (30 Days Lifecycle)
+if [ -d "\$HOME/.trash" ]; then
+    (find "\$HOME/.trash" -mindepth 1 -mtime +30 -exec command rm -rf {} + 2>/dev/null &)
+fi
+$TRASH_BLOCK_END
+EOF
+        echo "    ›› Trash Guard injected into $RC_FILE."
+    fi
+
     # 重要！定義注入區塊
     if [ -f "$RC_FILE" ]; then
         sed -i '/# Mux-OS Core Uplink/d' "$RC_FILE"
@@ -390,6 +414,7 @@ function _uninstall_protocol() {
     echo -e "  ${C_RED}[-]${C_RESET} System Core     : $MUX_ROOT (All files)"
     echo -e "  ${C_RED}[-]${C_RESET} Bootloader      : Cleaning $RC_FILE"
     echo -e "  ${C_YELLOW}[!]${C_RESET} Note            : Dependencies (git, gh, fzf) will be KEPT."
+    echo -e "  ${C_YELLOW}[!]${C_RESET} Note            : The '.trash' quarantine & auto-cleanup script will be KEPT."
     echo ""
 
     echo -ne "${C_RED} :: To confirm, type 'CONFIRM' (all caps): ${C_RESET}"
@@ -429,6 +454,12 @@ function _uninstall_protocol() {
     echo ""
     echo -e "${C_RED} :: System Purged. Connection Lost.${C_RESET}"
     echo -e "${C_GRAY}    (Restart Termux to clear residual memory states)${C_RESET}"
+
+    echo ""
+    echo -e "${C_CYAN} :: POST-PURGE REPORT ::${C_RESET}"
+    echo -e "${C_GRAY}    Your isolated files in '${C_YELLOW}$HOME/.trash${C_GRAY}' have been preserved.${C_RESET}"
+    echo -e "${C_GRAY}    The 30-day auto-cleanup script remains active in '${C_YELLOW}$RC_FILE${C_GRAY}'.${C_RESET}"
+    echo -e "${C_GRAY}    You may manually delete them if they are no longer required.${C_RESET}"
     exit 0
 }
 

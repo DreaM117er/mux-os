@@ -198,6 +198,7 @@ function ls() {
         fi
 
         menu_items+="${C_PINKMEOW}[cd]${C_RESET} Hide Files\n"
+        menu_items+="${C_RED}[rm]${C_RESET} Destroy Target\n"
 
         local display_prompt="$PWD"
 
@@ -253,6 +254,9 @@ function ls() {
         
         if [ "$target" == "[cd] Hide Files" ]; then
             cd
+            break
+        elif [ "$target" == "[rm] Destroy Target" ]; then
+            __core_rm
             break
         elif [ "$target" == "[cd] Revert to Origin" ]; then
             builtin cd "$origin_pwd"
@@ -313,6 +317,192 @@ function _tct_init() {
     fi
     unset __MUX_CLUMSY_STATE
     _system_unlock
+}
+
+# 原生指令劫持: rm (Command rm for TCT)
+function __core_rm() {
+    # 1. 狀態機讀取
+    local setting_file="$HOME/mux-os/.setting"
+    if [ -f "$setting_file" ]; then source "$setting_file"; fi
+
+    # 2. 邏輯判定 (獨立使用 COMMAND_RM 開關)
+    local allow_radar="false"
+    if [ "$MUX_MODE" == "TCT" ] && [ "$#" -eq 0 ]; then
+        if [ "$COMMAND_RM" == "forever" ] || [ "$CMT_COMMAND" == "true" ]; then
+            allow_radar="true"
+        fi
+    fi
+
+    # 3. 防爆閘門
+    if [ "$allow_radar" != "true" ]; then
+        if _bypass_guard "command rm" "$@"; then
+            return $?
+        else
+            command rm "$@"
+            return $?
+        fi
+    fi
+
+    # 4. 隔離區初始化
+    local trash_dir="$HOME/.trash"
+    if [ ! -d "$trash_dir" ]; then mkdir -p "$trash_dir"; fi
+
+    local show_hidden="${TCT_RADAR_HIDDEN:-false}"
+    local current_rm_mode="i" # 預設裝填 -i 彈藥
+
+    while true; do
+        local targets
+        # rm 雷達鎖死在當前層級 (-maxdepth 1)，不允許跨區掃描
+        if [ "$show_hidden" == "true" ]; then
+            targets=$(find -L . -maxdepth 1 -mindepth 1 2>/dev/null | sed 's|^\./||' | sort)
+        else
+            targets=$(find -L . -maxdepth 1 -mindepth 1 2>/dev/null | sed 's|^\./||' | grep -v '^\.' | sort)
+        fi
+
+        local formatted_targets=""
+        if [ -n "$targets" ]; then
+            formatted_targets=$(echo "$targets" | awk -v c_file="\033[1;37m" -v c_rst="\033[0m" '{print "\033[1;30m[  ]\033[0m " c_file $0 c_rst}')
+        fi
+
+        local menu_items=""
+        
+        # 實體模式按鈕渲染 (動態高亮)
+        local btn_i="[-i]"
+        local btn_f="[-f]"
+        local btn_r="[-r]"
+        local btn_rf="[rf]"
+        
+        case "$current_rm_mode" in
+            "i") btn_i="${C_PINKMEOW}[-i]${C_RESET}" ;;
+            "f") btn_f="${C_YELLOW}[-f]${C_RESET}" ;;
+            "r") btn_r="${C_RED}[-r]${C_RESET}" ;;
+            "rf") btn_rf="${C_RED}\033[5m[rf]\033[0m${C_RESET}" ;;
+        esac
+        
+        menu_items+="${btn_i}\n${btn_f}\n${btn_r}\n${btn_rf}\n"
+        menu_items+="${C_BLACK}----------${C_RESET}\n"
+        
+        if [ -n "$formatted_targets" ]; then 
+            menu_items+="${formatted_targets}\n"
+        fi
+        
+        menu_items+="${C_BLACK}----------${C_RESET}\n"
+        if [ "$show_hidden" == "true" ]; then
+            menu_items+="${C_BLACK}[.*]${C_RESET} Hide Hidden"
+        else
+            menu_items+="${C_BLACK}[.*]${C_RESET} Show Hidden"
+        fi
+
+        local line_count=$(echo -e "$menu_items" | wc -l)
+        local dynamic_height=$(( line_count + 4 ))
+        [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
+
+        local ui_prompt=" :: rm -$current_rm_mode › $PWD :: "
+        if [ "$CMT_COMMAND" == "true" ]; then
+            ui_prompt=" :: cmt › rm -$current_rm_mode › $PWD :: "
+        fi
+
+        # 啟動含多選 (-m) 的 fzf 陣列
+        local raw_target
+        raw_target=$(echo -e "$menu_items" | fzf --ansi -m \
+            --height="$dynamic_height" \
+            --layout=reverse \
+            --prompt="$ui_prompt" \
+            --info=hidden \
+            --header=" :: Tab to Select, Enter to Execute ::" \
+            --border=bottom \
+            --border-label=" :: TACTICAL DESTRUCTOR :: " \
+            --pointer="››" \
+            --color=fg:white,bg:-1,hl:196,fg+:white,bg+:235,hl+:240 \
+            --color=info:240,prompt:196,pointer:red,marker:196,border:196,header:240 \
+            --bind="resize:clear-screen"
+            )
+
+        if [ -z "$raw_target" ]; then break; fi
+
+        # === 訊號解析與防走火分流 ===
+        local mode_changed="false"
+        local selected_targets=()
+
+        while IFS= read -r line; do
+            local clean_line=$(echo "$line" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+            
+            if [ "$clean_line" == "----------" ]; then continue; fi
+            
+            # 模式按鈕攔截
+            if [ "$clean_line" == "[-i]" ]; then current_rm_mode="i"; mode_changed="true"; break; fi
+            if [ "$clean_line" == "[-f]" ]; then current_rm_mode="f"; mode_changed="true"; break; fi
+            if [ "$clean_line" == "[-r]" ]; then current_rm_mode="r"; mode_changed="true"; break; fi
+            if [ "$clean_line" == "[rf]" ]; then current_rm_mode="rf"; mode_changed="true"; break; fi
+            
+            # 視圖切換攔截
+            if [ "$clean_line" == "[.*] Show Hidden" ]; then export TCT_RADAR_HIDDEN="true"; show_hidden="true"; mode_changed="true"; break; fi
+            if [ "$clean_line" == "[.*] Hide Hidden" ]; then export TCT_RADAR_HIDDEN="false"; show_hidden="false"; mode_changed="true"; break; fi
+            
+            # 目標擷取
+            local target_item=$(echo "$clean_line" | sed 's/^\[  \] //')
+            if [ -n "$target_item" ]; then
+                selected_targets+=("$target_item")
+            fi
+        done <<< "$raw_target"
+
+        # 如果改變了模式或視圖，直接重載介面，放棄當次勾選
+        if [ "$mode_changed" == "true" ]; then continue; fi
+
+        # === 處決階段 (The Execution Engine) ===
+        if [ ${#selected_targets[@]} -gt 0 ]; then
+            echo -e "\n\033[1;31m :: DESTRUCTOR INITIATED :: MODE: -$current_rm_mode \033[0m"
+            echo -e "\033[1;30m    ›› Targets: ${#selected_targets[@]} items\033[0m"
+            
+            # 1. 攔截自訂的 [-i] 互動審查迴圈
+            if [[ "$current_rm_mode" == *"i"* ]]; then
+                echo -ne "${C_YELLOW} :: 確定要銷毀這 ${#selected_targets[@]} 個目標嗎？[Y/n]: ${C_RESET}"
+                
+                if command -v _assistant_voice &> /dev/null; then
+                    _assistant_voice "warn" "Commander, please confirm destruction of targets."
+                fi
+                
+                read confirm
+                if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+                    echo -e "${C_GREEN} :: Destructor aborted. Target(s) secured. (*≧ω≦)${C_RESET}"
+                    break
+                fi
+            fi
+
+            # 2. 處決迴圈 (mv 軟隔離 + rmdir 物理鎖)
+            local timestamp=$(date +%Y%m%d_%H%M%S)
+            
+            for item in "${selected_targets[@]}"; do
+                # 處理資料夾
+                if [ -d "$item" ]; then
+                    if [[ "$current_rm_mode" != *"r"* ]]; then
+                        # 沒有 -r 參數：觸發 rmdir 物理防禦
+                        command rmdir "$item" 2>/dev/null
+                        if [ $? -ne 0 ]; then
+                            echo -e "${C_YELLOW}    ›› [BLOCKED] '$item' is not empty. (Requires -r mode)${C_RESET}"
+                        else
+                            echo -e "${C_BLACK}    ›› [WIPED] '$item' (Empty Shell Destroyed)${C_RESET}"
+                        fi
+                    else
+                        # 有 -r 參數：將整個資料夾 mv 隔離
+                        local safe_name="${item}_${timestamp}"
+                        command mv "$item" "$trash_dir/$safe_name" 2>/dev/null
+                        echo -e "${C_BLACK}    ›› [TRASHED] '$item' -> .trash/${safe_name}${C_RESET}"
+                    fi
+                # 處理檔案
+                elif [ -f "$item" ] || [ -L "$item" ]; then
+                    local safe_name="${item}_${timestamp}"
+                    command mv "$item" "$trash_dir/$safe_name" 2>/dev/null
+                    echo -e "${C_BLACK}    ›› [TRASHED] '$item' -> .trash/${safe_name}${C_RESET}"
+                fi
+            done
+            
+            # 操作獎勵
+            if command -v _grant_xp &> /dev/null; then _grant_xp 5 "CMD_EXEC"; fi
+            
+            echo -e "${C_GREEN} :: Execution complete. Area clear. ( • ̀ω•́ )✧${C_RESET}"
+            break
+    done
 }
 
 
@@ -379,6 +569,13 @@ function __tct_core() {
         "ls")
             export CMT_COMMAND="true"
             ls "${@:2}"
+            unset CMT_COMMAND
+            ;;
+
+        # : System 'rm' Override
+        "rm")
+            export CMT_COMMAND="true"
+            rm "${@:2}"
             unset CMT_COMMAND
             ;;
 
