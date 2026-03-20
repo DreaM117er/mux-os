@@ -156,9 +156,11 @@ function cd() {
             continue
         elif [ "$target" == "[-1] Unlock Jail" ]; then
             _update_setting "TCT_RADAR_JAIL" "false"
+            jail_active="false"
             continue
         elif [ "$target" == "[-0] Lock Jail" ]; then
             _update_setting "TCT_RADAR_JAIL" "true"
+            jail_active="true"
             continue
         else
             local clean_dir=$(echo "$target" | sed 's/^\[  \] //')
@@ -309,9 +311,11 @@ function ls() {
             continue
         elif [ "$target" == "[-1] Unlock Jail" ]; then
             _update_setting "TCT_RADAR_JAIL" "false"
+            jail_active="false"
             continue
         elif [ "$target" == "[-0] Lock Jail" ]; then
             _update_setting "TCT_RADAR_JAIL" "true"
+            jail_active="true"
             continue
         else
             local clean_target=$(echo "$target" | sed 's/^\[  \] //')
@@ -491,8 +495,8 @@ function __core_rm() {
 
             if [[ "$clean_line" == "[.*] Show Hidden" ]]; then export TCT_RADAR_HIDDEN="true"; show_hidden="true"; mode_changed="true"; break; fi
             if [[ "$clean_line" == "[.*] Hide Hidden" ]]; then export TCT_RADAR_HIDDEN="false"; show_hidden="false"; mode_changed="true"; break; fi
-            if [[ "$clean_line" == "[-1] Unlock Jail" ]]; then _update_setting "TCT_RADAR_JAIL" "false"; continue; fi
-            if [[ "$clean_line" == "[-0] Lock Jail" ]]; then _update_setting "TCT_RADAR_JAIL" "true"; continue; fi
+            if [[ "$clean_line" == "[-1] Unlock Jail" ]]; then _update_setting "TCT_RADAR_JAIL" "false"; jail_active="false"; continue; fi
+            if [[ "$clean_line" == "[-0] Lock Jail" ]]; then _update_setting "TCT_RADAR_JAIL" "true"; jail_active="true"; continue; fi
 
             local target_item=$(echo "$clean_line" | sed 's/^\[  \] //')
             if [ -n "$target_item" ] && [[ ! "$target_item" == \[*\]* ]]; then
