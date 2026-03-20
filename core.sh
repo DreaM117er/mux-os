@@ -170,6 +170,26 @@ function _mux_boot_sequence() {
     fi
 }
 
+# 實體狀態機刻印引擎 (Physical State Writer)
+function _update_setting() {
+    local key="$1"
+    local val="$2"
+    local setting_file="$HOME/mux-os/.setting"
+    
+    # 確保設定檔存在
+    if [ ! -f "$setting_file" ]; then touch "$setting_file"; fi
+    
+    # 使用 sed 精準覆寫或追加狀態
+    if grep -q "^${key}=" "$setting_file"; then
+        sed -i "s|^${key}=.*|${key}=\"${val}\"|" "$setting_file"
+    else
+        echo "${key}=\"${val}\"" >> "$setting_file"
+    fi
+    
+    # 同步通電給當前記憶體
+    export "${key}"="${val}"
+}
+
 # 狀態機更新器 (State Machine Updater)
 function _update_mux_state() {
     local new_mode="$1"

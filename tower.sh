@@ -31,7 +31,7 @@ function cd() {
     # 邏輯判定
     local allow_radar="false"
     if [ "$MUX_MODE" == "TCT" ] && [ "$#" -eq 0 ]; then
-        if [ "$COMMAND_CDLS" == "forever" ] || [ "$CMT_COMMAND" == "true" ]; then
+        if [ "$COMMAND_UNIX" == "forever" ] || [ "$CMT_COMMAND" == "true" ]; then
             allow_radar="true"
         fi
     fi
@@ -47,8 +47,12 @@ function cd() {
     fi
 
     local origin_pwd="$HOME"
-    local show_hidden="${TCT_RADAR_HIDDEN:-false}"
-    local jail_active="${TCT_RADAR_JAIL:-true}"
+    local show_hidden="false"
+    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then show_hidden="true"; fi
+
+    local jail_active="false"
+    local current_jail="${TCT_RADAR_JAIL:-true}"
+    if [ "$current_jail" == "forever" ] || [ "$current_jail" == "true" ]; then jail_active="true"; fi
 
     while true; do
         local dirs
@@ -87,10 +91,20 @@ function cd() {
             display_prompt="$PWD"
         fi
 
-        if [ "$show_hidden" == "true" ]; then
-            menu_items+="${C_BLACK}[.*]${C_RESET} Hide Hidden"
-        else
-            menu_items+="${C_BLACK}[.*]${C_RESET} Show Hidden"
+        if [ "$TCT_RADAR_HIDDEN" != "forever" ]; then
+            if [ "$show_hidden" == "true" ]; then
+                menu_items+="${C_BLACK}[.*]${C_RESET} Hide Hidden\n"
+            else
+                menu_items+="${C_BLACK}[.*]${C_RESET} Show Hidden\n"
+            fi
+        fi
+
+        if [ "$TCT_RADAR_JAIL" != "forever" ]; then
+            if [ "$jail_active" == "true" ]; then
+                menu_items+="${C_BLACK}[-1]${C_RESET} Unlock Jail"
+            else
+                menu_items+="${C_BLACK}[-0]${C_RESET} Lock Jail"
+            fi
         fi
 
         local line_count=$(echo -e "$menu_items" | wc -l)
@@ -130,21 +144,27 @@ function cd() {
             continue
         elif [ "$target" == "[..] Backto" ]; then
             builtin cd ..
-            export TCT_RADAR_HIDDEN="false"; show_hidden="false"
-            if command -v _save_settings &> /dev/null; then _save_settings; fi
+            _update_setting "TCT_RADAR_HIDDEN" "false"
+            show_hidden="false"
         elif [ "$target" == "[.*] Show Hidden" ]; then
-            export TCT_RADAR_HIDDEN="true"; show_hidden="true"
-            if command -v _save_settings &> /dev/null; then _save_settings; fi
+            _update_setting "TCT_RADAR_HIDDEN" "true"
+            show_hidden="true"
             continue
         elif [ "$target" == "[.*] Hide Hidden" ]; then
-            export TCT_RADAR_HIDDEN="false"; show_hidden="false"
-            if command -v _save_settings &> /dev/null; then _save_settings; fi
+            _update_setting "TCT_RADAR_HIDDEN" "false"
+            show_hidden="false"
+            continue
+        elif [ "$target" == "[-1] Unlock Jail" ]; then
+            _update_setting "TCT_RADAR_JAIL" "false"
+            continue
+        elif [ "$target" == "[-0] Lock Jail" ]; then
+            _update_setting "TCT_RADAR_JAIL" "true"
             continue
         else
             local clean_dir=$(echo "$target" | sed 's/^\[  \] //')
             builtin cd "$clean_dir"
-            export TCT_RADAR_HIDDEN="false"; show_hidden="false"
-            if command -v _save_settings &> /dev/null; then _save_settings; fi
+            _update_setting "TCT_RADAR_HIDDEN" "false"
+            show_hidden="false"
         fi
     done
 }
@@ -158,7 +178,7 @@ function ls() {
     # 邏輯判定
     local allow_radar="false"
     if [ "$MUX_MODE" == "TCT" ] && [ "$#" -eq 0 ]; then
-        if [ "$COMMAND_CDLS" == "forever" ] || [ "$CMT_COMMAND" == "true" ]; then
+        if [ "$COMMAND_UNIX" == "forever" ] || [ "$CMT_COMMAND" == "true" ]; then
             allow_radar="true"
         fi
     fi
@@ -174,8 +194,12 @@ function ls() {
     fi
 
     local origin_pwd="$HOME"
-    local show_hidden="${TCT_RADAR_HIDDEN:-false}"
-    local jail_active="${TCT_RADAR_JAIL:-true}"
+    local show_hidden="false"
+    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then show_hidden="true"; fi
+
+    local jail_active="false"
+    local current_jail="${TCT_RADAR_JAIL:-true}"
+    if [ "$current_jail" == "forever" ] || [ "$current_jail" == "true" ]; then jail_active="true"; fi
 
     while true; do
         local files
@@ -216,10 +240,20 @@ function ls() {
             display_prompt="$PWD"
         fi
 
-        if [ "$show_hidden" == "true" ]; then
-            menu_items+="${C_BLACK}[.*]${C_RESET} Hide Hidden"
-        else
-            menu_items+="${C_BLACK}[.*]${C_RESET} Show Hidden"
+        if [ "$TCT_RADAR_HIDDEN" != "forever" ]; then
+            if [ "$show_hidden" == "true" ]; then
+                menu_items+="${C_BLACK}[.*]${C_RESET} Hide Hidden\n"
+            else
+                menu_items+="${C_BLACK}[.*]${C_RESET} Show Hidden\n"
+            fi
+        fi
+
+        if [ "$TCT_RADAR_JAIL" != "forever" ]; then
+            if [ "$jail_active" == "true" ]; then
+                menu_items+="${C_BLACK}[-1]${C_RESET} Unlock Jail"
+            else
+                menu_items+="${C_BLACK}[-0]${C_RESET} Lock Jail"
+            fi
         fi
 
         local line_count=$(echo -e "$menu_items" | wc -l)
@@ -263,22 +297,28 @@ function ls() {
             continue
         elif [ "$target" == "[..] Backto" ]; then
             builtin cd ..
-            export TCT_RADAR_HIDDEN="false"; show_hidden="false"
-            if command -v _save_settings &> /dev/null; then _save_settings; fi
+            _update_setting "TCT_RADAR_HIDDEN" "false"
+            show_hidden="false"
         elif [ "$target" == "[.*] Show Hidden" ]; then
-            export TCT_RADAR_HIDDEN="true"; show_hidden="true"
-            if command -v _save_settings &> /dev/null; then _save_settings; fi
+            _update_setting "TCT_RADAR_HIDDEN" "true"
+            show_hidden="true"
             continue
         elif [ "$target" == "[.*] Hide Hidden" ]; then
-            export TCT_RADAR_HIDDEN="false"; show_hidden="false"
-            if command -v _save_settings &> /dev/null; then _save_settings; fi
+            _update_setting "TCT_RADAR_HIDDEN" "false"
+            show_hidden="false"
+            continue
+        elif [ "$target" == "[-1] Unlock Jail" ]; then
+            _update_setting "TCT_RADAR_JAIL" "false"
+            continue
+        elif [ "$target" == "[-0] Lock Jail" ]; then
+            _update_setting "TCT_RADAR_JAIL" "true"
             continue
         else
             local clean_target=$(echo "$target" | sed 's/^\[  \] //')
             if [ -d "$clean_target" ]; then
                 builtin cd "$clean_target"
-                export TCT_RADAR_HIDDEN="false"; show_hidden="false"
-                if command -v _save_settings &> /dev/null; then _save_settings; fi
+                _update_setting "TCT_RADAR_HIDDEN" "false"
+                show_hidden="false"
             elif [ -f "$clean_target" ]; then
                 continue
             fi
@@ -341,7 +381,7 @@ function __core_rm() {
 
     local allow_radar="false"
     if [ "$MUX_MODE" == "TCT" ]; then
-        if [ "$COMMAND_RM" == "forever" ] || [ "$CMT_COMMAND" == "true" ]; then
+        if [ "$COMMAND_UNIX" == "forever" ] || [ "$CMT_COMMAND" == "true" ]; then
             allow_radar="true"
         fi
     fi
@@ -351,7 +391,13 @@ function __core_rm() {
         return $?
     fi
 
-    local show_hidden="${TCT_RADAR_HIDDEN:-false}"
+    local show_hidden="false"
+    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then show_hidden="true"; fi
+
+    local jail_active="false"
+    local current_jail="${TCT_RADAR_JAIL:-true}"
+    if [ "$current_jail" == "forever" ] || [ "$current_jail" == "true" ]; then jail_active="true"; fi
+
     local current_rm_mode="i" 
 
     while true; do
@@ -384,10 +430,20 @@ function __core_rm() {
         menu_items+="${C_GREEN}[ls]${C_RESET} File Scanner\n"
         menu_items+="${C_PINKMEOW}[cd]${C_RESET} Navigate\n"
 
-        if [ "$show_hidden" == "true" ]; then
-            menu_items+="${C_BLACK}[.*]${C_RESET} Hide Hidden"
-        else
-            menu_items+="${C_BLACK}[.*]${C_RESET} Show Hidden"
+        if [ "$TCT_RADAR_HIDDEN" != "forever" ]; then
+            if [ "$show_hidden" == "true" ]; then
+                menu_items+="${C_BLACK}[.*]${C_RESET} Hide Hidden\n"
+            else
+                menu_items+="${C_BLACK}[.*]${C_RESET} Show Hidden\n"
+            fi
+        fi
+
+        if [ "$TCT_RADAR_JAIL" != "forever" ]; then
+            if [ "$jail_active" == "true" ]; then
+                menu_items+="${C_BLACK}[-1]${C_RESET} Unlock Jail\n"
+            else
+                menu_items+="${C_BLACK}[-0]${C_RESET} Lock Jail\n"
+            fi
         fi
 
         local display_prompt="${PWD/#$HOME/\~}"
@@ -435,7 +491,9 @@ function __core_rm() {
 
             if [[ "$clean_line" == "[.*] Show Hidden" ]]; then export TCT_RADAR_HIDDEN="true"; show_hidden="true"; mode_changed="true"; break; fi
             if [[ "$clean_line" == "[.*] Hide Hidden" ]]; then export TCT_RADAR_HIDDEN="false"; show_hidden="false"; mode_changed="true"; break; fi
-            
+            if [[ "$clean_line" == "[-1] Unlock Jail" ]]; then _update_setting "TCT_RADAR_JAIL" "false"; continue; fi
+            if [[ "$clean_line" == "[-0] Lock Jail" ]]; then _update_setting "TCT_RADAR_JAIL" "true"; continue; fi
+
             local target_item=$(echo "$clean_line" | sed 's/^\[  \] //')
             if [ -n "$target_item" ] && [[ ! "$target_item" == \[*\]* ]]; then
                 selected_targets+=("$target_item")
@@ -592,14 +650,26 @@ function __tct_core() {
             fi
             
             case "$target_cmd" in
-                "cdls"|"cd"|"ls") export COMMAND_CDLS="forever" ;;
-                "jail") export TCT_RADAR_JAIL="true" ;;
-                "hidden") export TCT_RADAR_HIDDEN="true" ;;
-                *) echo -e "${C_PINKMEOW} :: I don't know how to set '$target_cmd'... (；´д｀)ゞ${C_RESET}"; return 1 ;;
+                "unix")
+                    _update_setting "COMMAND_UNIX" "forever"
+                    echo -e "${C_GREEN} :: UNIX Tactical Radar [ONLINE] (cd, ls, rm)${C_RESET}"
+                    ;;
+
+                "jail")
+                    _update_setting "TCT_RADAR_JAIL" "forever"
+                    echo -e "${C_PINKMEOW} :: Radar Jail Locked FOREVER! (*≧ω≦)${C_RESET}"
+                    ;;
+
+                "hidden")
+                    _update_setting "TCT_RADAR_HIDDEN" "forever"
+                    echo -e "${C_PINKMEOW} :: Hidden files revealed FOREVER! (*≧ω≦)${C_RESET}"
+                    ;;
+
+                *)
+                    echo -e "${C_PINKMEOW} :: I don't know how to unset '$target_cmd'... (；´д｀)ゞ${C_RESET}"
+                    return 1
+                    ;;
             esac
-            
-            if command -v _save_settings &> /dev/null; then _save_settings; fi
-            echo -e "${C_PINKMEOW} :: Setting applied: $target_cmd is now active! (*≧ω≦)${C_RESET}"
             ;;
 
         # : Overwrite Command Toggle
@@ -611,14 +681,27 @@ function __tct_core() {
             fi
             
             case "$target_cmd" in
-                "cdls"|"cd"|"ls") export COMMAND_CDLS="false" ;;
-                "jail") export TCT_RADAR_JAIL="false" ;;
-                "hidden") export TCT_RADAR_HIDDEN="false" ;;
-                *) echo -e "${C_PINKMEOW} :: I don't know how to unset '$target_cmd'... (；´д｀)ゞ${C_RESET}"; return 1 ;;
+                "unix")
+                    _update_setting "COMMAND_UNIX" "false"
+                    echo -e "${C_GREEN} :: UNIX Tactical Radar [OFFLINE] (cd, ls, rm)${C_RESET}"
+                    ;;
+
+                "jail")
+                    _update_setting "TCT_RADAR_JAIL" "false"
+                    echo -e "${C_YELLOW} :: Radar Jail [OFFLINE]${C_RESET}"
+                    ;;
+
+                "hidden")
+                    _update_setting "TCT_RADAR_HIDDEN" "false"
+                    echo -e "${C_YELLOW} :: Hidden files revealed [OFFLINE]${C_RESET}"
+                    ;;
+
+                *)
+                    echo -e "${C_PINKMEOW} :: I don't know how to unset '$target_cmd'... (；´д｀)ゞ${C_RESET}"
+                    return 1
+                    ;;
+                
             esac
-            
-            if command -v _save_settings &> /dev/null; then _save_settings; fi
-            echo -e "${C_PINKMEOW} :: Setting removed: $target_cmd is now disabled! ( ´ ▽ \` )ﾉ${C_RESET}"
             ;;
 
         # : Exit Command Tower
