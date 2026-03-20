@@ -286,54 +286,15 @@ function ls() {
     done
 }
 
-# 指揮塔初始化 (Tower Initialization)
-function _tct_init() {
-    _system_lock
-    _safe_ui_calc
-    
-    clear
-    _draw_logo "tct"
-    _system_check "tct"
-    
-    # 損壞 HUD
-    if command -v _show_hud &> /dev/null; then 
-        _show_hud "tct"
-    fi
-
-    export MUX_INITIALIZED="true"
-    export PS1="\[${C_PINKMEOW}\]Cmt\[${C_RESET}\] \w \033[5m›\033[0m "
-
-    # 沒有出包，就說出歡迎詞
-    if [ "${__MUX_CLUMSY_STATE:-0}" -eq 0 ]; then
-        if command -v _assistant_voice &> /dev/null; then
-            if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
-                _assistant_voice "cat_mode"
-            else
-                local greeting_moods=("hello" "tower_ready" "idle")
-                local rand_mood="${greeting_moods[$(( RANDOM % ${#greeting_moods[@]} ))]}"
-                _assistant_voice "$rand_mood"
-            fi
-        fi
-    fi
-    unset __MUX_CLUMSY_STATE
-    _system_unlock
-}
-
 # 原生指令劫持: rm (Command rm for TCT)
 function __core_rm() {
-    # ==========================================
-    # 軌道一：實體軌道直通 (Native Execution Track)
-    # 說明：帶有參數時，直接交給原生指令執行 (此時已通過 core.sh 安檢)
-    # ==========================================
+    # 軌道直通
     if [ "$#" -gt 0 ]; then
         command rm "$@"
         return $?
     fi
 
-    # ==========================================
-    # 軌道二：視覺戰術雷達 (Visual Buff Track)
-    # 說明：無參數時啟動 UI，收集目標後拋回軌道一
-    # ==========================================
+    # 視覺戰術雷達
     local setting_file="$HOME/mux-os/.setting"
     if [ -f "$setting_file" ]; then source "$setting_file"; fi
 
@@ -356,19 +317,19 @@ function __core_rm() {
     while true; do
         local targets
         if [ "$show_hidden" == "true" ]; then
-            targets=$(find -L . -maxdepth 1 -mindepth 1 2>/dev/null | sed 's|^\./||' | sort)
+            targets=$(command ls -1A --color=always 2>/dev/null)
         else
-            targets=$(find -L . -maxdepth 1 -mindepth 1 2>/dev/null | sed 's|^\./||' | grep -v '^\.' | sort)
+            targets=$(command ls -1 --color=always 2>/dev/null)
         fi
 
         local formatted_targets=""
         if [ -n "$targets" ]; then
-            formatted_targets=$(echo "$targets" | awk -v c_file="\033[1;37m" -v c_rst="\033[0m" '{print "\033[1;30m[  ]\033[0m " c_file $0 c_rst}')
+            formatted_targets=$(echo "$targets" | sed 's/^/\x1b[1;30m[  ]\x1b[0m /')
         fi
 
         local menu_items=""
         
-        # 動態模式按鈕 (隱藏當前已選模式)
+        # 動態模式按鈕
         [ "$current_rm_mode" != "i" ] && menu_items+="${C_YELLOW}[-i]${C_RESET} Interactive\n"
         [ "$current_rm_mode" != "f" ] && menu_items+="${C_YELLOW}[-f]${C_RESET} Force\n"
         [ "$current_rm_mode" != "r" ] && menu_items+="${C_RED}[-r]${C_RESET} Recursive\n"
@@ -433,7 +394,7 @@ function __core_rm() {
             if [[ "$clean_line" == "[-r]"* ]]; then current_rm_mode="r"; mode_changed="true"; break; fi
             if [[ "$clean_line" == "[rf]"* ]]; then current_rm_mode="rf"; mode_changed="true"; break; break; fi
             
-            # 視圖跳躍 (切換到 ls/cd，並徹底跳出 rm 雷達)
+            # 視圖跳躍
             if [[ "$clean_line" == "[ls]"* ]]; then export CMT_COMMAND="true"; ls; unset CMT_COMMAND; break 2; fi
             if [[ "$clean_line" == "[cd]"* ]]; then export CMT_COMMAND="true"; cd; unset CMT_COMMAND; break 2; fi
 
@@ -449,34 +410,62 @@ function __core_rm() {
 
         if [ "$mode_changed" == "true" ]; then continue; fi
 
-        # === 核彈發射井 (Dual-Track Payload Delivery) ===
+        # 執行刪除
         if [ ${#selected_targets[@]} -gt 0 ]; then
-            echo -e "\n\033[1;31m :: DESTRUCTOR INITIATED :: MODE: -$current_rm_mode \033[0m"
-            echo -e "\033[1;30m    ›› Targets: ${#selected_targets[@]} items\033[0m"
+            echo -e "${C_RED} :: DESTRUCTOR INITIATED :: MODE: -$current_rm_mode ${C_RESET}"
+            echo -e "${C_BLACK}    ›› Targets: ${#selected_targets[@]} items.${C_RESET}"
             
-            # 攔截 -i 的語音審查迴圈
+            # 純淨的 -i 審查迴圈
             if [[ "$current_rm_mode" == *"i"* ]]; then
-                echo -ne "${C_YELLOW} :: 確定要銷毀這 ${#selected_targets[@]} 個目標嗎？[Y/n]: ${C_RESET}"
-                if command -v _assistant_voice &> /dev/null; then
-                    _assistant_voice "warn" "Commander, please confirm destruction of targets."
-                fi
+                echo -ne "${C_RED} :: Are you sure you want to delete these ${#selected_targets[@]} targets? [Y/n]: ${C_RESET}"
                 read confirm
                 if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
-                    echo -e "${C_GREEN} :: Destructor aborted. Target(s) secured. (*≧ω≦)${C_RESET}"
+                    echo -e "${C_GREEN} :: Destructor aborted. Target(s) secured.${C_RESET}"
                     break
                 fi
-                # 關鍵！審查通過後，偷偷把 -i 換成 -f，避免原生指令又問一次
                 current_rm_mode="${current_rm_mode/i/}"
                 current_rm_mode="${current_rm_mode}f"
             fi
             
-            # 將收集完的目標加上火力參數，直接拋回給 core.sh 進行防爆安檢並發射
             rm "-$current_rm_mode" "${selected_targets[@]}"
             
             if command -v _grant_xp &> /dev/null; then _grant_xp 5 "CMD_EXEC"; fi
             break
         fi
     done
+}
+
+# 指揮塔初始化 (Tower Initialization)
+function _tct_init() {
+    _system_lock
+    _safe_ui_calc
+    
+    clear
+    _draw_logo "tct"
+    _system_check "tct"
+    
+    # 損壞 HUD
+    if command -v _show_hud &> /dev/null; then 
+        _show_hud "tct"
+    fi
+
+    export MUX_INITIALIZED="true"
+    export PS1="\[${C_PINKMEOW}\]Cmt\[${C_RESET}\] \w \033[5m›\033[0m "
+
+    # 沒有出包，就說出歡迎詞
+    if [ "${__MUX_CLUMSY_STATE:-0}" -eq 0 ]; then
+        if command -v _assistant_voice &> /dev/null; then
+            if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
+                _assistant_voice "cat_mode"
+            else
+                local greeting_moods=("hello" "tower_ready" "idle")
+                local rand_mood="${greeting_moods[$(( RANDOM % ${#greeting_moods[@]} ))]}"
+                _assistant_voice "$rand_mood"
+            fi
+        fi
+    fi
+    unset __MUX_CLUMSY_STATE
+    _system_unlock
 }
 
 
