@@ -606,29 +606,31 @@ function __core_rm() {
         while IFS= read -r line; do
             local clean_line=$(echo "$line" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
             
-            if [ "$clean_line" == "----------" ] || [ -z "$clean_line" ]; then continue; fi
+            if [ "$clean_line" == "----------" ] || [ "$clean_line" == "[Empty]" ] || [ -z "$clean_line" ]; then continue; fi
             
-            if [[ "$clean_line" == "[-i]"* ]]; then current_rm_mode="i"; mode_changed="true"; break; fi
-            if [[ "$clean_line" == "[-f]"* ]]; then current_rm_mode="f"; mode_changed="true"; break; fi
-            if [[ "$clean_line" == "[-r]"* ]]; then current_rm_mode="r"; mode_changed="true"; break; fi
-            if [[ "$clean_line" == "[rf]"* ]]; then current_rm_mode="rf"; mode_changed="true"; break; fi
+            if [[ "$clean_line" == "[-i]"* ]]; then current_rm_mode="i"; mode_changed="true"; continue; fi
+            if [[ "$clean_line" == "[-f]"* ]]; then current_rm_mode="f"; mode_changed="true"; continue; fi
+            if [[ "$clean_line" == "[-r]"* ]]; then current_rm_mode="r"; mode_changed="true"; continue; fi
+            if [[ "$clean_line" == "[rf]"* ]]; then current_rm_mode="rf"; mode_changed="true"; continue; fi
             
             if [[ "$clean_line" == "[ls]"* ]]; then export CMT_COMMAND="true"; ls; unset CMT_COMMAND; break 2; fi
             if [[ "$clean_line" == "[cd]"* ]]; then export CMT_COMMAND="true"; cd; unset CMT_COMMAND; break 2; fi
 
-            if [[ "$clean_line" == "[.*] Show Hidden" ]]; then export TCT_RADAR_HIDDEN="true"; show_hidden="true"; mode_changed="true"; break; fi
-            if [[ "$clean_line" == "[.*] Hide Hidden" ]]; then export TCT_RADAR_HIDDEN="false"; show_hidden="false"; mode_changed="true"; break; fi
-            if [[ "$clean_line" == "[-1] Unlock Jail" ]]; then _update_setting "TCT_RADAR_JAIL" "false"; jail_active="false"; continue; fi
-            if [[ "$clean_line" == "[-0] Lock Jail" ]]; then _update_setting "TCT_RADAR_JAIL" "true"; jail_active="true"; continue; fi
+            if [[ "$clean_line" == "[.*] Show Hidden" ]]; then export TCT_RADAR_HIDDEN="true"; show_hidden="true"; mode_changed="true"; continue; fi
+            if [[ "$clean_line" == "[.*] Hide Hidden" ]]; then export TCT_RADAR_HIDDEN="false"; show_hidden="false"; mode_changed="true"; continue; fi
+            if [[ "$clean_line" == "[-1] Unlock Jail" ]]; then _update_setting "TCT_RADAR_JAIL" "false"; jail_active="false"; mode_changed="true"; continue; fi
+            if [[ "$clean_line" == "[-0] Lock Jail" ]]; then _update_setting "TCT_RADAR_JAIL" "true"; jail_active="true"; mode_changed="true"; continue; fi
 
-            # 提取實際目標 (支援 Tab 複選)
+            # 提取實際目標
             local target_item=$(echo "$clean_line" | sed 's/^\[  \] //')
             if [ -n "$target_item" ] && [[ ! "$target_item" == \[*\]* ]]; then
                 selected_targets+=("$target_item")
             fi
         done <<< "$selections"
 
-        if [ "$mode_changed" == "true" ]; then continue; fi
+        if [ "$mode_changed" == "true" ] && [ ${#selected_targets[@]} -eq 0 ]; then
+            continue
+        fi
 
         # 執行刪除
         if [ ${#selected_targets[@]} -gt 0 ]; then
@@ -720,8 +722,8 @@ function __core_mv() {
             local clean_line=$(echo "$line" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
             if [ "$clean_line" == "----------" ] || [ "$clean_line" == "[Empty]" ] || [ -z "$clean_line" ]; then continue; fi
             
-            if [[ "$clean_line" == "[-i]"* ]]; then current_mv_mode="i"; mode_changed="true"; break; fi
-            if [[ "$clean_line" == "[-f]"* ]]; then current_mv_mode="f"; mode_changed="true"; break; fi
+            if [[ "$clean_line" == "[-i]"* ]]; then current_mv_mode="i"; mode_changed="true"; continue; fi
+            if [[ "$clean_line" == "[-f]"* ]]; then current_mv_mode="f"; mode_changed="true"; continue; fi
             if [[ "$clean_line" == "[ls]"* ]]; then export CMT_COMMAND="true"; ls; unset CMT_COMMAND; break 2; fi
             if [[ "$clean_line" == "[cd]"* ]]; then export CMT_COMMAND="true"; cd; unset CMT_COMMAND; break 2; fi
 
@@ -731,7 +733,9 @@ function __core_mv() {
             fi
         done <<< "$selections"
 
-        if [ "$mode_changed" == "true" ]; then continue; fi
+        if [ "$mode_changed" == "true" ] && [ ${#selected_targets[@]} -eq 0 ]; then
+            continue
+        fi
 
         # 目的地輸入階段
         if [ ${#selected_targets[@]} -gt 0 ]; then
@@ -813,10 +817,10 @@ function __core_cp() {
             local clean_line=$(echo "$line" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
             if [ "$clean_line" == "----------" ] || [ "$clean_line" == "[Empty]" ] || [ -z "$clean_line" ]; then continue; fi
             
-            if [[ "$clean_line" == "[-i]"* ]]; then current_cp_mode="i"; mode_changed="true"; break; fi
-            if [[ "$clean_line" == "[-f]"* ]]; then current_cp_mode="f"; mode_changed="true"; break; fi
-            if [[ "$clean_line" == "[-r]"* ]]; then current_cp_mode="r"; mode_changed="true"; break; fi
-            if [[ "$clean_line" == "[-a]"* ]]; then current_cp_mode="a"; mode_changed="true"; break; fi
+            if [[ "$clean_line" == "[-i]"* ]]; then current_cp_mode="i"; mode_changed="true"; continue; fi
+            if [[ "$clean_line" == "[-f]"* ]]; then current_cp_mode="f"; mode_changed="true"; continue; fi
+            if [[ "$clean_line" == "[-r]"* ]]; then current_cp_mode="r"; mode_changed="true"; continue; fi
+            if [[ "$clean_line" == "[-a]"* ]]; then current_cp_mode="a"; mode_changed="true"; continue; fi
             if [[ "$clean_line" == "[ls]"* ]]; then export CMT_COMMAND="true"; ls; unset CMT_COMMAND; break 2; fi
             if [[ "$clean_line" == "[cd]"* ]]; then export CMT_COMMAND="true"; cd; unset CMT_COMMAND; break 2; fi
 
@@ -826,7 +830,9 @@ function __core_cp() {
             fi
         done <<< "$selections"
 
-        if [ "$mode_changed" == "true" ]; then continue; fi
+        if [ "$mode_changed" == "true" ] && [ ${#selected_targets[@]} -eq 0 ]; then
+            continue
+        fi
 
         # 目的地輸入階段
         if [ ${#selected_targets[@]} -gt 0 ]; then
