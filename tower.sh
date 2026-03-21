@@ -309,6 +309,16 @@ function ls() {
         elif [ "$target" == "[cd] Revert to Origin" ]; then
             builtin cd "$origin_pwd"
             continue
+        elif [ "$target" == "[gp] Grep Search" ]; then
+            echo -ne "${C_CYAN} :: GREP TARGET (Pattern) › ${C_RESET}"
+            read -e grep_kw
+            if [ -n "$grep_kw" ]; then
+                echo -e "${C_RED} :: EXECUTING: grep -n --color=auto \"$grep_kw\" * ${C_RESET}"
+                command grep -n --color=auto "$grep_kw" * 2>/dev/null
+            else
+                echo -e "${C_YELLOW} :: Grep aborted. No pattern provided.${C_RESET}"
+            fi
+            break
         elif [ "$target" == "[..] Backto" ]; then
             builtin cd ..
             _update_setting "TCT_RADAR_HIDDEN" "false"
