@@ -489,7 +489,7 @@ function __core_rm() {
             --border=bottom \
             --border-label=" :: TACTICAL DESTRUCTOR :: " \
             --pointer="››" \
-            --marker="››" \
+            --marker="[›" \
             --color=fg:white,bg:-1,hl:196,fg+:white,bg+:235,hl+:240 \
             --color=info:240,prompt:196,pointer:red,marker:196,border:196,header:240 \
             --bind="resize:clear-screen"
