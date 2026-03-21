@@ -84,6 +84,8 @@ function cd() {
         local formatted_dirs=""
         if [ -n "$dirs" ]; then
             formatted_dirs=$(echo "$dirs" | awk -v c_dir="\033[1;37m" -v c_rst="\033[0m" '{print "\033[1;30m[  ]\033[0m " c_dir $0 c_rst}')
+        else
+            formatted_dirs="${C_BLACK}[Empty]${C_RESET}"
         fi
 
         local menu_items=""
@@ -233,6 +235,8 @@ function ls() {
         local formatted_files=""
         if [ -n "$files" ]; then
             formatted_files=$(echo "$files" | sed 's/^/\x1b[1;30m[  ]\x1b[0m /')
+        else
+            formatted_files="${C_BLACK}[Empty]${C_RESET}"
         fi
 
         local menu_items=""
@@ -433,6 +437,8 @@ function __core_rm() {
         local formatted_targets=""
         if [ -n "$targets" ]; then
             formatted_targets=$(echo "$targets" | sed 's/^/\x1b[1;30m[  ]\x1b[0m /')
+        else
+            formatted_targets="${C_BLACK}[Empty]${C_RESET}"
         fi
 
         local menu_items=""
@@ -563,6 +569,213 @@ function __core_rm() {
     done
 }
 
+# 原生指令劫持: mv (Command mv for TCT)
+function __core_mv() {
+    # 軌道直通
+    if [ "$#" -gt 0 ]; then
+        command mv "$@"
+        return $?
+    fi
+
+    local current_mv_mode="i" 
+    local show_hidden="${TCT_RADAR_HIDDEN:-false}"
+
+    while true; do
+        local targets
+        if [ "$show_hidden" == "true" ] || [ "$show_hidden" == "forever" ]; then
+            targets=$(command ls -1A --color=always 2>/dev/null)
+        else
+            targets=$(command ls -1 --color=always 2>/dev/null)
+        fi
+
+        local formatted_targets=""
+        if [ -n "$targets" ]; then
+            formatted_targets=$(echo "$targets" | sed 's/^/\x1b[1;30m[  ]\x1b[0m /')
+        else
+            formatted_targets="${C_BLACK}[Empty]${C_RESET}"
+        fi
+
+        local menu_items=""
+        [ "$current_mv_mode" != "i" ] && menu_items+="${C_YELLOW}[-i]${C_RESET} Interactive (Safe)\n"
+        [ "$current_mv_mode" != "f" ] && menu_items+="${C_RED}[-f]${C_RESET} Force Overwrite\n"
+        menu_items+="${C_BLACK}----------${C_RESET}\n"
+        menu_items+="${formatted_targets}\n"
+        menu_items+="${C_BLACK}----------${C_RESET}\n"
+        menu_items+="${C_GREEN}[ls]${C_RESET} File Scanner\n"
+        menu_items+="${C_PINKMEOW}[cd]${C_RESET} Navigate\n"
+
+        local ui_prompt=" :: mv -$current_mv_mode › ${PWD/#$HOME/\~} :: "
+        [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › mv -$current_mv_mode › ${PWD/#$HOME/\~} :: "
+
+        local raw_output
+        raw_output=$(echo -e "$menu_items" | fzf --ansi -m \
+            --print-query \
+            --marker="<> " \
+            --height="80%" \
+            --layout=reverse \
+            --prompt="$ui_prompt" \
+            --header=" :: Tab to Select, Enter to Set Destination ::" \
+            --border=bottom \
+            --border-label=" :: TACTICAL RELOCATOR (mv) :: " \
+            --pointer="››" \
+            --color=fg:white,bg:-1,hl:220,fg+:white,bg+:235,hl+:214 \
+            --color=info:240,prompt:220,pointer:red,marker:220,border:220,header:240
+            )
+
+        local user_query=$(echo "$raw_output" | head -n 1)
+        local selections=$(echo "$raw_output" | tail -n +2)
+
+        if _tct_override_parser "$user_query"; then return 0; fi
+        if [ -z "$selections" ]; then break; fi
+
+        local mode_changed="false"
+        local selected_targets=()
+
+        while IFS= read -r line; do
+            local clean_line=$(echo "$line" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+            if [ "$clean_line" == "----------" ] || [ "$clean_line" == "[Empty]" ] || [ -z "$clean_line" ]; then continue; fi
+            
+            if [[ "$clean_line" == "[-i]"* ]]; then current_mv_mode="i"; mode_changed="true"; break; fi
+            if [[ "$clean_line" == "[-f]"* ]]; then current_mv_mode="f"; mode_changed="true"; break; fi
+            if [[ "$clean_line" == "[ls]"* ]]; then export CMT_COMMAND="true"; ls; unset CMT_COMMAND; break 2; fi
+            if [[ "$clean_line" == "[cd]"* ]]; then export CMT_COMMAND="true"; cd; unset CMT_COMMAND; break 2; fi
+
+            local target_item=$(echo "$clean_line" | sed 's/^\[  \] //')
+            if [ -n "$target_item" ] && [[ ! "$target_item" == \[*\]* ]]; then
+                selected_targets+=("$target_item")
+            fi
+        done <<< "$selections"
+
+        if [ "$mode_changed" == "true" ]; then continue; fi
+
+        # 目的地輸入階段
+        if [ ${#selected_targets[@]} -gt 0 ]; then
+            echo -e "${C_YELLOW} :: RELOCATOR INITIATED :: MODE: -$current_mv_mode ${C_RESET}"
+            echo -e "${C_BLACK}    ›› Sources: ${selected_targets[*]}${C_RESET}"
+            
+            local default_input=""
+            # 若只選單一目標，將檔名帶入輸入框，方便原地改名
+            [ ${#selected_targets[@]} -eq 1 ] && default_input="${selected_targets[0]}"
+
+            echo -ne "${C_YELLOW} :: DESTINATION (Path / New Name) › ${C_RESET}"
+            read -e -i "$default_input" dest_target
+            
+            if [ -n "$dest_target" ] && [ "$dest_target" != "$default_input" ]; then
+                echo -e "${C_RED} :: EXECUTING: mv -$current_mv_mode ${selected_targets[*]} $dest_target${C_RESET}"
+                command mv "-$current_mv_mode" "${selected_targets[@]}" "$dest_target"
+                break
+            else
+                echo -e "${C_GREEN} :: Relocator aborted. No valid destination.${C_RESET}"
+            fi
+        fi
+    done
+}
+
+# 原生指令劫持: cp (Command cp for TCT)
+function __core_cp() {
+    # 軌道直通
+    if [ "$#" -gt 0 ]; then
+        command cp "$@"
+        return $?
+    fi
+
+    local current_cp_mode="i" 
+    local show_hidden="${TCT_RADAR_HIDDEN:-false}"
+
+    while true; do
+        local targets
+        if [ "$show_hidden" == "true" ] || [ "$show_hidden" == "forever" ]; then
+            targets=$(command ls -1A --color=always 2>/dev/null)
+        else
+            targets=$(command ls -1 --color=always 2>/dev/null)
+        fi
+
+        local formatted_targets=""
+        if [ -n "$targets" ]; then
+            formatted_targets=$(echo "$targets" | sed 's/^/\x1b[1;30m[  ]\x1b[0m /')
+        else
+            formatted_targets="${C_BLACK}[Empty]${C_RESET}"
+        fi
+
+        local menu_items=""
+        [ "$current_cp_mode" != "i" ] && menu_items+="${C_YELLOW}[-i]${C_RESET} Interactive (Safe)\n"
+        [ "$current_cp_mode" != "f" ] && menu_items+="${C_RED}[-f]${C_RESET} Force Overwrite\n"
+        [ "$current_cp_mode" != "r" ] && menu_items+="${C_PINKMEOW}[-r]${C_RESET} Recursive (Folder Copy)\n"
+        [ "$current_cp_mode" != "a" ] && menu_items+="${C_GREEN}[-a]${C_RESET} Archive (Preserve ALL Attributes)\n"
+        menu_items+="${C_BLACK}----------${C_RESET}\n"
+        menu_items+="${formatted_targets}\n"
+        menu_items+="${C_BLACK}----------${C_RESET}\n"
+        menu_items+="${C_GREEN}[ls]${C_RESET} File Scanner\n"
+        menu_items+="${C_PINKMEOW}[cd]${C_RESET} Navigate\n"
+
+        local ui_prompt=" :: cp -$current_cp_mode › ${PWD/#$HOME/\~} :: "
+        [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › cp -$current_cp_mode › ${PWD/#$HOME/\~} :: "
+
+        local raw_output
+        raw_output=$(echo -e "$menu_items" | fzf --ansi -m \
+            --print-query \
+            --marker="<> " \
+            --height="80%" \
+            --layout=reverse \
+            --prompt="$ui_prompt" \
+            --header=" :: Tab to Select, Enter to Set Destination ::" \
+            --border=bottom \
+            --border-label=" :: TACTICAL CLONER (cp) :: " \
+            --pointer="››" \
+            --color=fg:white,bg:-1,hl:33,fg+:white,bg+:235,hl+:39 \
+            --color=info:240,prompt:33,pointer:red,marker:33,border:33,header:240
+            )
+
+        local user_query=$(echo "$raw_output" | head -n 1)
+        local selections=$(echo "$raw_output" | tail -n +2)
+
+        if _tct_override_parser "$user_query"; then return 0; fi
+        if [ -z "$selections" ]; then break; fi
+
+        local mode_changed="false"
+        local selected_targets=()
+
+        while IFS= read -r line; do
+            local clean_line=$(echo "$line" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+            if [ "$clean_line" == "----------" ] || [ "$clean_line" == "[Empty]" ] || [ -z "$clean_line" ]; then continue; fi
+            
+            if [[ "$clean_line" == "[-i]"* ]]; then current_cp_mode="i"; mode_changed="true"; break; fi
+            if [[ "$clean_line" == "[-f]"* ]]; then current_cp_mode="f"; mode_changed="true"; break; fi
+            if [[ "$clean_line" == "[-r]"* ]]; then current_cp_mode="r"; mode_changed="true"; break; fi
+            if [[ "$clean_line" == "[-a]"* ]]; then current_cp_mode="a"; mode_changed="true"; break; fi
+            if [[ "$clean_line" == "[ls]"* ]]; then export CMT_COMMAND="true"; ls; unset CMT_COMMAND; break 2; fi
+            if [[ "$clean_line" == "[cd]"* ]]; then export CMT_COMMAND="true"; cd; unset CMT_COMMAND; break 2; fi
+
+            local target_item=$(echo "$clean_line" | sed 's/^\[  \] //')
+            if [ -n "$target_item" ] && [[ ! "$target_item" == \[*\]* ]]; then
+                selected_targets+=("$target_item")
+            fi
+        done <<< "$selections"
+
+        if [ "$mode_changed" == "true" ]; then continue; fi
+
+        # 目的地輸入階段
+        if [ ${#selected_targets[@]} -gt 0 ]; then
+            echo -e "${C_GREEN} :: CLONER INITIATED :: MODE: -$current_cp_mode ${C_RESET}"
+            echo -e "${C_BLACK}    ›› Sources: ${selected_targets[*]}${C_RESET}"
+            
+            local default_input=""
+            [ ${#selected_targets[@]} -eq 1 ] && default_input="${selected_targets[0]}"
+
+            echo -ne "${C_GREEN} :: DESTINATION (Path / New Name) › ${C_RESET}"
+            read -e -i "$default_input" dest_target
+            
+            if [ -n "$dest_target" ] && [ "$dest_target" != "$default_input" ]; then
+                echo -e "${C_RED} :: EXECUTING: cp -$current_cp_mode ${selected_targets[*]} $dest_target${C_RESET}"
+                command cp "-$current_cp_mode" "${selected_targets[@]}" "$dest_target"
+                break
+            else
+                echo -e "${C_YELLOW} :: Cloner aborted. No valid destination.${C_RESET}"
+            fi
+        fi
+    done
+}
+
 # 指揮塔初始化 (Tower Initialization)
 function _tct_init() {
     _system_lock
@@ -661,6 +874,20 @@ function __tct_core() {
         "ls")
             export CMT_COMMAND="true"
             ls "${@:2}"
+            unset CMT_COMMAND
+            ;;
+
+        # : System 'mv' Override
+        "mv")
+            export CMT_COMMAND="true"
+            __core_mv "${@:2}"
+            unset CMT_COMMAND
+            ;;
+
+        # : System 'cp' Override
+        "cp")
+            export CMT_COMMAND="true"
+            __core_cp "${@:2}"
             unset CMT_COMMAND
             ;;
 

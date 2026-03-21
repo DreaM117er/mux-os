@@ -930,18 +930,32 @@ function _mux_fs_guard() {
 
 # 覆寫系統原生檔案操作指令
 function rm() { 
-    # 第一道防線
     _mux_fs_guard "rm" "$@" || return 1
-    
-    # 第二道分流
     if [ "$MUX_MODE" == "TCT" ] && command -v __core_rm &> /dev/null; then
         __core_rm "$@"
     else
         command rm "$@"
     fi
 }
-function cp() { _mux_fs_guard "cp" "$@" || return 1; command cp "$@"; }
-function mv() { _mux_fs_guard "mv" "$@" || return 1; command mv "$@"; }
+
+function cp() {
+    _mux_fs_guard "cp" "$@" || return 1
+    if [ "$MUX_MODE" == "TCT" ] && command -v __core_cp &> /dev/null; then
+        __core_cp "$@"
+    else
+        command cp "$@"
+    fi
+}
+
+function mv() {
+    _mux_fs_guard "mv" "$@" || return 1
+    if [ "$MUX_MODE" == "TCT" ] && command -v __core_mv &> /dev/null; then
+        __core_mv "$@"
+    else
+        command mv "$@"
+    fi
+}
+
 function base64() { _mux_fs_guard "base64" "$@" || return 1; command base64 "$@"; }
 function tar()    { _mux_fs_guard "tar" "$@" || return 1; command tar "$@"; }
 
