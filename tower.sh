@@ -28,11 +28,11 @@ function _tct_override_parser() {
     if [ -z "$input_query" ]; then return 1; fi
 
     local main_cmd="${input_query%% *}"
-    # 偵測是否為 TCT 支援的核心指令
+    # 偵測指令
     if [[ "$main_cmd" =~ ^(cd|ls|rm|cp|mv)$ ]]; then
-        # 確保有帶參數 (例如 rm -rf)，或是單純的 ls
+        # 參數確保
         if [ "${#input_query}" -gt "${#main_cmd}" ] || [ "$main_cmd" == "ls" ]; then
-            # 觸發直通，將指令印在畫面上 (符合你的教學美學)
+            # 直通指令
             echo -e "\n${C_RED} :: OVERRIDE ACTIVATED :: ${C_WHITE}$input_query${C_RESET}"
             eval "$input_query"
             return 0
@@ -227,10 +227,10 @@ function ls() {
                 find_cmd+=" ! -name '.*'"
             fi
 
-            local matched_files=$(eval "$find_cmd" -print0 | xargs -0 command grep -il "$current_grep_filter" 2>/dev/null | sed 's|^\./||')
+            local matched_files=$(eval "$find_cmd" -print0 | xargs -0 command grep -il --color=never "$current_grep_filter" 2>/dev/null | sed 's|^\./||')
 
             if [ -n "$matched_files" ]; then
-                files=$(echo "$matched_files" | tr '\n' '\0' | xargs -0 command ls -1d --color=always 2>/dev/null)
+                files=$(echo -n "$matched_files" | tr '\n' '\0' | xargs -0 command ls -1d --color=always 2>/dev/null)
             fi
         else
             if [ "$show_hidden" == "true" ]; then
@@ -253,7 +253,9 @@ function ls() {
             menu_items+="${formatted_files}\n"
             menu_items+="${C_BLACK}----------${C_RESET}\n"
         fi
-        menu_items+="${C_PINKMEOW}[cd]${C_RESET} Hide Files\n"
+        
+        menu_items+="${C_PINKMEOW}[cd]${C_RESET} Navigate\n"
+        
         if [ -n "$current_grep_filter" ]; then
             menu_items+="${C_YELLOW}[gp]${C_RESET} Clear Grep Filter\n"
         else
@@ -322,8 +324,8 @@ function ls() {
             continue 
         fi
         
-        if [ "$target" == "[cd] Hide Files" ]; then
-            cd
+        if [ "$target" == "[cd] Navigate" ]; then
+            export CMT_COMMAND="true"; cd; unset CMT_COMMAND
             break
         elif [ "$target" == "[cd] Revert to Origin" ]; then
             builtin cd "$origin_pwd"
@@ -382,7 +384,7 @@ function ls() {
                     local action_query=$(echo "$action_raw" | head -n 1)
                     local action_sel=$(echo "$action_raw" | tail -n +2 | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
                     
-                    # 直通判定與 Esc 逃脫
+                    # 直通判定
                     if _tct_override_parser "$action_query"; then break 2; fi
                     if [ -z "$action_sel" ]; then break; fi 
                     
@@ -395,19 +397,30 @@ function ls() {
                         nano "$clean_target"
                         break
                     elif [[ "$action_sel" == "[cp]"* ]]; then
-                        export CMT_COMMAND="true"
-                        __core_cp "$clean_target"
-                        unset CMT_COMMAND
+                        echo -e "${C_GREEN} :: CLONE TARGET: $clean_target ${C_RESET}"
+                        echo -ne "${C_GREEN} :: DESTINATION (Path / New Name) › ${C_RESET}"
+                        read -e -i "$clean_target" dest_target
+                        if [ -n "$dest_target" ] && [ "$dest_target" != "$clean_target" ]; then
+                            echo -e "${C_GREEN} :: EXECUTING: cp -i $clean_target $dest_target ${C_RESET}"
+                            command cp -i "$clean_target" "$dest_target"
+                        fi
                         break
                     elif [[ "$action_sel" == "[mv]"* ]]; then
-                        export CMT_COMMAND="true"
-                        __core_mv "$clean_target"
-                        unset CMT_COMMAND
+                        echo -e "${C_YELLOW} :: RELOCATE TARGET: $clean_target ${C_RESET}"
+                        echo -ne "${C_YELLOW} :: DESTINATION (Path / New Name) › ${C_RESET}"
+                        read -e -i "$clean_target" dest_target
+                        if [ -n "$dest_target" ] && [ "$dest_target" != "$clean_target" ]; then
+                            echo -e "${C_YELLOW} :: EXECUTING: mv -i $clean_target $dest_target ${C_RESET}"
+                            command mv -i "$clean_target" "$dest_target"
+                        fi
                         break
                     elif [[ "$action_sel" == "[rm]"* ]]; then
-                        export CMT_COMMAND="true"
-                        __core_rm "$clean_target" 
-                        unset CMT_COMMAND
+                        echo -ne "${C_RED} :: DESTROY '$clean_target'? [y/N]: ${C_RESET}"
+                        read -r confirm
+                        if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
+                            echo -e "${C_RED} :: EXECUTING: rm -i $clean_target ${C_RESET}"
+                            command rm -i "$clean_target"
+                        fi
                         break
                     fi
                 done
