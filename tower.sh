@@ -57,9 +57,9 @@ function _tct_file_action_menu() {
         fi
         
         # 共用戰術兵器庫
-        action_items+="${C_GREEN}[cp]${C_RESET} Tactical Cloner (Multi-Select)\n"
-        action_items+="${C_ORANGE}[mv]${C_RESET} Tactical Relocator (Multi-Select)\n"
-        action_items+="${C_RED}[rm]${C_RESET} Tactical Destructor (Multi-Select)\n"
+        action_items+="${C_GREEN}[cp]${C_RESET} Tactical Cloner\n"
+        action_items+="${C_ORANGE}[mv]${C_RESET} Tactical Relocator\n"
+        action_items+="${C_RED}[rm]${C_RESET} Tactical Destructor\n"
         
         local ui_prompt=" :: Action › $clean_target :: "
         [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › Action › $clean_target :: "
