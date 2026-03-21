@@ -249,6 +249,7 @@ function ls() {
             menu_items+="${C_BLACK}----------${C_RESET}\n"
         fi
         menu_items+="${C_PINKMEOW}[cd]${C_RESET} Hide Files\n"
+        menu_items+="${C_CYAN}[gp]${C_RESET} Grep Search\n"
 
         local display_prompt="$PWD"
 
