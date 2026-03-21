@@ -47,11 +47,11 @@ function _tct_file_action_menu() {
     
     while true; do
         local action_items=""
-        action_items+="${C_CYAN}[ct]${C_RESET} View Content ($clean_target)\n"
-        action_items+="${C_YELLOW}[nn]${C_RESET} Edit File ($clean_target)\n"
-        action_items+="${C_GREEN}[cp]${C_RESET} Tactical Cloner (Multi-Select)\n"
-        action_items+="${C_ORANGE}[mv]${C_RESET} Tactical Relocator (Multi-Select)\n"
-        action_items+="${C_RED}[rm]${C_RESET} Tactical Destructor (Multi-Select)\n"
+        action_items+="${C_CYAN}[ct]${C_RESET} View Content '$clean_target'\n"
+        action_items+="${C_YELLOW}[nn]${C_RESET} Edit File '$clean_target'\n"
+        action_items+="${C_GREEN}[cp]${C_RESET} Tactical Cloner\n"
+        action_items+="${C_ORANGE}[mv]${C_RESET} Tactical Relocator\n"
+        action_items+="${C_RED}[rm]${C_RESET} Tactical Destructor\n"
         
         local ui_prompt=" :: Action › $clean_target :: "
         [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › Action › $clean_target :: "
@@ -224,19 +224,19 @@ function cd() {
                 if [ -z "$mk_sel" ]; then break; fi 
                 
                 if [[ "$mk_sel" == "[touch]"* ]]; then
-                    echo -ne "${C_CYAN} :: NEW FILE NAME › ${C_RESET}"
-                    read -e new_target
+                    local p_touch=$(echo -e "\001${C_CYAN}\002 :: NEW FILE(S) NAME › \001${C_RESET}\002")
+                    read -e -p "$p_touch" new_target
                     if [ -n "$new_target" ]; then
-                        echo -e "${C_RED} :: EXECUTING: touch \"$new_target\" ${C_RESET}"
-                        command touch "$new_target"
+                        echo -e "${C_RED} :: EXECUTING: touch $new_target ${C_RESET}"
+                        eval "command touch $new_target"
                     fi
                     break
                 elif [[ "$mk_sel" == "[mkdir]"* ]]; then
-                    echo -ne "${C_YELLOW} :: NEW DIRECTORY NAME › ${C_RESET}"
-                    read -e new_target
+                    local p_mkdir=$(echo -e "\001${C_YELLOW}\002 :: NEW DIRECTORY(S) NAME › \001${C_RESET}\002")
+                    read -e -p "$p_mkdir" new_target
                     if [ -n "$new_target" ]; then
-                        echo -e "${C_RED} :: EXECUTING: mkdir -p \"$new_target\" ${C_RESET}"
-                        command mkdir -p "$new_target"
+                        echo -e "${C_RED} :: EXECUTING: mkdir -p $new_target ${C_RESET}"
+                        eval "command mkdir -p $new_target"
                     fi
                     break
                 fi
@@ -395,19 +395,19 @@ function ls() {
                 if [ -z "$mk_sel" ]; then break; fi 
                 
                 if [[ "$mk_sel" == "[touch]"* ]]; then
-                    echo -ne "${C_CYAN} :: NEW FILE NAME › ${C_RESET}"
-                    read -e new_target
+                    local p_touch=$(echo -e "\001${C_CYAN}\002 :: NEW FILE(S) NAME › \001${C_RESET}\002")
+                    read -e -p "$p_touch" new_target
                     if [ -n "$new_target" ]; then
-                        echo -e "${C_RED} :: EXECUTING: touch \"$new_target\" ${C_RESET}"
-                        command touch "$new_target"
+                        echo -e "${C_RED} :: EXECUTING: touch $new_target ${C_RESET}"
+                        eval "command touch $new_target"
                     fi
                     break
                 elif [[ "$mk_sel" == "[mkdir]"* ]]; then
-                    echo -ne "${C_YELLOW} :: NEW DIRECTORY NAME › ${C_RESET}"
-                    read -e new_target
+                    local p_mkdir=$(echo -e "\001${C_YELLOW}\002 :: NEW DIRECTORY(S) NAME › \001${C_RESET}\002")
+                    read -e -p "$p_mkdir" new_target
                     if [ -n "$new_target" ]; then
-                        echo -e "${C_RED} :: EXECUTING: mkdir -p \"$new_target\" ${C_RESET}"
-                        command mkdir -p "$new_target"
+                        echo -e "${C_RED} :: EXECUTING: mkdir -p $new_target ${C_RESET}"
+                        eval "command mkdir -p $new_target"
                     fi
                     break
                 fi
@@ -620,8 +620,8 @@ function __core_rm() {
 
         # 執行刪除
         if [ ${#selected_targets[@]} -gt 0 ]; then
-            echo -e "${C_RED} :: DESTRUCTOR INITIATED :: MODE: -$current_rm_mode ${C_RESET}"
-            echo -e "${C_BLACK}    ›› Targets: ${#selected_targets[@]} items${C_RESET}"
+            echo -e "${C_RED} :: DESTRUCTOR INITIATED › MODE: -$current_rm_mode ${C_RESET}"
+            echo -e "${C_BLACK}    ›› Targets: ${#selected_targets[@]} items.${C_RESET}"
             
             if [[ "$current_rm_mode" == "i" ]]; then
                 # [-i] 模式：軟隔離確認
@@ -723,8 +723,8 @@ function __core_mv() {
 
         # 目的地輸入階段
         if [ ${#selected_targets[@]} -gt 0 ]; then
-            echo -e "${C_YELLOW} :: RELOCATOR INITIATED :: MODE: -$current_mv_mode ${C_RESET}"
-            echo -e "${C_BLACK}    ›› Sources: ${selected_targets[*]}${C_RESET}"
+            echo -e "${C_YELLOW} :: RELOCATOR INITIATED › MODE: -$current_mv_mode ${C_RESET}"
+            echo -e "${C_BLACK}    ›› Sources: ${selected_targets[*]}.${C_RESET}"
             
             local default_input=""
             [ ${#selected_targets[@]} -eq 1 ] && default_input="${selected_targets[0]}"
@@ -818,8 +818,8 @@ function __core_cp() {
 
         # 目的地輸入階段
         if [ ${#selected_targets[@]} -gt 0 ]; then
-            echo -e "${C_GREEN} :: CLONER INITIATED :: MODE: -$current_cp_mode ${C_RESET}"
-            echo -e "${C_BLACK}    ›› Sources: ${selected_targets[*]}${C_RESET}"
+            echo -e "${C_GREEN} :: CLONER INITIATED › MODE: -$current_cp_mode ${C_RESET}"
+            echo -e "${C_BLACK}    ›› Sources: ${selected_targets[*]}.${C_RESET}"
             
             local default_input=""
             [ ${#selected_targets[@]} -eq 1 ] && default_input="${selected_targets[0]}"
