@@ -220,13 +220,14 @@ function ls() {
     local current_grep_filter=""
 
     while true; do
+        local files=""
         if [ -n "$current_grep_filter" ]; then
-            local matched_files=""
-            if [ "$show_hidden" == "true" ]; then
-                matched_files=$(command grep -sl "$current_grep_filter" ./* ./.* 2>/dev/null | sed 's|^\./||' | grep -v -E '^(\.|\.\.)$')
-            else
-                matched_files=$(command grep -sl "$current_grep_filter" ./* 2>/dev/null | sed 's|^\./||')
+            local find_cmd="find . -maxdepth 1 -type f"
+            if [ "$show_hidden" != "true" ]; then
+                find_cmd+=" ! -name '.*'"
             fi
+
+            local matched_files=$(eval "$find_cmd" -print0 | xargs -0 command grep -il "$current_grep_filter" 2>/dev/null | sed 's|^\./||')
 
             if [ -n "$matched_files" ]; then
                 files=$(echo "$matched_files" | tr '\n' '\0' | xargs -0 command ls -1d --color=always 2>/dev/null)
@@ -364,6 +365,52 @@ function ls() {
                 _update_setting "TCT_RADAR_HIDDEN" "false"
                 show_hidden="false"
             elif [ -f "$clean_target" ]; then
+                while true; do
+                    local action_items=""
+                    action_items+="${C_CYAN}[cat]${C_RESET} View Content\n"
+                    action_items+="${C_YELLOW}[nano]${C_RESET} Edit File\n"
+                    action_items+="${C_GREEN}[cp]${C_RESET} Clone Target\n"
+                    action_items+="${C_ORANGE}[mv]${C_RESET} Relocate Target\n"
+                    action_items+="${C_RED}[rm]${C_RESET} Destroy Target\n"
+                    
+                    local ui_prompt=" :: Action › $clean_target :: "
+                    [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › Action › $clean_target :: "
+                    
+                    local action_raw
+                    action_raw=$(_ui_tct_nav_radar "$action_items" "$ui_prompt" "10" "FILE OPERATIONS" "220" " :: Esc to Return ::")
+                    
+                    local action_query=$(echo "$action_raw" | head -n 1)
+                    local action_sel=$(echo "$action_raw" | tail -n +2 | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+                    
+                    # 直通判定與 Esc 逃脫
+                    if _tct_override_parser "$action_query"; then break 2; fi
+                    if [ -z "$action_sel" ]; then break; fi 
+                    
+                    # 火力分發
+                    if [[ "$action_sel" == "[cat]"* ]]; then
+                        echo -e "${C_CYAN} :: READING: $clean_target ${C_RESET}"
+                        command cat "$clean_target" | less -R -F -X
+                        break
+                    elif [[ "$action_sel" == "[nano]"* ]]; then
+                        nano "$clean_target"
+                        break
+                    elif [[ "$action_sel" == "[cp]"* ]]; then
+                        export CMT_COMMAND="true"
+                        __core_cp "$clean_target"
+                        unset CMT_COMMAND
+                        break
+                    elif [[ "$action_sel" == "[mv]"* ]]; then
+                        export CMT_COMMAND="true"
+                        __core_mv "$clean_target"
+                        unset CMT_COMMAND
+                        break
+                    elif [[ "$action_sel" == "[rm]"* ]]; then
+                        export CMT_COMMAND="true"
+                        __core_rm "$clean_target" 
+                        unset CMT_COMMAND
+                        break
+                    fi
+                done
                 continue
             fi
         fi
