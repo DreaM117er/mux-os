@@ -433,6 +433,7 @@ function _grant_xp() {
     local whitelist=(
                         "mux"
                         "fac"
+                        "cmt"
                         "_mux_pre_login"
                         "_mux_set_logout"
                         "_core_system_scan"
@@ -449,6 +450,11 @@ function _grant_xp() {
                         "_fac_delete_node"
                         "_fac_rebak_wizard"
                         "_xum_cmd_fire"
+                        "__core_cp"
+                        "__core_mv"
+                        "__core_rm"
+                        "cd"
+                        "ls"
                         "o"
                     )
     local authorized=false

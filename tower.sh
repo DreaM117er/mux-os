@@ -139,6 +139,10 @@ function cd() {
     local current_jail="${TCT_RADAR_JAIL:-true}"
     if [ "$current_jail" == "forever" ] || [ "$current_jail" == "true" ]; then jail_active="true"; fi
 
+    if [ "$allow_radar" == "true" ] && command -v _grant_xp &> /dev/null; then
+        _grant_xp 5 "SHELL"
+    fi
+
     while true; do
         local dirs
         if [ "$show_hidden" == "true" ]; then
@@ -243,6 +247,7 @@ function cd() {
                     if [ -n "$new_target" ]; then
                         echo -e "${C_RED} :: EXECUTING: touch $new_target ${C_RESET}"
                         eval "command touch $new_target"
+                        if command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
                     fi
                     break
                 elif [[ "$mk_sel" == "[mkdir]"* ]]; then
@@ -251,6 +256,7 @@ function cd() {
                     if [ -n "$new_target" ]; then
                         echo -e "${C_RED} :: EXECUTING: mkdir -p $new_target ${C_RESET}"
                         eval "command mkdir -p $new_target"
+                        if command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
                     fi
                     break
                 fi
@@ -312,6 +318,10 @@ function ls() {
     local jail_active="false"
     local current_jail="${TCT_RADAR_JAIL:-true}"
     if [ "$current_jail" == "forever" ] || [ "$current_jail" == "true" ]; then jail_active="true"; fi
+
+    if [ "$allow_radar" == "true" ] && command -v _grant_xp &> /dev/null; then
+        _grant_xp 5 "SHELL"
+    fi
 
     while true; do
         local files=""
@@ -479,6 +489,7 @@ function __core_rm() {
         # 判斷 -r/-f
         if [[ "$current_rm_mode" == *"r"* ]] || [[ "$current_rm_mode" == *"f"* ]]; then
             command rm "-$current_rm_mode" "${selected_targets[@]}"
+            if [ $ret -eq 0 ] && command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
             return $?
         else
             # -i/[Empty]
@@ -494,12 +505,14 @@ function __core_rm() {
                         echo -e "${C_YELLOW}    ›› [BLOCKED] '$item' is not empty. (Requires -r mode)${C_RESET}"
                     else
                         echo -e "${C_BLACK}    ›› [WIPED] '$item' (Empty Shell Destroyed)${C_RESET}"
+                        if [ $ret -eq 0 ] && command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
                     fi
                 elif [ -f "$item" ] || [ -L "$item" ]; then
                     # 檔案：軟隔離轉移
                     local safe_name="${item}_${timestamp}"
                     command mv "$item" "$trash_dir/$safe_name" 2>/dev/null
                     echo -e "${C_BLACK}    ›› [TRASHED] '$item' › .trash/${safe_name}${C_RESET}"
+                    if [ $ret -eq 0 ] && command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
                 fi
             done
             return 0
@@ -657,7 +670,7 @@ function __core_rm() {
             fi
             rm "-$current_rm_mode" "${selected_targets[@]}"
             
-            if command -v _grant_xp &> /dev/null; then _grant_xp 5 "CMD_EXEC"; fi
+            if command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
             break
         fi
     done
@@ -668,6 +681,7 @@ function __core_mv() {
     # 軌道直通
     if [ "$#" -gt 0 ]; then
         command mv "$@"
+        if command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
         return $?
     fi
 
@@ -751,6 +765,7 @@ function __core_mv() {
             if [ -n "$dest_target" ] && [ "$dest_target" != "$default_input" ]; then
                 echo -e "${C_RED} :: EXECUTING: mv -$current_mv_mode ${selected_targets[*]} $dest_target${C_RESET}"
                 command mv "-$current_mv_mode" "${selected_targets[@]}" "$dest_target"
+                if command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
                 break
             else
                 echo -e "${C_GREEN} :: Relocator aborted. No valid destination.${C_RESET}"
@@ -764,6 +779,7 @@ function __core_cp() {
     # 軌道直通
     if [ "$#" -gt 0 ]; then
         command cp "$@"
+        if [ $ret -eq 0 ] && command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
         return $?
     fi
 
@@ -848,6 +864,7 @@ function __core_cp() {
             if [ -n "$dest_target" ] && [ "$dest_target" != "$default_input" ]; then
                 echo -e "${C_RED} :: EXECUTING: cp -$current_cp_mode ${selected_targets[*]} $dest_target${C_RESET}"
                 command cp "-$current_cp_mode" "${selected_targets[@]}" "$dest_target"
+                if command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
                 break
             else
                 echo -e "${C_YELLOW} :: Cloner aborted. No valid destination.${C_RESET}"
