@@ -424,6 +424,7 @@ function ls() {
                     if [ -n "$new_target" ]; then
                         echo -e "${C_RED} :: EXECUTING: touch $new_target ${C_RESET}"
                         eval "command touch $new_target"
+                        if command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
                     fi
                     break
                 elif [[ "$mk_sel" == "[mkdir]"* ]]; then
@@ -432,6 +433,7 @@ function ls() {
                     if [ -n "$new_target" ]; then
                         echo -e "${C_RED} :: EXECUTING: mkdir -p $new_target ${C_RESET}"
                         eval "command mkdir -p $new_target"
+                        if command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
                     fi
                     break
                 fi
@@ -489,8 +491,9 @@ function __core_rm() {
         # 判斷 -r/-f
         if [[ "$current_rm_mode" == *"r"* ]] || [[ "$current_rm_mode" == *"f"* ]]; then
             command rm "-$current_rm_mode" "${selected_targets[@]}"
+            local ret=$? # 🟢 修正
             if [ $ret -eq 0 ] && command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
-            return $?
+            return $ret
         else
             # -i/[Empty]
             local trash_dir="$HOME/.trash"
@@ -501,18 +504,22 @@ function __core_rm() {
                 if [ -d "$item" ]; then
                     # 目錄：使用 rmdir
                     command rmdir "$item" 2>/dev/null
-                    if [ $? -ne 0 ]; then
+                    local ret=$?
+                    if [ $ret -ne 0 ]; then
                         echo -e "${C_YELLOW}    ›› [BLOCKED] '$item' is not empty. (Requires -r mode)${C_RESET}"
                     else
                         echo -e "${C_BLACK}    ›› [WIPED] '$item' (Empty Shell Destroyed)${C_RESET}"
-                        if [ $ret -eq 0 ] && command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
+                        if command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
                     fi
                 elif [ -f "$item" ] || [ -L "$item" ]; then
                     # 檔案：軟隔離轉移
                     local safe_name="${item}_${timestamp}"
                     command mv "$item" "$trash_dir/$safe_name" 2>/dev/null
-                    echo -e "${C_BLACK}    ›› [TRASHED] '$item' › .trash/${safe_name}${C_RESET}"
-                    if [ $ret -eq 0 ] && command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
+                    local ret=$?
+                    if [ $ret -eq 0 ]; then
+                        echo -e "${C_BLACK}    ›› [TRASHED] '$item' › .trash/${safe_name}${C_RESET}"
+                        if command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
+                    fi
                 fi
             done
             return 0
@@ -681,8 +688,9 @@ function __core_mv() {
     # 軌道直通
     if [ "$#" -gt 0 ]; then
         command mv "$@"
-        if command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
-        return $?
+        local ret=$?
+        if [ $ret -eq 0 ] && command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
+        return $ret
     fi
 
     local current_mv_mode="i" 
@@ -779,8 +787,9 @@ function __core_cp() {
     # 軌道直通
     if [ "$#" -gt 0 ]; then
         command cp "$@"
+        local ret=$?
         if [ $ret -eq 0 ] && command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
-        return $?
+        return $ret
     fi
 
     local current_cp_mode="i" 
@@ -890,6 +899,12 @@ function _tct_init() {
 
     export MUX_INITIALIZED="true"
     export PS1="\[${C_PINKMEOW}\]Cmt\[${C_RESET}\] \w \[\033[5m\]›\[\033[0m\] "
+
+    # 戰術導航系統
+    if [ -t 0 ]; then
+        bind '"\C-f": "ls\n"' 2>/dev/null
+        bind '"\C-e": "cd\n"' 2>/dev/null
+    fi
 
     # 沒有出包，就說出歡迎詞
     if [ "${__MUX_CLUMSY_STATE:-0}" -eq 0 ]; then
@@ -1065,6 +1080,11 @@ function __tct_core() {
             
             if [ "$final_confirm" == "CONFIRM" ]; then
                 echo -e "${C_PINKMEOW} :: Tower Uplink Disconnected. See you, Commander! ( ´ ▽ \` )ﾉ${C_RESET}"
+                # 解除導航系統
+                if [ -t 0 ]; then
+                    bind -r '\C-f' 2>/dev/null
+                    bind -r '\C-e' 2>/dev/null
+                fi
                 sleep 1
                 _update_mux_state "MUX" "DEFAULT"
                 _mux_reload_kernel
@@ -1125,24 +1145,11 @@ function __tct_core() {
 
 # 指揮塔全視之眼 (Omniscient Eyes of Tower)
 function cmt() {
-    # 紀錄操作前的等級
     local old_lv=${MUX_LEVEL:-1}
     
-    # 執行指揮塔核心指令
     __tct_core "$@"
     local ret_code=$?
-    
-    # 紀錄操作後的等級
+
     local new_lv=${MUX_LEVEL:-1}
-    
-    # --- [提示] 塔內專屬解鎖檢查區 ---
-    # (如果指揮官你在塔內實作了獲得經驗值的機制，這裡就可以像 fac 一樣
-    #  寫入到達特定等級時，解鎖新外骨骼指令的劇情廣播！目前先留空)
-    
-    # if [ "$old_lv" -lt 10 ] && [ "$new_lv" -ge 10 ]; then
-    #     _assistant_voice "success" "Commander! We unlocked the rm tactical override!"
-    # fi
-    # --------------------------------
-    
     return $ret_code
 }
