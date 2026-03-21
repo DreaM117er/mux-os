@@ -217,12 +217,26 @@ function ls() {
     local current_jail="${TCT_RADAR_JAIL:-true}"
     if [ "$current_jail" == "forever" ] || [ "$current_jail" == "true" ]; then jail_active="true"; fi
 
+    local current_grep_filter=""
+
     while true; do
-        local files
-        if [ "$show_hidden" == "true" ]; then
-            files=$(command ls -1A --color=always 2>/dev/null)
+        if [ -n "$current_grep_filter" ]; then
+            local matched_files=""
+            if [ "$show_hidden" == "true" ]; then
+                matched_files=$(command grep -sl "$current_grep_filter" ./* ./.* 2>/dev/null | sed 's|^\./||' | grep -v -E '^(\.|\.\.)$')
+            else
+                matched_files=$(command grep -sl "$current_grep_filter" ./* 2>/dev/null | sed 's|^\./||')
+            fi
+
+            if [ -n "$matched_files" ]; then
+                files=$(echo "$matched_files" | tr '\n' '\0' | xargs -0 command ls -1d --color=always 2>/dev/null)
+            fi
         else
-            files=$(command ls -1 --color=always 2>/dev/null | grep -v '^\.')
+            if [ "$show_hidden" == "true" ]; then
+                files=$(command ls -1A --color=always 2>/dev/null)
+            else
+                files=$(command ls -1 --color=always 2>/dev/null)
+            fi
         fi
 
         local formatted_files=""
@@ -239,10 +253,13 @@ function ls() {
             menu_items+="${C_BLACK}----------${C_RESET}\n"
         fi
         menu_items+="${C_PINKMEOW}[cd]${C_RESET} Hide Files\n"
-        menu_items+="${C_CYAN}[gp]${C_RESET} Grep Search\n"
+        if [ -n "$current_grep_filter" ]; then
+            menu_items+="${C_YELLOW}[gp]${C_RESET} Clear Grep Filter\n"
+        else
+            menu_items+="${C_CYAN}[gp]${C_RESET} Grep Search\n"
+        fi
 
         local display_prompt="$PWD"
-
         if [ "$jail_active" == "true" ]; then
             if [[ "$PWD" != "$origin_pwd" && "$PWD" == "$origin_pwd"* ]]; then
                 menu_items+="${C_RED}[cd]${C_RESET} Revert to Origin\n"
@@ -255,6 +272,10 @@ function ls() {
                 menu_items+="${C_YELLOW}[..]${C_RESET} Backto\n"
             fi
             display_prompt="$PWD"
+        fi
+
+        if [ -n "$current_grep_filter" ]; then
+            display_prompt="$display_prompt ${C_YELLOW}[Grep: $current_grep_filter]${C_RESET}"
         fi
 
         if [ "$TCT_RADAR_HIDDEN" != "forever" ]; then
@@ -292,7 +313,13 @@ function ls() {
 
         local target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
 
-        if [ "$target" == "----------" ] || [ "$target" == "[Empty]" ]; then continue; fi
+        if [ "$target" == "----------" ]; then continue; fi
+        if [ "$target" == "[Empty]" ]; then
+            if [ -n "$current_grep_filter" ]; then
+                current_grep_filter=""
+            fi
+            continue 
+        fi
         
         if [ "$target" == "[cd] Hide Files" ]; then
             cd
@@ -304,24 +331,12 @@ function ls() {
             echo -ne "${C_CYAN} :: GREP TARGET (Pattern) › ${C_RESET}"
             read -e grep_kw
             if [ -n "$grep_kw" ]; then
-                local target_files=()
-                while IFS= read -r line; do
-                    local clean_name=$(echo "$line" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
-                    if [ -f "$clean_name" ]; then
-                        target_files+=("$clean_name")
-                    fi
-                done <<< "$targets"
-
-                if [ ${#target_files[@]} -gt 0 ]; then
-                    echo -e "${C_RED} :: EXECUTING: grep -n --color=auto \"$grep_kw\" [Files in Radar] ${C_RESET}"
-                    command grep -n --color=auto "$grep_kw" "${target_files[@]}" | less -R -F -X
-                else
-                    echo -e "${C_YELLOW} :: No valid files to grep in current radar.${C_RESET}"
-                fi
-            else
-                echo -e "${C_YELLOW} :: Grep aborted. No pattern provided.${C_RESET}"
+                current_grep_filter="$grep_kw"
             fi
-            break
+            continue
+        elif [ "$target" == "[gp] Clear Grep Filter" ]; then
+            current_grep_filter=""
+            continue
         elif [ "$target" == "[..] Backto" ]; then
             builtin cd ..
             _update_setting "TCT_RADAR_HIDDEN" "false"
