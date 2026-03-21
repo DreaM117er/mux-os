@@ -85,7 +85,7 @@ function cd() {
         if [ -n "$dirs" ]; then
             formatted_dirs=$(echo "$dirs" | awk -v c_dir="\033[1;37m" -v c_rst="\033[0m" '{print "\033[1;30m[  ]\033[0m " c_dir $0 c_rst}')
         else
-            formatted_dirs="${C_BLACK}[Empty]${C_RESET}"
+            formatted_dirs="${C_BLACK}     [Empty]${C_RESET}"
         fi
 
         local menu_items=""
@@ -95,6 +95,7 @@ function cd() {
         fi
 
         menu_items+="${C_GREEN}[ls]${C_RESET} Show Files\n"
+        menu_items+="${C_CYAN}[gp]${C_RESET} Grep Search\n"
 
         local display_prompt="$PWD"
 
@@ -130,32 +131,24 @@ function cd() {
 
         local line_count=$(echo -e "$menu_items" | wc -l)
         local dynamic_height=$(( line_count + 4 ))
+        [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
         local ui_prompt=" :: $display_prompt › "
-        if [ "$CMT_COMMAND" == "true" ]; then
-            ui_prompt=" :: cmt › cd › $display_prompt :: "
-        fi
+        [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › cd › $display_prompt :: "
 
-        local raw_target
-        raw_target=$(echo -e "$menu_items" | fzf --ansi \
-            --height="$dynamic_height" \
-            --layout=reverse \
-            --prompt="$ui_prompt" \
-            --info=hidden \
-            --header=" :: Enter to Select, Esc to Return ::" \
-            --border=bottom \
-            --border-label=" :: TARGET DIRECTORY :: " \
-            --pointer="››" \
-            --color=fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:240 \
-            --color=info:240,prompt:211,pointer:red,marker:211,border:211,header:240 \
-            --bind="resize:clear-screen"
-            )
+        # 呼叫TCT模組
+        local raw_output
+        raw_output=$(_ui_tct_nav_radar "$menu_items" "$ui_prompt" "$dynamic_height" "TARGET DIRECTORY" "211" " :: Enter to Select, Esc to Return ::")
 
+        local user_query=$(echo "$raw_output" | head -n 1)
+        local raw_target=$(echo "$raw_output" | tail -n +2)
+
+        if _tct_override_parser "$user_query"; then break; fi
         if [ -z "$raw_target" ]; then break; fi
 
         local target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
 
-        if [ "$target" == "----------" ]; then continue; fi
+        if [ "$target" == "----------" ] || [ "$target" == "[Empty]" ]; then continue; fi
         
         if [ "$target" == "[ls] Show Files" ]; then
             ls
@@ -163,6 +156,16 @@ function cd() {
         elif [ "$target" == "[cd] Revert to Origin" ]; then
             builtin cd "$origin_pwd"
             continue
+        elif [ "$target" == "[gp] Grep Search" ]; then
+            echo -ne "${C_CYAN} :: GREP TARGET (Pattern) › ${C_RESET}"
+            read -e grep_kw
+            if [ -n "$grep_kw" ]; then
+                echo -e "${C_RED} :: EXECUTING: grep -n --color=auto \"$grep_kw\" * ${C_RESET}"
+                command grep -n --color=auto "$grep_kw" * 2>/dev/null
+            else
+                echo -e "${C_YELLOW} :: Grep aborted. No pattern provided.${C_RESET}"
+            fi
+            break
         elif [ "$target" == "[..] Backto" ]; then
             builtin cd ..
             _update_setting "TCT_RADAR_HIDDEN" "false"
@@ -236,7 +239,7 @@ function ls() {
         if [ -n "$files" ]; then
             formatted_files=$(echo "$files" | sed 's/^/\x1b[1;30m[  ]\x1b[0m /')
         else
-            formatted_files="${C_BLACK}[Empty]${C_RESET}"
+            formatted_files="${C_BLACK}     [Empty]${C_RESET}"
         fi
 
         local menu_items=""
@@ -284,24 +287,11 @@ function ls() {
         [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
         local ui_prompt=" :: $display_prompt › "
-        if [ "$CMT_COMMAND" == "true" ]; then
-            ui_prompt=" :: cmt › ls › $display_prompt :: "
-        fi
+        [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › ls › $display_prompt :: "
 
-        local raw_target
-        raw_target=$(echo -e "$menu_items" | fzf --ansi \
-            --height="$dynamic_height" \
-            --layout=reverse \
-            --prompt="$ui_prompt" \
-            --info=hidden \
-            --header=" :: Enter to Inspect, Esc to Return ::" \
-            --border=bottom \
-            --border-label=" :: FILE SCANNER :: " \
-            --pointer="››" \
-            --color=fg:white,bg:-1,hl:46,fg+:white,bg+:235,hl+:240 \
-            --color=info:240,prompt:46,pointer:red,marker:46,border:46,header:240 \
-            --bind="resize:clear-screen"
-            )
+        # 呼叫TCT模組
+        local raw_output
+        raw_output=$(_ui_tct_nav_radar "$menu_items" "$ui_prompt" "$dynamic_height" "FILE SCANNER" "46" " :: Enter to Inspect, Esc to Return ::")
 
         local user_query=$(echo "$raw_output" | head -n 1)
         local raw_target=$(echo "$raw_output" | tail -n +2)
@@ -311,7 +301,7 @@ function ls() {
 
         local target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
 
-        if [ "$target" == "----------" ]; then continue; fi
+        if [ "$target" == "----------" ] || [ "$target" == "[Empty]" ]; then continue; fi
         
         if [ "$target" == "[cd] Hide Files" ]; then
             cd
@@ -438,7 +428,7 @@ function __core_rm() {
         if [ -n "$targets" ]; then
             formatted_targets=$(echo "$targets" | sed 's/^/\x1b[1;30m[  ]\x1b[0m /')
         else
-            formatted_targets="${C_BLACK}[Empty]${C_RESET}"
+            formatted_targets="${C_BLACK}     [Empty]${C_RESET}"
         fi
 
         local menu_items=""
@@ -460,9 +450,9 @@ function __core_rm() {
 
         if [ "$TCT_RADAR_HIDDEN" != "forever" ]; then
             if [ "$show_hidden" == "true" ]; then
-                menu_items+="${C_BLACK}[.*]${C_RESET} Hide Hidden\n"
+                targets=$(command ls -1A --color=always 2>/dev/null)
             else
-                menu_items+="${C_BLACK}[.*]${C_RESET} Show Hidden\n"
+                targets=$(command ls -1 --color=always 2>/dev/null)
             fi
         fi
 
@@ -484,22 +474,9 @@ function __core_rm() {
         local dynamic_height=$(( line_count + 4 ))
         [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
+        # 呼叫TCT模組
         local raw_output
-        raw_output=$(echo -e "$menu_items" | fzf --ansi -m \
-            --print-query \
-            --height="$dynamic_height" \
-            --layout=reverse \
-            --prompt="$ui_prompt" \
-            --info=hidden \
-            --header=" :: Tab to Select, Enter to Execute ::" \
-            --border=bottom \
-            --border-label=" :: TACTICAL DESTRUCTOR :: " \
-            --pointer="››" \
-            --marker="‹»" \
-            --color=fg:white,bg:-1,hl:196,fg+:white,bg+:235,hl+:240 \
-            --color=info:240,prompt:196,pointer:red,marker:196,border:196,header:240 \
-            --bind="resize:clear-screen"
-            )
+        raw_output=$(_ui_tct_tactical_radar "$menu_items" "$ui_prompt" "$dynamic_height" "TACTICAL DESTRUCTOR" "196")
 
         local user_query=$(echo "$raw_output" | head -n 1)
         local selections=$(echo "$raw_output" | tail -n +2)
@@ -592,7 +569,7 @@ function __core_mv() {
         if [ -n "$targets" ]; then
             formatted_targets=$(echo "$targets" | sed 's/^/\x1b[1;30m[  ]\x1b[0m /')
         else
-            formatted_targets="${C_BLACK}[Empty]${C_RESET}"
+            formatted_targets="${C_BLACK}     [Empty]${C_RESET}"
         fi
 
         local menu_items=""
@@ -607,20 +584,13 @@ function __core_mv() {
         local ui_prompt=" :: mv -$current_mv_mode › ${PWD/#$HOME/\~} :: "
         [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › mv -$current_mv_mode › ${PWD/#$HOME/\~} :: "
 
+        local line_count=$(echo -e "$menu_items" | wc -l)
+        local dynamic_height=$(( line_count + 4 ))
+        [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
+
+        # 呼叫TCT模組
         local raw_output
-        raw_output=$(echo -e "$menu_items" | fzf --ansi -m \
-            --print-query \
-            --marker="<> " \
-            --height="80%" \
-            --layout=reverse \
-            --prompt="$ui_prompt" \
-            --header=" :: Tab to Select, Enter to Set Destination ::" \
-            --border=bottom \
-            --border-label=" :: TACTICAL RELOCATOR (mv) :: " \
-            --pointer="››" \
-            --color=fg:white,bg:-1,hl:220,fg+:white,bg+:235,hl+:214 \
-            --color=info:240,prompt:220,pointer:red,marker:220,border:220,header:240
-            )
+        raw_output=$(_ui_tct_tactical_radar "$menu_items" "$ui_prompt" "$dynamic_height" "TACTICAL RELOCATOR" "220")
 
         local user_query=$(echo "$raw_output" | head -n 1)
         local selections=$(echo "$raw_output" | tail -n +2)
@@ -654,7 +624,6 @@ function __core_mv() {
             echo -e "${C_BLACK}    ›› Sources: ${selected_targets[*]}${C_RESET}"
             
             local default_input=""
-            # 若只選單一目標，將檔名帶入輸入框，方便原地改名
             [ ${#selected_targets[@]} -eq 1 ] && default_input="${selected_targets[0]}"
 
             echo -ne "${C_YELLOW} :: DESTINATION (Path / New Name) › ${C_RESET}"
@@ -694,7 +663,7 @@ function __core_cp() {
         if [ -n "$targets" ]; then
             formatted_targets=$(echo "$targets" | sed 's/^/\x1b[1;30m[  ]\x1b[0m /')
         else
-            formatted_targets="${C_BLACK}[Empty]${C_RESET}"
+            formatted_targets="${C_BLACK}     [Empty]${C_RESET}"
         fi
 
         local menu_items=""
@@ -708,23 +677,13 @@ function __core_cp() {
         menu_items+="${C_GREEN}[ls]${C_RESET} File Scanner\n"
         menu_items+="${C_PINKMEOW}[cd]${C_RESET} Navigate\n"
 
-        local ui_prompt=" :: cp -$current_cp_mode › ${PWD/#$HOME/\~} :: "
-        [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › cp -$current_cp_mode › ${PWD/#$HOME/\~} :: "
+        local line_count=$(echo -e "$menu_items" | wc -l)
+        local dynamic_height=$(( line_count + 4 ))
+        [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
+        # 呼叫TCT模組
         local raw_output
-        raw_output=$(echo -e "$menu_items" | fzf --ansi -m \
-            --print-query \
-            --marker="<> " \
-            --height="80%" \
-            --layout=reverse \
-            --prompt="$ui_prompt" \
-            --header=" :: Tab to Select, Enter to Set Destination ::" \
-            --border=bottom \
-            --border-label=" :: TACTICAL CLONER (cp) :: " \
-            --pointer="››" \
-            --color=fg:white,bg:-1,hl:33,fg+:white,bg+:235,hl+:39 \
-            --color=info:240,prompt:33,pointer:red,marker:33,border:33,header:240
-            )
+        raw_output=$(_ui_tct_tactical_radar "$menu_items" "$ui_prompt" "$dynamic_height" "TACTICAL CLONER" "33")
 
         local user_query=$(echo "$raw_output" | head -n 1)
         local selections=$(echo "$raw_output" | tail -n +2)

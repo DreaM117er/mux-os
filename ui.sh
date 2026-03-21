@@ -1853,6 +1853,54 @@ function _factory_fzf_add_type_menu() {
     echo "$selected"
 }
 
+# TCT模組：戰術導航雷達 (適用 cd, ls)
+function _ui_tct_nav_radar() {
+    local menu_items="$1"
+    local ui_prompt="$2"
+    local dynamic_height="$3"
+    local label="$4"
+    local color_hl="$5"
+    local header_txt="$6"
+
+    echo -e "$menu_items" | fzf --ansi \
+        --print-query \
+        --height="$dynamic_height" \
+        --layout=reverse \
+        --prompt="$ui_prompt" \
+        --info=hidden \
+        --header="$header_txt" \
+        --border=bottom \
+        --border-label=" :: $label :: " \
+        --pointer="››" \
+        --color="fg:white,bg:-1,hl:${color_hl},fg+:white,bg+:235,hl+:${color_hl}" \
+        --color="info:240,prompt:${color_hl},pointer:red,marker:${color_hl},border:${color_hl},header:240" \
+        --bind="resize:clear-screen"
+}
+
+# TCT模組：戰術武裝雷達 (適用 rm, mv, cp 共用)
+function _ui_tct_tactical_radar() {
+    local menu_items="$1"
+    local ui_prompt="$2"
+    local dynamic_height="$3"
+    local label="$4"
+    local color_hl="$5"
+
+    echo -e "$menu_items" | fzf --ansi -m \
+        --print-query \
+        --marker="‹»" \
+        --height="$dynamic_height" \
+        --layout=reverse \
+        --prompt="$ui_prompt" \
+        --info=hidden \
+        --header=" :: Tab to Select, Enter to Execute / Set ::" \
+        --border=bottom \
+        --border-label=" :: $label :: " \
+        --pointer="››" \
+        --color="fg:white,bg:-1,hl:${color_hl},fg+:white,bg+:235,hl+:${color_hl}" \
+        --color="info:240,prompt:${color_hl},pointer:red,marker:${color_hl},border:${color_hl},header:240" \
+        --bind="resize:clear-screen"
+}
+
 # 星門 - UI Mask / Fake Gate
 function _ui_fake_gate() {
 local theme="$1"
