@@ -47,8 +47,8 @@ function _tct_file_action_menu() {
     
     while true; do
         local action_items=""
-        action_items+="${C_CYAN}[cat]${C_RESET} View Content\n"
-        action_items+="${C_YELLOW}[nano]${C_RESET} Edit File\n"
+        action_items+="${C_CYAN}[ct]${C_RESET} View Content\n"
+        action_items+="${C_YELLOW}[nn]${C_RESET} Edit File\n"
         action_items+="${C_GREEN}[cp]${C_RESET} Clone Target\n"
         action_items+="${C_ORANGE}[mv]${C_RESET} Relocate Target\n"
         action_items+="${C_RED}[rm]${C_RESET} Destroy Target\n"
@@ -66,11 +66,11 @@ function _tct_file_action_menu() {
         if [ -z "$action_sel" ]; then return 0; fi 
         
         # 火力分發
-        if [[ "$action_sel" == "[cat]"* ]]; then
+        if [[ "$action_sel" == "[ct]"* ]]; then
             echo -e "${C_CYAN} :: READING: $clean_target ${C_RESET}"
             command cat "$clean_target" | less -R -F -X
             break
-        elif [[ "$action_sel" == "[nano]"* ]]; then
+        elif [[ "$action_sel" == "[nn]"* ]]; then
             nano "$clean_target"
             break
         elif [[ "$action_sel" == "[cp]"* ]]; then
@@ -158,7 +158,7 @@ function cd() {
         fi
 
         menu_items+="${C_GREEN}[ls]${C_RESET} Show Files\n"
-        menu_items+="${C_CYAN}[gp]${C_RESET} Grep Search\n"
+        menu_items+="${C_CYAN}[mk]${C_RESET} Make File or Directory\n"
 
         local display_prompt="$PWD"
 
@@ -216,6 +216,43 @@ function cd() {
         if [ "$target" == "[ls] Show Files" ]; then
             ls
             break
+        elif [ "$target" == "[mk] Make File or Directory" ]; then
+            while true; do
+                local mk_items=""
+                mk_items+="${C_CYAN}[touch]${C_RESET} Create Empty File\n"
+                mk_items+="${C_YELLOW}[mkdir]${C_RESET} Create Directory\n"
+                
+                local mk_ui_prompt=" :: Make › ${PWD/#$HOME/\~} :: "
+                [ "$CMT_COMMAND" == "true" ] && mk_ui_prompt=" :: cmt › Make › ${PWD/#$HOME/\~} :: "
+                
+                local mk_raw
+                mk_raw=$(_ui_tct_nav_radar "$mk_items" "$mk_ui_prompt" "7" "CREATION FORGE" "51" " :: Esc to Return ::")
+                
+                local mk_query=$(echo "$mk_raw" | head -n 1)
+                local mk_sel=$(echo "$mk_raw" | tail -n +2 | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+                
+                if _tct_override_parser "$mk_query"; then break 2; fi
+                if [ -z "$mk_sel" ]; then break; fi 
+                
+                if [[ "$mk_sel" == "[touch]"* ]]; then
+                    echo -ne "${C_CYAN} :: NEW FILE NAME › ${C_RESET}"
+                    read -e new_target
+                    if [ -n "$new_target" ]; then
+                        echo -e "${C_RED} :: EXECUTING: touch \"$new_target\" ${C_RESET}"
+                        command touch "$new_target"
+                    fi
+                    break
+                elif [[ "$mk_sel" == "[mkdir]"* ]]; then
+                    echo -ne "${C_YELLOW} :: NEW DIRECTORY NAME › ${C_RESET}"
+                    read -e new_target
+                    if [ -n "$new_target" ]; then
+                        echo -e "${C_RED} :: EXECUTING: mkdir -p \"$new_target\" ${C_RESET}"
+                        command mkdir -p "$new_target"
+                    fi
+                    break
+                fi
+            done
+            continue
         elif [ "$target" == "[cd] Revert to Origin" ]; then
             builtin cd "$origin_pwd"
             continue
@@ -295,7 +332,7 @@ function ls() {
         fi
         
         menu_items+="${C_PINKMEOW}[cd]${C_RESET} Navigate\n"
-        menu_items+="${C_CYAN}[gp]${C_RESET} Grep Search\n"
+        menu_items+="${C_CYAN}[mk]${C_RESET} Make File or Directory\n"
 
         local display_prompt="$PWD"
         if [ "$jail_active" == "true" ]; then
@@ -350,6 +387,43 @@ function ls() {
         
         if [ "$target" == "[cd] Navigate" ]; then
             export CMT_COMMAND="true"; cd; unset CMT_COMMAND; break
+        elif [ "$target" == "[mk] Make File or Directory" ]; then
+            while true; do
+                local mk_items=""
+                mk_items+="${C_CYAN}[touch]${C_RESET} Create Empty File\n"
+                mk_items+="${C_YELLOW}[mkdir]${C_RESET} Create Directory\n"
+                
+                local mk_ui_prompt=" :: Make › ${PWD/#$HOME/\~} :: "
+                [ "$CMT_COMMAND" == "true" ] && mk_ui_prompt=" :: cmt › Make › ${PWD/#$HOME/\~} :: "
+                
+                local mk_raw
+                mk_raw=$(_ui_tct_nav_radar "$mk_items" "$mk_ui_prompt" "7" "CREATION FORGE" "51" " :: Esc to Return ::")
+                
+                local mk_query=$(echo "$mk_raw" | head -n 1)
+                local mk_sel=$(echo "$mk_raw" | tail -n +2 | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+                
+                if _tct_override_parser "$mk_query"; then break 2; fi
+                if [ -z "$mk_sel" ]; then break; fi 
+                
+                if [[ "$mk_sel" == "[touch]"* ]]; then
+                    echo -ne "${C_CYAN} :: NEW FILE NAME › ${C_RESET}"
+                    read -e new_target
+                    if [ -n "$new_target" ]; then
+                        echo -e "${C_RED} :: EXECUTING: touch \"$new_target\" ${C_RESET}"
+                        command touch "$new_target"
+                    fi
+                    break
+                elif [[ "$mk_sel" == "[mkdir]"* ]]; then
+                    echo -ne "${C_YELLOW} :: NEW DIRECTORY NAME › ${C_RESET}"
+                    read -e new_target
+                    if [ -n "$new_target" ]; then
+                        echo -e "${C_RED} :: EXECUTING: mkdir -p \"$new_target\" ${C_RESET}"
+                        command mkdir -p "$new_target"
+                    fi
+                    break
+                fi
+            done
+            continue
         elif [ "$target" == "[cd] Revert to Origin" ]; then
             builtin cd "$origin_pwd"; continue
         elif [ "$target" == "[..] Backto" ]; then
@@ -368,52 +442,6 @@ function ls() {
         elif [ "$target" == "[-0] Lock Jail" ]; then
             _update_setting "TCT_RADAR_JAIL" "true"
             jail_active="true"; continue
-
-        # 子雷達引擎
-        elif [ "$target" == "[gp] Grep Search" ]; then
-            echo -ne "${C_CYAN} :: GREP TARGET (Pattern) › ${C_RESET}"
-            read -e grep_kw
-            if [ -n "$grep_kw" ]; then
-                while true; do
-                    local find_cmd="find . -maxdepth 1 -type f"
-                    if [ "$show_hidden" != "true" ]; then find_cmd+=" ! -name '.*'"; fi
-                    
-                    local matched_files=$(eval "$find_cmd" -print0 | xargs -0 command grep -il --color=never "$grep_kw" 2>/dev/null | sed 's|^\./||')
-
-                    if [ -z "$matched_files" ]; then
-                        echo -e "${C_YELLOW} :: No files matched pattern: $grep_kw ${C_RESET}"
-                        sleep 1
-                        break
-                    fi
-
-                    local formatted_grep=$(echo -n "$matched_files" | tr '\n' '\0' | xargs -0 command ls -1d --color=always 2>/dev/null | sed 's/^/\x1b[1;30m[  ]\x1b[0m /')
-                    
-                    local grep_ui_prompt=" :: grep › $grep_kw › "
-                    [ "$CMT_COMMAND" == "true" ] && grep_ui_prompt=" :: cmt › grep › $grep_kw › "
-                    
-                    local g_line_count=$(echo -e "$formatted_grep" | wc -l)
-                    local g_height=$(( g_line_count + 4 ))
-                    [ "$g_height" -gt 35 ] && g_height="80%"
-
-                    local grep_out=$(_ui_tct_nav_radar "$formatted_grep" "$grep_ui_prompt" "$g_height" "GREP RESULTS" "51" " :: Enter to Action, Esc to Return ::")
-                    
-                    local g_query=$(echo "$grep_out" | head -n 1)
-                    local g_target=$(echo "$grep_out" | tail -n +2 | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
-
-                    # 支援在 Grep 視窗內打原生指令盲狙 
-                    if _tct_override_parser "$g_query"; then break 2; fi 
-                    if [ -z "$g_target" ]; then break; fi
-                    if [ "$g_target" == "----------" ]; then continue; fi
-                    
-                    local clean_g_target=$(echo "$g_target" | sed 's/^\[  \] //')
-                    if [ -f "$clean_g_target" ]; then
-                        # 呼叫戰術操作艙
-                        _tct_file_action_menu "$clean_g_target"
-                        if [ $? -eq 2 ]; then break 2; fi 
-                    fi
-                done
-            fi
-            continue
         else
             local clean_target=$(echo "$target" | sed 's/^\[  \] //')
             if [ -d "$clean_target" ]; then
