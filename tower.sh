@@ -22,6 +22,25 @@ function _bypass_guard() {
     fi
 }
 
+# 戰術雷達直通引擎 (Radar Override Parser)
+function _tct_override_parser() {
+    local input_query="$1"
+    if [ -z "$input_query" ]; then return 1; fi
+
+    local main_cmd="${input_query%% *}"
+    # 偵測是否為 TCT 支援的核心指令
+    if [[ "$main_cmd" =~ ^(cd|ls|rm|cp|mv)$ ]]; then
+        # 確保有帶參數 (例如 rm -rf)，或是單純的 ls
+        if [ "${#input_query}" -gt "${#main_cmd}" ] || [ "$main_cmd" == "ls" ]; then
+            # 觸發直通，將指令印在畫面上 (符合你的教學美學)
+            echo -e "\n${C_RED} :: OVERRIDE ACTIVATED :: ${C_WHITE}$input_query${C_RESET}"
+            eval "$input_query"
+            return 0
+        fi
+    fi
+    return 1
+}
+
 # 原生指令劫持: cd (Command cd for TCT)
 function cd() {
     # 狀態機讀取
@@ -222,9 +241,7 @@ function ls() {
             menu_items+="${formatted_files}\n"
             menu_items+="${C_BLACK}----------${C_RESET}\n"
         fi
-
         menu_items+="${C_PINKMEOW}[cd]${C_RESET} Hide Files\n"
-        menu_items+="${C_RED}[rm]${C_RESET} Destroy Target\n"
 
         local display_prompt="$PWD"
 
@@ -282,6 +299,10 @@ function ls() {
             --bind="resize:clear-screen"
             )
 
+        local user_query=$(echo "$raw_output" | head -n 1)
+        local raw_target=$(echo "$raw_output" | tail -n +2)
+
+        if _tct_override_parser "$user_query"; then break; fi
         if [ -z "$raw_target" ]; then break; fi
 
         local target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
@@ -290,9 +311,6 @@ function ls() {
         
         if [ "$target" == "[cd] Hide Files" ]; then
             cd
-            break
-        elif [ "$target" == "[rm] Destroy Target" ]; then
-            __core_rm
             break
         elif [ "$target" == "[cd] Revert to Origin" ]; then
             builtin cd "$origin_pwd"
@@ -460,8 +478,9 @@ function __core_rm() {
         local dynamic_height=$(( line_count + 4 ))
         [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
-        local raw_target
-        raw_target=$(echo -e "$menu_items" | fzf --ansi -m \
+        local raw_output
+        raw_output=$(echo -e "$menu_items" | fzf --ansi -m \
+            --print-query \
             --height="$dynamic_height" \
             --layout=reverse \
             --prompt="$ui_prompt" \
@@ -475,15 +494,20 @@ function __core_rm() {
             --bind="resize:clear-screen"
             )
 
-        if [ -z "$raw_target" ]; then break; fi
+        local user_query=$(echo "$raw_output" | head -n 1)
+        local selections=$(echo "$raw_output" | tail -n +2)
+
+        if _tct_override_parser "$user_query"; then return 0; fi
+        if [ -z "$selections" ]; then break; fi
 
         local mode_changed="false"
         local selected_targets=()
 
+        # 解析多選陣列
         while IFS= read -r line; do
             local clean_line=$(echo "$line" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
             
-            if [ "$clean_line" == "----------" ]; then continue; fi
+            if [ "$clean_line" == "----------" ] || [ -z "$clean_line" ]; then continue; fi
             
             if [[ "$clean_line" == "[-i]"* ]]; then current_rm_mode="i"; mode_changed="true"; break; fi
             if [[ "$clean_line" == "[-f]"* ]]; then current_rm_mode="f"; mode_changed="true"; break; fi
@@ -498,11 +522,12 @@ function __core_rm() {
             if [[ "$clean_line" == "[-1] Unlock Jail" ]]; then _update_setting "TCT_RADAR_JAIL" "false"; jail_active="false"; continue; fi
             if [[ "$clean_line" == "[-0] Lock Jail" ]]; then _update_setting "TCT_RADAR_JAIL" "true"; jail_active="true"; continue; fi
 
+            # 提取實際目標 (支援 Tab 複選)
             local target_item=$(echo "$clean_line" | sed 's/^\[  \] //')
             if [ -n "$target_item" ] && [[ ! "$target_item" == \[*\]* ]]; then
                 selected_targets+=("$target_item")
             fi
-        done <<< "$raw_target"
+        done <<< "$selections"
 
         if [ "$mode_changed" == "true" ]; then continue; fi
 
