@@ -44,13 +44,14 @@ function _tct_override_parser() {
 # 戰術操作艙子模組 (Action Menu Sub-Module)
 function _tct_file_action_menu() {
     local clean_target="$1"
+    
     while true; do
         local action_items=""
-        action_items+="${C_CYAN}[ct]${C_RESET} View Content\n"
-        action_items+="${C_YELLOW}[nn]${C_RESET} Edit File\n"
-        action_items+="${C_GREEN}[cp]${C_RESET} Clone Target\n"
-        action_items+="${C_ORANGE}[mv]${C_RESET} Relocate Target\n"
-        action_items+="${C_RED}[rm]${C_RESET} Destroy Target\n"
+        action_items+="${C_CYAN}[ct]${C_RESET} View Content ($clean_target)\n"
+        action_items+="${C_YELLOW}[nn]${C_RESET} Edit File ($clean_target)\n"
+        action_items+="${C_GREEN}[cp]${C_RESET} Tactical Cloner (Multi-Select)\n"
+        action_items+="${C_ORANGE}[mv]${C_RESET} Tactical Relocator (Multi-Select)\n"
+        action_items+="${C_RED}[rm]${C_RESET} Tactical Destructor (Multi-Select)\n"
         
         local ui_prompt=" :: Action › $clean_target :: "
         [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › Action › $clean_target :: "
@@ -60,7 +61,7 @@ function _tct_file_action_menu() {
         local action_query=$(echo "$action_raw" | head -n 1)
         local action_sel=$(echo "$action_raw" | tail -n +2 | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
         
-        # 接收到直通指令
+        # 接收到直通指令回傳
         if _tct_override_parser "$action_query"; then return 2; fi
         if [ -z "$action_sel" ]; then return 0; fi 
         
@@ -73,30 +74,19 @@ function _tct_file_action_menu() {
             nano "$clean_target"
             break
         elif [[ "$action_sel" == "[cp]"* ]]; then
-            echo -e "${C_GREEN} :: CLONE TARGET: $clean_target ${C_RESET}"
-            local p_cp=$(echo -e "\001${C_GREEN}\002 :: DESTINATION (Path / New Name) › \001${C_RESET}\002")
-            read -e -p "$p_cp" -i "$clean_target" dest_target
-            if [ -n "$dest_target" ] && [ "$dest_target" != "$clean_target" ]; then
-                echo -e "${C_GREEN} :: EXECUTING: cp -i $clean_target $dest_target ${C_RESET}"
-                command cp -i "$clean_target" "$dest_target"
-            fi
+            export CMT_COMMAND="true"
+            __core_cp
+            unset CMT_COMMAND
             break
         elif [[ "$action_sel" == "[mv]"* ]]; then
-            echo -e "${C_YELLOW} :: RELOCATE TARGET: $clean_target ${C_RESET}"
-            local p_mv=$(echo -e "\001${C_YELLOW}\002 :: DESTINATION (Path / New Name) › \001${C_RESET}\002")
-            read -e -p "$p_mv" -i "$clean_target" dest_target
-            if [ -n "$dest_target" ] && [ "$dest_target" != "$clean_target" ]; then
-                echo -e "${C_YELLOW} :: EXECUTING: mv -i $clean_target $dest_target ${C_RESET}"
-                command mv -i "$clean_target" "$dest_target"
-            fi
+            export CMT_COMMAND="true"
+            __core_mv
+            unset CMT_COMMAND
             break
         elif [[ "$action_sel" == "[rm]"* ]]; then
-            local p_rm=$(echo -e "\001${C_RED}\002 :: DESTROY '$clean_target'? [y/N]: \001${C_RESET}\002")
-            read -e -p "$p_rm" confirm
-            if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
-                echo -e "${C_RED} :: EXECUTING: rm -i $clean_target ${C_RESET}"
-                command rm -i "$clean_target"
-            fi
+            export CMT_COMMAND="true"
+            __core_rm
+            unset CMT_COMMAND
             break
         fi
     done
