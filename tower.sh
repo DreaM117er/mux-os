@@ -47,26 +47,40 @@ function _tct_file_action_menu() {
     
     while true; do
         local action_items=""
-        action_items+="${C_CYAN}[ct]${C_RESET} View Content '$clean_target'\n"
-        action_items+="${C_YELLOW}[nn]${C_RESET} Edit File '$clean_target'\n"
-        action_items+="${C_GREEN}[cp]${C_RESET} Tactical Cloner\n"
-        action_items+="${C_ORANGE}[mv]${C_RESET} Tactical Relocator\n"
-        action_items+="${C_RED}[rm]${C_RESET} Tactical Destructor\n"
+        
+        # 動態判定
+        if [ -d "$clean_target" ]; then
+            action_items+="${C_PINKMEOW}[cd]${C_RESET} Enter Directory '$clean_target'\n"
+        elif [ -f "$clean_target" ]; then
+            action_items+="${C_CYAN}[ct]${C_RESET} View Content '$clean_target'\n"
+            action_items+="${C_YELLOW}[nn]${C_RESET} Edit File '$clean_target'\n"
+        fi
+        
+        # 共用戰術兵器庫
+        action_items+="${C_GREEN}[cp]${C_RESET} Tactical Cloner (Multi-Select)\n"
+        action_items+="${C_ORANGE}[mv]${C_RESET} Tactical Relocator (Multi-Select)\n"
+        action_items+="${C_RED}[rm]${C_RESET} Tactical Destructor (Multi-Select)\n"
         
         local ui_prompt=" :: Action › $clean_target :: "
         [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › Action › $clean_target :: "
         
-        local action_raw=$(_ui_tct_nav_radar "$action_items" "$ui_prompt" "10" "FILE OPERATIONS" "220" " :: Esc to Return ::")
+        # 呼叫TCT模組
+        local action_raw=$(_ui_tct_nav_radar "$action_items" "$ui_prompt" "10" "TARGET OPERATIONS" "220" " :: Esc to Return ::")
         
         local action_query=$(echo "$action_raw" | head -n 1)
         local action_sel=$(echo "$action_raw" | tail -n +2 | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
         
-        # 接收到直通指令回傳
+        # 直通指令回傳
         if _tct_override_parser "$action_query"; then return 2; fi
         if [ -z "$action_sel" ]; then return 0; fi 
         
         # 火力分發
-        if [[ "$action_sel" == "[ct]"* ]]; then
+        if [[ "$action_sel" == "[cd]"* ]]; then
+            # 執行導航
+            builtin cd "$clean_target"
+            _update_setting "TCT_RADAR_HIDDEN" "false"
+            return 3
+        elif [[ "$action_sel" == "[ct]"* ]]; then
             echo -e "${C_CYAN} :: READING: $clean_target ${C_RESET}"
             command cat "$clean_target" | less -R -F -X
             break
@@ -433,13 +447,11 @@ function ls() {
             jail_active="true"; continue
         else
             local clean_target=$(echo "$target" | sed 's/^\[  \] //')
-            if [ -d "$clean_target" ]; then
-                builtin cd "$clean_target"
-                _update_setting "TCT_RADAR_HIDDEN" "false"
-                show_hidden="false"
-            elif [ -f "$clean_target" ]; then
+            if [ -d "$clean_target" ] || [ -f "$clean_target" ]; then
                 _tct_file_action_menu "$clean_target"
-                if [ $? -eq 2 ]; then break; fi
+                local ret=$?
+                if [ $ret -eq 2 ]; then break; fi
+                if [ $ret -eq 3 ]; then show_hidden="false"; fi
                 continue
             fi
         fi
