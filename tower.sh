@@ -144,7 +144,6 @@ function cd() {
             --border=bottom \
             --border-label=" :: TARGET DIRECTORY :: " \
             --pointer="››" \
-            --marker=" * " \
             --color=fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:240 \
             --color=info:240,prompt:211,pointer:red,marker:211,border:211,header:240 \
             --bind="resize:clear-screen"
@@ -490,6 +489,7 @@ function __core_rm() {
             --border=bottom \
             --border-label=" :: TACTICAL DESTRUCTOR :: " \
             --pointer="››" \
+            --marker=" * " \
             --color=fg:white,bg:-1,hl:196,fg+:white,bg+:235,hl+:240 \
             --color=info:240,prompt:196,pointer:red,marker:196,border:196,header:240 \
             --bind="resize:clear-screen"
