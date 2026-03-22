@@ -178,6 +178,16 @@ function _tct_tns_probe() {
                     buf_other[++idx_other] = sprintf("%s[%-24s]%s   %s", c_flag, flag, c_rst, desc)
                 }
             }
+
+            # 特殊補強
+            if (line ~ /^  -[A-Za-z]/ || line ~ /^      -[A-Za-z]/) {
+                flag = substr(line, 1, index(line, " ") - 1)
+                desc = substr(line, index(line, " ") + 1)
+                sub(/^[ \t=:-]+/, "", desc)
+                if (length(desc) > 65) desc = substr(desc, 1, 62) "..."
+                printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
+                next
+            }
         }
         END {
             # 依序清倉發射：長參數、短參數、位置參數(Other)
