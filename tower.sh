@@ -65,7 +65,7 @@ function _tct_tns_probe() {
         fi
     fi
 
-    # 解析引擎 (相容 GNU 與 Toybox)
+    # 解析引擎
     local parsed_params
     parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" -v c_desc="\033[1;37m" '
         {
@@ -120,7 +120,7 @@ function _tct_tns_probe() {
 
 # 戰術指令導航 (Muscle Memory Macro via bind -x)
 function _tct_tns_macro() {
-    # 1. 截取輸入
+    # 截取輸入
     local target_cmd=""
     target_cmd=$(echo "${READLINE_LINE:0:$READLINE_POINT}" | awk '{
         cmd = ""
@@ -148,21 +148,26 @@ function _tct_tns_macro() {
         fi
     fi
 
-    # 3. 展開參數雷達 (純粹的青色 HUD)
+    local line_count=$(echo -e "$params" | wc -l)
+    local dynamic_height=$(( line_count + 3 ))
+    if [ "$dynamic_height" -gt 12 ]; then dynamic_height=12; fi
+
+    # 展開參數雷達
     local selected
     selected=$(echo -e "$params" | fzf --ansi \
-            --height=12 \
+            --height="$dynamic_height" \
             --layout=reverse \
             --prompt=" :: TNS › $target_cmd › " \
             --header=" :: Enter to Choose, Esc to exit :: " \
             --info=hidden \
             --pointer="››" \
             --border=bottom \
+            --border-label=" :: PARAMETER HUD :: " \
             --color="fg:white,bg:-1,hl:51,fg+:white,bg+:235,hl+:51,info:240" \
             --color="pointer:red,border:51,header:240,prompt:51"
             )
 
-    # 4. 寫回終端機
+    # 寫回終端機
     if [ -n "$selected" ]; then
         # 萃取旗標
         local clean_flag=$(echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk -F'[][]' '{print $2}' | awk '{print $1}' | sed 's/,$//')
