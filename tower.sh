@@ -41,6 +41,54 @@ function _tct_override_parser() {
     return 1
 }
 
+# TNS 動態參數探針 (Tactical Navigation System Probe)
+function _tct_tns_probe() {
+    local target_cmd="$1"
+    if [ -z "$target_cmd" ]; then return 1; fi
+
+    local help_text
+    # 拋出探針，攔截 stdout 與 stderr，防禦崩潰
+    help_text=$(command "$target_cmd" --help 2>&1)
+    
+    if [ -z "$help_text" ]; then
+        return 1
+    fi
+
+    # 啟動 AWK 雙軌解析引擎 (相容 GNU 與 Toybox)
+    echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" -v c_desc="\033[1;37m" '
+        # 捕捉開頭為任意空白，緊接著 "-" 和英文字母的行
+        /^[ \t]*-[a-zA-Z]/ {
+            line = $0
+            sub(/^[ \t]+/, "", line) # 清除開頭空白
+            
+            # 尋找分隔點：兩個以上的空白，或是一個 Tab
+            split_idx = match(line, /[ \t]{2,}|\t/)
+            
+            if (split_idx > 0) {
+                flag = substr(line, 1, split_idx - 1)
+                desc = substr(line, split_idx + RLENGTH)
+            } else {
+                # 備用降級解析 (只用單一空白分隔的極端情況)
+                space_idx = index(line, " ")
+                if (space_idx > 0) {
+                    flag = substr(line, 1, space_idx - 1)
+                    desc = substr(line, space_idx + 1)
+                } else {
+                    flag = line
+                    desc = ""
+                }
+            }
+            
+            # 資料清洗與長度限制，保持雷達 UI 整潔
+            sub(/^[ \t=]+/, "", desc) 
+            if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
+            
+            # 物理渲染：壓製成 fzf 專用格式
+            printf "%s[%s]%s %s\n", c_flag, flag, c_rst, desc
+        }
+    '
+}
+
 # 戰術操作艙子模組 (Action Menu Sub-Module)
 function _tct_file_action_menu() {
     local clean_target="$1"
@@ -491,7 +539,7 @@ function __core_rm() {
         # 判斷 -r/-f
         if [[ "$current_rm_mode" == *"r"* ]] || [[ "$current_rm_mode" == *"f"* ]]; then
             command rm "-$current_rm_mode" "${selected_targets[@]}"
-            local ret=$? # 🟢 修正
+            local ret=$?
             if [ $ret -eq 0 ] && command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
             return $ret
         else
@@ -903,7 +951,6 @@ function _tct_init() {
     # 戰術導航系統
     if [ -t 0 ]; then
         bind '"\C-f": "ls\n"' 2>/dev/null
-        bind '"\C-e": "cd\n"' 2>/dev/null
     fi
 
     # 沒有出包，就說出歡迎詞
@@ -1083,7 +1130,6 @@ function __tct_core() {
                 # 解除導航系統
                 if [ -t 0 ]; then
                     bind -r '\C-f' 2>/dev/null
-                    bind -r '\C-e' 2>/dev/null
                 fi
                 sleep 1
                 _update_mux_state "MUX" "DEFAULT"
@@ -1122,6 +1168,24 @@ function __tct_core() {
                 fi
             else
                 echo -e "${C_PINKMEOW} :: Lifecycle Manager (setup.sh) not found! Did you delete it? (；´д｀)ゞ${C_RESET}"
+            fi
+            ;;
+
+        "probe")
+            local target_cmd="$2"
+            if [ -z "$target_cmd" ]; then
+                echo -e "${C_RED} :: Requires target command (e.g., cmt probe rm)${C_RESET}"
+                return 1
+            fi
+            
+            echo -e "${C_CYAN} :: PROBING NATIVE PARAMETERS: '$target_cmd' ::${C_RESET}"
+            local results=$(_tct_tns_probe "$target_cmd")
+            
+            if [ -n "$results" ]; then
+                # 直接印出解析結果，這些字串未來就是直接塞進 fzf 的選項！
+                echo -e "$results"
+            else
+                echo -e "${C_YELLOW}    ›› No parameters found or '--help' is not supported.${C_RESET}"
             fi
             ;;
 
