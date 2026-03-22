@@ -51,12 +51,20 @@ function _tct_tns_probe() {
     if [[ "$target_cmd" == git\ * ]]; then
         help_text=$(command $target_cmd -h 2>&1)
     else
+        # 發射探針
         help_text=$(PAGER=cat command $target_cmd --help 2>&1)
+        
+        if [[ "$help_text" =~ (illegal|invalid|unrecognized|not\ found) ]] || [ ${#help_text} -lt 50 ]; then
+            local alt_help=$(PAGER=cat command $target_cmd help 2>&1)
+            if [ ${#alt_help} -gt 50 ]; then
+                help_text="$alt_help"
+            fi
+        fi
     fi
     
     help_text=$(echo "$help_text" | sed 's/.\x08//g')
 
-    if [[ "$help_text" == *"not found"* ]] || [[ "$help_text" == *"illegal option"* ]] || [[ "$help_text" == *"invalid option"* ]] || [[ "$help_text" == *"unrecognized option"* ]] || [ ${#help_text} -lt 20 ]; then
+    if [[ "$help_text" =~ (illegal|invalid|unrecognized|not\ found) ]] || [ ${#help_text} -lt 50 ]; then
         local builtin_help=$(help $target_cmd 2>&1)
         if [[ "$builtin_help" != *"no help topics"* ]] && [ -n "$builtin_help" ]; then
             help_text="$builtin_help"
@@ -88,7 +96,7 @@ function _tct_tns_probe() {
                 if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
                 printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
             }
-            else if (line ~ /^[ \t]+[a-zA-Z0-9_-]+/) {
+            else if (line ~ /^[ \t]*[a-zA-Z0-9_-]+/) {
                 sub(/^[ \t]+/, "", line)
                 
                 # 尋找分隔點
