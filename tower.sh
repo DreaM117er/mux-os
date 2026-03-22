@@ -168,7 +168,7 @@ function _tct_tns_macro() {
             --border=bottom \
             --border-label=" :: PARAMETER HUD :: " \
             --color="fg:white,bg:-1,hl:51,fg+:white,bg+:235,hl+:51,info:240" \
-            --color="pointer:red,border:51,header:240,prompt:51,label:51"
+            --color="pointer:red,border:51,header:240,prompt:51"
             )
 
     # 寫回終端機
