@@ -122,11 +122,11 @@ function _tct_tns_probe() {
 function _tct_tns_macro() {
     # 截取輸入
     local target_cmd=""
-    target_cmd=$(echo "${READLINE_LINE:0:$READLINE_POINT}" | awk '{
+    target_cmd=$(echo "${READLINE_LINE:0:$READLINE_POINT}" | awk -F'[;|&]+' '{print $NF}' | awk '{
         cmd = ""
         for(i=1; i<=NF; i++) {
             if ($i ~ /^(cmt|sudo|command|nohup|time)$/) continue;
-            if ($i ~ /^-/ || $i ~ /[><|&]/) break;
+            if ($i ~ /^-/ || $i ~ /[><]/) break;
             
             if (cmd == "") cmd = $i
             else cmd = cmd " " $i
