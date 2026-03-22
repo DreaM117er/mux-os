@@ -157,7 +157,7 @@ function _tct_tns_macro() {
     selected=$(echo -e "$params" | fzf --ansi \
             --height="$dynamic_height" \
             --layout=reverse \
-            --prompt=" :: TNS › $target_cmd › " \
+            --prompt=" :: cmd › $target_cmd › " \
             --header=" :: Enter to Choose, Esc to exit :: " \
             --info=hidden \
             --pointer="››" \
