@@ -41,29 +41,27 @@ function _tct_override_parser() {
     return 1
 }
 
-# 動態參數探針 V9 (Timeout Breaker & Index Cutter)
+# 動態參數探針 (Safe Index Cutter)
 function _tct_tns_probe() {
     local target_cmd="$1"
     if [ -z "$target_cmd" ]; then return 1; fi
 
     local help_text=""
-    
-    # 1. 實體斷路器：限制 0.5 秒並強行封鎖 stdin (</dev/null)，防止 TTY 鎖死
     if [[ "$target_cmd" == git\ * ]]; then
-        help_text=$(timeout 0.5 command $target_cmd -h < /dev/null 2>&1)
+        help_text=$(command $target_cmd -h < /dev/null 2>&1)
     else
-        help_text=$(timeout 0.5 PAGER=cat command $target_cmd --help < /dev/null 2>&1)
+        help_text=$(PAGER=cat command $target_cmd --help < /dev/null 2>&1)
         
         if [[ "$help_text" =~ (illegal|invalid|unrecognized|not\ found|unknown) ]] || [ ${#help_text} -lt 50 ]; then
-            local alt_help=$(timeout 0.5 PAGER=cat command $target_cmd help < /dev/null 2>&1)
+            local alt_help=$(PAGER=cat command $target_cmd help < /dev/null 2>&1)
             if [ ${#alt_help} -gt 50 ]; then
                 help_text="$alt_help"
             fi
         fi
     fi
     
-    # 2. 絕對淨化：只保留標準可列印字元 (ASCII 32~126) 與換行/Tab。徹底消滅讓終端機當機的亂碼！
-    help_text=$(echo "$help_text" | tr -cd '\11\12\40-\176')
+    # 防爆
+    help_text=$(echo "$help_text" | sed 's/.\x08//g' | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g')
 
     if [[ "$help_text" == *"not found"* ]] || [[ "$help_text" == *"illegal option"* ]] || [[ "$help_text" == *"invalid option"* ]] || [[ "$help_text" == *"unrecognized option"* ]] || [ ${#help_text} -lt 20 ]; then
         local builtin_help=$(help $target_cmd 2>&1)
@@ -72,14 +70,13 @@ function _tct_tns_probe() {
         fi
     fi
 
-    # 3. 實體刀片解析引擎 (採用指揮官提議的 index 判定)
     local parsed_params
     parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" -v c_desc="\033[1;37m" '
         {
             line = $0
             sub(/^[ \t]+/, "", line)
             
-            # 閘門 A：標準參數
+            # 標準參數
             if (line ~ /^-+[a-zA-Z0-9]/) {
                 split_idx = match(line, /[ \t][ \t]+|\t/)
                 if (split_idx > 0) {
@@ -95,27 +92,24 @@ function _tct_tns_probe() {
                 sub(/^[ \t=:-]+/, "", desc) 
                 if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
                 printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
-                next
             }
-            
-            # 閘門 B：實體特徵符號 (你的提議：精準尋找 " - ")
-            idx = index(line, " - ")
-            if (idx == 0) idx = index(line, "\t- ")
-            
-            if (idx > 0) {
+            # 實體特徵符號
+            else if (index(line, " - ") > 0 || index(line, "\t- ") > 0) {
+                idx = index(line, " - ")
+                if (idx == 0) idx = index(line, "\t- ")
+                
                 flag = substr(line, 1, idx - 1)
                 desc = substr(line, idx + 3)
                 
+                # 左側必須是英數字開頭
                 if (flag ~ /^[a-zA-Z0-9_-]/) {
                     sub(/^[ \t=:-]+/, "", desc) 
                     if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
                     printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
-                    next
                 }
             }
-            
-            # 閘門 C：純大間距
-            if (match(line, /[ \t][ \t]+|\t/) > 0) {
+            # 純大間距
+            else if (match(line, /[ \t][ \t]+|\t/) > 0) {
                 split_idx = RSTART
                 flag = substr(line, 1, split_idx - 1)
                 if (index(flag, " ") == 0 && flag ~ /^[a-zA-Z0-9_-]+$/) {
