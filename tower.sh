@@ -47,10 +47,10 @@ function _tct_tns_probe() {
     if [ -z "$target_cmd" ]; then return 1; fi
 
     # 廣域 help 選單掃描
-    local help_text
-    help_text=$(command "$target_cmd" --help 2>&1)
+    local help_text=""
+    help_text=$(command $target_cmd --help 2>&1)
     if [[ "$help_text" == *"not found"* ]] || [[ "$help_text" == *"illegal option"* ]] || [[ "$help_text" == *"invalid option"* ]] || [[ "$help_text" == *"unrecognized option"* ]] || [ ${#help_text} -lt 20 ]; then
-        local builtin_help=$(help "$target_cmd" 2>&1)
+        local builtin_help=$(help $target_cmd 2>&1)
         if [[ "$builtin_help" != *"no help topics"* ]] && [ -n "$builtin_help" ]; then
             help_text="$builtin_help"
         fi
@@ -61,7 +61,7 @@ function _tct_tns_probe() {
     parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" -v c_desc="\033[1;37m" '
         {
             line = $0
-            
+
             # 標準參數特徵 ( - 或 -- 開頭)
             if (line ~ /^[ \t]*-+[a-zA-Z0-9]/) {
                 sub(/^[ \t]+/, "", line)
@@ -115,9 +115,12 @@ function _tct_tns_macro() {
     local target_cmd=""
     target_cmd=$(echo "$READLINE_LINE" | awk '{
         for(i=1; i<=NF; i++) {
-            if ($i !~ /^(cmt|sudo|command|nohup|time)$/) {
-                print $i; exit
-            }
+            if ($i ~ /^(cmt|sudo|command|nohup|time)$/) continue;
+
+            if ($i ~ /^-/ || $i ~ /[><|&]/) break;
+            
+            if (cmd == "") cmd = $i
+            else cmd = cmd " " $i
         }
     }')
 
