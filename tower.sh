@@ -59,30 +59,46 @@ function _tct_tns_probe() {
     # 解析引擎 (相容 GNU 與 Toybox)
     local parsed_params
     parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" -v c_desc="\033[1;37m" '
-        /^[ \t]*-+[a-zA-Z0-9]/ {
+        {
             line = $0
-            sub(/^[ \t]+/, "", line)
             
-            split_idx = match(line, /[ \t]{2,}|\t/)
-            
-            if (split_idx > 0) {
-                flag = substr(line, 1, split_idx - 1)
-                desc = substr(line, split_idx + RLENGTH)
-            } else {
-                space_idx = index(line, " ")
-                if (space_idx > 0) {
-                    flag = substr(line, 1, space_idx - 1)
-                    desc = substr(line, space_idx + 1)
+            # 標準參數特徵 ( - 或 -- 開頭)
+            if (line ~ /^[ \t]*-+[a-zA-Z0-9]/) {
+                sub(/^[ \t]+/, "", line)
+                split_idx = match(line, /[ \t]{2,}|\t/)
+                
+                if (split_idx > 0) {
+                    flag = substr(line, 1, split_idx - 1)
+                    desc = substr(line, split_idx + RLENGTH)
                 } else {
-                    flag = line
-                    desc = ""
+                    space_idx = index(line, " ")
+                    if (space_idx > 0) {
+                        flag = substr(line, 1, space_idx - 1)
+                        desc = substr(line, space_idx + 1)
+                    } else {
+                        flag = line; desc = ""
+                    }
+                }
+                sub(/^[ \t=]+/, "", desc) 
+                if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
+                printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
+            }
+            #  空白 + 連續性指令 (如git)
+            else if (line ~ /^[ \t]+[a-zA-Z0-9_-]+([ \t]{2,}|\t)[^ \t]/) {
+                sub(/^[ \t]+/, "", line)
+                split_idx = match(line, /[ \t]{2,}|\t/)
+                
+                if (split_idx > 0) {
+                    flag = substr(line, 1, split_idx - 1)
+                    
+                    if (index(flag, " ") == 0) {
+                        desc = substr(line, split_idx + RLENGTH)
+                        sub(/^[ \t=]+/, "", desc) 
+                        if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
+                        printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
+                    }
                 }
             }
-            
-            sub(/^[ \t=]+/, "", desc) 
-            if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
-            
-            printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
         }
     ')
 
