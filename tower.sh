@@ -191,7 +191,7 @@ function _tct_tns_probe() {
             }
         }
         END {
-            # 🚀 依序清倉發射：長參數 -> 短參數 -> 位置參數(Other)
+            # 依序清倉發射：長參數、短參數、位置參數(Other)
             for (i=1; i<=idx_long; i++) print buf_long[i]
             for (i=1; i<=idx_short; i++) print buf_short[i]
             for (i=1; i<=idx_other; i++) print buf_other[i]
