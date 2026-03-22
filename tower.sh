@@ -105,16 +105,15 @@ function _tct_tns_macro() {
     
     # 盲狙偵測
     if [ -z "$target_cmd" ]; then
-        target_cmd=$(echo "" | fzf --print-query --prompt=" :: TNS TARGET COMMAND › " --info=hidden --height=20% --layout=reverse --color=border:51,prompt:51 </dev/tty >/dev/tty | head -n 1)
+        target_cmd=$(echo "" | fzf --print-query --prompt=" :: TNS TARGET COMMAND › " --info=hidden --height=20% --layout=reverse --color=border:51,prompt:51 | head -n 1)
         
-        # 使用者按 Esc 取消
         if [ -z "$target_cmd" ]; then return; fi
         inserted_cmd="true"
     fi
 
+    # 獲取參數
     local params=$(_tct_tns_probe "$target_cmd")
     if [ -z "$params" ]; then 
-        # 如果這個指令沒有參數
         if [ "$inserted_cmd" == "true" ]; then
             READLINE_LINE="$target_cmd "
             READLINE_POINT=${#READLINE_LINE}
@@ -124,9 +123,11 @@ function _tct_tns_macro() {
 
     # 展開參數雷達
     local selected
-    selected=$(echo -e "$params" | fzf --height=50% --layout=reverse --prompt=" :: TNS › $target_cmd › " --info=hidden --border=bottom --color=border:51 </dev/tty >/dev/tty)
+    selected=$(echo -e "$params" | fzf --height=50% --layout=reverse --prompt=" :: TNS › $target_cmd › " --info=hidden --border=bottom --color=border:51)
 
+    # 寫回終端機
     if [ -n "$selected" ]; then
+        # 萃取旗標
         local clean_flag=$(echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk -F'[][]' '{print $2}' | awk -F',' '{print $1}' | sed 's/^[ \t]*//;s/[ \t]*$//')
         
         if [ -n "$clean_flag" ]; then
@@ -137,10 +138,12 @@ function _tct_tns_macro() {
                 left_part="$target_cmd "
             fi
             
+            # 確保參數前有空白分隔
             if [[ -n "$left_part" ]] && [[ "$left_part" != *" " ]]; then
                 left_part="${left_part} "
             fi
             
+            #  竄改游標緩衝區
             READLINE_LINE="${left_part}${clean_flag} ${right_part}"
             READLINE_POINT=$((${#left_part} + ${#clean_flag} + 1))
         fi
