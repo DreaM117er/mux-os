@@ -41,7 +41,7 @@ function _tct_override_parser() {
     return 1
 }
 
-# TNS 動態參數探針 (Tactical Navigation System Probe)
+# 動態參數探針 (Tactical Navigation System Probe)
 function _tct_tns_probe() {
     local target_cmd="$1"
     if [ -z "$target_cmd" ]; then return 1; fi
@@ -84,12 +84,12 @@ function _tct_tns_probe() {
             if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
             
             # 物理渲染：壓製成 fzf 專用格式
-            printf "%s[%s]%s %s\n", c_flag, flag, c_rst, desc
+            printf "%s[ %-24s ]%s   %s\n", c_flag, flag, c_rst, desc
         }
     '
 }
 
-# TNS 戰術導航攔截宏 (Muscle Memory Macro via bind -x)
+# 戰術指令導航 (Muscle Memory Macro via bind -x)
 function _tct_tns_macro() {
     # 截取輸入
     local target_cmd=""
@@ -102,10 +102,21 @@ function _tct_tns_macro() {
     }')
 
     local inserted_cmd="false"
-    
+    local fzf_color="211"
     # 盲狙偵測
     if [ -z "$target_cmd" ]; then
-        target_cmd=$(echo "" | fzf --print-query --prompt=" :: TNS TARGET COMMAND › " --info=hidden --height=20% --layout=reverse --color=border:51,prompt:51 | head -n 1)
+        target_cmd=$(echo "" | fzf --ansi \
+            --print-query \
+            --prompt=" :: TNS TARGET COMMAND › " \
+            --header=" :: Enter to Choose, Esc to exit :: " \
+            --info=hidden \
+            --pointer="››" \
+            --height=12 \
+            --layout=reverse \
+            --color="fg:white,bg:-1,hl:${fzf_color},fg+:white,bg+:235,hl+:${fzf_color},info:240" \
+            --color="pointer:red,border:${fzf_color},header:240,prompt:51" | head -n 1 \
+            --bind="resize:clear-screen"
+            )
         
         if [ -z "$target_cmd" ]; then return; fi
         inserted_cmd="true"
@@ -123,12 +134,23 @@ function _tct_tns_macro() {
 
     # 展開參數雷達
     local selected
-    selected=$(echo -e "$params" | fzf --height=50% --layout=reverse --prompt=" :: TNS › $target_cmd › " --info=hidden --border=bottom --color=border:51)
+    selected=$(echo -e "$params" | fzf --ansi \
+            --height=12 \
+            --layout=reverse \
+            --prompt=" :: TNS › $target_cmd › " \
+            --header=" :: Enter to Choose, Esc to exit :: " \
+            --info=hidden \
+            --pointer="››" \
+            --border=bottom \
+            --color="fg:white,bg:-1,hl:51,fg+:white,bg+:235,hl+:51,info:240" \
+            --color="pointer:red,border:51,header:240,prompt:51"
+            --bind="resize:clear-screen"
+            )
 
     # 寫回終端機
     if [ -n "$selected" ]; then
         # 萃取旗標
-        local clean_flag=$(echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk -F'[][]' '{print $2}' | awk -F',' '{print $1}' | sed 's/^[ \t]*//;s/[ \t]*$//')
+        local clean_flag=$(echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk -F'[][]' '{print $2}' | awk '{print $1}' | sed 's/,$//')
         
         if [ -n "$clean_flag" ]; then
             local left_part="${READLINE_LINE:0:$READLINE_POINT}"
