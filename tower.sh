@@ -46,29 +46,28 @@ function _tct_tns_probe() {
     local target_cmd="$1"
     if [ -z "$target_cmd" ]; then return 1; fi
 
-    local help_text
-    # 拋出探針，攔截 stdout 與 stderr，防禦崩潰
-    help_text=$(command "$target_cmd" --help 2>&1)
-    
-    if [ -z "$help_text" ]; then
-        return 1
+    # 廣域 help 選單掃描
+    local help_text=$(command "$target_cmd" --help 2>&1)
+    if [[ "$help_text" == *"not found"* ]] || [[ "$help_text" == *"illegal option"* ]] || [[ "$help_text" == *"invalid option"* ]] || [[ "$help_text" == *"unrecognized option"* ]] || [ ${#help_text} -lt 20 ]; then
+        local builtin_help=$(help "$target_cmd" 2>&1)
+        if [[ "$builtin_help" != *"no help topics"* ]] && [ -n "$builtin_help" ]; then
+            help_text="$builtin_help"
+        fi
     fi
 
-    # 啟動 AWK 雙軌解析引擎 (相容 GNU 與 Toybox)
-    echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" -v c_desc="\033[1;37m" '
-        # 捕捉開頭為任意空白，緊接著 "-" 和英文字母的行
-        /^[ \t]*-[a-zA-Z]/ {
+    # 解析引擎 (相容 GNU 與 Toybox)
+    local parsed_params
+    parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" -v c_desc="\033[1;37m" '
+        /^[ \t]*-+[a-zA-Z0-9]/ {
             line = $0
-            sub(/^[ \t]+/, "", line) # 清除開頭空白
+            sub(/^[ \t]+/, "", line)
             
-            # 尋找分隔點：兩個以上的空白，或是一個 Tab
             split_idx = match(line, /[ \t]{2,}|\t/)
             
             if (split_idx > 0) {
                 flag = substr(line, 1, split_idx - 1)
                 desc = substr(line, split_idx + RLENGTH)
             } else {
-                # 備用降級解析 (只用單一空白分隔的極端情況)
                 space_idx = index(line, " ")
                 if (space_idx > 0) {
                     flag = substr(line, 1, space_idx - 1)
@@ -79,14 +78,18 @@ function _tct_tns_probe() {
                 }
             }
             
-            # 資料清洗與長度限制，保持雷達 UI 整潔
             sub(/^[ \t=]+/, "", desc) 
             if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
             
-            # 物理渲染：壓製成 fzf 專用格式
-            printf "%s[ %-24s ]%s   %s\n", c_flag, flag, c_rst, desc
+            printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
         }
-    '
+    ')
+
+    if [ -n "$parsed_params" ]; then
+        echo -e "$parsed_params"
+    else
+        echo -e "\033[1;30m[Empty                   ]\033[0m   No parameters found."
+    fi
 }
 
 # 戰術指令導航 (Muscle Memory Macro via bind -x)
@@ -122,16 +125,6 @@ function _tct_tns_macro() {
     fi
 
     # 獲取參數
-    local params=$(_tct_tns_probe "$target_cmd")
-    if [ -z "$params" ]; then 
-        if [ "$inserted_cmd" == "true" ]; then
-            READLINE_LINE="$target_cmd "
-            READLINE_POINT=${#READLINE_LINE}
-        fi
-        return
-    fi
-
-    # 展開參數雷達
     local selected
     selected=$(echo -e "$params" | fzf --ansi \
             --height=12 \
@@ -142,30 +135,35 @@ function _tct_tns_macro() {
             --pointer="››" \
             --border=bottom \
             --color="fg:white,bg:-1,hl:${fzf_color},fg+:white,bg+:235,hl+:${fzf_color},info:240" \
-            --color="pointer:red,border:${fzf_color},header:240,prompt:51"
+            --color="pointer:red,border:51,header:240,prompt:51"
             )
 
     # 寫回終端機
     if [ -n "$selected" ]; then
         # 萃取旗標
         local clean_flag=$(echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk -F'[][]' '{print $2}' | awk '{print $1}' | sed 's/,$//')
+        if [ "$clean_flag" == "Empty" ]; then
+            if [ "$inserted_cmd" == "true" ]; then
+                READLINE_LINE="$target_cmd "
+                READLINE_POINT=${#READLINE_LINE}
+            fi
+            return
+        fi
         
         if [ -n "$clean_flag" ]; then
             local left_part="${READLINE_LINE:0:$READLINE_POINT}"
             local right_part="${READLINE_LINE:$READLINE_POINT}"
             
-            if [ "$inserted_cmd" == "true" ]; then
-                left_part="$target_cmd "
-            fi
-            
-            # 確保參數前有空白分隔
-            if [[ -n "$left_part" ]] && [[ "$left_part" != *" " ]]; then
-                left_part="${left_part} "
-            fi
-            
-            #  竄改游標緩衝區
+            if [ "$inserted_cmd" == "true" ]; then left_part="$target_cmd "; fi
+            if [[ -n "$left_part" ]] && [[ "$left_part" != *" " ]]; then left_part="${left_part} "; fi
+
             READLINE_LINE="${left_part}${clean_flag} ${right_part}"
             READLINE_POINT=$((${#left_part} + ${#clean_flag} + 1))
+        fi
+    else
+        if [ "$inserted_cmd" == "true" ]; then
+            READLINE_LINE="$target_cmd "
+            READLINE_POINT=${#READLINE_LINE}
         fi
     fi
 }
@@ -1252,23 +1250,23 @@ function __tct_core() {
             fi
             ;;
 
-        "probe")
-            local target_cmd="$2"
-            if [ -z "$target_cmd" ]; then
-                echo -e "${C_RED} :: Requires target command (e.g., cmt probe rm)${C_RESET}"
-                return 1
-            fi
-            
-            echo -e "${C_CYAN} :: PROBING NATIVE PARAMETERS: '$target_cmd' ::${C_RESET}"
-            local results=$(_tct_tns_probe "$target_cmd")
-            
-            if [ -n "$results" ]; then
-                # 直接印出解析結果，這些字串未來就是直接塞進 fzf 的選項！
-                echo -e "$results"
-            else
-                echo -e "${C_YELLOW}    ›› No parameters found or '--help' is not supported.${C_RESET}"
-            fi
-            ;;
+        #"probe")
+        #    local target_cmd="$2"
+        #    if [ -z "$target_cmd" ]; then
+        #        echo -e "${C_RED} :: Requires target command (e.g., cmt probe rm)${C_RESET}"
+        #        return 1
+        #    fi
+        #    
+        #    echo -e "${C_CYAN} :: PROBING NATIVE PARAMETERS: '$target_cmd' ::${C_RESET}"
+        #    local results=$(_tct_tns_probe "$target_cmd")
+        #    
+        #    if [ -n "$results" ]; then
+        #        # 直接印出解析結果，這些字串未來就是直接塞進 fzf 的選項！
+        #       echo -e "$results"
+        #    else
+        #        echo -e "${C_YELLOW}    ›› No parameters found or '--help' is not supported.${C_RESET}"
+        #    fi
+        #    ;;
 
         # : Infomation
         "info")
