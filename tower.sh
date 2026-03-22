@@ -1270,24 +1270,6 @@ function __tct_core() {
             fi
             ;;
 
-        #"probe")
-        #    local target_cmd="$2"
-        #    if [ -z "$target_cmd" ]; then
-        #        echo -e "${C_RED} :: Requires target command (e.g., cmt probe rm)${C_RESET}"
-        #        return 1
-        #    fi
-        #    
-        #    echo -e "${C_CYAN} :: PROBING NATIVE PARAMETERS: '$target_cmd' ::${C_RESET}"
-        #    local results=$(_tct_tns_probe "$target_cmd")
-        #    
-        #    if [ -n "$results" ]; then
-        #        # 直接印出解析結果，這些字串未來就是直接塞進 fzf 的選項！
-        #       echo -e "$results"
-        #    else
-        #        echo -e "${C_YELLOW}    ›› No parameters found or '--help' is not supported.${C_RESET}"
-        #    fi
-        #    ;;
-
         # : Infomation
         "info")
             _tct_show_info
