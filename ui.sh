@@ -2006,16 +2006,16 @@ local theme="$1"
     if [ "$theme" == "tct" ]; then
         if [ "$tct_mode" == "reverse" ]; then
             pct=100
-            footer_msg="Wait, wrong way! Reverse!"
+            footer_msg="Wrong way! Reversing!"
             footer_emo="(；´д｀)ゞ"
         elif [ "$tct_mode" == "overflow" ]; then
-            footer_msg="Limiter broken! Overflow!"
+            footer_msg="Limiter broken! MAX!"
             footer_emo="Σ(°Д°;)"
         elif [ "$tct_mode" == "heart" ]; then
             footer_msg="Welcome to the Tower!"
             footer_emo="(*≧ω≦)"
         else
-            footer_msg="Command Tower Uplink..."
+            footer_msg="Tower Uplink Online..."
             footer_emo="( • ̀ω•́ )✧"
         fi
     fi
@@ -2169,10 +2169,10 @@ local theme="$1"
                     pct=14
                     tct_stall_ticks=$(( ${tct_stall_ticks:-0} + 1 ))
                     if [ "$tct_stall_ticks" -eq 15 ]; then
-                        footer_msg="Wait... why isn't it moving?"
+                        footer_msg="Wait... it's stuck!"
                         footer_emo="(；´д｀)ゞ"
                     elif [ "$tct_stall_ticks" -eq 40 ]; then
-                        footer_msg="Hold on! Let me hit it with a wrench!"
+                        footer_msg="Hitting with a wrench!"
                         footer_emo="≡(ง •̀_•́)ง"
                     fi
                 fi
