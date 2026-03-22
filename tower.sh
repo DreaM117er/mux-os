@@ -22,25 +22,6 @@ function _bypass_guard() {
     fi
 }
 
-# 戰術雷達直通引擎 (Radar Override Parser)
-function _tct_override_parser() {
-    local input_query="$1"
-    if [ -z "$input_query" ]; then return 1; fi
-
-    local main_cmd="${input_query%% *}"
-    # 偵測指令
-    if [[ "$main_cmd" =~ ^(cd|ls|rm|cp|mv)$ ]]; then
-        # 參數確保
-        if [ "${#input_query}" -gt "${#main_cmd}" ] || [ "$main_cmd" == "ls" ]; then
-            # 直通指令
-            echo -e "\n${C_RED} :: OVERRIDE ACTIVATED :: ${C_WHITE}$input_query${C_RESET}"
-            eval "$input_query"
-            return 0
-        fi
-    fi
-    return 1
-}
-
 # 動態參數探針 (The Sentinel: Strict Typo & ASCII Filter)
 function _tct_tns_probe() {
     local input_cmd="$1"
@@ -291,16 +272,12 @@ function _tct_file_action_menu() {
         # 呼叫TCT模組
         local action_raw=$(_ui_tct_nav_radar "$action_items" "$ui_prompt" "10" "TARGET OPERATIONS" "220" " :: Esc to Return ::")
         
-        local action_query=$(echo "$action_raw" | head -n 1)
         local action_sel=$(echo "$action_raw" | tail -n +2 | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
         
-        # 直通指令回傳
-        if _tct_override_parser "$action_query"; then return 2; fi
         if [ -z "$action_sel" ]; then return 0; fi 
         
         # 火力分發
         if [[ "$action_sel" == "[cd]"* ]]; then
-            # 執行導航
             builtin cd "$clean_target"
             _update_setting "TCT_RADAR_HIDDEN" "false"
             return 3
@@ -337,7 +314,6 @@ function cd() {
     local setting_file="$HOME/mux-os/.setting"
     if [ -f "$setting_file" ]; then source "$setting_file"; fi
 
-    # 邏輯判定
     local allow_radar="false"
     if [ "$MUX_MODE" == "TCT" ] && [ "$#" -eq 0 ]; then
         if [ "$COMMAND_UNIX" == "forever" ] || [ "$CMT_COMMAND" == "true" ]; then
@@ -390,6 +366,7 @@ function cd() {
 
         menu_items+="${C_GREEN}[ls]${C_RESET} Show Files\n"
         menu_items+="${C_CYAN}[mk]${C_RESET} Make File or Directory\n"
+        menu_items+="${C_PURPLE}[ip]${C_RESET} Input Command\n"
 
         local display_prompt="$PWD"
 
@@ -430,14 +407,11 @@ function cd() {
         local ui_prompt=" :: $display_prompt › "
         [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › cd › $display_prompt :: "
 
-        # 呼叫TCT模組
         local raw_output
         raw_output=$(_ui_tct_nav_radar "$menu_items" "$ui_prompt" "$dynamic_height" "TARGET DIRECTORY" "211" " :: Enter to Select, Esc to Return ::")
 
-        local user_query=$(echo "$raw_output" | head -n 1)
         local raw_target=$(echo "$raw_output" | tail -n +2)
 
-        if _tct_override_parser "$user_query"; then break; fi
         if [ -z "$raw_target" ]; then break; fi
 
         local target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
@@ -459,15 +433,13 @@ function cd() {
                 local mk_raw
                 mk_raw=$(_ui_tct_nav_radar "$mk_items" "$mk_ui_prompt" "7" "CREATION FORGE" "51" " :: Esc to Return ::")
                 
-                local mk_query=$(echo "$mk_raw" | head -n 1)
                 local mk_sel=$(echo "$mk_raw" | tail -n +2 | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
                 
-                if _tct_override_parser "$mk_query"; then break 2; fi
                 if [ -z "$mk_sel" ]; then break; fi 
                 
                 if [[ "$mk_sel" == "[touch]"* ]]; then
                     local p_touch=$(echo -e "\001${C_CYAN}\002 :: NEW FILE(S) NAME › \001${C_RESET}\002")
-                    read -e -p "$p_touch" new_target
+                    read -e -p "$p_touch" new_target < /dev/tty
                     if [ -n "$new_target" ]; then
                         echo -e "${C_RED} :: EXECUTING: touch $new_target ${C_RESET}"
                         eval "command touch $new_target"
@@ -476,7 +448,7 @@ function cd() {
                     break
                 elif [[ "$mk_sel" == "[mkdir]"* ]]; then
                     local p_mkdir=$(echo -e "\001${C_YELLOW}\002 :: NEW DIRECTORY(S) NAME › \001${C_RESET}\002")
-                    read -e -p "$p_mkdir" new_target
+                    read -e -p "$p_mkdir" new_target < /dev/tty
                     if [ -n "$new_target" ]; then
                         echo -e "${C_RED} :: EXECUTING: mkdir -p $new_target ${C_RESET}"
                         eval "command mkdir -p $new_target"
@@ -485,6 +457,16 @@ function cd() {
                     break
                 fi
             done
+            continue
+        elif [ "$target" == "[ip] Input Command" ]; then
+            local p_cmd=$(echo -e "\001${C_PURPLE}\002 :: COMMAND › \001${C_RESET}\002")
+            read -e -p "$p_cmd" user_cmd < /dev/tty
+            if [ -n "$user_cmd" ]; then
+                echo -e "${C_RED} :: EXECUTING: $user_cmd ${C_RESET}"
+                eval "$user_cmd"
+                echo -ne "${C_BLACK}    ›› Press 'Enter' to return to radar...${C_RESET}"
+                read < /dev/tty
+            fi
             continue
         elif [ "$target" == "[cd] Revert to Origin" ]; then
             builtin cd "$origin_pwd"
@@ -520,7 +502,6 @@ function cd() {
 
 # 原生指令劫持: ls (Command ls for TCT)
 function ls() {
-    # 狀態機讀取與防爆閘門
     local setting_file="$HOME/mux-os/.setting"
     if [ -f "$setting_file" ]; then source "$setting_file"; fi
 
@@ -570,6 +551,7 @@ function ls() {
         
         menu_items+="${C_PINKMEOW}[cd]${C_RESET} Navigate\n"
         menu_items+="${C_CYAN}[mk]${C_RESET} Make File or Directory\n"
+        menu_items+="${C_PURPLE}[ip]${C_RESET} Input Command\n"
 
         local display_prompt="$PWD"
         if [ "$jail_active" == "true" ]; then
@@ -612,10 +594,8 @@ function ls() {
         local raw_output
         raw_output=$(_ui_tct_nav_radar "$menu_items" "$ui_prompt" "$dynamic_height" "FILE SCANNER" "46" " :: Enter to Inspect, Esc to Return ::")
 
-        local user_query=$(echo "$raw_output" | head -n 1)
         local raw_target=$(echo "$raw_output" | tail -n +2)
 
-        if _tct_override_parser "$user_query"; then break; fi
         if [ -z "$raw_target" ]; then break; fi
 
         local target=$(echo "$raw_target" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
@@ -636,15 +616,13 @@ function ls() {
                 local mk_raw
                 mk_raw=$(_ui_tct_nav_radar "$mk_items" "$mk_ui_prompt" "7" "CREATION FORGE" "51" " :: Esc to Return ::")
                 
-                local mk_query=$(echo "$mk_raw" | head -n 1)
                 local mk_sel=$(echo "$mk_raw" | tail -n +2 | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
                 
-                if _tct_override_parser "$mk_query"; then break 2; fi
                 if [ -z "$mk_sel" ]; then break; fi 
                 
                 if [[ "$mk_sel" == "[touch]"* ]]; then
                     local p_touch=$(echo -e "\001${C_CYAN}\002 :: NEW FILE(S) NAME › \001${C_RESET}\002")
-                    read -e -p "$p_touch" new_target
+                    read -e -p "$p_touch" new_target < /dev/tty
                     if [ -n "$new_target" ]; then
                         echo -e "${C_RED} :: EXECUTING: touch $new_target ${C_RESET}"
                         eval "command touch $new_target"
@@ -653,7 +631,7 @@ function ls() {
                     break
                 elif [[ "$mk_sel" == "[mkdir]"* ]]; then
                     local p_mkdir=$(echo -e "\001${C_YELLOW}\002 :: NEW DIRECTORY(S) NAME › \001${C_RESET}\002")
-                    read -e -p "$p_mkdir" new_target
+                    read -e -p "$p_mkdir" new_target < /dev/tty
                     if [ -n "$new_target" ]; then
                         echo -e "${C_RED} :: EXECUTING: mkdir -p $new_target ${C_RESET}"
                         eval "command mkdir -p $new_target"
@@ -662,6 +640,16 @@ function ls() {
                     break
                 fi
             done
+            continue
+        elif [ "$target" == "[ip] Input Command" ]; then
+            local p_cmd=$(echo -e "\001${C_PURPLE}\002 :: COMMAND › \001${C_RESET}\002")
+            read -e -p "$p_cmd" user_cmd < /dev/tty
+            if [ -n "$user_cmd" ]; then
+                echo -e "${C_RED} :: EXECUTING: $user_cmd ${C_RESET}"
+                eval "$user_cmd"
+                echo -ne "${C_BLACK}    ›› Press Enter to return to radar...${C_RESET}"
+                read < /dev/tty
+            fi
             continue
         elif [ "$target" == "[cd] Revert to Origin" ]; then
             builtin cd "$origin_pwd"; continue
@@ -726,7 +714,6 @@ function __core_rm() {
 
             for item in "${selected_targets[@]}"; do
                 if [ -d "$item" ]; then
-                    # 目錄：使用 rmdir
                     command rmdir "$item" 2>/dev/null
                     local ret=$?
                     if [ $ret -ne 0 ]; then
@@ -736,7 +723,6 @@ function __core_rm() {
                         if command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
                     fi
                 elif [ -f "$item" ] || [ -L "$item" ]; then
-                    # 檔案：軟隔離轉移
                     local safe_name="${item}_${timestamp}"
                     command mv "$item" "$trash_dir/$safe_name" 2>/dev/null
                     local ret=$?
@@ -807,14 +793,6 @@ function __core_rm() {
         menu_items+="${C_GREEN}[ls]${C_RESET} File Scanner\n"
         menu_items+="${C_PINKMEOW}[cd]${C_RESET} Navigate\n"
 
-        if [ "$TCT_RADAR_HIDDEN" != "forever" ]; then
-            if [ "$show_hidden" == "true" ]; then
-                targets=$(command ls -1A --color=always 2>/dev/null)
-            else
-                targets=$(command ls -1 --color=always 2>/dev/null)
-            fi
-        fi
-
         if [ "$TCT_RADAR_JAIL" != "forever" ]; then
             if [ "$jail_active" == "true" ]; then
                 menu_items+="${C_BLACK}[-1]${C_RESET} Unlock Jail\n"
@@ -837,10 +815,8 @@ function __core_rm() {
         local raw_output
         raw_output=$(_ui_tct_tactical_radar "$menu_items" "$ui_prompt" "$dynamic_height" "TACTICAL DESTRUCTOR" "196")
 
-        local user_query=$(echo "$raw_output" | head -n 1)
         local selections=$(echo "$raw_output" | tail -n +2)
 
-        if _tct_override_parser "$user_query"; then return 0; fi
         if [ -z "$selections" ]; then break; fi
 
         local mode_changed="false"
@@ -865,7 +841,6 @@ function __core_rm() {
             if [[ "$clean_line" == "[-1] Unlock Jail" ]]; then _update_setting "TCT_RADAR_JAIL" "false"; jail_active="false"; mode_changed="true"; continue; fi
             if [[ "$clean_line" == "[-0] Lock Jail" ]]; then _update_setting "TCT_RADAR_JAIL" "true"; jail_active="true"; mode_changed="true"; continue; fi
 
-            # 提取實際目標
             local target_item=$(echo "$clean_line" | sed 's/^\[  \] //')
             if [ -n "$target_item" ] && [[ ! "$target_item" == \[*\]* ]]; then
                 selected_targets+=("$target_item")
@@ -882,24 +857,22 @@ function __core_rm() {
             echo -e "${C_BLACK}    ›› Targets: ${#selected_targets[@]} items.${C_RESET}"
             
             if [[ "$current_rm_mode" == "i" ]]; then
-                # [-i] 模式：軟隔離確認
                 echo -ne "${C_RED} :: Initiate soft-deletion for these ${#selected_targets[@]} targets? [Y/n]: ${C_RESET}"
-                read -r confirm
+                read -r confirm < /dev/tty
                 if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
                     echo -e "${C_GREEN} :: Destructor aborted. Target(s) secured.${C_RESET}"
                     break
                 fi
             else
-                # [-f], [-r], [rf] 模式：實體抹除的最終防線
                 echo -e "${C_RED} :: WARNING: Permanent deletion selected. Targets will NOT be sent to .trash.${C_RESET}"
                 echo -ne "${C_RED} :: TYPE 'CONFIRM' TO OBLITERATE: ${C_RESET}"
-                read -r confirm
+                read -r confirm < /dev/tty
                 if [ "$confirm" != "CONFIRM" ]; then
                     echo -e "${C_GREEN} :: Destructor aborted. Target(s) secured.${C_RESET}"
                     break
                 fi
             fi
-            rm "-$current_rm_mode" "${selected_targets[@]}"
+            command rm "-$current_rm_mode" "${selected_targets[@]}"
             
             if command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
             break
@@ -909,7 +882,6 @@ function __core_rm() {
 
 # 原生指令劫持: mv (Command mv for TCT)
 function __core_mv() {
-    # 軌道直通
     if [ "$#" -gt 0 ]; then
         command mv "$@"
         local ret=$?
@@ -951,14 +923,11 @@ function __core_mv() {
         local dynamic_height=$(( line_count + 4 ))
         [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
-        # 呼叫TCT模組
         local raw_output
         raw_output=$(_ui_tct_tactical_radar "$menu_items" "$ui_prompt" "$dynamic_height" "TACTICAL RELOCATOR" "220")
 
-        local user_query=$(echo "$raw_output" | head -n 1)
         local selections=$(echo "$raw_output" | tail -n +2)
 
-        if _tct_override_parser "$user_query"; then return 0; fi
         if [ -z "$selections" ]; then break; fi
 
         local mode_changed="false"
@@ -988,19 +957,94 @@ function __core_mv() {
             echo -e "${C_YELLOW} :: RELOCATOR INITIATED › MODE: -$current_mv_mode ${C_RESET}"
             echo -e "${C_BLACK}    ›› Sources: ${selected_targets[*]}.${C_RESET}"
             
-            local default_input=""
-            [ ${#selected_targets[@]} -eq 1 ] && default_input="${selected_targets[0]}"
+            local abs_targets=()
+            for t in "${selected_targets[@]}"; do
+                abs_targets+=("$PWD/$t")
+            done
 
-            echo -ne "${C_YELLOW} :: DESTINATION (Path / New Name) › ${C_RESET}"
-            read -e -i "$default_input" dest_target
+            local default_input=""
+            local p_name=""
             
-            if [ -n "$dest_target" ] && [ "$dest_target" != "$default_input" ]; then
-                echo -e "${C_RED} :: EXECUTING: mv -$current_mv_mode ${selected_targets[*]} $dest_target${C_RESET}"
-                command mv "-$current_mv_mode" "${selected_targets[@]}" "$dest_target"
+            if [ ${#selected_targets[@]} -eq 1 ]; then
+                default_input="${selected_targets[0]}"
+                p_name=$(echo -e "\001${C_YELLOW}\002 :: NEW NAME (Enter to keep original) › \001${C_RESET}\002")
+            else
+                p_name=$(echo -e "\001${C_YELLOW}\002 :: NEW FOLDER NAME (Enter to move into destination directly) › \001${C_RESET}\002")
+            fi
+
+            local dest_name=""
+            read -e -p "$p_name" -i "$default_input" dest_name < /dev/tty
+            if [ -z "$(echo "$dest_name" | tr -d ' ')" ]; then dest_name="$default_input"; fi
+
+            local origin_pwd="$PWD"
+            local exec_confirm="false"
+            
+            while true; do
+                local dirs
+                if [ "$show_hidden" == "true" ] || [ "$show_hidden" == "forever" ]; then
+                    dirs=$(find -L . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sed 's|^\./||' | sort)
+                else
+                    dirs=$(find -L . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sed 's|^\./||' | grep -v '^\.' | sort)
+                fi
+
+                local formatted_dirs=""
+                if [ -n "$dirs" ]; then
+                    formatted_dirs=$(echo "$dirs" | awk -v c_dir="\033[1;37m" -v c_rst="\033[0m" '{print "\033[1;30m[  ]\033[0m " c_dir $0 c_rst}')
+                fi
+
+                local nav_items=""
+                nav_items+="${C_RED}[**] Confirm & Execute Here${C_RESET}\n"
+                nav_items+="${C_BLACK}----------${C_RESET}\n"
+                
+                if [ "$PWD" != "/" ]; then
+                    nav_items+="${C_YELLOW}[..]${C_RESET} Backto\n"
+                fi
+                
+                if [ -n "$formatted_dirs" ]; then 
+                    nav_items+="${formatted_dirs}\n"
+                fi
+
+                local nav_prompt=" :: DESTINATION › ${PWD/#$HOME/\~} :: "
+                local nav_line_count=$(echo -e "$nav_items" | wc -l)
+                local nav_dynamic_height=$(( nav_line_count + 4 ))
+                [ "$nav_dynamic_height" -gt 35 ] && nav_dynamic_height="80%"
+
+                local nav_output
+                nav_output=$(_ui_tct_nav_radar "$nav_items" "$nav_prompt" "$nav_dynamic_height" "SELECT DESTINATION FOLDER" "220" " :: Navigate, then press [**] to Confirm ::")
+
+                local sel=$(echo "$nav_output" | tail -n +2 | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+                
+                if [ -z "$sel" ]; then break; fi
+
+                if [[ "$sel" == "[**]"* ]]; then
+                    exec_confirm="true"
+                    break
+                elif [[ "$sel" == "[..]"* ]]; then
+                    builtin cd ..
+                else
+                    local target_dir=$(echo "$sel" | sed 's/^\[  \] //')
+                    if [ -d "$target_dir" ]; then
+                        builtin cd "$target_dir"
+                    fi
+                fi
+            done
+
+            if [ "$exec_confirm" == "true" ]; then
+                local final_dest_path="$PWD"
+                if [ -n "$dest_name" ] && [ "$dest_name" != "$default_input" ]; then
+                    final_dest_path="$PWD/$dest_name"
+                fi
+                
+                echo -e "${C_RED} :: EXECUTING: mv -$current_mv_mode ${selected_targets[*]} -> ${final_dest_path/#$HOME/\~}${C_RESET}"
+                command mv "-$current_mv_mode" "${abs_targets[@]}" "$final_dest_path"
                 if command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
+                
+                builtin cd "$origin_pwd"
                 break
             else
-                echo -e "${C_GREEN} :: Relocator aborted. No valid destination.${C_RESET}"
+                echo -e "${C_GREEN} :: Relocator aborted. No execution.${C_RESET}"
+                builtin cd "$origin_pwd"
+                break
             fi
         fi
     done
@@ -1008,7 +1052,6 @@ function __core_mv() {
 
 # 原生指令劫持: cp (Command cp for TCT)
 function __core_cp() {
-    # 軌道直通
     if [ "$#" -gt 0 ]; then
         command cp "$@"
         local ret=$?
@@ -1045,18 +1088,18 @@ function __core_cp() {
         menu_items+="${C_GREEN}[ls]${C_RESET} File Scanner\n"
         menu_items+="${C_PINKMEOW}[cd]${C_RESET} Navigate\n"
 
+        local ui_prompt=" :: cp -$current_cp_mode › ${PWD/#$HOME/\~} :: "
+        [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › cp -$current_cp_mode › ${PWD/#$HOME/\~} :: "
+
         local line_count=$(echo -e "$menu_items" | wc -l)
         local dynamic_height=$(( line_count + 4 ))
         [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
-        # 呼叫TCT模組
         local raw_output
         raw_output=$(_ui_tct_tactical_radar "$menu_items" "$ui_prompt" "$dynamic_height" "TACTICAL CLONER" "33")
 
-        local user_query=$(echo "$raw_output" | head -n 1)
         local selections=$(echo "$raw_output" | tail -n +2)
 
-        if _tct_override_parser "$user_query"; then return 0; fi
         if [ -z "$selections" ]; then break; fi
 
         local mode_changed="false"
@@ -1088,19 +1131,94 @@ function __core_cp() {
             echo -e "${C_GREEN} :: CLONER INITIATED › MODE: -$current_cp_mode ${C_RESET}"
             echo -e "${C_BLACK}    ›› Sources: ${selected_targets[*]}.${C_RESET}"
             
-            local default_input=""
-            [ ${#selected_targets[@]} -eq 1 ] && default_input="${selected_targets[0]}"
+            local abs_targets=()
+            for t in "${selected_targets[@]}"; do
+                abs_targets+=("$PWD/$t")
+            done
 
-            echo -ne "${C_GREEN} :: DESTINATION (Path / New Name) › ${C_RESET}"
-            read -e -i "$default_input" dest_target
+            local default_input=""
+            local p_name=""
             
-            if [ -n "$dest_target" ] && [ "$dest_target" != "$default_input" ]; then
-                echo -e "${C_RED} :: EXECUTING: cp -$current_cp_mode ${selected_targets[*]} $dest_target${C_RESET}"
-                command cp "-$current_cp_mode" "${selected_targets[@]}" "$dest_target"
+            if [ ${#selected_targets[@]} -eq 1 ]; then
+                default_input="${selected_targets[0]}"
+                p_name=$(echo -e "\001${C_GREEN}\002 :: NEW NAME (Enter to keep original) › \001${C_RESET}\002")
+            else
+                p_name=$(echo -e "\001${C_GREEN}\002 :: NEW FOLDER NAME (Enter to copy into destination directly) › \001${C_RESET}\002")
+            fi
+
+            local dest_name=""
+            read -e -p "$p_name" -i "$default_input" dest_name < /dev/tty
+            if [ -z "$(echo "$dest_name" | tr -d ' ')" ]; then dest_name="$default_input"; fi
+
+            local origin_pwd="$PWD"
+            local exec_confirm="false"
+            
+            while true; do
+                local dirs
+                if [ "$show_hidden" == "true" ] || [ "$show_hidden" == "forever" ]; then
+                    dirs=$(find -L . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sed 's|^\./||' | sort)
+                else
+                    dirs=$(find -L . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sed 's|^\./||' | grep -v '^\.' | sort)
+                fi
+
+                local formatted_dirs=""
+                if [ -n "$dirs" ]; then
+                    formatted_dirs=$(echo "$dirs" | awk -v c_dir="\033[1;37m" -v c_rst="\033[0m" '{print "\033[1;30m[  ]\033[0m " c_dir $0 c_rst}')
+                fi
+
+                local nav_items=""
+                nav_items+="${C_RED}[**] Confirm & Execute Here${C_RESET}\n"
+                nav_items+="${C_BLACK}----------${C_RESET}\n"
+                
+                if [ "$PWD" != "/" ]; then
+                    nav_items+="${C_YELLOW}[..]${C_RESET} Backto\n"
+                fi
+                
+                if [ -n "$formatted_dirs" ]; then 
+                    nav_items+="${formatted_dirs}\n"
+                fi
+
+                local nav_prompt=" :: DESTINATION › ${PWD/#$HOME/\~} :: "
+                local nav_line_count=$(echo -e "$nav_items" | wc -l)
+                local nav_dynamic_height=$(( nav_line_count + 4 ))
+                [ "$nav_dynamic_height" -gt 35 ] && nav_dynamic_height="80%"
+
+                local nav_output
+                nav_output=$(_ui_tct_nav_radar "$nav_items" "$nav_prompt" "$nav_dynamic_height" "SELECT DESTINATION FOLDER" "33" " :: Navigate, then press [**] to Confirm ::")
+
+                local sel=$(echo "$nav_output" | tail -n +2 | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
+                
+                if [ -z "$sel" ]; then break; fi
+
+                if [[ "$sel" == "[**]"* ]]; then
+                    exec_confirm="true"
+                    break
+                elif [[ "$sel" == "[..]"* ]]; then
+                    builtin cd ..
+                else
+                    local target_dir=$(echo "$sel" | sed 's/^\[  \] //')
+                    if [ -d "$target_dir" ]; then
+                        builtin cd "$target_dir"
+                    fi
+                fi
+            done
+
+            if [ "$exec_confirm" == "true" ]; then
+                local final_dest_path="$PWD"
+                if [ -n "$dest_name" ] && [ "$dest_name" != "$default_input" ]; then
+                    final_dest_path="$PWD/$dest_name"
+                fi
+                
+                echo -e "${C_RED} :: EXECUTING: cp -$current_cp_mode ${selected_targets[*]} -> ${final_dest_path/#$HOME/\~}${C_RESET}"
+                command cp "-$current_cp_mode" "${abs_targets[@]}" "$final_dest_path"
                 if command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
+                
+                builtin cd "$origin_pwd"
                 break
             else
-                echo -e "${C_YELLOW} :: Cloner aborted. No valid destination.${C_RESET}"
+                echo -e "${C_YELLOW} :: Cloner aborted. No execution.${C_RESET}"
+                builtin cd "$origin_pwd"
+                break
             fi
         fi
     done
