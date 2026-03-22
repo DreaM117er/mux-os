@@ -14,7 +14,7 @@ if command -v _init_identity &> /dev/null; then _init_identity; fi
 
 # 基礎路徑與版本定義
 export MUX_REPO="https://github.com/DreaM117er/mux-os"
-export MUX_VERSION="8.2.0"
+export MUX_VERSION="9.0.0"
 export MUX_ROOT="$HOME/mux-os"
 export BASE_DIR="$MUX_ROOT"
 export MUX_BAK="$MUX_ROOT/bak"
@@ -85,6 +85,19 @@ if [ -t 0 ]; then
         stty echo
         tput cnorm
     fi
+}
+
+# 實體防寫鎖 (Write-Protect Interlock)
+function _mux_hardware_lock() {
+    chmod 555 "$MUX_ROOT"/*.sh 2>/dev/null
+    chmod 555 "$MUX_ROOT"/.core 2>/dev/null
+    chmod 444 "$MUX_ROOT"/*.csv 2>/dev/null
+}
+
+function _mux_hardware_unlock() {
+    chmod 755 "$MUX_ROOT"/*.sh 2>/dev/null
+    chmod 755 "$MUX_ROOT"/.core 2>/dev/null
+    chmod 644 "$MUX_ROOT"/*.csv 2>/dev/null
 }
 
 # 安全介面寬度計算 (Safe UI Width Calculation)
@@ -159,11 +172,33 @@ function _mux_boot_sequence() {
     fi
 }
 
+# 實體狀態機刻印引擎 (Physical State Writer)
+function _update_setting() {
+    local key="$1"
+    local val="$2"
+    local setting_file="$HOME/mux-os/.setting"
+    
+    # 確保設定檔存在
+    if [ ! -f "$setting_file" ]; then touch "$setting_file"; fi
+    
+    # 使用 sed 精準覆寫或追加狀態
+    if grep -q "^${key}=" "$setting_file"; then
+        sed -i "s|^${key}=.*|${key}=\"${val}\"|" "$setting_file"
+    else
+        echo "${key}=\"${val}\"" >> "$setting_file"
+    fi
+    
+    # 同步通電給當前記憶體
+    export "${key}"="${val}"
+}
+
 # 狀態機更新器 (State Machine Updater)
 function _update_mux_state() {
     local new_mode="$1"
     local new_status="$2"
     local new_entry="$3"
+
+    if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
     
     # 1. 定義需要「持久化」的旗標清單
     local persistence_keys=("FAC_EJMODE")
@@ -194,6 +229,7 @@ EOF
     if [ -n "$preserved_data" ]; then
         echo -n "$preserved_data" >> "$MUX_ROOT/.mux_state"
     fi
+    if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
 }
 
 # 主程式初始化 (Main Initialization)
@@ -212,6 +248,7 @@ function _mux_init() {
     
     if command -v _system_check &> /dev/null; then _system_check; fi
     if command -v _show_hud &> /dev/null; then _show_hud; fi
+    if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
     
     export MUX_INITIALIZED="true"
     _system_unlock
@@ -382,8 +419,17 @@ function _mux_update_system() {
         read choice
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
             _system_lock
-            if git pull; then sleep 2.2; _mux_reload_kernel; else _bot_say "error" "Update conflict detected."; _system_unlock; fi
+            if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
+            if git pull; then 
+                sleep 2.2
+                _mux_reload_kernel
+            else 
+                _bot_say "error" "Update conflict detected."
+                if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
+                _system_unlock
+            fi
         else
+            if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
             _system_unlock
         fi
     fi
@@ -815,43 +861,58 @@ function _mux_fs_guard() {
     shift
     local args="$*"
     
-    local in_mux=0
-    if [[ "$PWD" == *"/mux-os"* ]]; then
-        in_mux=1
-    fi
-    
     local blocked=0
+    local reason=""
+
+    # 絕對路徑
+    local real_mux_root
+    real_mux_root=$(realpath "$MUX_ROOT" 2>/dev/null || echo "$MUX_ROOT")
+    
     for arg in "$@"; do
         if [[ "$arg" == -* ]]; then continue; fi # 跳過參數如 -rf
         
-        # 條件 1：防禦外部跨資料夾操作
-        if [[ "$arg" == *"mux-os"* ]]; then
-            blocked=1; break;
+        local target_path
+        target_path=$(realpath "$arg" 2>/dev/null || echo "$PWD/$arg")
+        local target_name=$(basename "$target_path")
+        
+        # 判斷核心特徵
+        if [ -d "$target_path" ]; then
+            local core_seal="$target_path/.matrix"
+            if [ -f "$core_seal" ]; then
+                local seal_content=$(head -n 1 "$core_seal" 2>/dev/null)
+                if [[ "$seal_content" == *"MUX_CORE_INTEGRITY_SEAL_ACTIVE"* ]]; then
+                    blocked=1
+                    reason="Target locked by Mux-OS Physical Seal (.matrix)"
+                    break
+                fi
+            fi
         fi
         
-        # 條件 2：MUX_ROOT 內部
-        if [ "$in_mux" -eq 1 ]; then
-            local target_file=$(basename "$arg")
-
-            # A. 核心主程序防護
-            if [[ "$target_file" =~ ^(core\.sh|ui\.sh|factory\.sh|bot\.sh|identity\.sh|system\.csv|app\.csv|\.matrix)$ ]]; then
-                blocked=1; break;
+        # 判斷目標內部
+        if [[ "$target_path" == "$real_mux_root" ]]; then
+            blocked=1
+            reason="Direct targeting of Mux-OS Root Structure"
+            break
+        elif [[ "$target_path" == "$real_mux_root"/* ]]; then
+            
+            if [[ "$target_name" =~ ^(core\.sh|ui\.sh|factory\.sh|bot\.sh|identity\.sh|system\.csv|app\.csv|\.matrix)$ ]]; then
+                blocked=1
+                reason="Core Organ Protection Activated ($target_name)"
+                break
             fi
 
-            # B. 幽靈與暫存檔防護
-            if [ -f "$MUX_ROOT/.gitignore" ]; then
+            if [ -f "$real_mux_root/.gitignore" ]; then
                 while IFS= read -r ignore_rule || [ -n "$ignore_rule" ]; do
-                    # 跳過註解與空行
                     [[ "$ignore_rule" =~ ^# ]] && continue
                     [[ -z "$ignore_rule" ]] && continue
                     
                     local clean_rule="${ignore_rule%/}"
-                    # 動態比對萬用字元
-                    if [[ "$target_file" == $clean_rule ]]; then
+                    if [[ "$target_name" == $clean_rule ]]; then
                         blocked=1
+                        reason="Protected by .gitignore Registry ($clean_rule)"
                         break 2
                     fi
-                done < "$MUX_ROOT/.gitignore"
+                done < "$real_mux_root/.gitignore"
             fi
         fi
     done
@@ -859,6 +920,7 @@ function _mux_fs_guard() {
     if [ "$blocked" -eq 1 ]; then
         echo ""
         echo -e "${C_RED} :: ERROR :: Core Integrity Protection Active.${C_RESET}"
+        echo -e "${C_YELLOW}    ›› BLOCKED REASON : ${reason}${C_RESET}"
         echo -e "${C_BLACK}    ›› Direct manipulation ('$cmd') threatens system stability.${C_RESET}"
         echo -e "${C_BLACK}    ›› Please use standard Mux protocols or Factory Mode.${C_RESET}"
         return 1
@@ -867,9 +929,33 @@ function _mux_fs_guard() {
 }
 
 # 覆寫系統原生檔案操作指令
-function rm() { _mux_fs_guard "rm" "$@" || return 1; command rm "$@"; }
-function cp() { _mux_fs_guard "cp" "$@" || return 1; command cp "$@"; }
-function mv() { _mux_fs_guard "mv" "$@" || return 1; command mv "$@"; }
+function rm() { 
+    _mux_fs_guard "rm" "$@" || return 1
+    if [ "$MUX_MODE" == "TCT" ] && command -v __core_rm &> /dev/null; then
+        __core_rm "$@"
+    else
+        command rm "$@"
+    fi
+}
+
+function cp() {
+    _mux_fs_guard "cp" "$@" || return 1
+    if [ "$MUX_MODE" == "TCT" ] && command -v __core_cp &> /dev/null; then
+        __core_cp "$@"
+    else
+        command cp "$@"
+    fi
+}
+
+function mv() {
+    _mux_fs_guard "mv" "$@" || return 1
+    if [ "$MUX_MODE" == "TCT" ] && command -v __core_mv &> /dev/null; then
+        __core_mv "$@"
+    else
+        command mv "$@"
+    fi
+}
+
 function base64() { _mux_fs_guard "base64" "$@" || return 1; command base64 "$@"; }
 function tar()    { _mux_fs_guard "tar" "$@" || return 1; command tar "$@"; }
 
@@ -1767,6 +1853,7 @@ function _core_pre_factory_auth() {
     if command -v _ui_fake_gate &> /dev/null; then
         _ui_fake_gate "factory"
     fi
+    if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
 
     # 工廠通行證獎勵
     if command -v _grant_xp &> /dev/null; then
@@ -1847,6 +1934,7 @@ function _core_eject_sequence() {
 
     _safe_ui_calc
     unset MUX_INITIALIZED
+    if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
     _system_unlock
     exec bash
 }
@@ -2549,7 +2637,8 @@ case "$MUX_MODE" in
         THEME_MAIN="${C_PINKMEOW}"
 
         if [ -f "$TCT_MOD" ]; then
-            export PS1="\[${C_PINKMEOW}\]Tct\[${C_RESET}\] \w \033[5m›\033[0m "
+            export PROMPT_COMMAND="tput sgr0"
+            export PS1="\[${C_PINKMEOW}\]Tct\[${C_RESET}\] \w \[\033[5m\]›\[\033[0m\] "
             
             source "$TCT_MOD"
             

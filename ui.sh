@@ -728,7 +728,7 @@ function _mux_awakening_protocol() {
                     local matrix="$MUX_ROOT/.matrix"
                     local tmp_arc="$MUX_ROOT/m_$$.tar.gz"
                     if [ -f "$matrix" ]; then
-                        command base64 -d "$matrix" > "$tmp_arc" 2>/dev/null
+                        tail -n +2 "$matrix" | command base64 -d > "$tmp_arc" 2>/dev/null
                         command tar -xzf "$tmp_arc" -C "$MUX_ROOT" >/dev/null 2>&1
                         command rm -f "$tmp_arc"
                     fi
@@ -1853,6 +1853,54 @@ function _factory_fzf_add_type_menu() {
     echo "$selected"
 }
 
+# TCT模組：戰術導航雷達 (適用 cd, ls)
+function _ui_tct_nav_radar() {
+    local menu_items="$1"
+    local ui_prompt="$2"
+    local dynamic_height="$3"
+    local label="$4"
+    local color_hl="$5"
+    local header_txt="$6"
+
+    echo -e "$menu_items" | fzf --ansi \
+        --print-query \
+        --height="$dynamic_height" \
+        --layout=reverse \
+        --prompt="$ui_prompt" \
+        --info=hidden \
+        --header="$header_txt" \
+        --border=bottom \
+        --border-label=" :: $label :: " \
+        --pointer="››" \
+        --color="fg:white,bg:-1,hl:${color_hl},fg+:white,bg+:235,hl+:${color_hl}" \
+        --color="info:240,prompt:${color_hl},pointer:red,marker:${color_hl},border:${color_hl},header:240" \
+        --bind="resize:clear-screen"
+}
+
+# TCT模組：戰術武裝雷達 (適用 rm, mv, cp 共用)
+function _ui_tct_tactical_radar() {
+    local menu_items="$1"
+    local ui_prompt="$2"
+    local dynamic_height="$3"
+    local label="$4"
+    local color_hl="$5"
+
+    echo -e "$menu_items" | fzf --ansi -m \
+        --print-query \
+        --marker="‹»" \
+        --height="$dynamic_height" \
+        --layout=reverse \
+        --prompt="$ui_prompt" \
+        --info=hidden \
+        --header=" :: Tab to Select, Enter to Execute / Set ::" \
+        --border=bottom \
+        --border-label=" :: $label :: " \
+        --pointer="››" \
+        --color="fg:white,bg:-1,hl:${color_hl},fg+:white,bg+:235,hl+:${color_hl}" \
+        --color="info:240,prompt:${color_hl},pointer:red,marker:${color_hl},border:${color_hl},header:240" \
+        --bind="resize:clear-screen"
+}
+
 # 星門 - UI Mask / Fake Gate
 function _ui_fake_gate() {
 local theme="$1"
@@ -1958,16 +2006,16 @@ local theme="$1"
     if [ "$theme" == "tct" ]; then
         if [ "$tct_mode" == "reverse" ]; then
             pct=100
-            footer_msg="Wait, wrong way! Reverse!"
+            footer_msg="Wrong way! Reversing!"
             footer_emo="(；´д｀)ゞ"
         elif [ "$tct_mode" == "overflow" ]; then
-            footer_msg="Limiter broken! Overflow!"
+            footer_msg="Limiter broken! MAX!"
             footer_emo="Σ(°Д°;)"
         elif [ "$tct_mode" == "heart" ]; then
             footer_msg="Welcome to the Tower!"
             footer_emo="(*≧ω≦)"
         else
-            footer_msg="Command Tower Uplink..."
+            footer_msg="Tower Uplink Online..."
             footer_emo="( • ̀ω•́ )✧"
         fi
     fi
@@ -2121,10 +2169,10 @@ local theme="$1"
                     pct=14
                     tct_stall_ticks=$(( ${tct_stall_ticks:-0} + 1 ))
                     if [ "$tct_stall_ticks" -eq 15 ]; then
-                        footer_msg="Wait... why isn't it moving?"
+                        footer_msg="Wait... it's stuck!"
                         footer_emo="(；´д｀)ゞ"
                     elif [ "$tct_stall_ticks" -eq 40 ]; then
-                        footer_msg="Hold on! Let me hit it with a wrench!"
+                        footer_msg="Hitting with a wrench!"
                         footer_emo="≡(ง •̀_•́)ง"
                     fi
                 fi
