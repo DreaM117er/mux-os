@@ -120,7 +120,7 @@ function _tct_tns_probe() {
 
 # 戰術指令導航 (Muscle Memory Macro via bind -x)
 function _tct_tns_macro() {
-    # 截取輸入
+    # 1. 截取輸入
     local target_cmd=""
     target_cmd=$(echo "${READLINE_LINE:0:$READLINE_POINT}" | awk '{
         cmd = ""
@@ -133,6 +133,8 @@ function _tct_tns_macro() {
         }
         print cmd
     }')
+
+    target_cmd=$(echo "$target_cmd" | sed 's/^[ \t]*//;s/[ \t]*$//')
 
     local inserted_cmd="false"
     local fzf_color="211"
@@ -157,12 +159,13 @@ function _tct_tns_macro() {
         inserted_cmd="true"
     fi
 
+    # 發射探針獲取參數
     local params=$(_tct_tns_probe "$target_cmd")
     if [ -z "$params" ]; then
         params="\033[1;30m[Empty                   ]\033[0m   No parameters found."
     fi
 
-    # 獲取參數
+    # 展開參數雷達
     local selected
     selected=$(echo -e "$params" | fzf --ansi \
             --height=12 \
