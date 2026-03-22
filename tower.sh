@@ -41,29 +41,27 @@ function _tct_override_parser() {
     return 1
 }
 
-# 動態參數探針 (Safe Index Cutter)
+# 動態參數探針 (Strict Typo & ASCII Filter)
 function _tct_tns_probe() {
     local target_cmd="$1"
     if [ -z "$target_cmd" ]; then return 1; fi
 
     local help_text=""
+    
     if [[ "$target_cmd" == git\ * ]]; then
-        help_text=$(command $target_cmd -h < /dev/null 2>&1)
+        help_text=$($target_cmd -h 2>&1)
     else
-        help_text=$(PAGER=cat command $target_cmd --help < /dev/null 2>&1)
+        help_text=$($target_cmd --help 2>&1)
         
-        if [[ "$help_text" =~ (illegal|invalid|unrecognized|not\ found|unknown) ]] || [ ${#help_text} -lt 50 ]; then
-            local alt_help=$(PAGER=cat command $target_cmd help < /dev/null 2>&1)
+        if [[ "$help_text" == *"illegal"* ]] || [[ "$help_text" == *"invalid"* ]] || [[ "$help_text" == *"unrecognized"* ]] || [[ "$help_text" == *"not found"* ]] || [[ "$help_text" == *"unknown"* ]] || [ ${#help_text} -lt 50 ]; then
+            local alt_help=$($target_cmd help 2>&1)
             if [ ${#alt_help} -gt 50 ]; then
                 help_text="$alt_help"
             fi
         fi
     fi
     
-    # 防爆
-    help_text=$(echo "$help_text" | sed 's/.\x08//g' | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g')
-
-    if [[ "$help_text" == *"not found"* ]] || [[ "$help_text" == *"illegal option"* ]] || [[ "$help_text" == *"invalid option"* ]] || [[ "$help_text" == *"unrecognized option"* ]] || [ ${#help_text} -lt 20 ]; then
+    if [[ "$help_text" == *"not found"* ]] || [ ${#help_text} -lt 20 ]; then
         local builtin_help=$(help $target_cmd 2>&1)
         if [[ "$builtin_help" != *"no help topics"* ]] && [ -n "$builtin_help" ]; then
             help_text="$builtin_help"
@@ -73,8 +71,13 @@ function _tct_tns_probe() {
     local parsed_params
     parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" -v c_desc="\033[1;37m" '
         {
+            # 字串清潔
+            gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
+            gsub(/.\x08/, "")
+            
             line = $0
             sub(/^[ \t]+/, "", line)
+            if (length(line) < 2) next
             
             # 標準參數
             if (line ~ /^-+[a-zA-Z0-9]/) {
@@ -92,27 +95,32 @@ function _tct_tns_probe() {
                 sub(/^[ \t=:-]+/, "", desc) 
                 if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
                 printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
+                next
             }
-            # 實體特徵符號
-            else if (index(line, " - ") > 0 || index(line, "\t- ") > 0) {
-                idx = index(line, " - ")
-                if (idx == 0) idx = index(line, "\t- ")
-                
+            
+            # 特徵符號
+            idx = index(line, " - ")
+            if (idx == 0) idx = index(line, "\t- ")
+            
+            if (idx > 0) {
                 flag = substr(line, 1, idx - 1)
                 desc = substr(line, idx + 3)
                 
-                # 左側必須是英數字開頭
-                if (flag ~ /^[a-zA-Z0-9_-]/) {
+                if (flag ~ /^[a-zA-Z]/) {
+                    sub(/[ \t]+$/, "", flag)
                     sub(/^[ \t=:-]+/, "", desc) 
                     if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
                     printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
+                    next
                 }
             }
+            
             # 純大間距
-            else if (match(line, /[ \t][ \t]+|\t/) > 0) {
+            if (match(line, /[ \t][ \t]+|\t/) > 0) {
                 split_idx = RSTART
                 flag = substr(line, 1, split_idx - 1)
-                if (index(flag, " ") == 0 && flag ~ /^[a-zA-Z0-9_-]+$/) {
+                
+                if (index(flag, " ") == 0 && flag ~ /^[a-zA-Z][a-zA-Z0-9_-]*$/) {
                     desc = substr(line, split_idx + RLENGTH)
                     sub(/^[ \t=:-]+/, "", desc) 
                     if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
