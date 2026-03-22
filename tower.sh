@@ -41,23 +41,21 @@ function _tct_override_parser() {
     return 1
 }
 
-# 動態參數探針 (Tactical Navigation System Probe)
+# 動態參數探針 (Universal Subcommand & Pager Bypass)
 function _tct_tns_probe() {
     local target_cmd="$1"
     if [ -z "$target_cmd" ]; then return 1; fi
 
-    # 廣域 help 選單掃描
-    # 複合指令
     local help_text=""
-    help_text=$(command $target_cmd --help 2>&1)
+    
     if [[ "$target_cmd" == git\ * ]]; then
         help_text=$(command $target_cmd -h 2>&1)
     else
         help_text=$(PAGER=cat command $target_cmd --help 2>&1)
     fi
-
-    # 標準指令
+    
     help_text=$(echo "$help_text" | sed 's/.\x08//g')
+
     if [[ "$help_text" == *"not found"* ]] || [[ "$help_text" == *"illegal option"* ]] || [[ "$help_text" == *"invalid option"* ]] || [[ "$help_text" == *"unrecognized option"* ]] || [ ${#help_text} -lt 20 ]; then
         local builtin_help=$(help $target_cmd 2>&1)
         if [[ "$builtin_help" != *"no help topics"* ]] && [ -n "$builtin_help" ]; then
@@ -65,13 +63,13 @@ function _tct_tns_probe() {
         fi
     fi
 
-    # 解析引擎
+    # 雙軌解析引擎
     local parsed_params
     parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" -v c_desc="\033[1;37m" '
         {
             line = $0
             
-            # 標準參數 (帶有 - 或 -- 的選項)
+            # 分支 1：標準參數
             if (line ~ /^[ \t]*-+[a-zA-Z0-9]/) {
                 sub(/^[ \t]+/, "", line)
                 split_idx = match(line, /[ \t]{2,}|\t/)
@@ -84,25 +82,37 @@ function _tct_tns_probe() {
                     if (space_idx > 0) {
                         flag = substr(line, 1, space_idx - 1)
                         desc = substr(line, space_idx + 1)
-                    } else {
-                        flag = line; desc = ""
-                    }
+                    } else { flag = line; desc = "" }
                 }
                 sub(/^[ \t=]+/, "", desc) 
                 if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
                 printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
             }
-            # 有子指令 (如 git)
-            else if (line ~ /^[ \t]+[a-zA-Z0-9_-]+([ \t]{2,}|\t)[^ \t]/) {
+            else if (line ~ /^[ \t]+[a-zA-Z0-9_-]+/) {
                 sub(/^[ \t]+/, "", line)
-                split_idx = match(line, /[ \t]{2,}|\t/)
+                
+                # 尋找分隔點
+                split_idx = match(line, /[ \t]{2,}-?[ \t]*|[ \t]+-[ \t]+/)
                 
                 if (split_idx > 0) {
                     flag = substr(line, 1, split_idx - 1)
                     
-                    if (index(flag, " ") == 0) {
+                    # 判斷是否為合法的指令行
+                    is_valid = 0
+                    matched_sep = substr(line, split_idx, RLENGTH)
+                    
+                    # 條件 A
+                    if (matched_sep ~ /-/) {
+                        is_valid = 1
+                    } 
+                    # 條件 B
+                    else if (index(flag, " ") == 0) {
+                        is_valid = 1
+                    }
+                    
+                    if (is_valid == 1) {
                         desc = substr(line, split_idx + RLENGTH)
-                        sub(/^[ \t=]+/, "", desc) 
+                        sub(/^[ \t=:-]+/, "", desc) 
                         if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
                         printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
                     }
@@ -111,14 +121,11 @@ function _tct_tns_probe() {
         }
     ')
 
-    if [ -n "$parsed_params" ]; then
-        echo -e "$parsed_params"
-    else
-        echo -e "\033[1;30m[Empty                   ]\033[0m   No parameters found."
-    fi
+    if [ -n "$parsed_params" ]; then echo -e "$parsed_params"
+    else echo -e "\033[1;30m[Empty                   ]\033[0m   No parameters found."; fi
 }
 
-# 戰術指令導航 (Muscle Memory Macro via bind -x)
+# 戰術指令導航 (Single-Stage HUD & Zone Isolation Catch)
 function _tct_tns_macro() {
     # 截取輸入
     local target_cmd=""
@@ -127,27 +134,24 @@ function _tct_tns_macro() {
         for(i=1; i<=NF; i++) {
             if ($i ~ /^(cmt|sudo|command|nohup|time)$/) continue;
             if ($i ~ /^-/ || $i ~ /[><]/) break;
-            
-            if (cmd == "") cmd = $i
-            else cmd = cmd " " $i
+            if (cmd == "") cmd = $i; else cmd = cmd " " $i
         }
         print cmd
     }')
 
     target_cmd=$(echo "$target_cmd" | sed 's/^[ \t]*//;s/[ \t]*$//')
-    
     local params=""
+
+    # 狀態分流
     if [ -z "$target_cmd" ]; then
         params="\033[1;30m[Empty                   ]\033[0m   No command specified."
         target_cmd="Null"
     else
         params=$(_tct_tns_probe "$target_cmd")
-        
-        if [ -z "$params" ]; then
-            params="\033[1;30m[Empty                   ]\033[0m   No parameters found."
-        fi
+        if [ -z "$params" ]; then params="\033[1;30m[Empty                   ]\033[0m   No parameters found."; fi
     fi
 
+    # 動態高度計算
     local line_count=$(echo -e "$params" | wc -l)
     local dynamic_height=$(( line_count + 4 ))
     if [ "$dynamic_height" -gt 12 ]; then dynamic_height=12; fi
@@ -157,31 +161,27 @@ function _tct_tns_macro() {
     selected=$(echo -e "$params" | fzf --ansi \
             --height="$dynamic_height" \
             --layout=reverse \
-            --prompt=" :: cmd › $target_cmd › " \
+            --prompt=" :: TNS › $target_cmd › " \
             --header=" :: Enter to Choose, Esc to exit :: " \
             --info=hidden \
             --pointer="››" \
-            --border=bottom \
+            --border=rounded \
             --border-label=" :: PARAMETER HUD :: " \
             --color="fg:white,bg:-1,hl:51,fg+:white,bg+:235,hl+:51,info:240" \
-            --color="pointer:red,border:51,header:240,prompt:51"
+            --color="pointer:red,border:51,header:240,prompt:51,label:51"
             )
 
     # 寫回終端機
     if [ -n "$selected" ]; then
-        # 萃取旗標
         local clean_flag=$(echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk -F'[][]' '{print $2}' | awk '{print $1}' | sed 's/,$//')
-        
         if [ "$clean_flag" == "Empty" ]; then return; fi
         
         if [ -n "$clean_flag" ]; then
             local left_part="${READLINE_LINE:0:$READLINE_POINT}"
             local right_part="${READLINE_LINE:$READLINE_POINT}"
             
-            # 確保參數前有空白分隔
             if [[ -n "$left_part" ]] && [[ "$left_part" != *" " ]]; then left_part="${left_part} "; fi
 
-            # 竄改游標緩衝區
             READLINE_LINE="${left_part}${clean_flag} ${right_part}"
             READLINE_POINT=$((${#left_part} + ${#clean_flag} + 1))
         fi
