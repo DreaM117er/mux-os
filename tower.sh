@@ -459,7 +459,7 @@ function cd() {
             done
             continue
         elif [ "$target" == "[ip] Input Command" ]; then
-            local p_cmd=$(echo -e "\001${C_PURPLE}\002 :: COMMAND › \001${C_RESET}\002")
+            local p_cmd=$(echo -e "\001${C_PURPLE}\002 :: COMMAND (Empty to abort) › \001${C_RESET}\002")
             read -e -p "$p_cmd" user_cmd < /dev/tty
             if [ -n "$user_cmd" ]; then
                 echo -e "${C_RED} :: EXECUTING: $user_cmd ${C_RESET}"
@@ -642,7 +642,7 @@ function ls() {
             done
             continue
         elif [ "$target" == "[ip] Input Command" ]; then
-            local p_cmd=$(echo -e "\001${C_PURPLE}\002 :: COMMAND › \001${C_RESET}\002")
+            local p_cmd=$(echo -e "\001${C_PURPLE}\002 :: COMMAND (Empty to abort) › \001${C_RESET}\002")
             read -e -p "$p_cmd" user_cmd < /dev/tty
             if [ -n "$user_cmd" ]; then
                 echo -e "${C_RED} :: EXECUTING: $user_cmd ${C_RESET}"
