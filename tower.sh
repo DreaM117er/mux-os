@@ -98,6 +98,7 @@ function _tct_tns_probe() {
             idx_long = 0
             idx_short = 0
             idx_other = 0
+            pending_flag = ""
         }
         {
             # 實體消毒
@@ -107,7 +108,7 @@ function _tct_tns_probe() {
             line = $0
             sub(/^[ \t]+/, "", line)
             if (length(line) < 2) next
-            
+
             flag = ""
             desc = ""
             
@@ -123,6 +124,31 @@ function _tct_tns_probe() {
                         flag = substr(line, 1, space_idx - 1)
                         desc = substr(line, space_idx + 1)
                     } else { flag = line; desc = "" }
+
+                    if (desc == "") {
+                        pending_flag = flag
+                        next
+                    } else {
+                        pending_flag = ""
+                    }
+                }
+                else if (pending_flag != "" && orig_line ~ /^[ \t]+/) {
+                    flag = pending_flag
+                    desc = line
+                    pending_flag = ""
+                else {
+                    pending_flag = ""
+                    idx = index(line, " - ")
+                    if (idx == 0) idx = index(line, "\t- ")
+                    
+                    if (idx > 0) {
+                        flag = substr(line, 1, idx - 1)
+                        desc = substr(line, idx + 3)
+                        
+                        if (flag ~ /^[a-zA-Z]/) {
+                            sub(/[ \t]+$/, "", flag)
+                        } else { flag = "" }
+                    }
                 }
                 sub(/^[ \t=:-]+/, "", desc) 
                 if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
@@ -166,16 +192,6 @@ function _tct_tns_probe() {
                 }
             }
             
-            # 特殊狀態
-            if (line ~ /^  -[A-Za-z]/ || line ~ /^      -[A-Za-z]/) {
-                flag = substr(line, 1, index(line, " ") - 1)
-                desc = substr(line, index(line, " ") + 1)
-                sub(/^[ \t=:-]+/, "", desc)
-                if (length(desc) > 65) desc = substr(desc, 1, 62) "..."
-                printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
-                next
-            }
-            
             # 純大間距
             if (match(line, /[ \t][ \t]+|\t/) > 0) {
                 split_idx = RSTART
@@ -185,6 +201,28 @@ function _tct_tns_probe() {
                     desc = substr(line, split_idx + RLENGTH)
                     sub(/^[ \t=:-]+/, "", desc) 
                     if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
+                    buf_other[++idx_other] = sprintf("%s[%-24s]%s   %s", c_flag, flag, c_rst, desc)
+                }
+            }
+
+            if (flag != "") {
+                sub(/^[ \t=:-]+/, "", desc) 
+                if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
+                
+                if (flag ~ /^-/) {
+                    n = split(flag, f_arr, /,/)
+                    for (i=1; i<=n; i++) {
+                        sub(/^[ \t]+/, "", f_arr[i])
+                        sub(/[ \t]+$/, "", f_arr[i])
+                        if (f_arr[i] == "") continue;
+                        
+                        if (f_arr[i] ~ /^--/) {
+                            buf_long[++idx_long] = sprintf("%s[%-24s]%s   %s", c_flag, f_arr[i], c_rst, desc)
+                        } else if (f_arr[i] ~ /^-/) {
+                            buf_short[++idx_short] = sprintf("%s[%-24s]%s   %s", c_flag, f_arr[i], c_rst, desc)
+                        }
+                    }
+                } else {
                     buf_other[++idx_other] = sprintf("%s[%-24s]%s   %s", c_flag, flag, c_rst, desc)
                 }
             }
