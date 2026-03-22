@@ -27,35 +27,59 @@ function _tct_tns_probe() {
     local input_cmd="$1"
     if [ -z "$input_cmd" ]; then return 1; fi
 
+    # 指令解構：分離主指令與子指令
     local main_cmd="${input_cmd%% *}"
     local sub_cmd="${input_cmd#* }"
     [ "$main_cmd" == "$sub_cmd" ] && sub_cmd=""
 
     local help_text=""
     local cmd_type=""
+    
+    # 探測主指令的底層物理型態
     cmd_type=$(type -t "$main_cmd" 2>/dev/null)
 
-    # 前置分類路由器 (Smart Router)
+    # 前置分類路由器
     case "$main_cmd" in
-        pkg) help_text=$(command pkg help 2>&1) ;;
-        git)
-            if [ -n "$sub_cmd" ]; then help_text=$(command git $sub_cmd -h 2>&1)
-            else help_text=$(command git -h 2>&1); fi
+        pkg)
+            # pkg 只吃 help，且必須繞過任何子指令干涉
+            help_text=$(command pkg help 2>&1)
             ;;
-        cd) help_text=$(help cd 2>&1) ;;
-        ls) help_text=$(command ls --help 2>&1) ;;
+        git)
+            # git 必須使用 -h，並精準抓取子指令
+            if [ -n "$sub_cmd" ]; then
+                help_text=$(command git $sub_cmd -h 2>&1)
+            else
+                help_text=$(command git -h 2>&1)
+            fi
+            ;;
+        cd)
+            # help cd
+            help_text=$(help cd 2>&1)
+            ;;
+        ls)
+            # ls help
+            help_text=$(command ls --help 2>&1)
+            ;;
         *)
+            # 泛用型探針
             if [ "$cmd_type" == "builtin" ]; then
+                # Bash 內建指令專線
                 help_text=$(help "$input_cmd" 2>&1)
             else
+                # 外部指令或被劫持的 function (強制使用 command 穿透)
                 help_text=$(command $input_cmd --help 2>&1)
+                
+                # 錯誤檢閱機制 (Error Checking Fallback)
                 if [[ "$help_text" =~ (illegal|invalid|unrecognized|not\ found|unknown) ]] || [ ${#help_text} -lt 50 ]; then
                     local alt_help=$(command $input_cmd help 2>&1)
                     if [ ${#alt_help} -gt 50 ] && [[ ! "$alt_help" =~ (illegal|invalid|unrecognized|unknown) ]]; then
                         help_text="$alt_help"
                     else
+                        # 最後的波紋：嘗試 -h
                         local alt_help2=$(command $input_cmd -h 2>&1)
-                        if [ ${#alt_help2} -gt 50 ]; then help_text="$alt_help2"; fi
+                        if [ ${#alt_help2} -gt 50 ]; then
+                            help_text="$alt_help2"
+                        fi
                     fi
                 fi
             fi
@@ -71,85 +95,92 @@ function _tct_tns_probe() {
     local parsed_params
     parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" -v c_desc="\033[1;37m" '
         BEGIN {
-            idx_long = 0; idx_short = 0; idx_other = 0
-            pending_flag = ""
+            idx_long = 0
+            idx_short = 0
+            idx_other = 0
         }
         {
+            # 實體消毒
             gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
             gsub(/.\x08/, "")
             
-            orig_line = $0
             line = $0
             sub(/^[ \t]+/, "", line)
-            
-            if (length(line) < 2) {
-                pending_flag = ""
-                next
-            }
+            if (length(line) < 2) next
             
             flag = ""
             desc = ""
             
-            if (line ~ /^-+[a-zA-Z0-9@?]/) {
+            # 標準參數
+            if (line ~ /^-+[a-zA-Z0-9]/) {
                 split_idx = match(line, /[ \t][ \t]+|\t/)
                 if (split_idx > 0) {
                     flag = substr(line, 1, split_idx - 1)
                     desc = substr(line, split_idx + RLENGTH)
                 } else {
-                    flag = line
-                    desc = ""
+                    space_idx = index(line, " ")
+                    if (space_idx > 0) {
+                        flag = substr(line, 1, space_idx - 1)
+                        desc = substr(line, space_idx + 1)
+                    } else { flag = line; desc = "" }
                 }
-                
-                if (desc == "") {
-                    pending_flag = flag
-                    next
-                } else {
-                    pending_flag = ""
-                }
-            } 
-            else if (pending_flag != "" && orig_line ~ /^[ \t]+/) {
-                flag = pending_flag
-                desc = line
-                pending_flag = ""
-            } 
-            else {
-                pending_flag = ""
-                idx = index(line, " - ")
-                if (idx == 0) idx = index(line, "\t- ")
-                
-                if (idx > 0) {
-                    flag = substr(line, 1, idx - 1)
-                    desc = substr(line, idx + 3)
-                    
-                    if (flag ~ /^[a-zA-Z]/) {
-                        sub(/[ \t]+$/, "", flag)
-                    } else { flag = "" }
-                }
-            }
-            
-            if (flag != "") {
                 sub(/^[ \t=:-]+/, "", desc) 
                 if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
                 
-                if (flag ~ /^-/) {
-                    n = split(flag, f_arr, /,/)
-                    for (i=1; i<=n; i++) {
-                        sub(/^[ \t]+/, "", f_arr[i])
-                        sub(/[ \t]+$/, "", f_arr[i])
-                        if (f_arr[i] == "") continue;
-                        
-                        if (f_arr[i] ~ /^--/) {
-                            buf_long[++idx_long] = sprintf("%s[%-24s]%s   %s", c_flag, f_arr[i], c_rst, desc)
-                        } else if (f_arr[i] ~ /^-/) {
-                            buf_short[++idx_short] = sprintf("%s[%-24s]%s   %s", c_flag, f_arr[i], c_rst, desc)
-                        }
+                # 核心改裝
+                n = split(flag, f_arr, /,/)
+                for (i=1; i<=n; i++) {
+                    sub(/^[ \t]+/, "", f_arr[i])
+                    sub(/[ \t]+$/, "", f_arr[i])
+                    if (f_arr[i] == "") continue;
+                    
+                    # 依據特徵分揀入庫
+                    if (f_arr[i] ~ /^--/) {
+                        buf_long[++idx_long] = sprintf("%s[%-24s]%s   %s", c_flag, f_arr[i], c_rst, desc)
+                    } else if (f_arr[i] ~ /^-/) {
+                        buf_short[++idx_short] = sprintf("%s[%-24s]%s   %s", c_flag, f_arr[i], c_rst, desc)
                     }
-                } else {
+                }
+                next
+            }
+            
+            # 特徵符號
+            idx = index(line, " - ")
+            if (idx == 0) idx = index(line, "\t- ")
+            
+            if (idx > 0) {
+                flag = substr(line, 1, idx - 1)
+                desc = substr(line, idx + 3)
+                
+                if (flag ~ /^[a-zA-Z]/) {
+                    sub(/[ \t]+$/, "", flag)
+                    sub(/^[ \t=:-]+/, "", desc) 
+                    if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
+                    
+                    if (flag ~ /^-/) {
+                        buf_short[++idx_short] = sprintf("%s[%-24s]%s   %s", c_flag, flag, c_rst, desc)
+                    } else {
+                        buf_other[++idx_other] = sprintf("%s[%-24s]%s   %s", c_flag, flag, c_rst, desc)
+                    }
+                    next
+                }
+            }
+            
+            # 純大間距
+            if (match(line, /[ \t][ \t]+|\t/) > 0) {
+                split_idx = RSTART
+                flag = substr(line, 1, split_idx - 1)
+                
+                if (index(flag, " ") == 0 && flag ~ /^[a-zA-Z][a-zA-Z0-9_-]*$/) {
+                    desc = substr(line, split_idx + RLENGTH)
+                    sub(/^[ \t=:-]+/, "", desc) 
+                    if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
                     buf_other[++idx_other] = sprintf("%s[%-24s]%s   %s", c_flag, flag, c_rst, desc)
                 }
             }
         }
         END {
+            # 依序清倉發射：長參數、短參數、位置參數(Other)
             for (i=1; i<=idx_long; i++) print buf_long[i]
             for (i=1; i<=idx_short; i++) print buf_short[i]
             for (i=1; i<=idx_other; i++) print buf_other[i]
