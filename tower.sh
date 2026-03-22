@@ -41,7 +41,7 @@ function _tct_override_parser() {
     return 1
 }
 
-# 動態參數探針 (Strict Typo & ASCII Filter)
+# 動態參數探針 (The Sentinel: Strict Typo & ASCII Filter)
 function _tct_tns_probe() {
     local target_cmd="$1"
     if [ -z "$target_cmd" ]; then return 1; fi
@@ -71,7 +71,6 @@ function _tct_tns_probe() {
     local parsed_params
     parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" -v c_desc="\033[1;37m" '
         {
-            # 字串清潔
             gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
             gsub(/.\x08/, "")
             
