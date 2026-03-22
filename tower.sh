@@ -122,11 +122,10 @@ function _tct_tns_probe() {
 function _tct_tns_macro() {
     # 截取輸入
     local target_cmd=""
-    target_cmd=$(echo "$READLINE_LINE" | awk '{
+    target_cmd=$(echo "${READLINE_LINE:0:$READLINE_POINT}" | awk '{
         cmd = ""
         for(i=1; i<=NF; i++) {
             if ($i ~ /^(cmt|sudo|command|nohup|time)$/) continue;
-
             if ($i ~ /^-/ || $i ~ /[><|&]/) break;
             
             if (cmd == "") cmd = $i
@@ -152,11 +151,16 @@ function _tct_tns_macro() {
             --color="pointer:red,border:${fzf_color},header:240,prompt:51" | head -n 1
             )
         
+        target_cmd=$(echo "$target_cmd" | sed 's/^[ \t]*//;s/[ \t]*$//')
         if [ -z "$target_cmd" ]; then return; fi
+        
         inserted_cmd="true"
     fi
 
     local params=$(_tct_tns_probe "$target_cmd")
+    if [ -z "$params" ]; then
+        params="\033[1;30m[Empty                   ]\033[0m   No parameters found."
+    fi
 
     # 獲取參數
     local selected
