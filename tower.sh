@@ -58,7 +58,7 @@ function _tct_tns_probe() {
             ;;
         ls)
             # ls help
-            help_text=$(command ls --help 2>&1)
+            help_text=$(COLUMNS=200 command ls --help 2>&1)
             ;;
         *)
             # 泛用型探針
@@ -112,7 +112,7 @@ function _tct_tns_probe() {
             desc = ""
             
             # 標準參數
-            if (line ~ /^-+[a-zA-Z0-9]/) {
+            if (line ~ /^-+[a-zA-Z0-9@?]/) {
                 split_idx = match(line, /[ \t][ \t]+|\t/)
                 if (split_idx > 0) {
                     flag = substr(line, 1, split_idx - 1)
