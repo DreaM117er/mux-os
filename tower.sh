@@ -103,20 +103,19 @@ function _tct_tns_macro() {
 
     local inserted_cmd="false"
     
-    # 2. 空白行偵測：如果使用者還沒輸入指令，就呼叫 fzf 當作輸入框
-    # (注意：在 bind -x 中，必須使用 </dev/tty >/dev/tty 才能讓 fzf 正常接管畫面)
+    # 2. 空白行偵測：如果尚未輸入指令，彈出盲狙輸入框
     if [ -z "$target_cmd" ]; then
         target_cmd=$(echo "" | fzf --print-query --prompt=" :: TNS TARGET COMMAND › " --info=hidden --height=20% --layout=reverse --color=border:51,prompt:51 </dev/tty >/dev/tty | head -n 1)
         
-        # 如果使用者按 Esc 取消，直接結束
+        # 使用者按 Esc 取消
         if [ -z "$target_cmd" ]; then return; fi
         inserted_cmd="true"
     fi
 
-    # 3. 發射探針獲取參數
+    # 3. 發射探針獲取參數說明書
     local params=$(_tct_tns_probe "$target_cmd")
     if [ -z "$params" ]; then 
-        # 如果抓不到參數 (例如不支援 --help)，將剛才盲狙的指令先印上去
+        # 若無參數，但剛才是盲狙輸入的，先幫忙把指令印上去
         if [ "$inserted_cmd" == "true" ]; then
             READLINE_LINE="$target_cmd "
             READLINE_POINT=${#READLINE_LINE}
@@ -124,31 +123,29 @@ function _tct_tns_macro() {
         return
     fi
 
-    # 4. 展開參數雷達
+    # 4. 展開青色參數雷達 (查閱字典)
     local selected
     selected=$(echo -e "$params" | fzf --height=50% --layout=reverse --prompt=" :: TNS › $target_cmd › " --info=hidden --border=bottom --color=border:51 </dev/tty >/dev/tty)
 
-    # 5. 處理選擇結果並將旗標「寫回終端機」
+    # 5. 處理選擇結果並將「參數旗標」寫回終端機
     if [ -n "$selected" ]; then
-        # 萃取旗標 (去除ANSI色碼 -> 取出中括號內容 -> 取出第一個逗號前的字串 -> 清除空白)
-        # 例如從 [-E, --extended-regexp] 萃取出 -E
+        # 萃取旗標：例如從 [-E, --extended-regexp] 萃取出 -E
         local clean_flag=$(echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk -F'[][]' '{print $2}' | awk -F',' '{print $1}' | sed 's/^[ \t]*//;s/[ \t]*$//')
         
         if [ -n "$clean_flag" ]; then
             local left_part="${READLINE_LINE:0:$READLINE_POINT}"
             local right_part="${READLINE_LINE:$READLINE_POINT}"
             
-            # 如果是剛剛才盲狙的指令，先幫他把指令名稱補上去
             if [ "$inserted_cmd" == "true" ]; then
                 left_part="$target_cmd "
             fi
             
             # 確保參數前有空白分隔
-            if [[ "$left_part" != *" " ]] && [[ -n "$left_part" ]]; then
+            if [[ -n "$left_part" ]] && [[ "$left_part" != *" " ]]; then
                 left_part="${left_part} "
             fi
             
-            # 💥 竄改底層游標緩衝區！
+            # 💥 竄改底層游標緩衝區，精準插入參數！
             READLINE_LINE="${left_part}${clean_flag} ${right_part}"
             READLINE_POINT=$((${#left_part} + ${#clean_flag} + 1))
         fi
