@@ -41,7 +41,7 @@ function _tct_override_parser() {
     return 1
 }
 
-# 動態參數探針 (Universal Subcommand & Pager Bypass)
+# 動態參數探針 (Triple-Gate Parsing Engine)
 function _tct_tns_probe() {
     local target_cmd="$1"
     if [ -z "$target_cmd" ]; then return 1; fi
@@ -53,6 +53,7 @@ function _tct_tns_probe() {
     else
         help_text=$(PAGER=cat command $target_cmd --help 2>&1)
         
+        # 捕捉外部指令
         if [[ "$help_text" =~ (illegal|invalid|unrecognized|not\ found|unknown) ]] || [ ${#help_text} -lt 50 ]; then
             local alt_help=$(PAGER=cat command $target_cmd help 2>&1)
             if [ ${#alt_help} -gt 50 ]; then
@@ -61,6 +62,7 @@ function _tct_tns_probe() {
         fi
     fi
     
+    # 清理字串
     help_text=$(echo "$help_text" | sed 's/.\x08//g' | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g')
 
     if [[ "$help_text" == *"not found"* ]] || [[ "$help_text" == *"illegal option"* ]] || [[ "$help_text" == *"invalid option"* ]] || [[ "$help_text" == *"unrecognized option"* ]] || [ ${#help_text} -lt 20 ]; then
@@ -70,17 +72,15 @@ function _tct_tns_probe() {
         fi
     fi
 
-    # 雙軌解析引擎
     local parsed_params
     parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" -v c_desc="\033[1;37m" '
         {
             line = $0
+            sub(/^[ \t]+/, "", line) # 全局先脫去開頭空白，對齊基準點
             
-            # 分支 1：標準參數
-            if (line ~ /^[ \t]*-+[a-zA-Z0-9]/) {
-                sub(/^[ \t]+/, "", line)
-                
-                split_idx = match(line, /[ \t][ \t]+-?[ \t]*|[ \t]+-[ \t]+/)
+            # 標準參數
+            if (line ~ /^-+[a-zA-Z0-9]/) {
+                split_idx = match(line, /[ \t][ \t]+|\t/)
                 
                 if (split_idx > 0) {
                     flag = substr(line, 1, split_idx - 1)
@@ -96,33 +96,30 @@ function _tct_tns_probe() {
                 if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
                 printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
             }
-            else if (line ~ /^[ \t]*[a-zA-Z0-9_-]+/) {
-                sub(/^[ \t]+/, "", line)
+            # 具備明確特徵
+            else if (match(line, /[ \t]+[-=][ \t]+/) > 0) {
+                split_idx = RSTART
+                flag = substr(line, 1, split_idx - 1)
+                desc = substr(line, split_idx + RLENGTH)
                 
-                split_idx = match(line, /[ \t][ \t]+-?[ \t]*|[ \t]+-[ \t]+/)
+                # 防爆：左側 flag
+                if (flag ~ /^[a-zA-Z0-9_-]/) {
+                    sub(/^[ \t=:-]+/, "", desc) 
+                    if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
+                    printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
+                }
+            }
+            # 純大間距
+            else if (match(line, /[ \t][ \t]+|\t/) > 0) {
+                split_idx = RSTART
+                flag = substr(line, 1, split_idx - 1)
                 
-                if (split_idx > 0) {
-                    flag = substr(line, 1, split_idx - 1)
-                    
-                    # 判斷是否為合法的指令行
-                    is_valid = 0
-                    matched_sep = substr(line, split_idx, RLENGTH)
-                    
-                    # 條件 A
-                    if (matched_sep ~ /-/) {
-                        is_valid = 1
-                    } 
-                    # 條件 B
-                    else if (index(flag, " ") == 0) {
-                        is_valid = 1
-                    }
-                    
-                    if (is_valid == 1) {
-                        desc = substr(line, split_idx + RLENGTH)
-                        sub(/^[ \t=:-]+/, "", desc) 
-                        if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
-                        printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
-                    }
+                # 防爆
+                if (index(flag, " ") == 0 && flag ~ /^[a-zA-Z0-9_-]+$/) {
+                    desc = substr(line, split_idx + RLENGTH)
+                    sub(/^[ \t=:-]+/, "", desc) 
+                    if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
+                    printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
                 }
             }
         }
