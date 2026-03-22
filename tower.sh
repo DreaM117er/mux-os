@@ -47,8 +47,17 @@ function _tct_tns_probe() {
     if [ -z "$target_cmd" ]; then return 1; fi
 
     # 廣域 help 選單掃描
+    # 複合指令
     local help_text=""
     help_text=$(command $target_cmd --help 2>&1)
+    if [[ "$target_cmd" == git\ * ]]; then
+        help_text=$(command $target_cmd -h 2>&1)
+    else
+        help_text=$(PAGER=cat command $target_cmd --help 2>&1)
+    fi
+
+    # 標準指令
+    help_text=$(echo "$help_text" | sed 's/.\x08//g')
     if [[ "$help_text" == *"not found"* ]] || [[ "$help_text" == *"illegal option"* ]] || [[ "$help_text" == *"invalid option"* ]] || [[ "$help_text" == *"unrecognized option"* ]] || [ ${#help_text} -lt 20 ]; then
         local builtin_help=$(help $target_cmd 2>&1)
         if [[ "$builtin_help" != *"no help topics"* ]] && [ -n "$builtin_help" ]; then
@@ -61,8 +70,8 @@ function _tct_tns_probe() {
     parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" -v c_desc="\033[1;37m" '
         {
             line = $0
-
-            # 標準參數特徵 ( - 或 -- 開頭)
+            
+            # 標準參數 (帶有 - 或 -- 的選項)
             if (line ~ /^[ \t]*-+[a-zA-Z0-9]/) {
                 sub(/^[ \t]+/, "", line)
                 split_idx = match(line, /[ \t]{2,}|\t/)
@@ -83,7 +92,7 @@ function _tct_tns_probe() {
                 if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
                 printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
             }
-            #  空白 + 連續性指令 (如git)
+            # 有子指令 (如 git)
             else if (line ~ /^[ \t]+[a-zA-Z0-9_-]+([ \t]{2,}|\t)[^ \t]/) {
                 sub(/^[ \t]+/, "", line)
                 split_idx = match(line, /[ \t]{2,}|\t/)
