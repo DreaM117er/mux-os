@@ -125,6 +125,8 @@ function _tct_tns_macro() {
         inserted_cmd="true"
     fi
 
+    local params=$(_tct_tns_probe "$target_cmd")
+
     # 獲取參數
     local selected
     selected=$(echo -e "$params" | fzf --ansi \
