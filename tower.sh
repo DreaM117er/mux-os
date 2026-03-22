@@ -461,6 +461,7 @@ function cd() {
         elif [ "$target" == "[ip] Input Command" ]; then
             local p_cmd=$(echo -e "\001${C_PURPLE}\002 :: COMMAND (Empty to abort) › \001${C_RESET}\002")
             read -e -p "$p_cmd" user_cmd < /dev/tty
+            user_cmd=$(echo "$user_cmd" | sed 's/^[ \t]*//;s/[ \t]*$//')
             if [ -n "$user_cmd" ]; then
                 echo -e "${C_RED} :: EXECUTING: $user_cmd ${C_RESET}"
                 eval "$user_cmd"
@@ -644,6 +645,7 @@ function ls() {
         elif [ "$target" == "[ip] Input Command" ]; then
             local p_cmd=$(echo -e "\001${C_PURPLE}\002 :: COMMAND (Empty to abort) › \001${C_RESET}\002")
             read -e -p "$p_cmd" user_cmd < /dev/tty
+            user_cmd=$(echo "$user_cmd" | sed 's/^[ \t]*//;s/[ \t]*$//')
             if [ -n "$user_cmd" ]; then
                 echo -e "${C_RED} :: EXECUTING: $user_cmd ${C_RESET}"
                 eval "$user_cmd"
@@ -856,14 +858,47 @@ function __core_rm() {
             echo -e "${C_RED} :: DESTRUCTOR INITIATED › MODE: -$current_rm_mode ${C_RESET}"
             echo -e "${C_BLACK}    ›› Targets: ${#selected_targets[@]} items.${C_RESET}"
             
-            if [[ "$current_rm_mode" == "i" ]]; then
-                echo -ne "${C_RED} :: Initiate soft-deletion for these ${#selected_targets[@]} targets? [Y/n]: ${C_RESET}"
-                read -r confirm < /dev/tty
-                if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
-                    echo -e "${C_GREEN} :: Destructor aborted. Target(s) secured.${C_RESET}"
-                    break
-                fi
+            if [[ "$current_rm_mode" == *"i"* ]]; then
+                local ask_flag="true"
+                
+                for target_item in "${selected_targets[@]}"; do
+                    if [ "$ask_flag" == "true" ]; then
+                        # 動態顯示檔案或資料夾
+                        local t_type="File"
+                        [ -d "$target_item" ] && t_type="Directory"
+                        
+                        echo -ne "${C_YELLOW} :: Remove $t_type '${target_item}'? [Y/n] [A/Q]: ${C_RESET}"
+                        read -r confirm < /dev/tty
+                        
+                        case "${confirm,,}" in
+                            y)
+                                command rm -rf "$target_item" 2>/dev/null
+                                echo -e "${C_BLACK}    ›› [WIPED] '$target_item'${C_RESET}"
+                                ;;
+                            a)
+                                # 選 A 關閉詢問旗標，後續直接刪除
+                                ask_flag="false"
+                                command rm -rf "$target_item" 2>/dev/null
+                                echo -e "${C_BLACK}    ›› [WIPED] '$target_item'${C_RESET}"
+                                ;;
+                            q)
+                                # 選 Q 直接中斷整個迴圈
+                                echo -e "${C_GREEN} :: Destructor sequence aborted.${C_RESET}"
+                                break
+                                ;;
+                            *)
+                                # N 或任意鍵皆視為跳過
+                                echo -e "${C_BLACK}    ›› [SKIPPED] '$target_item'${C_RESET}"
+                                ;;
+                        esac
+                    else
+                        # 靜默刪除模式
+                        command rm -rf "$target_item" 2>/dev/null
+                        echo -e "${C_BLACK}    ›› [WIPED] '$target_item'${C_RESET}"
+                    fi
+                done
             else
+                # 永久刪除警告
                 echo -e "${C_RED} :: WARNING: Permanent deletion selected. Targets will NOT be sent to .trash.${C_RESET}"
                 echo -ne "${C_RED} :: TYPE 'CONFIRM' TO OBLITERATE: ${C_RESET}"
                 read -r confirm < /dev/tty
@@ -871,8 +906,9 @@ function __core_rm() {
                     echo -e "${C_GREEN} :: Destructor aborted. Target(s) secured.${C_RESET}"
                     break
                 fi
+                # 直接發射
+                command rm "-$current_rm_mode" "${selected_targets[@]}"
             fi
-            command rm "-$current_rm_mode" "${selected_targets[@]}"
             
             if command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
             break
