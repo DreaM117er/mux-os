@@ -149,7 +149,7 @@ function _tct_tns_macro() {
     fi
 
     local line_count=$(echo -e "$params" | wc -l)
-    local dynamic_height=$(( line_count + 3 ))
+    local dynamic_height=$(( line_count + 4 ))
     if [ "$dynamic_height" -gt 12 ]; then dynamic_height=12; fi
 
     # 展開參數雷達
