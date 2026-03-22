@@ -135,37 +135,20 @@ function _tct_tns_macro() {
     }')
 
     target_cmd=$(echo "$target_cmd" | sed 's/^[ \t]*//;s/[ \t]*$//')
-
-    local inserted_cmd="false"
-    local fzf_color="211"
     
-    # 盲狙偵測
+    local params=""
     if [ -z "$target_cmd" ]; then
-        target_cmd=$(echo "" | fzf --ansi \
-            --print-query \
-            --prompt=" :: TNS TARGET COMMAND › " \
-            --header=" :: Enter to Choose, Esc to exit :: " \
-            --info=hidden \
-            --pointer="››" \
-            --height=12 \
-            --layout=reverse \
-            --color="fg:white,bg:-1,hl:${fzf_color},fg+:white,bg+:235,hl+:${fzf_color},info:240" \
-            --color="pointer:red,border:${fzf_color},header:240,prompt:51" | head -n 1
-            )
+        params="\033[1;30m[Empty                   ]\033[0m   No command specified."
+        target_cmd="Null"
+    else
+        params=$(_tct_tns_probe "$target_cmd")
         
-        target_cmd=$(echo "$target_cmd" | sed 's/^[ \t]*//;s/[ \t]*$//')
-        if [ -z "$target_cmd" ]; then return; fi
-        
-        inserted_cmd="true"
+        if [ -z "$params" ]; then
+            params="\033[1;30m[Empty                   ]\033[0m   No parameters found."
+        fi
     fi
 
-    # 發射探針獲取參數
-    local params=$(_tct_tns_probe "$target_cmd")
-    if [ -z "$params" ]; then
-        params="\033[1;30m[Empty                   ]\033[0m   No parameters found."
-    fi
-
-    # 展開參數雷達
+    # 3. 展開參數雷達 (純粹的青色 HUD)
     local selected
     selected=$(echo -e "$params" | fzf --ansi \
             --height=12 \
@@ -175,36 +158,27 @@ function _tct_tns_macro() {
             --info=hidden \
             --pointer="››" \
             --border=bottom \
-            --color="fg:white,bg:-1,hl:${fzf_color},fg+:white,bg+:235,hl+:${fzf_color},info:240" \
+            --color="fg:white,bg:-1,hl:51,fg+:white,bg+:235,hl+:51,info:240" \
             --color="pointer:red,border:51,header:240,prompt:51"
             )
 
-    # 寫回終端機
+    # 4. 寫回終端機
     if [ -n "$selected" ]; then
         # 萃取旗標
         local clean_flag=$(echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk -F'[][]' '{print $2}' | awk '{print $1}' | sed 's/,$//')
-        if [ "$clean_flag" == "Empty" ]; then
-            if [ "$inserted_cmd" == "true" ]; then
-                READLINE_LINE="$target_cmd "
-                READLINE_POINT=${#READLINE_LINE}
-            fi
-            return
-        fi
+        
+        if [ "$clean_flag" == "Empty" ]; then return; fi
         
         if [ -n "$clean_flag" ]; then
             local left_part="${READLINE_LINE:0:$READLINE_POINT}"
             local right_part="${READLINE_LINE:$READLINE_POINT}"
             
-            if [ "$inserted_cmd" == "true" ]; then left_part="$target_cmd "; fi
+            # 確保參數前有空白分隔
             if [[ -n "$left_part" ]] && [[ "$left_part" != *" " ]]; then left_part="${left_part} "; fi
 
+            # 竄改游標緩衝區
             READLINE_LINE="${left_part}${clean_flag} ${right_part}"
             READLINE_POINT=$((${#left_part} + ${#clean_flag} + 1))
-        fi
-    else
-        if [ "$inserted_cmd" == "true" ]; then
-            READLINE_LINE="$target_cmd "
-            READLINE_POINT=${#READLINE_LINE}
         fi
     fi
 }
