@@ -114,6 +114,7 @@ function _tct_tns_macro() {
     # 截取輸入
     local target_cmd=""
     target_cmd=$(echo "$READLINE_LINE" | awk '{
+        cmd = ""
         for(i=1; i<=NF; i++) {
             if ($i ~ /^(cmt|sudo|command|nohup|time)$/) continue;
 
@@ -122,10 +123,12 @@ function _tct_tns_macro() {
             if (cmd == "") cmd = $i
             else cmd = cmd " " $i
         }
+        print cmd
     }')
 
     local inserted_cmd="false"
     local fzf_color="211"
+    
     # 盲狙偵測
     if [ -z "$target_cmd" ]; then
         target_cmd=$(echo "" | fzf --ansi \
