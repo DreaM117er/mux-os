@@ -114,8 +114,7 @@ function _tct_tns_macro() {
             --height=12 \
             --layout=reverse \
             --color="fg:white,bg:-1,hl:${fzf_color},fg+:white,bg+:235,hl+:${fzf_color},info:240" \
-            --color="pointer:red,border:${fzf_color},header:240,prompt:51" | head -n 1 \
-            --bind="resize:clear-screen"
+            --color="pointer:red,border:${fzf_color},header:240,prompt:51" | head -n 1
             )
         
         if [ -z "$target_cmd" ]; then return; fi
@@ -143,8 +142,7 @@ function _tct_tns_macro() {
             --pointer="››" \
             --border=bottom \
             --color="fg:white,bg:-1,hl:${fzf_color},fg+:white,bg+:235,hl+:${fzf_color},info:240" \
-            --color="pointer:red,border:${fzf_color},header:240,prompt:51" \
-            --bind="resize:clear-screen"
+            --color="pointer:red,border:${fzf_color},header:240,prompt:51"
             )
 
     # 寫回終端機
