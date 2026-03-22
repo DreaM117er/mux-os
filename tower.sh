@@ -41,16 +41,24 @@ function _tct_tns_probe() {
     # 前置分類路由器
     case "$main_cmd" in
         pkg)
-            # 大魔王專線：pkg 只吃 help，且必須繞過任何子指令干涉
+            # pkg 只吃 help，且必須繞過任何子指令干涉
             help_text=$(command pkg help 2>&1)
             ;;
         git)
-            # 大魔王專線：git 必須使用 -h，並精準抓取子指令
+            # git 必須使用 -h，並精準抓取子指令
             if [ -n "$sub_cmd" ]; then
                 help_text=$(command git $sub_cmd -h 2>&1)
             else
                 help_text=$(command git -h 2>&1)
             fi
+            ;;
+        cd)
+            # help cd
+            help_text=$(help cd 2>&1)
+            ;;
+        ls)
+            # ls help
+            help_text=$(command ls --help 2>&1)
             ;;
         *)
             # 泛用型探針
