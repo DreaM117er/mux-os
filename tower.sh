@@ -142,8 +142,8 @@ function _tct_tns_macro() {
             --info=hidden \
             --pointer="››" \
             --border=bottom \
-            --color="fg:white,bg:-1,hl:51,fg+:white,bg+:235,hl+:51,info:240" \
-            --color="pointer:red,border:51,header:240,prompt:51"
+            --color="fg:white,bg:-1,hl:${fzf_color},fg+:white,bg+:235,hl+:${fzf_color},info:240" \
+            --color="pointer:red,border:${fzf_color},header:240,prompt:51" \
             --bind="resize:clear-screen"
             )
 
