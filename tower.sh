@@ -161,11 +161,10 @@ function _tct_tns_macro() {
     selected=$(echo -e "$params" | fzf --ansi \
             --height="$dynamic_height" \
             --layout=reverse \
-            --prompt=" :: TNS › $target_cmd › " \
+            --prompt=" :: CMD › $target_cmd › " \
             --header=" :: Enter to Choose, Esc to exit :: " \
             --info=hidden \
             --pointer="››" \
-            --border=rounded \
             --border-label=" :: PARAMETER HUD :: " \
             --color="fg:white,bg:-1,hl:51,fg+:white,bg+:235,hl+:51,info:240" \
             --color="pointer:red,border:51,header:240,prompt:51,label:51"
