@@ -91,7 +91,7 @@ function _tct_tns_probe() {
 
 # TNS 戰術導航攔截宏 (Muscle Memory Macro via bind -x)
 function _tct_tns_macro() {
-    # 1. 取得當前輸入行的核心單字 (過濾掉 cmt, sudo 等前綴)
+    # 截取輸入
     local target_cmd=""
     target_cmd=$(echo "$READLINE_LINE" | awk '{
         for(i=1; i<=NF; i++) {
@@ -103,7 +103,7 @@ function _tct_tns_macro() {
 
     local inserted_cmd="false"
     
-    # 2. 空白行偵測：如果尚未輸入指令，彈出盲狙輸入框
+    # 盲狙偵測
     if [ -z "$target_cmd" ]; then
         target_cmd=$(echo "" | fzf --print-query --prompt=" :: TNS TARGET COMMAND › " --info=hidden --height=20% --layout=reverse --color=border:51,prompt:51 </dev/tty >/dev/tty | head -n 1)
         
@@ -112,10 +112,9 @@ function _tct_tns_macro() {
         inserted_cmd="true"
     fi
 
-    # 3. 發射探針獲取參數說明書
     local params=$(_tct_tns_probe "$target_cmd")
     if [ -z "$params" ]; then 
-        # 若無參數，但剛才是盲狙輸入的，先幫忙把指令印上去
+        # 如果這個指令沒有參數
         if [ "$inserted_cmd" == "true" ]; then
             READLINE_LINE="$target_cmd "
             READLINE_POINT=${#READLINE_LINE}
@@ -123,13 +122,11 @@ function _tct_tns_macro() {
         return
     fi
 
-    # 4. 展開青色參數雷達 (查閱字典)
+    # 展開參數雷達
     local selected
     selected=$(echo -e "$params" | fzf --height=50% --layout=reverse --prompt=" :: TNS › $target_cmd › " --info=hidden --border=bottom --color=border:51 </dev/tty >/dev/tty)
 
-    # 5. 處理選擇結果並將「參數旗標」寫回終端機
     if [ -n "$selected" ]; then
-        # 萃取旗標：例如從 [-E, --extended-regexp] 萃取出 -E
         local clean_flag=$(echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk -F'[][]' '{print $2}' | awk -F',' '{print $1}' | sed 's/^[ \t]*//;s/[ \t]*$//')
         
         if [ -n "$clean_flag" ]; then
@@ -140,12 +137,10 @@ function _tct_tns_macro() {
                 left_part="$target_cmd "
             fi
             
-            # 確保參數前有空白分隔
             if [[ -n "$left_part" ]] && [[ "$left_part" != *" " ]]; then
                 left_part="${left_part} "
             fi
             
-            # 💥 竄改底層游標緩衝區，精準插入參數！
             READLINE_LINE="${left_part}${clean_flag} ${right_part}"
             READLINE_POINT=$((${#left_part} + ${#clean_flag} + 1))
         fi
