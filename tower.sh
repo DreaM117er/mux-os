@@ -52,14 +52,6 @@ function _tct_tns_probe() {
                 help_text=$(command git -h 2>&1)
             fi
             ;;
-        cd)
-            # help cd
-            help_text=$(help cd 2>&1)
-            ;;
-        ls)
-            # ls help
-            help_text=$(command ls --help 2>&1)
-            ;;
         *)
             # 泛用型探針
             if [ "$cmd_type" == "builtin" ]; then
