@@ -52,6 +52,14 @@ function _tct_tns_probe() {
                 help_text=$(command git -h 2>&1)
             fi
             ;;
+        cd)
+            # help cd
+            help_text=$(help cd 2>&1)
+            ;;
+        ls)
+            # ls help
+            help_text=$(command ls --help 2>&1)
+            ;;
         *)
             # 泛用型探針
             if [ "$cmd_type" == "builtin" ]; then
@@ -158,6 +166,16 @@ function _tct_tns_probe() {
                 }
             }
             
+            # 特殊狀態
+            if (line ~ /^  -[A-Za-z]/ || line ~ /^      -[A-Za-z]/) {
+                flag = substr(line, 1, index(line, " ") - 1)
+                desc = substr(line, index(line, " ") + 1)
+                sub(/^[ \t=:-]+/, "", desc)
+                if (length(desc) > 65) desc = substr(desc, 1, 62) "..."
+                printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
+                next
+            }
+            
             # 純大間距
             if (match(line, /[ \t][ \t]+|\t/) > 0) {
                 split_idx = RSTART
@@ -169,16 +187,6 @@ function _tct_tns_probe() {
                     if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
                     buf_other[++idx_other] = sprintf("%s[%-24s]%s   %s", c_flag, flag, c_rst, desc)
                 }
-            }
-
-            # 特殊補強
-            if (line ~ /^  -[A-Za-z]/ || line ~ /^      -[A-Za-z]/) {
-                flag = substr(line, 1, index(line, " ") - 1)
-                desc = substr(line, index(line, " ") + 1)
-                sub(/^[ \t=:-]+/, "", desc)
-                if (length(desc) > 65) desc = substr(desc, 1, 62) "..."
-                printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
-                next
             }
         }
         END {
