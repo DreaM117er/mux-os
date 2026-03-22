@@ -43,40 +43,84 @@ function _tct_override_parser() {
 
 # 動態參數探針 (The Sentinel: Strict Typo & ASCII Filter)
 function _tct_tns_probe() {
-    local target_cmd="$1"
-    if [ -z "$target_cmd" ]; then return 1; fi
+    local input_cmd="$1"
+    if [ -z "$input_cmd" ]; then return 1; fi
+
+    # 指令解構：分離主指令與子指令
+    local main_cmd="${input_cmd%% *}"
+    local sub_cmd="${input_cmd#* }"
+    [ "$main_cmd" == "$sub_cmd" ] && sub_cmd=""
 
     local help_text=""
+    local cmd_type=""
     
-    if [[ "$target_cmd" == git\ * ]]; then
-        help_text=$($target_cmd -h 2>&1)
-    else
-        help_text=$($target_cmd --help 2>&1)
-        
-        if [[ "$help_text" == *"illegal"* ]] || [[ "$help_text" == *"invalid"* ]] || [[ "$help_text" == *"unrecognized"* ]] || [[ "$help_text" == *"not found"* ]] || [[ "$help_text" == *"unknown"* ]] || [ ${#help_text} -lt 50 ]; then
-            local alt_help=$($target_cmd help 2>&1)
-            if [ ${#alt_help} -gt 50 ]; then
-                help_text="$alt_help"
+    # 探測主指令的底層物理型態
+    cmd_type=$(type -t "$main_cmd" 2>/dev/null)
+
+    # 前置分類路由器
+    case "$main_cmd" in
+        pkg)
+            # 大魔王專線：pkg 只吃 help，且必須繞過任何子指令干涉
+            help_text=$(command pkg help 2>&1)
+            ;;
+        git)
+            # 大魔王專線：git 必須使用 -h，並精準抓取子指令
+            if [ -n "$sub_cmd" ]; then
+                help_text=$(command git $sub_cmd -h 2>&1)
+            else
+                help_text=$(command git -h 2>&1)
             fi
-        fi
-    fi
-    
-    if [[ "$help_text" == *"not found"* ]] || [ ${#help_text} -lt 20 ]; then
-        local builtin_help=$(help $target_cmd 2>&1)
-        if [[ "$builtin_help" != *"no help topics"* ]] && [ -n "$builtin_help" ]; then
-            help_text="$builtin_help"
-        fi
+            ;;
+        *)
+            # 泛用型探針
+            if [ "$cmd_type" == "builtin" ]; then
+                # Bash 內建指令專線
+                help_text=$(help "$input_cmd" 2>&1)
+            else
+                # 外部指令或被劫持的 function (強制使用 command 穿透)
+                help_text=$(command $input_cmd --help 2>&1)
+                
+                # 錯誤檢閱機制 (Error Checking Fallback)
+                if [[ "$help_text" =~ (illegal|invalid|unrecognized|not\ found|unknown) ]] || [ ${#help_text} -lt 50 ]; then
+                    local alt_help=$(command $input_cmd help 2>&1)
+                    if [ ${#alt_help} -gt 50 ] && [[ ! "$alt_help" =~ (illegal|invalid|unrecognized|unknown) ]]; then
+                        help_text="$alt_help"
+                    else
+                        # 最後的波紋：嘗試 -h
+                        local alt_help2=$(command $input_cmd -h 2>&1)
+                        if [ ${#alt_help2} -gt 50 ]; then
+                            help_text="$alt_help2"
+                        fi
+                    fi
+                fi
+            fi
+            ;;
+    esac
+
+    if [ -z "$help_text" ] || [[ "$help_text" == *"not found"* ]]; then
+        echo -e "\033[1;30m[Empty                   ]\033[0m   No parameters found."
+        return
     fi
 
+    # 雙緩衝拆解引擎
     local parsed_params
     parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" -v c_desc="\033[1;37m" '
+        BEGIN {
+            idx_long = 0
+            idx_short = 0
+            idx_other = 0
+        }
         {
+            # 實體消毒
             gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
             gsub(/.\x08/, "")
             
             line = $0
             sub(/^[ \t]+/, "", line)
             if (length(line) < 2) next
+            
+            flag = ""
+            desc = ""
             
             # 標準參數
             if (line ~ /^-+[a-zA-Z0-9]/) {
@@ -93,7 +137,21 @@ function _tct_tns_probe() {
                 }
                 sub(/^[ \t=:-]+/, "", desc) 
                 if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
-                printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
+                
+                # 核心改裝
+                n = split(flag, f_arr, /,/)
+                for (i=1; i<=n; i++) {
+                    sub(/^[ \t]+/, "", f_arr[i])
+                    sub(/[ \t]+$/, "", f_arr[i])
+                    if (f_arr[i] == "") continue;
+                    
+                    # 依據特徵分揀入庫
+                    if (f_arr[i] ~ /^--/) {
+                        buf_long[++idx_long] = sprintf("%s[%-24s]%s   %s", c_flag, f_arr[i], c_rst, desc)
+                    } else if (f_arr[i] ~ /^-/) {
+                        buf_short[++idx_short] = sprintf("%s[%-24s]%s   %s", c_flag, f_arr[i], c_rst, desc)
+                    }
+                }
                 next
             }
             
@@ -109,7 +167,12 @@ function _tct_tns_probe() {
                     sub(/[ \t]+$/, "", flag)
                     sub(/^[ \t=:-]+/, "", desc) 
                     if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
-                    printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
+                    
+                    if (flag ~ /^-/) {
+                        buf_short[++idx_short] = sprintf("%s[%-24s]%s   %s", c_flag, flag, c_rst, desc)
+                    } else {
+                        buf_other[++idx_other] = sprintf("%s[%-24s]%s   %s", c_flag, flag, c_rst, desc)
+                    }
                     next
                 }
             }
@@ -123,9 +186,15 @@ function _tct_tns_probe() {
                     desc = substr(line, split_idx + RLENGTH)
                     sub(/^[ \t=:-]+/, "", desc) 
                     if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
-                    printf "%s[%-24s]%s   %s\n", c_flag, flag, c_rst, desc
+                    buf_other[++idx_other] = sprintf("%s[%-24s]%s   %s", c_flag, flag, c_rst, desc)
                 }
             }
+        }
+        END {
+            # 🚀 依序清倉發射：長參數 -> 短參數 -> 位置參數(Other)
+            for (i=1; i<=idx_long; i++) print buf_long[i]
+            for (i=1; i<=idx_short; i++) print buf_short[i]
+            for (i=1; i<=idx_other; i++) print buf_other[i]
         }
     ')
 
