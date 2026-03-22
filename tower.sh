@@ -51,10 +51,9 @@ function _tct_tns_probe() {
     if [[ "$target_cmd" == git\ * ]]; then
         help_text=$(command $target_cmd -h 2>&1)
     else
-        # 發射探針
         help_text=$(PAGER=cat command $target_cmd --help 2>&1)
         
-        if [[ "$help_text" =~ (illegal|invalid|unrecognized|not\ found) ]] || [ ${#help_text} -lt 50 ]; then
+        if [[ "$help_text" =~ (illegal|invalid|unrecognized|not\ found|unknown) ]] || [ ${#help_text} -lt 50 ]; then
             local alt_help=$(PAGER=cat command $target_cmd help 2>&1)
             if [ ${#alt_help} -gt 50 ]; then
                 help_text="$alt_help"
@@ -62,9 +61,9 @@ function _tct_tns_probe() {
         fi
     fi
     
-    help_text=$(echo "$help_text" | sed 's/.\x08//g')
+    help_text=$(echo "$help_text" | sed 's/.\x08//g' | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g')
 
-    if [[ "$help_text" =~ (illegal|invalid|unrecognized|not\ found) ]] || [ ${#help_text} -lt 50 ]; then
+    if [[ "$help_text" == *"not found"* ]] || [[ "$help_text" == *"illegal option"* ]] || [[ "$help_text" == *"invalid option"* ]] || [[ "$help_text" == *"unrecognized option"* ]] || [ ${#help_text} -lt 20 ]; then
         local builtin_help=$(help $target_cmd 2>&1)
         if [[ "$builtin_help" != *"no help topics"* ]] && [ -n "$builtin_help" ]; then
             help_text="$builtin_help"
@@ -80,7 +79,8 @@ function _tct_tns_probe() {
             # 分支 1：標準參數
             if (line ~ /^[ \t]*-+[a-zA-Z0-9]/) {
                 sub(/^[ \t]+/, "", line)
-                split_idx = match(line, /[ \t]{2,}|\t/)
+                
+                split_idx = match(line, /[ \t][ \t]+-?[ \t]*|[ \t]+-[ \t]+/)
                 
                 if (split_idx > 0) {
                     flag = substr(line, 1, split_idx - 1)
@@ -99,8 +99,7 @@ function _tct_tns_probe() {
             else if (line ~ /^[ \t]*[a-zA-Z0-9_-]+/) {
                 sub(/^[ \t]+/, "", line)
                 
-                # 尋找分隔點
-                split_idx = match(line, /[ \t]{2,}-?[ \t]*|[ \t]+-[ \t]+/)
+                split_idx = match(line, /[ \t][ \t]+-?[ \t]*|[ \t]+-[ \t]+/)
                 
                 if (split_idx > 0) {
                     flag = substr(line, 1, split_idx - 1)
