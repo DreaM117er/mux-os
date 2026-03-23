@@ -22,7 +22,7 @@ function _bypass_guard() {
     fi
 }
 
-# 動態參數探針 (The Sentinel: Strict Typo & ASCII Filter)
+# 高精密文本切割機 (The High-Precision Text Cutter)
 function _tct_tns_probe() {
     local input_cmd="$1"
     if [ -z "$input_cmd" ]; then return 1; fi
@@ -54,7 +54,7 @@ function _tct_tns_probe() {
             fi
             ;;
         cd)
-            # help cd
+            # help $main_cmd
             help_text=$(help cd 2>&1)
             ;;
         ls)
@@ -112,7 +112,7 @@ function _tct_tns_probe() {
             # 去骨拼接
             if ($0 ~ /^[ \t]*-+[a-zA-Z0-9@]/) {
                 if (pending != "") print pending
-                # 切空白
+                
                 clean_line = $0
                 sub(/^[ \t]+/, "", clean_line)
 
@@ -124,12 +124,15 @@ function _tct_tns_probe() {
                 }
             } 
             else if (pending != "" && $0 ~ /^[ \t]+/) {
-                # 資料接合
                 desc = $0
                 sub(/^[ \t]+/, "", desc)
-                print pending "          " desc
-                pending = ""
-            } 
+                
+                if (match(pending, /[ \t][ \t]+|\t/) == 0) {
+                    pending = pending "          " desc
+                } else {
+                    pending = pending " " desc
+                }
+            }
             else {
                 if (pending != "") { print pending; pending = "" }
                 print $0
@@ -226,7 +229,7 @@ function _tct_tns_probe() {
             }
         }
         END {
-            # 依序清倉發射：長參數、短參數、位置參數(Other)
+            # 擺盤後展示
             for (i=1; i<=idx_long; i++) print buf_long[i]
             for (i=1; i<=idx_short; i++) print buf_short[i]
             for (i=1; i<=idx_other; i++) print buf_other[i]
