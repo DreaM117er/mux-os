@@ -83,7 +83,7 @@ function _tct_tns_probe() {
             fi
 
             if [ -z "$help_text" ] || [[ "$help_text" == *"not found"* ]]; then
-                echo -e "\033[1;30m[Empty]\033[0m   No parameters found."
+                echo -e " \033[1;30m[Empty]\033[0m   No parameters found."
                 return
             fi
             ;;
@@ -139,14 +139,14 @@ function _tct_tns_probe() {
             }
         }
         END {
-            for (i=1; i<=idx_cmd; i++) printf("  %s%s%s\n", c_flag, buf_cmd[i], c_rst)
-            for (i=1; i<=idx_short; i++) printf("  %s%s%s\n", c_flag, buf_short[i], c_rst)
-            for (i=1; i<=idx_long; i++) printf("  %s%s%s\n", c_flag, buf_long[i], c_rst)
+            for (i=1; i<=idx_cmd; i++) printf(" %s%s%s\n", c_flag, buf_cmd[i], c_rst)
+            for (i=1; i<=idx_short; i++) printf(" %s%s%s\n", c_flag, buf_short[i], c_rst)
+            for (i=1; i<=idx_long; i++) printf(" %s%s%s\n", c_flag, buf_long[i], c_rst)
         }
     ')
 
     if [ -n "$parsed_params" ]; then echo -e "$parsed_params"
-    else echo -e "\033[1;30m[Empty]\033[0m   No parameters found."; fi
+    else echo -e " \033[1;30m[Empty]\033[0m   No parameters found."; fi
 }
 
 # 戰術指令導航 (Single-Stage HUD & Zone Isolation Catch)
@@ -168,11 +168,11 @@ function _tct_tns_macro() {
 
     # 狀態分流
     if [ -z "$target_cmd" ]; then
-        params="\033[1;30m[Empty]\033[0m   No command specified."
+        params=" \033[1;30m[Empty]\033[0m   No command specified."
         target_cmd="Null"
     else
         params=$(_tct_tns_probe "$target_cmd")
-        if [ -z "$params" ]; then params="\033[1;30m[Empty]\033[0m   No parameters found."; fi
+        if [ -z "$params" ]; then params=" \033[1;30m[Empty]\033[0m   No parameters found."; fi
     fi
 
     # 動態高度計算
