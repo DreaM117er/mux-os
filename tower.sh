@@ -22,7 +22,7 @@ function _bypass_guard() {
     fi
 }
 
-# 動態參數探針 (The Sentinel: Strict Typo & ASCII Filter)
+# 高精密文本切割機 (The High-Precision Text Cutter)
 function _tct_tns_probe() {
     local input_cmd="$1"
     if [ -z "$input_cmd" ]; then return 1; fi
@@ -54,13 +54,10 @@ function _tct_tns_probe() {
             fi
             ;;
         cd)
-            # help cd
+            # help $main_cmd
             help_text=$(help cd 2>&1)
             ;;
-        ls)
-            # $main_cmd --help
-            help_text=$(command ls --help 2>&1)
-            ;;
+
         *)
             # 泛用型探針
             if [ "$cmd_type" == "builtin" ]; then
@@ -86,155 +83,70 @@ function _tct_tns_probe() {
             fi
 
             if [ -z "$help_text" ] || [[ "$help_text" == *"not found"* ]]; then
-                echo -e "\033[1;30m[Empty                   ]\033[0m   No parameters found."
+                echo -e " \033[1;30m[Empty]\033[0m   No parameters found."
                 return
             fi
             ;;
     esac
     
-    # 第一刀：大刀切塊
-    local clean_block
-    clean_block=$(echo "$help_text" | awk '
-        BEGIN { recording = 0; pending = "" }
-        
-        # 啟動閘門
-        /^[ \t]*[Oo]ptions:?/ || /[Oo]ptions/ || /選項/ { recording = 1; next }
-        /^[ \t]*-+[a-zA-Z0-9@]/ { recording = 1 }
-        
-        recording == 1 {
-            # 終止閘門
-            if (/^[ \t]*(Report|Exit|Usage|Examples|Note|GNU|AUTHOR|SEE ALSO|Exit Status|Exit status|回報錯誤|結束狀態):/ || /^The [A-Z]+ argument/ || /^Using color to distinguish/ || /使用色彩來區分/) {
-                if (pending != "") print pending
-                recording = 0
-                exit
-            }
-            
-            # 去骨拼接
-            if ($0 ~ /^[ \t]*-+[a-zA-Z0-9@]/) {
-                if (pending != "") print pending
-                # 切空白
-                clean_line = $0
-                sub(/^[ \t]+/, "", clean_line)
-
-                if (match(clean_line, /[ \t][ \t]+|\t/) > 0) {
-                    print $0
-                    pending = ""
-                } else {
-                    pending = $0
-                }
-            } 
-            else if (pending != "" && $0 ~ /^[ \t]+/) {
-                # 資料接合
-                desc = $0
-                sub(/^[ \t]+/, "", desc)
-                print pending "          " desc
-                pending = ""
-            } 
-            else {
-                if (pending != "") { print pending; pending = "" }
-                print $0
-            }
-        }
-        END { if (pending != "") print pending }
-    ')
-
-    if [ -n "$clean_block" ]; then
-        help_text="$clean_block"
-    fi
-
-    # 第二刀：精細刀法再加工
+    # 大刀切塊
     local parsed_params
-    parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" -v c_desc="\033[1;37m" '
+    parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" '
         BEGIN {
             idx_long = 0
             idx_short = 0
-            idx_other = 0
+            idx_cmd = 0
         }
         {
             # 實體消毒
             gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
             gsub(/.\x08/, "")
             
-            line = $0
-            sub(/^[ \t]+/, "", line)
-            if (length(line) < 2) next
+            match($0, /^[ \t]+/)
+            indent_len = RLENGTH
             
-            flag = ""
-            desc = ""
-            
-            # 標準參數
-            if (line ~ /^-+[a-zA-Z0-9@]/) {
-                split_idx = match(line, /[ \t][ \t]+|\t/)
-                if (split_idx > 0) {
-                    flag = substr(line, 1, split_idx - 1)
-                    desc = substr(line, split_idx + RLENGTH)
-                } else {
-                    flag = line
-                    desc = ""
-                }
-                sub(/^[ \t=:-]+/, "", desc) 
-                if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
+            if (indent_len > 0 && indent_len <= 3 && match($0, /^[ \t]+[a-zA-Z0-9_:-]+[ \t][ \t]+/)) {
+                cmd_cand = substr($0, RSTART, RLENGTH)
+                sub(/^[ \t]+/, "", cmd_cand)  # 去頭
+                sub(/[ \t]+$/, "", cmd_cand)  # 去尾
                 
-                n = split(flag, f_arr, /,/)
-                for (i=1; i<=n; i++) {
-                    sub(/^[ \t]+/, "", f_arr[i])
-                    sub(/[ \t]+$/, "", f_arr[i])
-                    if (f_arr[i] == "") continue;
-                    
-                    if (f_arr[i] ~ /^--/) {
-                        buf_long[++idx_long] = sprintf("%s[%-24s]%s   %s", c_flag, f_arr[i], c_rst, desc)
-                    } else if (f_arr[i] ~ /^-/) {
-                        buf_short[++idx_short] = sprintf("%s[%-24s]%s   %s", c_flag, f_arr[i], c_rst, desc)
+                if (cmd_cand != "" && cmd_cand !~ /^-/ && cmd_cand !~ /:$/ && cmd_cand !~ /^[0-9]+$/ && tolower(cmd_cand) !~ /^(usage|options|examples|commands|gnu|oldgnu|pax|posix|ustar|v7|none|size|time|auto|always|never)$/) {
+                    if (!seen[cmd_cand]) {
+                        seen[cmd_cand] = 1
+                        buf_cmd[++idx_cmd] = cmd_cand
                     }
-                }
-                next
-            }
-            
-            # 特徵符號
-            idx = index(line, " - ")
-            if (idx == 0) idx = index(line, "\t- ")
-            
-            if (idx > 0) {
-                flag = substr(line, 1, idx - 1)
-                desc = substr(line, idx + 3)
-                
-                if (flag ~ /^[a-zA-Z]/) {
-                    sub(/[ \t]+$/, "", flag)
-                    sub(/^[ \t=:-]+/, "", desc) 
-                    if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
-                    
-                    if (flag ~ /^-/) {
-                        buf_short[++idx_short] = sprintf("%s[%-24s]%s   %s", c_flag, flag, c_rst, desc)
-                    } else {
-                        buf_other[++idx_other] = sprintf("%s[%-24s]%s   %s", c_flag, flag, c_rst, desc)
-                    }
-                    next
                 }
             }
             
-            # 純大間距
-            if (match(line, /[ \t][ \t]+|\t/) > 0) {
-                split_idx = RSTART
-                flag = substr(line, 1, split_idx - 1)
+            # 全域無差別切割
+            n = split($0, arr, "[ \t]+|,[ \t]+")
+            for (i=1; i<=n; i++) {
+                item = arr[i]
+                sub(/[,;:.]$/, "", item)
+                gsub(/[\047"‘’`]/, "", item)
                 
-                if (index(flag, " ") == 0 && flag ~ /^[a-zA-Z][a-zA-Z0-9_-]*$/) {
-                    desc = substr(line, split_idx + RLENGTH)
-                    sub(/^[ \t=:-]+/, "", desc) 
-                    if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
-                    buf_other[++idx_other] = sprintf("%s[%-24s]%s   %s", c_flag, flag, c_rst, desc)
+                if (item ~ /^-+[a-zA-Z0-9@]/) {
+                    
+                    if (!seen[item]) {
+                        seen[item] = 1
+                        if (item ~ /^--/) {
+                            buf_long[++idx_long] = item
+                        } else {
+                            buf_short[++idx_short] = item
+                        }
+                    }
                 }
             }
         }
         END {
-            # 依序清倉發射：長參數、短參數、位置參數(Other)
-            for (i=1; i<=idx_long; i++) print buf_long[i]
-            for (i=1; i<=idx_short; i++) print buf_short[i]
-            for (i=1; i<=idx_other; i++) print buf_other[i]
+            for (i=1; i<=idx_cmd; i++) printf(" %s%s%s\n", c_flag, buf_cmd[i], c_rst)
+            for (i=1; i<=idx_short; i++) printf(" %s%s%s\n", c_flag, buf_short[i], c_rst)
+            for (i=1; i<=idx_long; i++) printf(" %s%s%s\n", c_flag, buf_long[i], c_rst)
         }
     ')
 
     if [ -n "$parsed_params" ]; then echo -e "$parsed_params"
-    else echo -e "\033[1;30m[Empty                   ]\033[0m   No parameters found."; fi
+    else echo -e " \033[1;30m[Empty]\033[0m   No parameters found."; fi
 }
 
 # 戰術指令導航 (Single-Stage HUD & Zone Isolation Catch)
@@ -256,11 +168,11 @@ function _tct_tns_macro() {
 
     # 狀態分流
     if [ -z "$target_cmd" ]; then
-        params="\033[1;30m[Empty                   ]\033[0m   No command specified."
+        params=" \033[1;30m[Empty]\033[0m   No command specified."
         target_cmd="Null"
     else
         params=$(_tct_tns_probe "$target_cmd")
-        if [ -z "$params" ]; then params="\033[1;30m[Empty                   ]\033[0m   No parameters found."; fi
+        if [ -z "$params" ]; then params=" \033[1;30m[Empty]\033[0m   No parameters found."; fi
     fi
 
     # 動態高度計算
@@ -285,8 +197,9 @@ function _tct_tns_macro() {
 
     # 寫回終端機
     if [ -n "$selected" ]; then
-        local clean_flag=$(echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk -F'[][]' '{print $2}' | awk '{print $1}' | sed 's/,$//')
-        if [ "$clean_flag" == "Empty" ]; then return; fi
+        local clean_flag=$(echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}' | sed 's/^[ \t]*//;s/[ \t]*$//;s/,$//')
+        
+        if [[ "$clean_flag" == *Empty* ]] || [ -z "$clean_flag" ]; then return; fi
         
         if [ -n "$clean_flag" ]; then
             local left_part="${READLINE_LINE:0:$READLINE_POINT}"
@@ -299,6 +212,7 @@ function _tct_tns_macro() {
         fi
     fi
 }
+
 
 # 戰術操作艙子模組 (Action Menu Sub-Module)
 function _tct_file_action_menu() {
