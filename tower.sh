@@ -177,9 +177,9 @@ function _tct_tns_probe() {
                     if (f_arr[i] == "") continue;
 
                     if (f_arr[i] ~ /^--/) {
-                        buf_long[++idx_long] = sprintf("  %s%s%s", c_flag, f_arr[i], c_rst)
+                        buf_long[++idx_long] = sprintf("\t%s%s%s\t%s", c_flag, f_arr[i], c_rst, desc)
                     } else if (f_arr[i] ~ /^-/) {
-                        buf_short[++idx_short] = sprintf("  %s%s%s", c_flag, f_arr[i], c_rst)
+                        buf_short[++idx_short] = sprintf("\t%s%s%s\t%s", c_flag, f_arr[i], c_rst, desc)
                     }
                 }
                 next
@@ -194,9 +194,9 @@ function _tct_tns_probe() {
                 if (flag ~ /^[a-zA-Z]/) {
                     sub(/[ \t]+$/, "", flag)
                     if (flag ~ /^-/) {
-                        buf_short[++idx_short] = sprintf("  %s%s%s", c_flag, flag, c_rst)
+                        buf_short[++idx_short] = sprintf("\t%s%s%s\t%s", c_flag, flag, c_rst)
                     } else {
-                        buf_other[++idx_other] = sprintf("  %s%s%s", c_flag, flag, c_rst)
+                        buf_other[++idx_other] = sprintf("\t%s%s%s\t%s", c_flag, flag, c_rst, desc)
                     }
                     next
                 }
@@ -207,7 +207,7 @@ function _tct_tns_probe() {
                 split_idx = RSTART
                 flag = substr(line, 1, split_idx - 1)
                 if (index(flag, " ") == 0 && flag ~ /^[a-zA-Z][a-zA-Z0-9_-]*$/) {
-                    buf_other[++idx_other] = sprintf("  %s%s%s", c_flag, flag, c_rst)
+                    buf_other[++idx_other] = sprintf("\t%s%s%s\t%s", c_flag, flag, c_rst)
                 }
             }
         }
@@ -271,9 +271,9 @@ function _tct_tns_macro() {
 
     # 寫回終端機
     if [ -n "$selected" ]; then
-        local clean_flag=$(echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}' | sed 's/,$//')
+        local clean_flag=$(echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk -F'\t' '{print $2}' | sed 's/^[ \t]*//;s/[ \t]*$//;s/,$//')
         
-        if [[ "$clean_flag" == *Empty* ]]; then return; fi
+        if [[ "$clean_flag" == *Empty* ]] || [ -z "$clean_flag" ]; then return; fi
         
         if [ -n "$clean_flag" ]; then
             local left_part="${READLINE_LINE:0:$READLINE_POINT}"
