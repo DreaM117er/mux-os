@@ -219,11 +219,8 @@ function _tct_tns_probe() {
         }
     ')
 
-    if [ -n "$selected" ]; then
-        local clean_flag=$(echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}' | sed 's/,$//')
-        if [[ "$clean_flag" == *Empty* ]]; then
-        return
-    fi
+    if [ -n "$parsed_params" ]; then echo -e "$parsed_params"
+    else echo -e "\033[1;30m[Empty                   ]\033[0m   No parameters found."; fi
 }
 
 # 戰術指令導航 (Single-Stage HUD & Zone Isolation Catch)
@@ -274,8 +271,9 @@ function _tct_tns_macro() {
 
     # 寫回終端機
     if [ -n "$selected" ]; then
-        local clean_flag=$(echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk -F'[][]' '{print $2}' | awk '{print $1}' | sed 's/,$//')
-        if [ "$clean_flag" == "Empty" ]; then return; fi
+        local clean_flag=$(echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}' | sed 's/,$//')
+        
+        if [[ "$clean_flag" == *Empty* ]]; then return; fi
         
         if [ -n "$clean_flag" ]; then
             local left_part="${READLINE_LINE:0:$READLINE_POINT}"
