@@ -112,8 +112,11 @@ function _tct_tns_probe() {
             # 去骨拼接
             if ($0 ~ /^[ \t]*-+[a-zA-Z0-9@]/) {
                 if (pending != "") print pending
-                
-                if (match($0, /[ \t][ \t]+|\t/) > 0) {
+                # 切空白
+                clean_line = $0
+                sub(/^[ \t]+/, "", clean_line)
+
+                if (match(clean_line, /[ \t][ \t]+|\t/) > 0) {
                     print $0
                     pending = ""
                 } else {
