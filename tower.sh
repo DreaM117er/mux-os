@@ -125,9 +125,9 @@ function _tct_tns_probe() {
                 sub(/^[ \t]+/, "", desc)
                 
                 if (match(pending, /[ \t][ \t]+|\t/) == 0) {
-                    pending = pending "        " desc
+                    pending = pending "   " desc
                 } else {
-                    pending = pending "  " desc
+                    pending = pending "   " desc
                 }
             }
             else {
@@ -169,7 +169,7 @@ function _tct_tns_probe() {
                     flag = substr(line, 1, split_idx - 1)
                     desc = substr(line, split_idx + RLENGTH)
                 } else {
-                    first_space = index(line, " ")
+                    first_space = index(line, "   ")
                     if (first_space > 0) {
                         flag = substr(line, 1, first_space - 1)
                     } else {
