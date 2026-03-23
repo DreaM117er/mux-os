@@ -34,6 +34,7 @@ function _tct_tns_probe() {
 
     local help_text=""
     local cmd_type=""
+    export COLUMNS=200
     
     # 探測主指令的底層物理型態
     cmd_type=$(type -t "$main_cmd" 2>/dev/null)
@@ -44,6 +45,7 @@ function _tct_tns_probe() {
             # pkg 只吃 help，且必須繞過任何子指令干涉
             help_text=$(command pkg help 2>&1)
             ;;
+            
         git)
             # git 必須使用 -h，並精準抓取子指令
             if [ -n "$sub_cmd" ]; then
@@ -52,14 +54,12 @@ function _tct_tns_probe() {
                 help_text=$(command git -h 2>&1)
             fi
             ;;
-        cd|sed)
+
+        cd)
             # help cd
-            help_text=$(help $main_cmd 2>&1)
+            help_text=$(help cd 2>&1)
             ;;
-        ls)
-            # ls help
-            help_text=$(COLUMNS=200 command ls --help 2>&1)
-            ;;
+
         *)
             # 泛用型探針
             if [ "$cmd_type" == "builtin" ]; then
@@ -165,11 +165,8 @@ function _tct_tns_probe() {
                     flag = substr(line, 1, split_idx - 1)
                     desc = substr(line, split_idx + RLENGTH)
                 } else {
-                    space_idx = index(line, " ")
-                    if (space_idx > 0) {
-                        flag = substr(line, 1, space_idx - 1)
-                        desc = substr(line, space_idx + 1)
-                    } else { flag = line; desc = "" }
+                    flag = line
+                    desc = ""
                 }
                 sub(/^[ \t=:-]+/, "", desc) 
                 if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
