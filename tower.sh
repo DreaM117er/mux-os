@@ -89,7 +89,7 @@ function _tct_tns_probe() {
             ;;
     esac
     
-    # 第一刀：大刀切塊
+    # 大刀切塊
     local parsed_params
     parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" '
         BEGIN {
