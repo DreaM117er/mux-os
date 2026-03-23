@@ -58,7 +58,7 @@ function _tct_tns_probe() {
             ;;
         ls)
             # ls help
-            help_text=$(command ls --help 2>&1)
+            help_text=$(COLUMNS=200 command ls --help 2>&1)
             ;;
         *)
             # 泛用型探針
