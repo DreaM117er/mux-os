@@ -160,36 +160,26 @@ function _tct_tns_probe() {
             if (length(line) < 2) next
             
             flag = ""
-            desc = ""
             
             # 標準參數
             if (line ~ /^-+[a-zA-Z0-9@]/) {
-                split_idx = match(line, /[ \t][ \t]+|\t/)
-                if (split_idx > 0) {
-                    flag = substr(line, 1, split_idx - 1)
-                    desc = substr(line, split_idx + RLENGTH)
+                first_space = index(line, " ")
+                if (first_space > 0) {
+                    flag = substr(line, 1, first_space - 1)
                 } else {
-                    first_space = index(line, " ")
-                    if (first_space > 0) {
-                        flag = substr(line, 1, first_space - 1)
-                    } else {
-                        flag = line
-                    }
-                    desc = ""
+                    flag = line
                 }
-                sub(/^[ \t=:-]+/, "", desc) 
-                if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
                 
                 n = split(flag, f_arr, /,/)
                 for (i=1; i<=n; i++) {
                     sub(/^[ \t]+/, "", f_arr[i])
                     sub(/[ \t]+$/, "", f_arr[i])
                     if (f_arr[i] == "") continue;
-                    
+
                     if (f_arr[i] ~ /^--/) {
-                        buf_long[++idx_long] = sprintf("%s[%-32s]%s   %s", c_flag, f_arr[i], c_rst, desc)
+                        buf_long[++idx_long] = sprintf("  %s%s%s", c_flag, f_arr[i], c_rst)
                     } else if (f_arr[i] ~ /^-/) {
-                        buf_short[++idx_short] = sprintf("%s[%-32s]%s   %s", c_flag, f_arr[i], c_rst, desc)
+                        buf_short[++idx_short] = sprintf("  %s%s%s", c_flag, f_arr[i], c_rst)
                     }
                 }
                 next
@@ -201,17 +191,12 @@ function _tct_tns_probe() {
             
             if (idx > 0) {
                 flag = substr(line, 1, idx - 1)
-                desc = substr(line, idx + 3)
-                
                 if (flag ~ /^[a-zA-Z]/) {
                     sub(/[ \t]+$/, "", flag)
-                    sub(/^[ \t=:-]+/, "", desc) 
-                    if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
-                    
                     if (flag ~ /^-/) {
-                        buf_short[++idx_short] = sprintf("%s[%-32s]%s   %s", c_flag, flag, c_rst, desc)
+                        buf_short[++idx_short] = sprintf("  %s%s%s", c_flag, flag, c_rst)
                     } else {
-                        buf_other[++idx_other] = sprintf("%s[%-32s]%s   %s", c_flag, flag, c_rst, desc)
+                        buf_other[++idx_other] = sprintf("  %s%s%s", c_flag, flag, c_rst)
                     }
                     next
                 }
@@ -221,12 +206,8 @@ function _tct_tns_probe() {
             if (match(line, /[ \t][ \t]+|\t/) > 0) {
                 split_idx = RSTART
                 flag = substr(line, 1, split_idx - 1)
-                
                 if (index(flag, " ") == 0 && flag ~ /^[a-zA-Z][a-zA-Z0-9_-]*$/) {
-                    desc = substr(line, split_idx + RLENGTH)
-                    sub(/^[ \t=:-]+/, "", desc) 
-                    if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
-                    buf_other[++idx_other] = sprintf("%s[%-32s]%s   %s", c_flag, flag, c_rst, desc)
+                    buf_other[++idx_other] = sprintf("  %s%s%s", c_flag, flag, c_rst)
                 }
             }
         }
@@ -238,8 +219,11 @@ function _tct_tns_probe() {
         }
     ')
 
-    if [ -n "$parsed_params" ]; then echo -e "$parsed_params"
-    else echo -e "\033[1;30m[Empty                   ]\033[0m   No parameters found."; fi
+    if [ -n "$selected" ]; then
+        local clean_flag=$(echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}' | sed 's/,$//')
+        if [[ "$clean_flag" == *Empty* ]]; then
+        return
+    fi
 }
 
 # 戰術指令導航 (Single-Stage HUD & Zone Isolation Catch)
