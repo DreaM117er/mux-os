@@ -57,10 +57,7 @@ function _tct_tns_probe() {
             # help $main_cmd
             help_text=$(help cd 2>&1)
             ;;
-        ls)
-            # $main_cmd --help
-            help_text=$(command ls --help 2>&1)
-            ;;
+
         *)
             # 泛用型探針
             if [ "$cmd_type" == "builtin" ]; then
@@ -111,28 +108,27 @@ function _tct_tns_probe() {
             
             # 去骨拼接
             if ($0 ~ /^[ \t]*-+[a-zA-Z0-9@]/) {
-                # 先把上一筆可能卡住的資料吐出去
-                if (pending != "") print pending 
+                if (pending != "") print pending
                 
                 clean_line = $0
                 sub(/^[ \t]+/, "", clean_line)
 
-                # 測量這行有沒有自帶說明 (大間距)
-                split_idx = match(clean_line, /[ \t][ \t]+|\t/)
-                if (split_idx > 0) {
-                    # 如果有，精準剁掉後面的說明，只留參數，並補上大間距讓第二刀好切
-                    print substr(clean_line, 1, split_idx - 1) "          "
+                if (match(clean_line, /[ \t][ \t]+|\t/) > 0) {
+                    print $0
+                    pending = ""
                 } else {
-                    # 如果沒有大間距 (代表說明被折行了)，整行都是參數！
-                    print clean_line "          "
+                    pending = $0
                 }
-                
-                # 絕對不啟動 pending 記憶體，切斷一切後續縫合的可能！
-                pending = ""
             } 
-            else if ($0 ~ /^[ \t]+/) {
-                # 只要是縮排的換行文字 (說明)，直接送進焚化爐！什麼都不做！
-                next
+            else if (pending != "" && $0 ~ /^[ \t]+/) {
+                desc = $0
+                sub(/^[ \t]+/, "", desc)
+                
+                if (match(pending, /[ \t][ \t]+|\t/) == 0) {
+                    pending = pending "          " desc
+                } else {
+                    pending = pending "  " desc
+                }
             }
             else {
                 if (pending != "") { print pending; pending = "" }
