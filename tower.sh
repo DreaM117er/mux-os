@@ -182,9 +182,9 @@ function _tct_tns_probe() {
                     if (f_arr[i] == "") continue;
                     
                     if (f_arr[i] ~ /^--/) {
-                        buf_long[++idx_long] = sprintf("%s[%-24s]%s   %s", c_flag, f_arr[i], c_rst, desc)
+                        buf_long[++idx_long] = sprintf("%s[%-32s]%s   %s", c_flag, f_arr[i], c_rst, desc)
                     } else if (f_arr[i] ~ /^-/) {
-                        buf_short[++idx_short] = sprintf("%s[%-24s]%s   %s", c_flag, f_arr[i], c_rst, desc)
+                        buf_short[++idx_short] = sprintf("%s[%-32s]%s   %s", c_flag, f_arr[i], c_rst, desc)
                     }
                 }
                 next
@@ -204,9 +204,9 @@ function _tct_tns_probe() {
                     if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
                     
                     if (flag ~ /^-/) {
-                        buf_short[++idx_short] = sprintf("%s[%-24s]%s   %s", c_flag, flag, c_rst, desc)
+                        buf_short[++idx_short] = sprintf("%s[%-32s]%s   %s", c_flag, flag, c_rst, desc)
                     } else {
-                        buf_other[++idx_other] = sprintf("%s[%-24s]%s   %s", c_flag, flag, c_rst, desc)
+                        buf_other[++idx_other] = sprintf("%s[%-32s]%s   %s", c_flag, flag, c_rst, desc)
                     }
                     next
                 }
@@ -221,7 +221,7 @@ function _tct_tns_probe() {
                     desc = substr(line, split_idx + RLENGTH)
                     sub(/^[ \t=:-]+/, "", desc) 
                     if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
-                    buf_other[++idx_other] = sprintf("%s[%-24s]%s   %s", c_flag, flag, c_rst, desc)
+                    buf_other[++idx_other] = sprintf("%s[%-32s]%s   %s", c_flag, flag, c_rst, desc)
                 }
             }
         }
