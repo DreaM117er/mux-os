@@ -83,13 +83,13 @@ function _tct_tns_probe() {
                     fi
                 fi
             fi
+
+            if [ -z "$help_text" ] || [[ "$help_text" == *"not found"* ]]; then
+                echo -e "\033[1;30m[Empty                   ]\033[0m   No parameters found."
+                return
+            fi
             ;;
     esac
-
-    if [ -z "$help_text" ] || [[ "$help_text" == *"not found"* ]]; then
-        echo -e "\033[1;30m[Empty                   ]\033[0m   No parameters found."
-        return
-    fi
     
     # 第一刀：大刀切塊
     local clean_block
