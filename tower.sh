@@ -45,7 +45,6 @@ function _tct_tns_probe() {
             # pkg 只吃 help，且必須繞過任何子指令干涉
             help_text=$(command pkg help 2>&1)
             ;;
-            
         git)
             # git 必須使用 -h，並精準抓取子指令
             if [ -n "$sub_cmd" ]; then
@@ -54,12 +53,14 @@ function _tct_tns_probe() {
                 help_text=$(command git -h 2>&1)
             fi
             ;;
-
         cd)
             # help cd
             help_text=$(help cd 2>&1)
             ;;
-
+        ls)
+            # $main_cmd --help
+            help_text=$(command ls --help 2>&1)
+            ;;
         *)
             # 泛用型探針
             if [ "$cmd_type" == "builtin" ]; then
