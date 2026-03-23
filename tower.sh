@@ -90,28 +90,55 @@ function _tct_tns_probe() {
         echo -e "\033[1;30m[Empty                   ]\033[0m   No parameters found."
         return
     fi
-
+    
+    # 第一刀：大刀切塊
     local clean_block
     clean_block=$(echo "$help_text" | awk '
-        BEGIN { recording = 0 }
+        BEGIN { recording = 0; pending = "" }
         
+        # 啟動閘門
         /^[ \t]*[Oo]ptions:/ { recording = 1; next }
-        /^[ \t]+-[a-zA-Z0-9-@?]/ { recording = 1 }
+        /^[ \t]*-+[a-zA-Z0-9@]/ { recording = 1 }
         
         recording == 1 {
-            if (/^(Report|Exit|Usage|Examples|Note|GNU|AUTHOR|SEE ALSO|Exit Status):/ || /^The [A-Z]+ argument/ || /^Using color to distinguish/) {
+            # 終止閘門
+            if (/^[ \t]*(Report|Exit|Usage|Examples|Note|GNU|AUTHOR|SEE ALSO|Exit Status|Exit status):/ || /^The [A-Z]+ argument/ || /^Using color to distinguish/) {
+                if (pending != "") print pending
                 recording = 0
                 exit
             }
-            print $0
+            
+            # 去骨拼接
+            if ($0 ~ /^[ \t]*-+[a-zA-Z0-9@]/) {
+                if (pending != "") print pending
+                
+                if (match($0, /[ \t][ \t]+|\t/) > 0) {
+                    print $0
+                    pending = ""
+                } else {
+                    pending = $0
+                }
+            } 
+            else if (pending != "" && $0 ~ /^[ \t]+/) {
+                # 資料接合
+                desc = $0
+                sub(/^[ \t]+/, "", desc)
+                print pending "          " desc
+                pending = ""
+            } 
+            else {
+                if (pending != "") { print pending; pending = "" }
+                print $0
+            }
         }
+        END { if (pending != "") print pending }
     ')
 
     if [ -n "$clean_block" ]; then
         help_text="$clean_block"
     fi
 
-    # 雙緩衝拆解引擎
+    # 第二刀：精細刀法再加工
     local parsed_params
     parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" -v c_desc="\033[1;37m" '
         BEGIN {
@@ -147,14 +174,12 @@ function _tct_tns_probe() {
                 sub(/^[ \t=:-]+/, "", desc) 
                 if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
                 
-                # 核心改裝
                 n = split(flag, f_arr, /,/)
                 for (i=1; i<=n; i++) {
                     sub(/^[ \t]+/, "", f_arr[i])
                     sub(/[ \t]+$/, "", f_arr[i])
                     if (f_arr[i] == "") continue;
                     
-                    # 依據特徵分揀入庫
                     if (f_arr[i] ~ /^--/) {
                         buf_long[++idx_long] = sprintf("%s[%-24s]%s   %s", c_flag, f_arr[i], c_rst, desc)
                     } else if (f_arr[i] ~ /^-/) {
