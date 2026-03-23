@@ -34,6 +34,7 @@ function _tct_tns_probe() {
 
     local help_text=""
     local cmd_type=""
+    export COLUMNS=200
     
     # 探測主指令的底層物理型態
     cmd_type=$(type -t "$main_cmd" 2>/dev/null)
@@ -41,16 +42,24 @@ function _tct_tns_probe() {
     # 前置分類路由器
     case "$main_cmd" in
         pkg)
-            # 大魔王專線：pkg 只吃 help，且必須繞過任何子指令干涉
+            # pkg 只吃 help，且必須繞過任何子指令干涉
             help_text=$(command pkg help 2>&1)
             ;;
         git)
-            # 大魔王專線：git 必須使用 -h，並精準抓取子指令
+            # git 必須使用 -h，並精準抓取子指令
             if [ -n "$sub_cmd" ]; then
                 help_text=$(command git $sub_cmd -h 2>&1)
             else
                 help_text=$(command git -h 2>&1)
             fi
+            ;;
+        cd)
+            # help cd
+            help_text=$(help cd 2>&1)
+            ;;
+        ls)
+            # $main_cmd --help
+            help_text=$(command ls --help 2>&1)
             ;;
         *)
             # 泛用型探針
@@ -75,15 +84,65 @@ function _tct_tns_probe() {
                     fi
                 fi
             fi
+
+            if [ -z "$help_text" ] || [[ "$help_text" == *"not found"* ]]; then
+                echo -e "\033[1;30m[Empty                   ]\033[0m   No parameters found."
+                return
+            fi
             ;;
     esac
+    
+    # 第一刀：大刀切塊
+    local clean_block
+    clean_block=$(echo "$help_text" | awk '
+        BEGIN { recording = 0; pending = "" }
+        
+        # 啟動閘門
+        /^[ \t]*[Oo]ptions:?/ || /[Oo]ptions/ || /選項/ { recording = 1; next }
+        /^[ \t]*-+[a-zA-Z0-9@]/ { recording = 1 }
+        
+        recording == 1 {
+            # 終止閘門
+            if (/^[ \t]*(Report|Exit|Usage|Examples|Note|GNU|AUTHOR|SEE ALSO|Exit Status|Exit status|回報錯誤|結束狀態):/ || /^The [A-Z]+ argument/ || /^Using color to distinguish/ || /使用色彩來區分/) {
+                if (pending != "") print pending
+                recording = 0
+                exit
+            }
+            
+            # 去骨拼接
+            if ($0 ~ /^[ \t]*-+[a-zA-Z0-9@]/) {
+                if (pending != "") print pending
+                # 切空白
+                clean_line = $0
+                sub(/^[ \t]+/, "", clean_line)
 
-    if [ -z "$help_text" ] || [[ "$help_text" == *"not found"* ]]; then
-        echo -e "\033[1;30m[Empty                   ]\033[0m   No parameters found."
-        return
+                if (match(clean_line, /[ \t][ \t]+|\t/) > 0) {
+                    print $0
+                    pending = ""
+                } else {
+                    pending = $0
+                }
+            } 
+            else if (pending != "" && $0 ~ /^[ \t]+/) {
+                # 資料接合
+                desc = $0
+                sub(/^[ \t]+/, "", desc)
+                print pending "          " desc
+                pending = ""
+            } 
+            else {
+                if (pending != "") { print pending; pending = "" }
+                print $0
+            }
+        }
+        END { if (pending != "") print pending }
+    ')
+
+    if [ -n "$clean_block" ]; then
+        help_text="$clean_block"
     fi
 
-    # 雙緩衝拆解引擎
+    # 第二刀：精細刀法再加工
     local parsed_params
     parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" -v c_desc="\033[1;37m" '
         BEGIN {
@@ -104,29 +163,24 @@ function _tct_tns_probe() {
             desc = ""
             
             # 標準參數
-            if (line ~ /^-+[a-zA-Z0-9]/) {
+            if (line ~ /^-+[a-zA-Z0-9@]/) {
                 split_idx = match(line, /[ \t][ \t]+|\t/)
                 if (split_idx > 0) {
                     flag = substr(line, 1, split_idx - 1)
                     desc = substr(line, split_idx + RLENGTH)
                 } else {
-                    space_idx = index(line, " ")
-                    if (space_idx > 0) {
-                        flag = substr(line, 1, space_idx - 1)
-                        desc = substr(line, space_idx + 1)
-                    } else { flag = line; desc = "" }
+                    flag = line
+                    desc = ""
                 }
                 sub(/^[ \t=:-]+/, "", desc) 
                 if (length(desc) > 65) { desc = substr(desc, 1, 62) "..." }
                 
-                # 核心改裝
                 n = split(flag, f_arr, /,/)
                 for (i=1; i<=n; i++) {
                     sub(/^[ \t]+/, "", f_arr[i])
                     sub(/[ \t]+$/, "", f_arr[i])
                     if (f_arr[i] == "") continue;
                     
-                    # 依據特徵分揀入庫
                     if (f_arr[i] ~ /^--/) {
                         buf_long[++idx_long] = sprintf("%s[%-24s]%s   %s", c_flag, f_arr[i], c_rst, desc)
                     } else if (f_arr[i] ~ /^-/) {
