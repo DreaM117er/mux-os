@@ -117,12 +117,11 @@ function _tct_tns_probe() {
             }
             
             # 全域無差別切割
-            n = split($0, arr, /[ \t]+|,[ \t]+/)
+            n = split($0, arr, "[ \t]+|,[ \t]+")
             for (i=1; i<=n; i++) {
                 item = arr[i]
-                
-                sub(/[,;:\.]$/, "", item)
-                gsub(/['"‘’`]/, "", item)
+                sub(/[,;:.]$/, "", item)
+                gsub(/[\047"‘’`]/, "", item)
                 
                 if (item ~ /^-+[a-zA-Z0-9@]/) {
                     
