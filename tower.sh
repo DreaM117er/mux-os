@@ -98,12 +98,12 @@ function _tct_tns_probe() {
         BEGIN { recording = 0; pending = "" }
         
         # 啟動閘門
-        /^[ \t]*[Oo]ptions:/ { recording = 1; next }
+        /^[ \t]*[Oo]ptions:?/ || /[Oo]ptions/ || /選項/ { recording = 1; next }
         /^[ \t]*-+[a-zA-Z0-9@]/ { recording = 1 }
         
         recording == 1 {
             # 終止閘門
-            if (/^[ \t]*(Report|Exit|Usage|Examples|Note|GNU|AUTHOR|SEE ALSO|Exit Status|Exit status):/ || /^The [A-Z]+ argument/ || /^Using color to distinguish/) {
+            if (/^[ \t]*(Report|Exit|Usage|Examples|Note|GNU|AUTHOR|SEE ALSO|Exit Status|Exit status|回報錯誤|結束狀態):/ || /^The [A-Z]+ argument/ || /^Using color to distinguish/ || /使用色彩來區分/) {
                 if (pending != "") print pending
                 recording = 0
                 exit
