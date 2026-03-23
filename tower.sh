@@ -244,11 +244,13 @@ function _tct_tns_macro() {
 
     # 狀態分流
     if [ -z "$target_cmd" ]; then
-        params="\t\033[1;30m[Empty]\033[0m\t   No command specified."
+        params="  \033[1;30m[Empty]\033[0m   No command specified."
         target_cmd="Null"
     else
         params=$(_tct_tns_probe "$target_cmd")
-        if [ -z "$params" ]; then params="\t\033[1;30m[Empty]\033[0m\t   No parameters found."; fi
+        params=$(echo "$params" | sed 's/\t/  /g')
+        
+        if [ -z "$params" ]; then params="  \033[1;30m[Empty]\033[0m   No parameters found."; fi
     fi
 
     # 動態高度計算
@@ -273,7 +275,7 @@ function _tct_tns_macro() {
 
     # 寫回終端機
     if [ -n "$selected" ]; then
-        local clean_flag=$(echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk -F'\t' '{print $2}' | sed 's/^[ \t]*//;s/[ \t]*$//;s/,$//')
+        local clean_flag=$(echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}' | sed 's/^[ \t]*//;s/[ \t]*$//;s/,$//')
         
         if [[ "$clean_flag" == *Empty* ]] || [ -z "$clean_flag" ]; then return; fi
         
