@@ -102,13 +102,15 @@ function _tct_tns_probe() {
             gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
             gsub(/.\x08/, "")
             
-            if (match($0, /^[ \t][ \t]+[a-zA-Z0-9_:-]+[ \t][ \t]+/)) {
+            match($0, /^[ \t]+/)
+            indent_len = RLENGTH
+            
+            if (indent_len > 0 && indent_len <= 3 && match($0, /^[ \t]+[a-zA-Z0-9_:-]+[ \t][ \t]+/)) {
                 cmd_cand = substr($0, RSTART, RLENGTH)
-                # 去頭去尾
-                sub(/^[ \t]+/, "", cmd_cand)
-                sub(/[ \t]+$/, "", cmd_cand)
+                sub(/^[ \t]+/, "", cmd_cand)  # 去頭
+                sub(/[ \t]+$/, "", cmd_cand)  # 去尾
                 
-                if (cmd_cand != "" && cmd_cand !~ /^-/ && cmd_cand !~ /:$/ && tolower(cmd_cand) !~ /^(usage|options|examples)/) {
+                if (cmd_cand != "" && cmd_cand !~ /^-/ && cmd_cand !~ /:$/ && tolower(cmd_cand) !~ /^(usage|options|examples|commands|gnu|oldgnu|pax|posix|ustar|v7|none|size|time|auto|always|never)$/) {
                     if (!seen[cmd_cand]) {
                         seen[cmd_cand] = 1
                         buf_cmd[++idx_cmd] = cmd_cand
