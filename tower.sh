@@ -91,6 +91,26 @@ function _tct_tns_probe() {
         return
     fi
 
+    local clean_block
+    clean_block=$(echo "$help_text" | awk '
+        BEGIN { recording = 0 }
+        
+        /^[ \t]*[Oo]ptions:/ { recording = 1; next }
+        /^[ \t]+-[a-zA-Z0-9-@?]/ { recording = 1 }
+        
+        recording == 1 {
+            if (/^(Report|Exit|Usage|Examples|Note|GNU|AUTHOR|SEE ALSO|Exit Status):/ || /^The [A-Z]+ argument/ || /^Using color to distinguish/) {
+                recording = 0
+                exit
+            }
+            print $0
+        }
+    ')
+
+    if [ -n "$clean_block" ]; then
+        help_text="$clean_block"
+    fi
+
     # 雙緩衝拆解引擎
     local parsed_params
     parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" -v c_desc="\033[1;37m" '
@@ -112,7 +132,7 @@ function _tct_tns_probe() {
             desc = ""
             
             # 標準參數
-            if (line ~ /^-+[a-zA-Z0-9]/) {
+            if (line ~ /^-+[a-zA-Z0-9@?]/) {
                 split_idx = match(line, /[ \t][ \t]+|\t/)
                 if (split_idx > 0) {
                     flag = substr(line, 1, split_idx - 1)
