@@ -52,9 +52,9 @@ function _tct_tns_probe() {
                 help_text=$(command git -h 2>&1)
             fi
             ;;
-        cd)
+        cd|sed)
             # help cd
-            help_text=$(help cd 2>&1)
+            help_text=$(help $main_cmd 2>&1)
             ;;
         ls)
             # ls help
