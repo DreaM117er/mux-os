@@ -125,9 +125,9 @@ function _tct_tns_probe() {
                 sub(/^[ \t]+/, "", desc)
                 
                 if (match(pending, /[ \t][ \t]+|\t/) == 0) {
-                    pending = pending "          " desc
+                    pending = pending "  " desc
                 } else {
-                    pending = pending "      " desc
+                    pending = pending "  " desc
                 }
             }
             else {
