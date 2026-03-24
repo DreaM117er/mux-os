@@ -1972,8 +1972,8 @@ function _ui_tct_core_radar() {
         --prompt=" :: cmt › core › " \
         --pointer="››" \
         --info=hidden \
-        --color="fg:white,bg:-1,hl:51,fg+:white,bg+:235,hl+:51,info:240" \
-        --color="pointer:red,border:51,header:240,prompt:51" \
+        --color="fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:211,info:240" \
+        --color="pointer:red,border:211,header:240,prompt:211" \
         --bind="resize:clear-screen"
     )
     

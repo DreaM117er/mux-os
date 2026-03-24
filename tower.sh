@@ -1412,7 +1412,19 @@ function __tct_core() {
                 fi
 
                 # 子選單確認
-                local action=$(echo -e "$sub_menu" | fzf --ansi --height=5 --layout=reverse --prompt=" :: Action › " --pointer="››" --info=hidden)
+                local action=$(echo -e "$sub_menu" | fzf --ansi \
+                    --height=5 \
+                    --layout=reverse \
+                    --prompt=" :: Action › " \
+                    --pointer="››" \
+                    --info=hidden \
+                    --border=bottom \
+                    --border-label=" :: SYSTEM CORE MODULES :: " \
+                    --header=" :: Enter to Choose, Esc to exit :: " \
+                    --color="fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:211,info:240" \
+                    --color="pointer:red,border:211,header:240,prompt:211" \
+                    --bind="resize:clear-screen"
+                )
                 local clean_action=$(echo "$action" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
 
                 if [ -n "$clean_action" ]; then
@@ -1462,7 +1474,7 @@ function __tct_core() {
                     # 冷酷的系統篡改過場 (無顏文字)
                     for log in "${sys_logs[@]}"; do
                         echo -e "${C_BLACK}    › $log${C_RESET}"
-                        sleep 0.4
+                        sleep "0.$(( RANDOM % 3 + 2 ))"
                     done
                     
                     # 狀態寫入底層
@@ -1470,11 +1482,11 @@ function __tct_core() {
                     echo ""
                     # 小助理冷酷回報
                     echo -e "${C_PINKMEOW} :: ${finish_msg}${C_RESET}"
-                    sleep 0.3
+                    sleep 0.2
                     
                     # 系統最終判定
                     echo -e "${C_BLACK}    › $ui_name Status: ${final_color}$final_status${C_RESET}"
-                    sleep 0.5
+                    sleep 0.4
                     
                     # 結束後切回冒失娘模式 (呼叫音效與顏文字)
                     echo ""
@@ -1483,8 +1495,8 @@ function __tct_core() {
                     else
                         echo -e "${C_PINKMEOW} :: All done, Commander! Terminal is yours again! ( * 'w' )✧${C_RESET}"
                     fi
-                    
                     sleep 1.4
+                    break
                 fi
             done
             ;;
