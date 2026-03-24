@@ -102,7 +102,6 @@ function _tct_tns_probe() {
             gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
             gsub(/.\x08/, "")
             
-            # 前後空2格
             match($0, /^[ \t]+/)
             indent_len = RLENGTH
             
@@ -111,9 +110,7 @@ function _tct_tns_probe() {
                 sub(/^[ \t]+/, "", cmd_cand)  # 去頭
                 sub(/[ \t]+$/, "", cmd_cand)  # 去尾
                 
-                # 純數字過濾
                 if (cmd_cand != "" && cmd_cand !~ /^-/ && cmd_cand !~ /:$/ && cmd_cand !~ /^[0-9]+$/ && tolower(cmd_cand) !~ /^(usage|options|examples|commands|gnu|oldgnu|pax|posix|ustar|v7|none|size|time|auto|always|never)$/) {
-                    # 重複指令過濾
                     if (!seen[cmd_cand]) {
                         seen[cmd_cand] = 1
                         buf_cmd[++idx_cmd] = cmd_cand
@@ -121,59 +118,29 @@ function _tct_tns_probe() {
                 }
             }
             
-            # 精細刀法過濾
-            if ($0 ~ /^[ \t]*-[a-zA-Z0-9@-]/) {
-                temp_line = $0
+            # 全域無差別切割
+            n = split($0, arr, "[ \t]+|,[ \t]+")
+            for (i=1; i<=n; i++) {
+                item = arr[i]
+                sub(/[,;:.)]$/, "", item)
+                gsub(/[\047"‘’`]/, "", item)
                 
-                while (temp_line != "") {
-                    sub(/^[ \t]+/, "", temp_line)
-                    
-                    if (temp_line ~ /^-+/) {
-                        # 完整切塊
-                        match(temp_line, /^-+[^ \t,]+/)
-                        if (RLENGTH > 0) {
-                            item = substr(temp_line, 1, RLENGTH)
-                            
-                            # 去除前後符號
-                            sub(/[,;:.]$/, "", item)
-                            gsub(/[\047"‘’`]/, "", item)
-                            
-                            if (item ~ /^-+[a-zA-Z0-9@]/) {
-                                # 比對重複指令
-                                if (!seen[item]) {
-                                    seen[item] = 1
-                                    if (item ~ /^--/) {
-                                        buf_long[++idx_long] = item
-                                    } else {
-                                        buf_short[++idx_short] = item
-                                    }
-                                }
-                            }
-                            
-                            # 推進字串
-                            temp_line = substr(temp_line, RLENGTH + 1)
-                            
-                            sub(/^[ \t]+/, "", temp_line)
-                            if (temp_line ~ /^,/) {
-                                # 砍掉逗號
-                                sub(/^,[ \t]*/, "", temp_line)
-                            } else {
-                                # 遇到說明直接切斷
-                                break
-                            }
+                if (item ~ /^-+[a-zA-Z0-9@]/) {
+                    if (!seen[item]) {
+                        seen[item] = 1
+                        if (item ~ /^--/) {
+                            buf_long[++idx_long] = item
                         } else {
-                            break
+                            buf_short[++idx_short] = item
                         }
-                    } else {
-                        break
                     }
                 }
             }
         }
         END {
-            for (i=1; i<=idx_cmd; i++) printf("  %s%s%s\n", c_flag, buf_cmd[i], c_rst)
-            for (i=1; i<=idx_short; i++) printf("  %s%s%s\n", c_flag, buf_short[i], c_rst)
-            for (i=1; i<=idx_long; i++) printf("  %s%s%s\n", c_flag, buf_long[i], c_rst)
+            for (i=1; i<=idx_cmd; i++) printf(" %s%s%s\n", c_flag, buf_cmd[i], c_rst)
+            for (i=1; i<=idx_short; i++) printf(" %s%s%s\n", c_flag, buf_short[i], c_rst)
+            for (i=1; i<=idx_long; i++) printf(" %s%s%s\n", c_flag, buf_long[i], c_rst)
         }
     ')
 
