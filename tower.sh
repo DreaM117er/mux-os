@@ -126,7 +126,6 @@ function _tct_tns_probe() {
                 n = split($0, arr, "[ \t]+|,[ \t]+")
                 for (i=1; i<=n; i++) {
                     item = arr[i]
-                    sub(/=.*/, "", item)
                     sub(/[,;:.)]$/, "", item)
                     gsub(/[\047"‘’`]/, "", item)
                     
