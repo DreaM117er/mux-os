@@ -102,7 +102,6 @@ function _tct_tns_probe() {
             gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
             gsub(/.\x08/, "")
             
-            # 前後空2格
             match($0, /^[ \t]+/)
             indent_len = RLENGTH
             
@@ -111,9 +110,7 @@ function _tct_tns_probe() {
                 sub(/^[ \t]+/, "", cmd_cand)  # 去頭
                 sub(/[ \t]+$/, "", cmd_cand)  # 去尾
                 
-                # 純數字過濾
                 if (cmd_cand != "" && cmd_cand !~ /^-/ && cmd_cand !~ /:$/ && cmd_cand !~ /^[0-9]+$/ && tolower(cmd_cand) !~ /^(usage|options|examples|commands|gnu|oldgnu|pax|posix|ustar|v7|none|size|time|auto|always|never)$/) {
-                    # 重複指令過濾
                     if (!seen[cmd_cand]) {
                         seen[cmd_cand] = 1
                         buf_cmd[++idx_cmd] = cmd_cand
@@ -121,65 +118,29 @@ function _tct_tns_probe() {
                 }
             }
             
-            # 全域掃描閘門
-            temp_line = $0
-            sub(/^[ \t]+/, "", temp_line)
-            
-            # 一開始掃描遇到說明，斷開找下一行資料
-            if (temp_line ~ /^-+[a-zA-Z0-9@]/) {
+            # 全域無差別切割
+            n = split($0, arr, "[ \t]+|,[ \t]+")
+            for (i=1; i<=n; i++) {
+                item = arr[i]
+                sub(/[,;:.)]$/, "", item)
+                gsub(/[\047"‘’`]/, "", item)
                 
-                while (temp_line != "") {
-                    # 直到遇到空白或逗號為止
-                    match(temp_line, /^-+[^ \t,]+/)
-                    if (RLENGTH > 0) {
-                        item = substr(temp_line, 1, RLENGTH)
-                        
-                        # 從原字串中推進移除剛切下的部分
-                        temp_line = substr(temp_line, RLENGTH + 1)
-                        
-                        # 去除尾隨標點與引號
-                        sub(/[,;:.]$/, "", item)
-                        gsub(/[\047"‘’`]/, "", item)
-                        
-                        # 收割合法參數
-                        if (item ~ /^-+[a-zA-Z0-9@]/) {
-                            if (!seen[item]) {
-                                seen[item] = 1
-                                if (item ~ /^--/) {
-                                    buf_long[++idx_long] = item
-                                } else {
-                                    buf_short[++idx_short] = item
-                                }
-                            }
+                if (item ~ /^-+[a-zA-Z0-9@]/) {
+                    if (!seen[item]) {
+                        seen[item] = 1
+                        if (item ~ /^--/) {
+                            buf_long[++idx_long] = item
+                        } else {
+                            buf_short[++idx_short] = item
                         }
-                        
-                        # 先削去推進後產生的前置空白
-                        sub(/^[ \t]+/, "", temp_line)
-                        
-                        # 遇到換行，安全停機
-                        if (temp_line == "") {
-                            break
-                        }
-                        
-                        # 有逗號，削去逗號與緊接的空白
-                        if (temp_line ~ /^,/) {
-                            sub(/^,[ \t]*/, "", temp_line)
-                        }
-                        
-                        # 遇到後面是說明，再斷！
-                        if (temp_line !~ /^-+[a-zA-Z0-9@]/) {
-                            break
-                        }
-                    } else {
-                        break
                     }
                 }
             }
         }
         END {
-            for (i=1; i<=idx_cmd; i++) printf("  %s%s%s\n", c_flag, buf_cmd[i], c_rst)
-            for (i=1; i<=idx_short; i++) printf("  %s%s%s\n", c_flag, buf_short[i], c_rst)
-            for (i=1; i<=idx_long; i++) printf("  %s%s%s\n", c_flag, buf_long[i], c_rst)
+            for (i=1; i<=idx_cmd; i++) printf(" %s%s%s\n", c_flag, buf_cmd[i], c_rst)
+            for (i=1; i<=idx_short; i++) printf(" %s%s%s\n", c_flag, buf_short[i], c_rst)
+            for (i=1; i<=idx_long; i++) printf(" %s%s%s\n", c_flag, buf_long[i], c_rst)
         }
     ')
 
