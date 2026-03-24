@@ -1952,9 +1952,9 @@ function _ui_tct_core_radar() {
         # 判斷狀態並上色 (True/Forever -> ONLINE, False -> OFFLINE)
         if [ "$show_ui" == "Y" ]; then
             if [[ "$val" == "true" || "$val" == "forever" ]]; then
-                menu_items+="${C_GREEN}[ONLINE]${C_RESET}  ${C_WHITE}${ui_name}${C_RESET} [${C_BLACK}${key}${C_RESET}]\n"
+                menu_items+="${C_GREEN}[ONLINE]${C_RESET}  ${C_WHITE}${ui_name}${C_RESET}\t[${C_BLACK}${key}${C_RESET}]\n"
             else
-                menu_items+="${C_RED}[OFFLINE]${C_RESET} ${C_GRAY}${ui_name}${C_RESET} [${C_BLACK}${key}${C_RESET}]\n"
+                menu_items+="${C_RED}[OFFLINE]${C_RESET} ${C_GRAY}${ui_name}${C_RESET}\t[${C_BLACK}${key}${C_RESET}]\n"
             fi
         fi
     done < "$setting_file"
@@ -1967,12 +1967,14 @@ function _ui_tct_core_radar() {
         --height="$dynamic_height" \
         --layout=reverse \
         --border=bottom \
-        --header=" :: SYSTEM CORE MODULES :: " \
+        --border-label=" :: SYSTEM CORE MODULES :: " \
+        --header=" :: Enter to Choose, Esc to exit :: " \
         --prompt=" :: cmt › core › " \
         --pointer="››" \
         --info=hidden \
         --color="fg:white,bg:-1,hl:51,fg+:white,bg+:235,hl+:51,info:240" \
-        --color="pointer:red,border:51,header:240,prompt:51"
+        --color="pointer:red,border:51,header:240,prompt:51" \
+        --bind="resize:clear-screen"
     )
     
     # 提取被選中的 KEY (在括號 [] 內)

@@ -1398,7 +1398,6 @@ function __tct_core() {
                 local ui_name=$(echo "$reg_data" | cut -d'|' -f2)
                 local ui_desc=$(echo "$reg_data" | cut -d'|' -f3)
 
-                clear
                 echo -e "${C_CYAN} :: MUX-OS CORE INSPECTOR ::${C_RESET}"
                 echo -e "${THEME_SUB}    ›› Module : ${C_WHITE}${ui_name}${C_RESET}"
                 echo -e "${THEME_DESC}    ›› Desc   : ${ui_desc}${C_RESET}"
@@ -1445,7 +1444,7 @@ function __tct_core() {
                         echo -e "${C_PINKMEOW} :: Understood! Releasing control of [${ui_name}] back to the base system...${C_RESET}"
                         sleep 0.6
                         echo ""
-                        echo -e "${C_PINKMEOW} :: Initiating core release sequence...${C_RESET}"
+                        echo -e "${C_PURPLE} :: Initiating core release sequence...${C_RESET}"
                         sys_logs=(
                             "Detaching tactical HUD overlays."
                             "Restoring native shell paths."
@@ -1468,13 +1467,13 @@ function __tct_core() {
                     
                     # 狀態寫入底層
                     _update_setting "$target_key" "$new_state"
-                    
+                    echo ""
                     # 小助理冷酷回報
-                    echo -e "${C_CYAN}    › ${finish_msg}${C_RESET}"
-                    sleep 0.5
+                    echo -e "${C_PINKMEOW} :: ${finish_msg}${C_RESET}"
+                    sleep 0.3
                     
                     # 系統最終判定
-                    echo -e "${C_PINKMEOW} :: $ui_name Status: ${final_color}$final_status${C_RESET}"
+                    echo -e "${C_BLACK}    › $ui_name Status: ${final_color}$final_status${C_RESET}"
                     sleep 0.5
                     
                     # 結束後切回冒失娘模式 (呼叫音效與顏文字)
@@ -1485,7 +1484,7 @@ function __tct_core() {
                         echo -e "${C_PINKMEOW} :: All done, Commander! Terminal is yours again! ( * 'w' )✧${C_RESET}"
                     fi
                     
-                    sleep 1.5
+                    sleep 1.4
                 fi
             done
             ;;
