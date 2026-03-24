@@ -148,8 +148,8 @@ function _tct_tns_probe() {
                         if (temp_line ~ /^-+/) {
                             match(temp_line, /^-+[^ \t,]+/)
                             if (RLENGTH > 0) {
-                                item = substr(temp_line, 1, RLENGTH)
-                                sub(/[,;:.]$/, "", item)
+                                sub(/=.*/, "", item)
+                                sub(/[,;:.)]$/, "", item)
                                 gsub(/[\047"‘’`]/, "", item)
                                 
                                 if (item ~ /^-+[a-zA-Z0-9@]/) {
