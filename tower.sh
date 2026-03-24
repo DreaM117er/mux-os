@@ -122,7 +122,7 @@ function _tct_tns_probe() {
             }
             
             # 精細刀法過濾
-            if ($0 ~ /^[ \t]{2,}-+/) {
+            if ($0 ~ /^[ \t][ \t]+-+/) {
                 temp_line = $0
                 
                 while (temp_line != "") {
