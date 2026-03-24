@@ -1398,16 +1398,16 @@ function __tct_core() {
                 local ui_name=$(echo "$reg_data" | cut -d'|' -f2)
                 local ui_desc=$(echo "$reg_data" | cut -d'|' -f3)
 
-                echo -e "${C_CYAN} :: MUX-OS CORE INSPECTOR ::${C_RESET}"
+                echo -e "${C_CYAN} :: Mux-OS Core Inspector ::${C_RESET}"
                 echo -e "${THEME_SUB}    ›› Module : ${C_WHITE}${ui_name}${C_RESET}"
                 echo -e "${THEME_DESC}    ›› Desc   : ${ui_desc}${C_RESET}"
                 
                 local sub_menu=""
                 if [[ "$current_val" == "true" || "$current_val" == "forever" ]]; then
-                    echo -e "${THEME_SUB}    ›› Status : ${C_GREEN}[ONLINE]${C_RESET}\n"
+                    echo -e "${THEME_SUB}    ›› Status : ${C_GREEN}[ONLINE]${C_RESET}"
                     sub_menu="${C_RED}[Release]${C_RESET} Disengage Module"
                 else
-                    echo -e "${THEME_SUB}    ›› Status : ${C_RED}[OFFLINE]${C_RESET}\n"
+                    echo -e "${THEME_SUB}    ›› Status : ${C_RED}[OFFLINE]${C_RESET}"
                     sub_menu="${C_GREEN}[Overwrite]${C_RESET} Engage Module"
                 fi
 
@@ -1419,7 +1419,7 @@ function __tct_core() {
                     --pointer="››" \
                     --info=hidden \
                     --border=bottom \
-                    --border-label=" :: SYSTEM CORE MODULES :: " \
+                    --border-label=" :: STATUS CHANGE :: " \
                     --header=" :: Enter to Choose, Esc to exit :: " \
                     --color="fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:211,info:240" \
                     --color="pointer:red,border:211,header:240,prompt:211" \
@@ -1441,7 +1441,7 @@ function __tct_core() {
                         echo -e "${C_PINKMEOW} :: Got it! Engaging the [${ui_name}] protocol now. Watch this...${C_RESET}"
                         sleep 0.6
                         echo ""
-                        echo -e "${C_PINKMEOW} :: Initiating core overwrite sequence...${C_RESET}"
+                        echo -e "${C_PURPLE} :: Initiating core overwrite sequence...${C_RESET}"
                         sys_logs=(
                             "Entering system core."
                             "Attempting to hijack native inputs."
