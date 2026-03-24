@@ -89,6 +89,7 @@ function _tct_tns_probe() {
                         fi
                     fi
                 fi
+            fi
 
             if [ -z "$help_text" ] || [[ "$help_text" == *"not found"* ]]; then
                 echo -e " \033[1;30m[Empty]\033[0m   No parameters found."
