@@ -74,19 +74,21 @@ function _tct_tns_probe() {
                 help_text=$(command $input_cmd --help 2>&1)
                 
                 # 錯誤檢閱機制 (Error Checking Fallback)
-                if [[ "$help_text" =~ (illegal|invalid|unrecognized|not\ found|unknown) ]] || [ ${#help_text} -lt 50 ]; then
-                    local alt_help=$(command $input_cmd help 2>&1)
-                    if [ ${#alt_help} -gt 50 ] && [[ ! "$alt_help" =~ (illegal|invalid|unrecognized|unknown) ]]; then
-                        help_text="$alt_help"
-                    else
-                        # 最後的波紋：嘗試 -h
-                        local alt_help2=$(command $input_cmd -h 2>&1)
-                        if [ ${#alt_help2} -gt 50 ]; then
-                            help_text="$alt_help2"
+                if [ ${#help_text} -lt 150 ]; then
+                    if [[ "$help_text" =~ (illegal|invalid|unrecognized|not\ found|unknown) ]] || [ ${#help_text} -lt 50 ]; then
+                        local alt_help=$(command $input_cmd help 2>&1 < /dev/null)
+                        
+                        if [ ${#alt_help} -gt 50 ] && [[ ! "$alt_help" =~ (illegal|invalid|unrecognized|unknown) ]]; then
+                            help_text="$alt_help"
+                        else
+                            # 最後的波紋：嘗試 -h
+                            local alt_help2=$(command $input_cmd -h 2>&1 < /dev/null)
+                            if [ ${#alt_help2} -gt 50 ]; then
+                                help_text="$alt_help2"
+                            fi
                         fi
                     fi
                 fi
-            fi
 
             if [ -z "$help_text" ] || [[ "$help_text" == *"not found"* ]]; then
                 echo -e " \033[1;30m[Empty]\033[0m   No parameters found."
