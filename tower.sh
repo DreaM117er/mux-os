@@ -137,7 +137,6 @@ function _tct_tns_probe() {
                         }
                     }
                 }
-                
             } else {
                 # 高精密鍊式切割機
                 if ($0 ~ /^[ \t][ \t]+-+/) {
@@ -164,8 +163,12 @@ function _tct_tns_probe() {
                         } else { break }
                     }
                 }
-                
             }
+        }
+        END {
+            for (i=1; i<=idx_cmd; i++) printf(" %s%s%s\n", c_flag, buf_cmd[i], c_rst)
+            for (i=1; i<=idx_short; i++) printf(" %s%s%s\n", c_flag, buf_short[i], c_rst)
+            for (i=1; i<=idx_long; i++) printf(" %s%s%s\n", c_flag, buf_long[i], c_rst)
         }
     ')
 
