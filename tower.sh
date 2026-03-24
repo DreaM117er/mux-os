@@ -97,7 +97,7 @@ function _tct_tns_probe() {
     
     # 切割刀法邏輯
     local parsed_params
-    parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" '
+    parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" -v p_mode="$parse_mode" '
         BEGIN {
             idx_long = 0
             idx_short = 0
