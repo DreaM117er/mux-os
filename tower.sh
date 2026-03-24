@@ -242,7 +242,6 @@ function _tct_tns_macro() {
     fi
 }
 
-
 # 戰術操作艙子模組 (Action Menu Sub-Module)
 function _tct_file_action_menu() {
     local clean_target="$1"
@@ -404,8 +403,9 @@ function cd() {
         local ui_prompt=" :: $display_prompt › "
         [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › cd › $display_prompt :: "
 
-        local raw_output
-        raw_output=$(_ui_tct_nav_radar "$menu_items" "$ui_prompt" "$dynamic_height" "TARGET DIRECTORY" "211" " :: Enter to Select, Esc to Return ::")
+        local border_lbl="TARGET DIRECTORY"
+        [ "$MUX_ENTRY_POINT" == "MEOW" ] && border_lbl="CARDBOARD BOX SCANNER"
+        local raw_output=$(_ui_tct_nav_radar "$menu_items" "$ui_prompt" "$dynamic_height" "$border_lbl" "211" " :: Enter to Select, Esc to Return ::")
 
         local raw_target=$(echo "$raw_output" | tail -n +2)
 
@@ -589,8 +589,9 @@ function ls() {
         local ui_prompt=" :: $display_prompt › "
         [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › ls › $display_prompt :: "
 
-        local raw_output
-        raw_output=$(_ui_tct_nav_radar "$menu_items" "$ui_prompt" "$dynamic_height" "FILE SCANNER" "46" " :: Enter to Inspect, Esc to Return ::")
+        local border_lbl="FILE SCANNER"
+        [ "$MUX_ENTRY_POINT" == "MEOW" ] && border_lbl="SNIFFING AROUND"
+        local raw_output=$(_ui_tct_nav_radar "$menu_items" "$ui_prompt" "$dynamic_height" "$border_lbl" "46" " :: Enter to Inspect, Esc to Return ::")
 
         local raw_target=$(echo "$raw_output" | tail -n +2)
 
@@ -811,8 +812,9 @@ function __core_rm() {
         [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
         # 呼叫TCT模組
-        local raw_output
-        raw_output=$(_ui_tct_tactical_radar "$menu_items" "$ui_prompt" "$dynamic_height" "TACTICAL DESTRUCTOR" "196")
+        local border_lbl="TACTICAL DESTRUCTOR"
+        [ "$MUX_ENTRY_POINT" == "MEOW" ] && border_lbl="PUSHING OFF THE TABLE"
+        local raw_output=$(_ui_tct_tactical_radar "$menu_items" "$ui_prompt" "$dynamic_height" "$border_lbl" "196")
 
         local selections=$(echo "$raw_output" | tail -n +2)
 
@@ -956,8 +958,9 @@ function __core_mv() {
         local dynamic_height=$(( line_count + 4 ))
         [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
-        local raw_output
-        raw_output=$(_ui_tct_tactical_radar "$menu_items" "$ui_prompt" "$dynamic_height" "TACTICAL RELOCATOR" "220")
+        local border_lbl="TACTICAL RELOCATOR"
+        [ "$MUX_ENTRY_POINT" == "MEOW" ] && border_lbl="DRAGGING TO THE BED"
+        local raw_output=$(_ui_tct_tactical_radar "$menu_items" "$ui_prompt" "$dynamic_height" "$border_lbl" "220")
 
         local selections=$(echo "$raw_output" | tail -n +2)
 
@@ -1128,8 +1131,9 @@ function __core_cp() {
         local dynamic_height=$(( line_count + 4 ))
         [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
-        local raw_output
-        raw_output=$(_ui_tct_tactical_radar "$menu_items" "$ui_prompt" "$dynamic_height" "TACTICAL CLONER" "33")
+        local border_lbl="TACTICAL CLONER"
+        [ "$MUX_ENTRY_POINT" == "MEOW" ] && border_lbl="CLONING THE FISH"
+        local raw_output=$(_ui_tct_tactical_radar "$menu_items" "$ui_prompt" "$dynamic_height" "$border_lbl" "33")
 
         local selections=$(echo "$raw_output" | tail -n +2)
 
@@ -1386,7 +1390,11 @@ function __tct_core() {
 
         # : Dynamic Core Configurator
         "core")
-            echo -e "${C_PINKMEOW} :: Roger that, Commander! Which core module should we tweak today? (*≧ω≦)${C_RESET}"
+            if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
+                echo -e "${C_PINKMEOW} :: Meow meow! (Which box should I sit in today?) ฅ( ̳• ◡ • ̳)ฅ${C_RESET}"
+            else
+                echo -e "${C_PINKMEOW} :: Roger that, Commander! Which core module should we tweak today? (*≧ω≦)${C_RESET}"
+            fi
             
             while true; do
                 local target_key=$(_ui_tct_core_radar)
@@ -1429,8 +1437,6 @@ function __tct_core() {
 
                 if [ -n "$clean_action" ]; then
                     echo ""
-                    
-                    # 判斷是啟動還是關閉，載入不同的系統語音矩陣 (陣列)
                     local sys_logs=()
                     local new_state=""
                     local final_color=""
@@ -1438,62 +1444,84 @@ function __tct_core() {
                     local finish_msg=""
                     
                     if [ "$clean_action" == "[Overwrite]" ]; then
-                        echo -e "${C_PINKMEOW} :: Got it! Engaging the [${ui_name}] protocol now. Watch this...${C_RESET}"
-                        sleep 0.6
-                        echo ""
-                        echo -e "${C_PURPLE} :: Initiating core overwrite sequence...${C_RESET}"
-                        sys_logs=(
-                            "Entering system core."
-                            "Attempting to hijack native inputs."
-                            "tty output stabilized."
-                            "Bypass guard system active."
-                        )
+                        if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
+                            echo -e "${C_PINKMEOW} :: Meow! (Purring protocol [${ui_name}] engaged!) 🐾${C_RESET}"
+                            sleep 0.6; echo ""
+                            echo -e "${C_PURPLE} :: Initiating feline overwrite sequence...${C_RESET}"
+                            sys_logs=(
+                                "Sniffing system core."
+                                "Biting the native cables."
+                                "Sitting on the keyboard."
+                                "Paws guard system active."
+                            )
+                            finish_msg="Meow-jacking complete. Direct core access secured... Purr."
+                        else
+                            echo -e "${C_PINKMEOW} :: Got it! Engaging the [${ui_name}] protocol now. Watch this...${C_RESET}"
+                            sleep 0.6; echo ""
+                            echo -e "${C_PURPLE} :: Initiating core overwrite sequence...${C_RESET}"
+                            sys_logs=(
+                                "Entering system core."
+                                "Attempting to hijack native inputs."
+                                "tty output stabilized."
+                                "Bypass guard system active."
+                            )
+                            finish_msg="System hijacking complete. Direct core access secured... OK."
+                        fi
                         new_state="forever"
                         final_color="$C_GREEN"
                         final_status="[ONLINE]"
-                        finish_msg="System hijacking complete. Direct core access secured... OK."
+                        
                     elif [ "$clean_action" == "[Release]" ]; then
-                        echo -e "${C_PINKMEOW} :: Understood! Releasing control of [${ui_name}] back to the base system...${C_RESET}"
-                        sleep 0.6
-                        echo ""
-                        echo -e "${C_PURPLE} :: Initiating core release sequence...${C_RESET}"
-                        sys_logs=(
-                            "Detaching tactical HUD overlays."
-                            "Restoring native shell paths."
-                            "tty output reverted to standard."
-                            "Bypass guard system dormant."
-                        )
+                        if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
+                            echo -e "${C_PINKMEOW} :: Meow~ (Leaving [${ui_name}] box...) 😿${C_RESET}"
+                            sleep 0.6; echo ""
+                            echo -e "${C_PURPLE} :: Initiating feline release sequence...${C_RESET}"
+                            sys_logs=(
+                                "Getting off the tactical HUD."
+                                "Spitting out native shell paths."
+                                "Walking away from tty output."
+                                "Paws guard system dormant."
+                            )
+                            finish_msg="Box released. Base directives restored... Meow."
+                        else
+                            echo -e "${C_PINKMEOW} :: Understood! Releasing control of [${ui_name}] back to the base system...${C_RESET}"
+                            sleep 0.6; echo ""
+                            echo -e "${C_PURPLE} :: Initiating core release sequence...${C_RESET}"
+                            sys_logs=(
+                                "Detaching tactical HUD overlays."
+                                "Restoring native shell paths."
+                                "tty output reverted to standard."
+                                "Bypass guard system dormant."
+                            )
+                            finish_msg="System released. Base directives restored... OK."
+                        fi
                         new_state="false"
                         final_color="$C_RED"
                         final_status="[OFFLINE]"
-                        finish_msg="System released. Base directives restored... OK."
                     fi
 
                     sleep 0.8
-                    
-                    # 冷酷的系統篡改過場 (無顏文字)
                     for log in "${sys_logs[@]}"; do
                         echo -e "${C_BLACK}    › $log${C_RESET}"
                         sleep "0.$(( RANDOM % 3 + 2 ))"
                     done
                     
-                    # 狀態寫入底層
                     _update_setting "$target_key" "$new_state"
                     echo ""
-                    # 小助理冷酷回報
                     echo -e "${C_PINKMEOW} :: ${finish_msg}${C_RESET}"
                     sleep 0.2
-                    
-                    # 系統最終判定
                     echo -e "${C_BLACK}    › $ui_name Status: ${final_color}$final_status${C_RESET}"
                     sleep 0.4
                     
-                    # 結束後切回冒失娘模式 (呼叫音效與顏文字)
                     echo ""
                     if command -v _assistant_voice &> /dev/null; then
-                        _assistant_voice "success" "Return control of the terminal to the user."
+                        if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
+                            _assistant_voice "success" "Meow! (Terminal is yours again!)"
+                        else
+                            _assistant_voice "success" "Return control of the terminal to the user."
+                        fi
                     else
-                        echo -e "${C_PINKMEOW} :: All done, Commander! Terminal is yours again! ( * 'w' )✧${C_RESET}"
+                        echo -e "${C_PINKMEOW} :: All done! ( * 'w' )✧${C_RESET}"
                     fi
                     sleep 1.4
                     break

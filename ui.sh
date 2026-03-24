@@ -1963,13 +1963,20 @@ function _ui_tct_core_radar() {
     local line_count=$(echo -e "$menu_items" | wc -l)
     local dynamic_height=$(( line_count + 4 ))
     
+    local border_lbl=" :: SYSTEM CORE MODULES :: "
+    local prompt_msg=" :: cmt › core › "
+    if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
+        border_lbl=" :: MEOW CORE MODULES :: "
+        prompt_msg=" :: meow › core › "
+    fi
+
     local selected=$(echo -e "$menu_items" | fzf --ansi \
         --height="$dynamic_height" \
         --layout=reverse \
         --border=bottom \
-        --border-label=" :: SYSTEM CORE MODULES :: " \
+        --border-label="$border_lbl" \
         --header=" :: Enter to Choose, Esc to exit :: " \
-        --prompt=" :: cmt › core › " \
+        --prompt="$prompt_msg" \
         --pointer="››" \
         --info=hidden \
         --color="fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:211,info:240" \
