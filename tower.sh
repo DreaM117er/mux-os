@@ -122,28 +122,26 @@ function _tct_tns_probe() {
             }
             
             # 全域掃描閘門
-            if ($0 ~ /[ \t]+-[a-zA-Z0-9@-]/) {
-                temp_line = $0
+            temp_line = $0
+            sub(/^[ \t]+/, "", temp_line)
+            
+            # 一開始掃描遇到說明，斷開找下一行資料
+            if (temp_line ~ /^-+[a-zA-Z0-9@]/) {
                 
                 while (temp_line != "") {
-                    # 切掉空白
-                    sub(/^[ \t]+/, "", temp_line)
-                    
-                    # 一開始遇到說明，斬斷
-                    if (temp_line !~ /^-+/) {
-                        break
-                    }
-                    
-                    # 開始完整切塊
+                    # 直到遇到空白或逗號為止
                     match(temp_line, /^-+[^ \t,]+/)
                     if (RLENGTH > 0) {
                         item = substr(temp_line, 1, RLENGTH)
                         
-                        # 去除前後多餘符號
+                        # 從原字串中推進移除剛切下的部分
+                        temp_line = substr(temp_line, RLENGTH + 1)
+                        
+                        # 去除尾隨標點與引號
                         sub(/[,;:.]$/, "", item)
                         gsub(/[\047"‘’`]/, "", item)
                         
-                        # 合法就抓進來
+                        # 收割合法參數
                         if (item ~ /^-+[a-zA-Z0-9@]/) {
                             if (!seen[item]) {
                                 seen[item] = 1
@@ -155,21 +153,21 @@ function _tct_tns_probe() {
                             }
                         }
                         
-                        # 繼續推進移除
-                        temp_line = substr(temp_line, RLENGTH + 1)
+                        # 先削去推進後產生的前置空白
                         sub(/^[ \t]+/, "", temp_line)
                         
-                        # 遇到換行
+                        # 遇到換行，安全停機
                         if (temp_line == "") {
                             break
                         }
                         
-                        # 判斷是否還有參數相連
+                        # 有逗號，削去逗號與緊接的空白
                         if (temp_line ~ /^,/) {
-                            # 有逗號砍逗號
                             sub(/^,[ \t]*/, "", temp_line)
-                        } else {
-                            # 遇到說明斬斷
+                        }
+                        
+                        # 遇到後面是說明，再斷！
+                        if (temp_line !~ /^-+[a-zA-Z0-9@]/) {
                             break
                         }
                     } else {
