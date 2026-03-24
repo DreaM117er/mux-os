@@ -121,47 +121,55 @@ function _tct_tns_probe() {
                 }
             }
             
-            # 精細刀法過濾
-            if ($0 ~ /^[ \t]+-+/) {
+            # 全域掃描閘門
+            if ($0 ~ /[ \t]+-[a-zA-Z0-9@-]/) {
                 temp_line = $0
                 
                 while (temp_line != "") {
+                    # 切掉空白
                     sub(/^[ \t]+/, "", temp_line)
                     
-                    if (temp_line ~ /^-+/) {
-                        # 完整切塊
-                        match(temp_line, /^-+[^ \t,]+/)
-                        if (RLENGTH > 0) {
-                            item = substr(temp_line, 1, RLENGTH)
-                            
-                            # 去除前後符號
-                            sub(/[,;:.]$/, "", item)
-                            gsub(/[\047"‘’`]/, "", item)
-                            
-                            if (item ~ /^-+[a-zA-Z0-9@]/) {
-                                # 比對重複指令
-                                if (!seen[item]) {
-                                    seen[item] = 1
-                                    if (item ~ /^--/) {
-                                        buf_long[++idx_long] = item
-                                    } else {
-                                        buf_short[++idx_short] = item
-                                    }
+                    # 一開始遇到說明，斬斷
+                    if (temp_line !~ /^-+/) {
+                        break
+                    }
+                    
+                    # 開始完整切塊
+                    match(temp_line, /^-+[^ \t,]+/)
+                    if (RLENGTH > 0) {
+                        item = substr(temp_line, 1, RLENGTH)
+                        
+                        # 去除前後多餘符號
+                        sub(/[,;:.]$/, "", item)
+                        gsub(/[\047"‘’`]/, "", item)
+                        
+                        # 合法就抓進來
+                        if (item ~ /^-+[a-zA-Z0-9@]/) {
+                            if (!seen[item]) {
+                                seen[item] = 1
+                                if (item ~ /^--/) {
+                                    buf_long[++idx_long] = item
+                                } else {
+                                    buf_short[++idx_short] = item
                                 }
                             }
-                            
-                            # 推進字串
-                            temp_line = substr(temp_line, RLENGTH + 1)
-                            
-                            sub(/^[ \t]+/, "", temp_line)
-                            if (temp_line ~ /^,/) {
-                                # 砍掉逗號
-                                sub(/^,[ \t]*/, "", temp_line)
-                            } else {
-                                # 遇到說明直接切斷
-                                break
-                            }
+                        }
+                        
+                        # 繼續推進移除
+                        temp_line = substr(temp_line, RLENGTH + 1)
+                        sub(/^[ \t]+/, "", temp_line)
+                        
+                        # 遇到換行
+                        if (temp_line == "") {
+                            break
+                        }
+                        
+                        # 判斷是否還有參數相連
+                        if (temp_line ~ /^,/) {
+                            # 有逗號砍逗號
+                            sub(/^,[ \t]*/, "", temp_line)
                         } else {
+                            # 遇到說明斬斷
                             break
                         }
                     } else {
