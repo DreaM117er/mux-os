@@ -39,6 +39,12 @@ function _tct_tns_probe() {
     # 探測主指令的底層物理型態
     cmd_type=$(type -t "$main_cmd" 2>/dev/null)
 
+    # 遇到大魔王指令：切換模式
+    local parse_mode="PRECISION"
+    if [[ "$main_cmd" =~ ^(ls|tar|find|sed|grep|awk)$ ]]; then
+        parse_mode="GLOBAL"
+    fi
+
     # 前置分類路由器
     case "$main_cmd" in
         pkg)
@@ -89,7 +95,7 @@ function _tct_tns_probe() {
             ;;
     esac
     
-    # 大刀切塊
+    # 切割刀法邏輯
     local parsed_params
     parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" '
         BEGIN {
@@ -102,46 +108,64 @@ function _tct_tns_probe() {
             gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
             gsub(/.\x08/, "")
             
+            # 指令過濾
             match($0, /^[ \t]+/)
             indent_len = RLENGTH
-            
             if (indent_len > 0 && indent_len <= 3 && match($0, /^[ \t]+[a-zA-Z0-9_:-]+[ \t][ \t]+/)) {
                 cmd_cand = substr($0, RSTART, RLENGTH)
-                sub(/^[ \t]+/, "", cmd_cand)  # 去頭
-                sub(/[ \t]+$/, "", cmd_cand)  # 去尾
-                
+                sub(/^[ \t]+/, "", cmd_cand)
+                sub(/[ \t]+$/, "", cmd_cand)
                 if (cmd_cand != "" && cmd_cand !~ /^-/ && cmd_cand !~ /:$/ && cmd_cand !~ /^[0-9]+$/ && tolower(cmd_cand) !~ /^(usage|options|examples|commands|gnu|oldgnu|pax|posix|ustar|v7|none|size|time|auto|always|never)$/) {
-                    if (!seen[cmd_cand]) {
-                        seen[cmd_cand] = 1
-                        buf_cmd[++idx_cmd] = cmd_cand
-                    }
+                    if (!seen[cmd_cand]) { seen[cmd_cand] = 1; buf_cmd[++idx_cmd] = cmd_cand }
                 }
             }
             
-            # 全域無差別切割
-            n = split($0, arr, "[ \t]+|,[ \t]+")
-            for (i=1; i<=n; i++) {
-                item = arr[i]
-                sub(/=.*/, "", item)
-                sub(/[,;:.)]$/, "", item)
-                gsub(/[\047"‘’`]/, "", item)
-                
-                if (item ~ /^-+[a-zA-Z0-9@]/) {
-                    if (!seen[item]) {
-                        seen[item] = 1
-                        if (item ~ /^--/) {
-                            buf_long[++idx_long] = item
-                        } else {
-                            buf_short[++idx_short] = item
+            # 軌道分流
+            if (p_mode == "GLOBAL") {
+                # 全域無差別切割機
+                n = split($0, arr, "[ \t]+|,[ \t]+")
+                for (i=1; i<=n; i++) {
+                    item = arr[i]
+                    sub(/=.*/, "", item)
+                    sub(/[,;:.)]$/, "", item)
+                    gsub(/[\047"‘’`]/, "", item)
+                    
+                    if (item ~ /^-+[a-zA-Z0-9@]/) {
+                        if (!seen[item]) {
+                            seen[item] = 1
+                            if (item ~ /^--/) { buf_long[++idx_long] = item } else { buf_short[++idx_short] = item }
                         }
                     }
                 }
+                
+            } else {
+                # 高精密鍊式切割機
+                if ($0 ~ /^[ \t][ \t]+-+/) {
+                    temp_line = $0
+                    while (temp_line != "") {
+                        sub(/^[ \t]+/, "", temp_line)
+                        if (temp_line ~ /^-+/) {
+                            match(temp_line, /^-+[^ \t,]+/)
+                            if (RLENGTH > 0) {
+                                item = substr(temp_line, 1, RLENGTH)
+                                sub(/[,;:.]$/, "", item)
+                                gsub(/[\047"‘’`]/, "", item)
+                                
+                                if (item ~ /^-+[a-zA-Z0-9@]/) {
+                                    if (!seen[item]) {
+                                        seen[item] = 1
+                                        if (item ~ /^--/) { buf_long[++idx_long] = item } else { buf_short[++idx_short] = item }
+                                    }
+                                }
+                                temp_line = substr(temp_line, RLENGTH + 1)
+                                sub(/^[ \t]+/, "", temp_line)
+                                if (temp_line ~ /^,/) { sub(/^,[ \t]*/, "", temp_line) } else { break }
+                            } else { break }
+                        } else { break }
+                    }
+                }
+                
             }
-        }
-        END {
-            for (i=1; i<=idx_cmd; i++) printf(" %s%s%s\n", c_flag, buf_cmd[i], c_rst)
-            for (i=1; i<=idx_short; i++) printf(" %s%s%s\n", c_flag, buf_short[i], c_rst)
-            for (i=1; i<=idx_long; i++) printf(" %s%s%s\n", c_flag, buf_long[i], c_rst)
         }
     ')
 
