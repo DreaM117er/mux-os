@@ -1901,6 +1901,86 @@ function _ui_tct_tactical_radar() {
         --bind="resize:clear-screen"
 }
 
+# 指揮塔狀態機字典 (TCT State Registry)
+# 接收 $1(key) $2(val)，回傳 $3(Y/N) 與 $4(UI Name) 與 描述
+function _ui_tct_core_registry() {
+    local key="$1"
+    local val="$2"
+    local show_ui="N"
+    local ui_name=""
+    local ui_desc=""
+
+    case "$key" in
+        "COMMAND_UNIX")
+            show_ui="Y"
+            ui_name="UNIX Tactical Radar"
+            ui_desc="Take over native commands (cd, ls, rm) and replace them with interactive HUDs."
+            ;;
+        "TCT_RADAR_JAIL")
+            show_ui="Y"
+            ui_name="Directory Jail Guard"
+            ui_desc="Lock navigation within the current directory tree to prevent accidental escapes."
+            ;;
+        "TCT_RADAR_HIDDEN")
+            show_ui="Y"
+            ui_name="Hidden Files Revealer"
+            ui_desc="Force all tactical radars to display hidden files (.*) by default."
+            ;;
+    esac
+
+    # 回傳格式：Show(Y/N) | UI Name | Description
+    echo "${show_ui}|${ui_name}|${ui_desc}"
+}
+
+# 指揮塔動態選單生成器 (TCT Dynamic Radar Builder)
+function _ui_tct_core_radar() {
+    local setting_file="$HOME/mux-os/.setting"
+    if [ ! -f "$setting_file" ]; then return 1; fi
+
+    local menu_items=""
+    
+    # 讀取 .setting 並透過字典翻譯
+    while IFS='=' read -r key val; do
+        # 清洗引號
+        val=$(echo "$val" | tr -d '"')
+        
+        # 呼叫字典
+        local registry_data=$(_ui_tct_core_registry "$key" "$val")
+        local show_ui=$(echo "$registry_data" | cut -d'|' -f1)
+        local ui_name=$(echo "$registry_data" | cut -d'|' -f2)
+        
+        # 判斷狀態並上色 (True/Forever -> ONLINE, False -> OFFLINE)
+        if [ "$show_ui" == "Y" ]; then
+            if [[ "$val" == "true" || "$val" == "forever" ]]; then
+                menu_items+="${C_GREEN}[ONLINE]${C_RESET} ${C_WHITE}${ui_name}${C_RESET} [${C_BLACK}${key}${C_RESET}]\n"
+            else
+                menu_items+="${C_RED}[OFFLINE]${C_RESET} ${C_GRAY}${ui_name}${C_RESET} [${C_BLACK}${key}${C_RESET}]\n"
+            fi
+        fi
+    done < "$setting_file"
+
+    # 展開 fzf 選單
+    local line_count=$(echo -e "$menu_items" | wc -l)
+    local dynamic_height=$(( line_count + 4 ))
+    
+    local selected=$(echo -e "$menu_items" | fzf --ansi \
+        --height="$dynamic_height" \
+        --layout=reverse \
+        --border=bottom \
+        --header=" :: SYSTEM CORE MODULES :: " \
+        --prompt=" :: cmt › core › " \
+        --pointer="››" \
+        --info=hidden \
+        --color="fg:white,bg:-1,hl:51,fg+:white,bg+:235,hl+:51,info:240" \
+        --color="pointer:red,border:51,header:240,prompt:51"
+    )
+    
+    # 提取被選中的 KEY (在括號 [] 內)
+    if [ -n "$selected" ]; then
+        echo "$selected" | grep -o '\[.*\]$' | tr -d '[]'
+    fi
+}
+
 # 星門 - UI Mask / Fake Gate
 function _ui_fake_gate() {
 local theme="$1"

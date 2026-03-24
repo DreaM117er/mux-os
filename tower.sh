@@ -1384,67 +1384,110 @@ function __tct_core() {
             unset CMT_COMMAND
             ;;
 
-        # : Overwrite Command Toggle
-        "set")
-            local target_cmd="$2"
-            if [ -z "$target_cmd" ]; then
-                echo -e "${C_PINKMEOW} :: Commander, set what? (・_・)${C_RESET}"
-                return 1
-            fi
+        # : Dynamic Core Configurator
+        "core")
+            echo -e "${C_PINKMEOW} :: Roger that, Commander! Which core module should we tweak today? (*≧ω≦)${C_RESET}"
             
-            case "$target_cmd" in
-                "unix")
-                    _update_setting "COMMAND_UNIX" "forever"
-                    echo -e "${C_GREEN} :: UNIX Tactical Radar [ONLINE] (cd, ls, rm)${C_RESET}"
-                    ;;
-
-                "jail")
-                    _update_setting "TCT_RADAR_JAIL" "forever"
-                    echo -e "${C_PINKMEOW} :: Radar Jail Locked FOREVER! (*≧ω≦)${C_RESET}"
-                    ;;
-
-                "hidden")
-                    _update_setting "TCT_RADAR_HIDDEN" "forever"
-                    echo -e "${C_PINKMEOW} :: Hidden files revealed FOREVER! (*≧ω≦)${C_RESET}"
-                    ;;
-
-                *)
-                    echo -e "${C_PINKMEOW} :: I don't know how to unset '$target_cmd'... (；´д｀)ゞ${C_RESET}"
-                    return 1
-                    ;;
-            esac
-            ;;
-
-        # : Overwrite Command Toggle
-        "unset")
-            local target_cmd="$2"
-            if [ -z "$target_cmd" ]; then
-                echo -e "${C_PINKMEOW} :: Commander, unset what? (・_・)${C_RESET}"
-                return 1
-            fi
-            
-            case "$target_cmd" in
-                "unix")
-                    _update_setting "COMMAND_UNIX" "false"
-                    echo -e "${C_GREEN} :: UNIX Tactical Radar [OFFLINE] (cd, ls, rm)${C_RESET}"
-                    ;;
-
-                "jail")
-                    _update_setting "TCT_RADAR_JAIL" "false"
-                    echo -e "${C_YELLOW} :: Radar Jail [OFFLINE]${C_RESET}"
-                    ;;
-
-                "hidden")
-                    _update_setting "TCT_RADAR_HIDDEN" "false"
-                    echo -e "${C_YELLOW} :: Hidden files revealed [OFFLINE]${C_RESET}"
-                    ;;
-
-                *)
-                    echo -e "${C_PINKMEOW} :: I don't know how to unset '$target_cmd'... (；´д｀)ゞ${C_RESET}"
-                    return 1
-                    ;;
+            while true; do
+                local target_key=$(_ui_tct_core_radar)
+                if [ -z "$target_key" ]; then break; fi
                 
-            esac
+                # 取得當前狀態與描述
+                local current_val="${!target_key}"
+                local reg_data=$(_ui_tct_core_registry "$target_key" "$current_val")
+                local ui_name=$(echo "$reg_data" | cut -d'|' -f2)
+                local ui_desc=$(echo "$reg_data" | cut -d'|' -f3)
+
+                clear
+                echo -e "${C_CYAN} :: MUX-OS CORE INSPECTOR ::${C_RESET}"
+                echo -e "${THEME_SUB}    ›› Module : ${C_WHITE}${ui_name}${C_RESET}"
+                echo -e "${THEME_DESC}    ›› Desc   : ${ui_desc}${C_RESET}"
+                
+                local sub_menu=""
+                if [[ "$current_val" == "true" || "$current_val" == "forever" ]]; then
+                    echo -e "${THEME_SUB}    ›› Status : ${C_GREEN}[ONLINE]${C_RESET}\n"
+                    sub_menu="${C_RED}[Release]${C_RESET} Disengage Module"
+                else
+                    echo -e "${THEME_SUB}    ›› Status : ${C_RED}[OFFLINE]${C_RESET}\n"
+                    sub_menu="${C_GREEN}[Overwrite]${C_RESET} Engage Module"
+                fi
+
+                # 子選單確認
+                local action=$(echo -e "$sub_menu" | fzf --ansi --height=5 --layout=reverse --prompt=" :: Action › " --pointer="››" --info=hidden)
+                local clean_action=$(echo "$action" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
+
+                if [ -n "$clean_action" ]; then
+                    echo ""
+                    
+                    # 判斷是啟動還是關閉，載入不同的系統語音矩陣 (陣列)
+                    local sys_logs=()
+                    local new_state=""
+                    local final_color=""
+                    local final_status=""
+                    local finish_msg=""
+                    
+                    if [ "$clean_action" == "[Overwrite]" ]; then
+                        echo -e "${C_PINKMEOW} :: Got it! Engaging the [${ui_name}] protocol now. Watch this...${C_RESET}"
+                        sleep 0.6
+                        echo ""
+                        echo -e "${C_PINKMEOW} :: Initiating core overwrite sequence...${C_RESET}"
+                        sys_logs=(
+                            "Entering system core."
+                            "Attempting to hijack native inputs."
+                            "tty output stabilized."
+                            "Bypass guard system active."
+                        )
+                        new_state="forever"
+                        final_color="$C_GREEN"
+                        final_status="[ONLINE]"
+                        finish_msg="System hijacking complete. Direct core access secured... OK."
+                    elif [ "$clean_action" == "[Release]" ]; then
+                        echo -e "${C_PINKMEOW} :: Understood! Releasing control of [${ui_name}] back to the base system...${C_RESET}"
+                        sleep 0.6
+                        echo ""
+                        echo -e "${C_PINKMEOW} :: Initiating core release sequence...${C_RESET}"
+                        sys_logs=(
+                            "Detaching tactical HUD overlays."
+                            "Restoring native shell paths."
+                            "tty output reverted to standard."
+                            "Bypass guard system dormant."
+                        )
+                        new_state="false"
+                        final_color="$C_RED"
+                        final_status="[OFFLINE]"
+                        finish_msg="System released. Base directives restored... OK."
+                    fi
+
+                    sleep 0.8
+                    
+                    # 冷酷的系統篡改過場 (無顏文字)
+                    for log in "${sys_logs[@]}"; do
+                        echo -e "${C_BLACK}    › $log${C_RESET}"
+                        sleep 0.4
+                    done
+                    
+                    # 狀態寫入底層
+                    _update_setting "$target_key" "$new_state"
+                    
+                    # 小助理冷酷回報
+                    echo -e "${C_CYAN}    › ${finish_msg}${C_RESET}"
+                    sleep 0.5
+                    
+                    # 系統最終判定
+                    echo -e "${C_PINKMEOW} :: $ui_name Status: ${final_color}$final_status${C_RESET}"
+                    sleep 0.5
+                    
+                    # 結束後切回冒失娘模式 (呼叫音效與顏文字)
+                    echo ""
+                    if command -v _assistant_voice &> /dev/null; then
+                        _assistant_voice "success" "Return control of the terminal to the user."
+                    else
+                        echo -e "${C_PINKMEOW} :: All done, Commander! Terminal is yours again! ( * 'w' )✧${C_RESET}"
+                    fi
+                    
+                    sleep 1.5
+                fi
+            done
             ;;
 
         # : Exit Command Tower
