@@ -1952,7 +1952,7 @@ function _ui_tct_core_radar() {
         # 判斷狀態並上色 (True/Forever -> ONLINE, False -> OFFLINE)
         if [ "$show_ui" == "Y" ]; then
             if [[ "$val" == "true" || "$val" == "forever" ]]; then
-                menu_items+="${C_GREEN}[ONLINE]${C_RESET} ${C_WHITE}${ui_name}${C_RESET} [${C_BLACK}${key}${C_RESET}]\n"
+                menu_items+="${C_GREEN}[ONLINE]${C_RESET}  ${C_WHITE}${ui_name}${C_RESET} [${C_BLACK}${key}${C_RESET}]\n"
             else
                 menu_items+="${C_RED}[OFFLINE]${C_RESET} ${C_GRAY}${ui_name}${C_RESET} [${C_BLACK}${key}${C_RESET}]\n"
             fi
@@ -1977,7 +1977,7 @@ function _ui_tct_core_radar() {
     
     # 提取被選中的 KEY (在括號 [] 內)
     if [ -n "$selected" ]; then
-        echo "$selected" | grep -o '\[.*\]$' | tr -d '[]'
+        echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $NF}' | tr -d '[]'
     fi
 }
 
