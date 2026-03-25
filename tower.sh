@@ -220,8 +220,8 @@ function _tct_tns_macro() {
             --pointer="››" \
             --border=bottom \
             --border-label=" :: PARAMETER HUD :: " \
-            --color="fg:white,bg:-1,hl:51,fg+:white,bg+:235,hl+:51,info:240" \
-            --color="pointer:red,border:51,header:240,prompt:51"
+            --color="fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:211,info:240" \
+            --color="pointer:red,border:211,header:240,prompt:211"
             )
 
     # 寫回終端機
@@ -1353,6 +1353,136 @@ function __tct_core() {
     fi
     
     case "$cmd" in
+        # : Show Command Tower Status Panel
+        "status"|"sts")
+            local target_sub="$2"
+            
+            while true; do
+                if [ -z "$target_sub" ]; then
+                    local menu_items=""
+                    menu_items+="${C_CYAN}[hw]${C_RESET}\tHardware Status\n"
+                    menu_items+="${C_PURPLE}[sys]${C_RESET}\tSystem Core Status\n"
+                    menu_items+="${C_GREEN}[mod]${C_RESET}\tModule Configurations\n"
+                    
+                    local action=$(echo -e "$menu_items" | fzf --ansi \
+                        --height=7 \
+                        --layout=reverse \
+                        --border=bottom \
+                        --border-label=" :: STATUS INSPECTOR :: " \
+                        --header=" :: Enter to View, Esc to Exit :: " \
+                        --prompt=" :: cmt › status › " \
+                        --pointer="››" \
+                        --info=hidden \
+                        --color="fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:211" \
+                        --color="prompt:211,pointer:red,border:211,header:240" \
+                        --bind="resize:clear-screen"
+                    )
+                    
+                    target_sub=$(echo "$action" | grep -o '\[.*\]' | tr -d '[]')
+                    if [ -z "$target_sub" ]; then break; fi
+                fi
+                
+                if [ "$target_sub" == "hw" ]; then
+                    local hw_info=""
+                    hw_info+=" ${C_CYAN}›› Kernel  :${C_RESET} $(uname -r) ($(uname -m))\n"
+                    hw_info+=" ${C_CYAN}›› Memory  :${C_RESET} $(free -h | awk '/Mem:/ {print $3 " / " $2}')\n"
+                    hw_info+=" ${C_CYAN}›› Storage :${C_RESET} $(df -h $HOME | awk 'NR==2 {print $4 " available"}')\n"
+                    hw_info+=" ${C_CYAN}›› Uptime  :${C_RESET} $(uptime -p | sed 's/up //')\n"
+                    
+                    echo -e "$hw_info" | fzf --ansi \
+                        --height=8 \
+                        --layout=reverse \
+                        --border=bottom \
+                        --border-label=" :: HARDWARE STATUS :: " \
+                        --prompt=" :: hw › " \
+                        --header=" :: Esc to Return :: " \
+                        --pointer=" " \
+                        --info=hidden \
+                        --color="fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:211" \
+                        --color="prompt:211,border:211,header:240" \
+                        --bind="resize:clear-screen" > /dev/null
+                        
+                elif [ "$target_sub" == "sys" ]; then
+                    local sys_info=""
+                    sys_info+=" ${C_PURPLE}›› Identity  :${C_RESET} ${MUX_ID:-Unknown} / ${MUX_ROLE:-GUEST}\n"
+                    sys_info+=" ${C_PURPLE}›› Clearance :${C_RESET} Level ${MUX_LEVEL:-1} (${MUX_XP:-0} / ${MUX_NEXT_XP:-2000})\n"
+                    sys_info+=" ${C_PURPLE}›› Reborn    :${C_RESET} Iteration ${MUX_REBORN_COUNT:-0}\n"
+                    sys_info+=" ${C_PURPLE}›› Timeline  :${C_RESET} v${MUX_VERSION} / $(git symbolic-ref --short HEAD 2>/dev/null)\n"
+                    sys_info+=" ${C_PURPLE}›› Mode      :${C_RESET} ${MUX_MODE} / ${MUX_STATUS}\n"
+                    if [ -n "$MUX_ENTRY_POINT" ]; then
+                        sys_info+=" ${C_PURPLE}›› Entry     :${C_RESET} ${MUX_ENTRY_POINT}\n"
+                    fi
+                    
+                    if command -v _check_active_buffs &> /dev/null; then
+                        _check_active_buffs
+                        local buff_tag="$MUX_BUFF_TAG"
+                        if [ -n "$buff_tag" ]; then
+                            sys_info+=" ${C_PURPLE}›› Buff      :${C_RESET} ${buff_tag}\n"
+                        fi
+                    fi
+                    
+                    local line_count=$(echo -e "$sys_info" | wc -l)
+                    local sys_h=$(( line_count + 4 ))
+                    
+                    echo -e "$sys_info" | fzf --ansi \
+                        --height="$sys_h" \
+                        --layout=reverse \
+                        --border=bottom \
+                        --border-label=" :: SYSTEM CORE STATUS :: " \
+                        --prompt=" :: sys › " \
+                        --header=" :: Esc to Return :: " \
+                        --pointer=" " \
+                        --info=hidden \
+                        --color="fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:211" \
+                        --color="prompt:211,border:211,header:240" \
+                        --bind="resize:clear-screen" > /dev/null
+                        
+                elif [ "$target_sub" == "mod" ]; then
+                    local setting_file="$HOME/mux-os/.setting"
+                    local mod_info=""
+                    if [ -f "$setting_file" ]; then
+                        while IFS='=' read -r key val; do
+                            val=$(echo "$val" | tr -d '"')
+                            if [[ "$val" == "true" || "$val" == "forever" ]]; then
+                                mod_info+=" ${C_GREEN}[ONLINE]${C_RESET}  ${C_WHITE}${key}${C_RESET}\n"
+                           elif [[ "$val" == "false" ]]; then
+                                mod_info+=" ${C_RED}[OFFLINE]${C_RESET} ${C_GRAY}${key}${C_RESET}\n"
+                            else
+                                if [ -z "$val" ]; then
+                                    mod_info+=" ${C_YELLOW}[VALUE]${C_RESET}   ${C_WHITE}${key}${C_RESET} = ${C_RED}[Empty]${C_RESET}\n"
+                                else
+                                    mod_info+=" ${C_YELLOW}[VALUE]${C_RESET}   ${C_WHITE}${key}${C_RESET} = ${C_CYAN}${val}${C_RESET}\n"
+                                fi
+                            fi
+                        done < "$setting_file"
+                    else
+                        mod_info="${C_RED} [Error] .setting file not found.${C_RESET}\n"
+                    fi
+                    
+                    local line_count=$(echo -e "$mod_info" | wc -l)
+                    local mod_h=$(( line_count + 4 ))
+                    
+                    echo -e "$mod_info" | fzf --ansi \
+                        --height="$mod_h" \
+                        --layout=reverse \
+                        --border=bottom \
+                        --border-label=" :: MODULE CONFIGURATIONS :: " \
+                        --prompt=" :: mod › " \
+                        --header=" :: Esc to Return :: " \
+                        --pointer=" " \
+                        --info=hidden \
+                        --color="fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:211" \
+                        --color="prompt:211,border:211,header:240" \
+                        --bind="resize:clear-screen" > /dev/null
+                else
+                    echo -e "${C_RED} :: Invalid status target: $target_sub${C_RESET}"
+                    break
+                fi
+
+                if [ -n "$2" ]; then break; else target_sub=""; fi
+            done
+            ;;
+
         # : System 'cd' Override
         "cd")
             export CMT_COMMAND="true"
@@ -1390,32 +1520,46 @@ function __tct_core() {
 
         # : Dynamic Core Configurator
         "core")
-            if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
-                echo -e "${C_PINKMEOW} :: Meow meow! (Which box should I sit in today?) ฅ( ̳• ◡ • ̳)ฅ${C_RESET}"
-            else
-                echo -e "${C_PINKMEOW} :: Roger that, Commander! Which core module should we tweak today? (*≧ω≦)${C_RESET}"
+            local target_key="$2"
+            
+            if [ -z "$target_key" ]; then
+                if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
+                    echo -e "${C_PINKMEOW} :: Meow meow! (Which box should I sit in today?) ฅ( ̳• ◡ • ̳)ฅ${C_RESET}"
+                else
+                    echo -e "${C_PINKMEOW} :: Roger that, Commander! Which core module should we tweak today? (*≧ω≦)${C_RESET}"
+                fi
             fi
             
             while true; do
-                local target_key=$(_ui_tct_core_radar)
-                if [ -z "$target_key" ]; then break; fi
+                if [ -z "$target_key" ]; then
+                    target_key=$(_ui_tct_core_radar)
+                    if [ -z "$target_key" ]; then break; fi
+                fi
                 
                 # 取得當前狀態與描述
                 local current_val="${!target_key}"
                 local reg_data=$(_ui_tct_core_registry "$target_key" "$current_val")
+                local show_ui=$(echo "$reg_data" | cut -d'|' -f1)
+                
+                if [ "$show_ui" != "Y" ]; then
+                    echo -e "${C_RED} :: Invalid or locked core module: $target_key${C_RESET}"
+                    if [ -n "$2" ]; then break; else target_key=""; continue; fi
+                fi
+                
                 local ui_name=$(echo "$reg_data" | cut -d'|' -f2)
                 local ui_desc=$(echo "$reg_data" | cut -d'|' -f3)
 
-                echo -e "${C_CYAN} :: Mux-OS Core Inspector ::${C_RESET}"
+                clear
+                echo -e "${C_CYAN} :: MUX-OS CORE INSPECTOR ::${C_RESET}"
                 echo -e "${THEME_SUB}    ›› Module : ${C_WHITE}${ui_name}${C_RESET}"
                 echo -e "${THEME_DESC}    ›› Desc   : ${ui_desc}${C_RESET}"
                 
                 local sub_menu=""
                 if [[ "$current_val" == "true" || "$current_val" == "forever" ]]; then
-                    echo -e "${THEME_SUB}    ›› Status : ${C_GREEN}[ONLINE]${C_RESET}"
+                    echo -e "${THEME_SUB}    ›› Status : ${C_GREEN}[ONLINE]${C_RESET}\n"
                     sub_menu="${C_RED}[Release]${C_RESET} Disengage Module"
                 else
-                    echo -e "${THEME_SUB}    ›› Status : ${C_RED}[OFFLINE]${C_RESET}"
+                    echo -e "${THEME_SUB}    ›› Status : ${C_RED}[OFFLINE]${C_RESET}\n"
                     sub_menu="${C_GREEN}[Overwrite]${C_RESET} Engage Module"
                 fi
 
@@ -1523,8 +1667,15 @@ function __tct_core() {
                     else
                         echo -e "${C_PINKMEOW} :: All done! ( * 'w' )✧${C_RESET}"
                     fi
-                    sleep 1.4
+                    sleep 0.5
                     break
+                else
+                    if [ -n "$2" ]; then
+                        break
+                    else
+                        target_key=""
+                        continue
+                    fi
                 fi
             done
             ;;
