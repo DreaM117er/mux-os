@@ -1364,7 +1364,7 @@ function __tct_core() {
                     menu_items+="${C_PURPLE}[sys]${C_RESET}\tSystem Core Status\n"
                     menu_items+="${C_GREEN}[mod]${C_RESET}\tModule Configurations\n"
                     
-                    local action=$(echo -e "$menu_items" | fzf --ansi \
+                    local action=$(echo -e "${menu_items%\\n}" | fzf --ansi \
                         --height=7 \
                         --layout=reverse \
                         --border=bottom \
@@ -1462,7 +1462,7 @@ function __tct_core() {
                     local line_count=$(echo -e "$mod_info" | wc -l)
                     local mod_h=$(( line_count + 4 ))
                     
-                    echo -e "$mod_info" | fzf --ansi \
+                    echo -e "${mod_info%\\n}" | fzf --ansi \
                         --height="$mod_h" \
                         --layout=reverse \
                         --border=bottom \
@@ -1549,8 +1549,7 @@ function __tct_core() {
                 local ui_name=$(echo "$reg_data" | cut -d'|' -f2)
                 local ui_desc=$(echo "$reg_data" | cut -d'|' -f3)
 
-                clear
-                echo -e "${C_CYAN} :: MUX-OS CORE INSPECTOR ::${C_RESET}"
+                echo -e "${C_CYAN} :: Mux-OS Core Inspector ::${C_RESET}"
                 echo -e "${THEME_SUB}    ›› Module : ${C_WHITE}${ui_name}${C_RESET}"
                 echo -e "${THEME_DESC}    ›› Desc   : ${ui_desc}${C_RESET}"
                 
@@ -1667,7 +1666,7 @@ function __tct_core() {
                     else
                         echo -e "${C_PINKMEOW} :: All done! ( * 'w' )✧${C_RESET}"
                     fi
-                    sleep 0.5
+                    sleep 0.2
                     break
                 else
                     if [ -n "$2" ]; then
