@@ -230,7 +230,7 @@ function _install_protocol() {
 
     echo ""
     echo -e "${C_YELLOW} :: Executing Protocol...${C_RESET}"
-
+    
     PACKAGES=(ncurses-utils git termux-api gh)
     for pkg in "${PACKAGES[@]}"; do
         if ! command -v "$pkg" &> /dev/null; then
@@ -466,6 +466,7 @@ function _uninstall_protocol() {
 _banner
 
 if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
+    if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
     echo -e "${C_CYAN} :: System Status: ${C_GREEN}ONLINE${C_RESET} ${C_GRAY}(Commander: $COMMANDER_ID)${C_RESET}"
     echo -e "${C_CYAN} :: Active Dimension: ${C_YELLOW}$CURRENT_MODE${C_RESET}"
     echo ""
