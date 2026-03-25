@@ -220,8 +220,8 @@ function _tct_tns_macro() {
             --pointer="››" \
             --border=bottom \
             --border-label=" :: PARAMETER HUD :: " \
-            --color="fg:white,bg:-1,hl:51,fg+:white,bg+:235,hl+:51,info:240" \
-            --color="pointer:red,border:51,header:240,prompt:51"
+            --color="fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:211,info:240" \
+            --color="pointer:red,border:211,header:240,prompt:211"
             )
 
     # 寫回終端機
@@ -241,7 +241,6 @@ function _tct_tns_macro() {
         fi
     fi
 }
-
 
 # 戰術操作艙子模組 (Action Menu Sub-Module)
 function _tct_file_action_menu() {
@@ -404,8 +403,9 @@ function cd() {
         local ui_prompt=" :: $display_prompt › "
         [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › cd › $display_prompt :: "
 
-        local raw_output
-        raw_output=$(_ui_tct_nav_radar "$menu_items" "$ui_prompt" "$dynamic_height" "TARGET DIRECTORY" "211" " :: Enter to Select, Esc to Return ::")
+        local border_lbl="TARGET DIRECTORY"
+        [ "$MUX_ENTRY_POINT" == "MEOW" ] && border_lbl="CARDBOARD BOX SCANNER"
+        local raw_output=$(_ui_tct_nav_radar "$menu_items" "$ui_prompt" "$dynamic_height" "$border_lbl" "211" " :: Enter to Select, Esc to Return ::")
 
         local raw_target=$(echo "$raw_output" | tail -n +2)
 
@@ -589,8 +589,9 @@ function ls() {
         local ui_prompt=" :: $display_prompt › "
         [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › ls › $display_prompt :: "
 
-        local raw_output
-        raw_output=$(_ui_tct_nav_radar "$menu_items" "$ui_prompt" "$dynamic_height" "FILE SCANNER" "46" " :: Enter to Inspect, Esc to Return ::")
+        local border_lbl="FILE SCANNER"
+        [ "$MUX_ENTRY_POINT" == "MEOW" ] && border_lbl="SNIFFING AROUND"
+        local raw_output=$(_ui_tct_nav_radar "$menu_items" "$ui_prompt" "$dynamic_height" "$border_lbl" "46" " :: Enter to Inspect, Esc to Return ::")
 
         local raw_target=$(echo "$raw_output" | tail -n +2)
 
@@ -811,8 +812,9 @@ function __core_rm() {
         [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
         # 呼叫TCT模組
-        local raw_output
-        raw_output=$(_ui_tct_tactical_radar "$menu_items" "$ui_prompt" "$dynamic_height" "TACTICAL DESTRUCTOR" "196")
+        local border_lbl="TACTICAL DESTRUCTOR"
+        [ "$MUX_ENTRY_POINT" == "MEOW" ] && border_lbl="PUSHING OFF THE TABLE"
+        local raw_output=$(_ui_tct_tactical_radar "$menu_items" "$ui_prompt" "$dynamic_height" "$border_lbl" "196")
 
         local selections=$(echo "$raw_output" | tail -n +2)
 
@@ -956,8 +958,9 @@ function __core_mv() {
         local dynamic_height=$(( line_count + 4 ))
         [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
-        local raw_output
-        raw_output=$(_ui_tct_tactical_radar "$menu_items" "$ui_prompt" "$dynamic_height" "TACTICAL RELOCATOR" "220")
+        local border_lbl="TACTICAL RELOCATOR"
+        [ "$MUX_ENTRY_POINT" == "MEOW" ] && border_lbl="DRAGGING TO THE BED"
+        local raw_output=$(_ui_tct_tactical_radar "$menu_items" "$ui_prompt" "$dynamic_height" "$border_lbl" "220")
 
         local selections=$(echo "$raw_output" | tail -n +2)
 
@@ -1128,8 +1131,9 @@ function __core_cp() {
         local dynamic_height=$(( line_count + 4 ))
         [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
-        local raw_output
-        raw_output=$(_ui_tct_tactical_radar "$menu_items" "$ui_prompt" "$dynamic_height" "TACTICAL CLONER" "33")
+        local border_lbl="TACTICAL CLONER"
+        [ "$MUX_ENTRY_POINT" == "MEOW" ] && border_lbl="CLONING THE FISH"
+        local raw_output=$(_ui_tct_tactical_radar "$menu_items" "$ui_prompt" "$dynamic_height" "$border_lbl" "33")
 
         local selections=$(echo "$raw_output" | tail -n +2)
 
@@ -1349,6 +1353,136 @@ function __tct_core() {
     fi
     
     case "$cmd" in
+        # : Show Command Tower Status Panel
+        "status"|"sts")
+            local target_sub="$2"
+            
+            while true; do
+                if [ -z "$target_sub" ]; then
+                    local menu_items=""
+                    menu_items+="${C_CYAN}[hw]${C_RESET}\tHardware Status\n"
+                    menu_items+="${C_PURPLE}[sys]${C_RESET}\tSystem Core Status\n"
+                    menu_items+="${C_GREEN}[mod]${C_RESET}\tModule Configurations\n"
+                    
+                    local action=$(echo -e "${menu_items%\\n}" | fzf --ansi \
+                        --height=7 \
+                        --layout=reverse \
+                        --border=bottom \
+                        --border-label=" :: STATUS INSPECTOR :: " \
+                        --header=" :: Enter to View, Esc to Exit :: " \
+                        --prompt=" :: cmt › status › " \
+                        --pointer="››" \
+                        --info=hidden \
+                        --color="fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:211" \
+                        --color="prompt:211,pointer:red,border:211,header:240" \
+                        --bind="resize:clear-screen"
+                    )
+                    
+                    target_sub=$(echo "$action" | grep -o '\[.*\]' | tr -d '[]')
+                    if [ -z "$target_sub" ]; then break; fi
+                fi
+                
+                if [ "$target_sub" == "hw" ]; then
+                    local hw_info=""
+                    hw_info+=" ${C_CYAN}›› Kernel  :${C_RESET} $(uname -r) ($(uname -m))\n"
+                    hw_info+=" ${C_CYAN}›› Memory  :${C_RESET} $(free -h | awk '/Mem:/ {print $3 " / " $2}')\n"
+                    hw_info+=" ${C_CYAN}›› Storage :${C_RESET} $(df -h $HOME | awk 'NR==2 {print $4 " available"}')\n"
+                    hw_info+=" ${C_CYAN}›› Uptime  :${C_RESET} $(uptime -p | sed 's/up //')\n"
+                    
+                    echo -e "${hw_info%\\n}" | fzf --ansi \
+                        --height=8 \
+                        --layout=reverse \
+                        --border=bottom \
+                        --border-label=" :: HARDWARE STATUS :: " \
+                        --prompt=" :: hw › " \
+                        --header=" :: Esc to Return :: " \
+                        --pointer=" " \
+                        --info=hidden \
+                        --color="fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:211" \
+                        --color="prompt:211,border:211,header:240" \
+                        --bind="resize:clear-screen" > /dev/null
+                        
+                elif [ "$target_sub" == "sys" ]; then
+                    local sys_info=""
+                    sys_info+=" ${C_PURPLE}›› Identity  :${C_RESET} ${MUX_ID:-Unknown} / ${MUX_ROLE:-GUEST}\n"
+                    sys_info+=" ${C_PURPLE}›› Clearance :${C_RESET} Level ${MUX_LEVEL:-1} (${MUX_XP:-0} / ${MUX_NEXT_XP:-2000})\n"
+                    sys_info+=" ${C_PURPLE}›› Reborn    :${C_RESET} Iteration ${MUX_REBORN_COUNT:-0}\n"
+                    sys_info+=" ${C_PURPLE}›› Timeline  :${C_RESET} v${MUX_VERSION} / $(git symbolic-ref --short HEAD 2>/dev/null)\n"
+                    sys_info+=" ${C_PURPLE}›› Mode      :${C_RESET} ${MUX_MODE} / ${MUX_STATUS}\n"
+                    if [ -n "$MUX_ENTRY_POINT" ]; then
+                        sys_info+=" ${C_PURPLE}›› Entry     :${C_RESET} ${MUX_ENTRY_POINT}\n"
+                    fi
+                    
+                    if command -v _check_active_buffs &> /dev/null; then
+                        _check_active_buffs
+                        local buff_tag="$MUX_BUFF_TAG"
+                        if [ -n "$buff_tag" ]; then
+                            sys_info+=" ${C_PURPLE}›› Buff      :${C_RESET} ${buff_tag}\n"
+                        fi
+                    fi
+                    
+                    local line_count=$(echo -e "$sys_info" | wc -l)
+                    local sys_h=$(( line_count + 4 ))
+                    
+                    echo -e "${sys_info%\\n}" | fzf --ansi \
+                        --height="$sys_h" \
+                        --layout=reverse \
+                        --border=bottom \
+                        --border-label=" :: SYSTEM CORE STATUS :: " \
+                        --prompt=" :: sys › " \
+                        --header=" :: Esc to Return :: " \
+                        --pointer=" " \
+                        --info=hidden \
+                        --color="fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:211" \
+                        --color="prompt:211,border:211,header:240" \
+                        --bind="resize:clear-screen" > /dev/null
+                        
+                elif [ "$target_sub" == "mod" ]; then
+                    local setting_file="$HOME/mux-os/.setting"
+                    local mod_info=""
+                    if [ -f "$setting_file" ]; then
+                        while IFS='=' read -r key val; do
+                            val=$(echo "$val" | tr -d '"')
+                            if [[ "$val" == "true" || "$val" == "forever" ]]; then
+                                mod_info+=" ${C_GREEN}[ONLINE]${C_RESET}  ${C_WHITE}${key}${C_RESET}\n"
+                           elif [[ "$val" == "false" ]]; then
+                                mod_info+=" ${C_RED}[OFFLINE]${C_RESET} ${C_GRAY}${key}${C_RESET}\n"
+                            else
+                                if [ -z "$val" ]; then
+                                    mod_info+=" ${C_YELLOW}[VALUE]${C_RESET}   ${C_WHITE}${key}${C_RESET} = ${C_RED}[Empty]${C_RESET}\n"
+                                else
+                                    mod_info+=" ${C_YELLOW}[VALUE]${C_RESET}   ${C_WHITE}${key}${C_RESET} = ${C_CYAN}${val}${C_RESET}\n"
+                                fi
+                            fi
+                        done < "$setting_file"
+                    else
+                        mod_info="${C_RED} [Error] .setting file not found.${C_RESET}\n"
+                    fi
+                    
+                    local line_count=$(echo -e "$mod_info" | wc -l)
+                    local mod_h=$(( line_count + 4 ))
+                    
+                    echo -e "${mod_info%\\n}" | fzf --ansi \
+                        --height="$mod_h" \
+                        --layout=reverse \
+                        --border=bottom \
+                        --border-label=" :: MODULE CONFIGURATIONS :: " \
+                        --prompt=" :: mod › " \
+                        --header=" :: Esc to Return :: " \
+                        --pointer=" " \
+                        --info=hidden \
+                        --color="fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:211" \
+                        --color="prompt:211,border:211,header:240" \
+                        --bind="resize:clear-screen" > /dev/null
+                else
+                    echo -e "${C_RED} :: Invalid status target: $target_sub${C_RESET}"
+                    break
+                fi
+
+                if [ -n "$2" ]; then break; else target_sub=""; fi
+            done
+            ;;
+
         # : System 'cd' Override
         "cd")
             export CMT_COMMAND="true"
@@ -1384,67 +1518,165 @@ function __tct_core() {
             unset CMT_COMMAND
             ;;
 
-        # : Overwrite Command Toggle
-        "set")
-            local target_cmd="$2"
-            if [ -z "$target_cmd" ]; then
-                echo -e "${C_PINKMEOW} :: Commander, set what? (・_・)${C_RESET}"
-                return 1
+        # : Dynamic Core Configurator
+        "core")
+            local target_key="$2"
+            
+            if [ -z "$target_key" ]; then
+                if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
+                    echo -e "${C_PINKMEOW} :: Meow meow! (Which box should I sit in today?) ฅ( ̳• ◡ • ̳)ฅ${C_RESET}"
+                else
+                    echo -e "${C_PINKMEOW} :: Roger that, Commander! Which core module should we tweak today? (*≧ω≦)${C_RESET}"
+                fi
             fi
             
-            case "$target_cmd" in
-                "unix")
-                    _update_setting "COMMAND_UNIX" "forever"
-                    echo -e "${C_GREEN} :: UNIX Tactical Radar [ONLINE] (cd, ls, rm)${C_RESET}"
-                    ;;
-
-                "jail")
-                    _update_setting "TCT_RADAR_JAIL" "forever"
-                    echo -e "${C_PINKMEOW} :: Radar Jail Locked FOREVER! (*≧ω≦)${C_RESET}"
-                    ;;
-
-                "hidden")
-                    _update_setting "TCT_RADAR_HIDDEN" "forever"
-                    echo -e "${C_PINKMEOW} :: Hidden files revealed FOREVER! (*≧ω≦)${C_RESET}"
-                    ;;
-
-                *)
-                    echo -e "${C_PINKMEOW} :: I don't know how to unset '$target_cmd'... (；´д｀)ゞ${C_RESET}"
-                    return 1
-                    ;;
-            esac
-            ;;
-
-        # : Overwrite Command Toggle
-        "unset")
-            local target_cmd="$2"
-            if [ -z "$target_cmd" ]; then
-                echo -e "${C_PINKMEOW} :: Commander, unset what? (・_・)${C_RESET}"
-                return 1
-            fi
-            
-            case "$target_cmd" in
-                "unix")
-                    _update_setting "COMMAND_UNIX" "false"
-                    echo -e "${C_GREEN} :: UNIX Tactical Radar [OFFLINE] (cd, ls, rm)${C_RESET}"
-                    ;;
-
-                "jail")
-                    _update_setting "TCT_RADAR_JAIL" "false"
-                    echo -e "${C_YELLOW} :: Radar Jail [OFFLINE]${C_RESET}"
-                    ;;
-
-                "hidden")
-                    _update_setting "TCT_RADAR_HIDDEN" "false"
-                    echo -e "${C_YELLOW} :: Hidden files revealed [OFFLINE]${C_RESET}"
-                    ;;
-
-                *)
-                    echo -e "${C_PINKMEOW} :: I don't know how to unset '$target_cmd'... (；´д｀)ゞ${C_RESET}"
-                    return 1
-                    ;;
+            while true; do
+                if [ -z "$target_key" ]; then
+                    target_key=$(_ui_tct_core_radar)
+                    if [ -z "$target_key" ]; then break; fi
+                fi
                 
-            esac
+                # 取得當前狀態與描述
+                local current_val="${!target_key}"
+                local reg_data=$(_ui_tct_core_registry "$target_key" "$current_val")
+                local show_ui=$(echo "$reg_data" | cut -d'|' -f1)
+                
+                if [ "$show_ui" != "Y" ]; then
+                    echo -e "${C_RED} :: Invalid or locked core module: $target_key${C_RESET}"
+                    if [ -n "$2" ]; then break; else target_key=""; continue; fi
+                fi
+                
+                local ui_name=$(echo "$reg_data" | cut -d'|' -f2)
+                local ui_desc=$(echo "$reg_data" | cut -d'|' -f3)
+
+                echo -e "${C_CYAN} :: Mux-OS Core Inspector ::${C_RESET}"
+                echo -e "${THEME_SUB}    ›› Module : ${C_WHITE}${ui_name}${C_RESET}"
+                echo -e "${THEME_DESC}    ›› Desc   : ${ui_desc}${C_RESET}"
+                
+                local sub_menu=""
+                if [[ "$current_val" == "true" || "$current_val" == "forever" ]]; then
+                    echo -e "${THEME_SUB}    ›› Status : ${C_GREEN}[ONLINE]${C_RESET}\n"
+                    sub_menu="${C_RED}[Release]${C_RESET} Disengage Module"
+                else
+                    echo -e "${THEME_SUB}    ›› Status : ${C_RED}[OFFLINE]${C_RESET}\n"
+                    sub_menu="${C_GREEN}[Overwrite]${C_RESET} Engage Module"
+                fi
+
+                # 子選單確認
+                local action=$(echo -e "${sub_menu%\\n}" | fzf --ansi \
+                    --height=5 \
+                    --layout=reverse \
+                    --prompt=" :: Action › " \
+                    --pointer="››" \
+                    --info=hidden \
+                    --border=bottom \
+                    --border-label=" :: STATUS CHANGE :: " \
+                    --header=" :: Enter to Choose, Esc to exit :: " \
+                    --color="fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:211,info:240" \
+                    --color="pointer:red,border:211,header:240,prompt:211" \
+                    --bind="resize:clear-screen"
+                )
+                local clean_action=$(echo "$action" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
+
+                if [ -n "$clean_action" ]; then
+                    echo ""
+                    local sys_logs=()
+                    local new_state=""
+                    local final_color=""
+                    local final_status=""
+                    local finish_msg=""
+                    
+                    if [ "$clean_action" == "[Overwrite]" ]; then
+                        if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
+                            echo -e "${C_PINKMEOW} :: Meow! (Purring protocol [${ui_name}] engaged!) 🐾${C_RESET}"
+                            sleep 0.6; echo ""
+                            echo -e "${C_PURPLE} :: Initiating feline overwrite sequence...${C_RESET}"
+                            sys_logs=(
+                                "Sniffing system core."
+                                "Biting the native cables."
+                                "Sitting on the keyboard."
+                                "Paws guard system active."
+                            )
+                            finish_msg="Meow-jacking complete. Direct core access secured... Purr."
+                        else
+                            echo -e "${C_PINKMEOW} :: Got it! Engaging the [${ui_name}] protocol now. Watch this...${C_RESET}"
+                            sleep 0.6; echo ""
+                            echo -e "${C_PURPLE} :: Initiating core overwrite sequence...${C_RESET}"
+                            sys_logs=(
+                                "Entering system core."
+                                "Attempting to hijack native inputs."
+                                "tty output stabilized."
+                                "Bypass guard system active."
+                            )
+                            finish_msg="System hijacking complete. Direct core access secured... OK."
+                        fi
+                        new_state="forever"
+                        final_color="$C_GREEN"
+                        final_status="[ONLINE]"
+                        
+                    elif [ "$clean_action" == "[Release]" ]; then
+                        if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
+                            echo -e "${C_PINKMEOW} :: Meow~ (Leaving [${ui_name}] box...) 😿${C_RESET}"
+                            sleep 0.6; echo ""
+                            echo -e "${C_PURPLE} :: Initiating feline release sequence...${C_RESET}"
+                            sys_logs=(
+                                "Getting off the tactical HUD."
+                                "Spitting out native shell paths."
+                                "Walking away from tty output."
+                                "Paws guard system dormant."
+                            )
+                            finish_msg="Box released. Base directives restored... Meow."
+                        else
+                            echo -e "${C_PINKMEOW} :: Understood! Releasing control of [${ui_name}] back to the base system...${C_RESET}"
+                            sleep 0.6; echo ""
+                            echo -e "${C_PURPLE} :: Initiating core release sequence...${C_RESET}"
+                            sys_logs=(
+                                "Detaching tactical HUD overlays."
+                                "Restoring native shell paths."
+                                "tty output reverted to standard."
+                                "Bypass guard system dormant."
+                            )
+                            finish_msg="System released. Base directives restored... OK."
+                        fi
+                        new_state="false"
+                        final_color="$C_RED"
+                        final_status="[OFFLINE]"
+                    fi
+
+                    sleep 0.8
+                    for log in "${sys_logs[@]}"; do
+                        echo -e "${C_BLACK}    › $log${C_RESET}"
+                        sleep "0.$(( RANDOM % 3 + 2 ))"
+                    done
+                    
+                    _update_setting "$target_key" "$new_state"
+                    echo ""
+                    echo -e "${C_PINKMEOW} :: ${finish_msg}${C_RESET}"
+                    sleep 0.2
+                    echo -e "${C_BLACK}    › $ui_name Status: ${final_color}$final_status${C_RESET}"
+                    sleep 0.4
+                    
+                    echo ""
+                    if command -v _assistant_voice &> /dev/null; then
+                        if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
+                            _assistant_voice "success" "Meow! (Terminal is yours again!)"
+                        else
+                            _assistant_voice "success" "Return control of the terminal to the user."
+                        fi
+                    else
+                        echo -e "${C_PINKMEOW} :: All done! ( * 'w' )✧${C_RESET}"
+                    fi
+                    sleep 0.2
+                    break
+                else
+                    if [ -n "$2" ]; then
+                        break
+                    else
+                        target_key=""
+                        continue
+                    fi
+                fi
+            done
             ;;
 
         # : Exit Command Tower
