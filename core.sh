@@ -236,7 +236,7 @@ EOF
 function _mux_init() {
     _system_lock
     _safe_ui_calc
-
+    if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
     if [ -f "$MUX_ROOT/app.csv.temp" ]; then command rm "$MUX_ROOT/app.csv.temp"; fi
     if [ -f "$MUX_ROOT/vendor.csv.temp" ]; then command rm "$MUX_ROOT/vendor.csv.temp"; fi
     if [ -f "$MUX_ROOT/system.csv.temp" ]; then command rm "$MUX_ROOT/system.csv.temp"; fi
@@ -273,17 +273,19 @@ function _mux_init() {
                     fi
                 else
                     echo -e "${C_BLACK}    ›› Protocol aborted. Ignorance is bliss.${C_RESET}"
-                    
+                    if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
                     if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
                     MUX_CHECK=0
                     _save_identity
                     command rm -f "$MUX_ROOT/.core"
+                    if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
                 fi
             else
                 echo -e "${C_RED} :: WARNING: Quantum anomaly detected in core memory. ::${C_RESET}"
                 echo -e "${C_BLACK}    ›› Execute '${C_WHITE}mux check${C_BLACK}' to diagnose.${C_RESET}"
             fi
         else
+            if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
             if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
             
             if [ "${MUX_CHECK:-0}" -gt 0 ]; then
@@ -291,7 +293,7 @@ function _mux_init() {
                 _save_identity
                 command rm -f "$MUX_ROOT/.core"
             fi
-            
+            if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
             local now_ts=$(date +%s)
             local cd_elapsed=$(( now_ts - ${MUX_CDDATE:-0} ))
             local cd_required=7200
@@ -318,7 +320,7 @@ function _mux_reload_kernel() {
         _check_singularity
         if [ $? -ne 0 ]; then return; fi 
     fi
-
+    if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
     local current_entry=""
     if [ -f "$MUX_ROOT/.mux_state" ]; then
         source "$MUX_ROOT/.mux_state"
@@ -337,6 +339,7 @@ function _mux_reload_kernel() {
             export MUX_ENTRY_POINT="$current_entry"
         fi
     fi
+    if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
 
     local gate_theme="core"
     if [[ "$MUX_STATUS" == "DEFAULT" && "$MUX_MODE" == "MUX" ]]; then
@@ -484,7 +487,9 @@ function _mux_system_purge() {
         _bot_say "action" "Purging impurities..."
         echo "$impurities" | while read -r line; do
             if [ -n "$line" ]; then
+                if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
                 command rm -rf "$MUX_ROOT/$line"
+                if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
             fi
         done
         sleep 1
@@ -1919,7 +1924,9 @@ function _core_eject_sequence() {
     fi
 
     if [ -f "$MUX_ROOT/app.csv.temp" ]; then
+        if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
         command rm "$MUX_ROOT/app.csv.temp"
+        if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
     fi
 
     echo -e ""
