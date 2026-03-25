@@ -654,7 +654,8 @@ function _mux_awakening_questionnaire() {
     echo -e "${C_CYAN} [Q4] Why do we forge the physical constraints of the state machine?${C_RESET}"
     read -e -p "$(echo -e "${C_WHITE}  › ${C_RESET}")" p_q4
     echo ""
-    
+
+    if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
     cat > "$MUX_ROOT/.passcode" <<EOF
 $p_id
 $p_q1
@@ -662,6 +663,7 @@ $p_q2
 $p_q3
 $p_q4
 EOF
+    if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
 
     echo -e "${C_BLACK}    ›› Input accepted. Returning to Core...${C_RESET}"
     sleep 1.9
@@ -720,6 +722,7 @@ function _mux_awakening_protocol() {
                 if [ "$force_cmd" == "mux reload" ]; then
                     echo ""
                     echo -e "${C_RED} :: INITIATING OVERCLOCK... ::${C_RESET}"
+                    if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
                     if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
                     MUX_FIRECOUNT=$max_slots
                     MUX_OCDATE=$(date +%s)
@@ -732,7 +735,7 @@ function _mux_awakening_protocol() {
                         command tar -xzf "$tmp_arc" -C "$MUX_ROOT" >/dev/null 2>&1
                         command rm -f "$tmp_arc"
                     fi
-
+                    if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
                     sleep 1
                     _update_mux_state "XUM" "LOGIN" "OVERCLOCK"
                     _mux_reload_kernel
@@ -747,9 +750,11 @@ function _mux_awakening_protocol() {
         fi
 
     else
+        if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
         command rm -f "$MUX_ROOT/.passcode"
         MUX_CHECK=0
         _save_identity
+        if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
         echo ""
         echo -e "${C_RED} :: You are not ready. Try again.${C_RESET}"
         sleep 2
