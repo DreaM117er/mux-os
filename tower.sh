@@ -1563,7 +1563,7 @@ function __tct_core() {
                 fi
 
                 # 子選單確認
-                local action=$(echo -e "$sub_menu" | fzf --ansi \
+                local action=$(echo -e "${sub_menu%\\n}" | fzf --ansi \
                     --height=5 \
                     --layout=reverse \
                     --prompt=" :: Action › " \
