@@ -336,7 +336,6 @@ function _mux_reload_kernel() {
                 current_entry=""
             fi
             _update_mux_state "TCT" "LOGIN" "$current_entry"
-            export MUX_ENTRY_POINT="$current_entry"
         fi
     fi
     if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
