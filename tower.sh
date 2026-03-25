@@ -1389,7 +1389,7 @@ function __tct_core() {
                     hw_info+=" ${C_CYAN}›› Storage :${C_RESET} $(df -h $HOME | awk 'NR==2 {print $4 " available"}')\n"
                     hw_info+=" ${C_CYAN}›› Uptime  :${C_RESET} $(uptime -p | sed 's/up //')\n"
                     
-                    echo -e "$hw_info" | fzf --ansi \
+                    echo -e "${hw_info%\\n}" | fzf --ansi \
                         --height=8 \
                         --layout=reverse \
                         --border=bottom \
@@ -1424,7 +1424,7 @@ function __tct_core() {
                     local line_count=$(echo -e "$sys_info" | wc -l)
                     local sys_h=$(( line_count + 4 ))
                     
-                    echo -e "$sys_info" | fzf --ansi \
+                    echo -e "${sys_info%\\n}" | fzf --ansi \
                         --height="$sys_h" \
                         --layout=reverse \
                         --border=bottom \

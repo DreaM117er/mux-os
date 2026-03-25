@@ -1862,7 +1862,7 @@ function _ui_tct_nav_radar() {
     local color_hl="$5"
     local header_txt="$6"
 
-    echo -e "$menu_items" | fzf --ansi \
+    echo -e "${menu_items%\\n}" | fzf --ansi \
         --print-query \
         --height="$dynamic_height" \
         --layout=reverse \
@@ -1885,7 +1885,7 @@ function _ui_tct_tactical_radar() {
     local label="$4"
     local color_hl="$5"
 
-    echo -e "$menu_items" | fzf --ansi -m \
+    echo -e "${menu_items%\\n}" | fzf --ansi -m \
         --print-query \
         --marker="‹»" \
         --height="$dynamic_height" \
@@ -1970,7 +1970,7 @@ function _ui_tct_core_radar() {
         prompt_msg=" :: meow › core › "
     fi
 
-    local selected=$(echo -e "$menu_items" | fzf --ansi \
+    local selected=$(echo -e "${menu_items%\\n}" | fzf --ansi \
         --height="$dynamic_height" \
         --layout=reverse \
         --border=bottom \
