@@ -236,7 +236,7 @@ EOF
 function _mux_init() {
     _system_lock
     _safe_ui_calc
-
+    if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
     if [ -f "$MUX_ROOT/app.csv.temp" ]; then command rm "$MUX_ROOT/app.csv.temp"; fi
     if [ -f "$MUX_ROOT/vendor.csv.temp" ]; then command rm "$MUX_ROOT/vendor.csv.temp"; fi
     if [ -f "$MUX_ROOT/system.csv.temp" ]; then command rm "$MUX_ROOT/system.csv.temp"; fi
@@ -320,7 +320,7 @@ function _mux_reload_kernel() {
         _check_singularity
         if [ $? -ne 0 ]; then return; fi 
     fi
-
+    if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
     local current_entry=""
     if [ -f "$MUX_ROOT/.mux_state" ]; then
         source "$MUX_ROOT/.mux_state"
@@ -339,6 +339,7 @@ function _mux_reload_kernel() {
             export MUX_ENTRY_POINT="$current_entry"
         fi
     fi
+    if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
 
     local gate_theme="core"
     if [[ "$MUX_STATUS" == "DEFAULT" && "$MUX_MODE" == "MUX" ]]; then
