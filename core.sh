@@ -327,7 +327,7 @@ function _mux_reload_kernel() {
         current_entry="$MUX_ENTRY_POINT"
         
         if [[ "$current_entry" == "OVERCLOCK" || "$current_entry" == "COOLDOWN" ]]; then
-            _update_mux_state "$MUX_MODE" "$MUX_STATUS"
+            _update_mux_state "$MUX_MODE" "$MUX_STATUS" ""
         elif [[ "$MUX_MODE" == "TCT" && "$MUX_STATUS" == "LOGIN" ]]; then
             # 重新計算貓咪模式會不會出現
             if [ $(( RANDOM % 100 )) -lt 15 ]; then
