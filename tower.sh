@@ -1282,7 +1282,19 @@ function _tct_init() {
 
     # 戰術導航系統
     if [ -t 0 ]; then
-        bind -x '"\C-f": _tct_tns_macro' 2>/dev/null
+        local setting_file="$HOME/mux-os/.setting"
+        if [ -f "$setting_file" ]; then source "$setting_file"; fi
+        
+        # 讀取 TCT_NAV_RADAR 狀態，如果沒設定預設為 offline (false)
+        local nav_active="${TCT_NAV_RADAR:-false}"
+        
+        if [ "$nav_active" == "true" ] || [ "$nav_active" == "forever" ]; then
+            # 狀態為 ONLINE，綁定熱鍵
+            bind -x '"\C-f": _tct_tns_macro' 2>/dev/null
+        else
+            # 狀態為 OFFLINE，確保熱鍵被解除
+            bind -r '\C-f' 2>/dev/null
+        fi
     fi
 
     # 沒有出包，就說出歡迎詞

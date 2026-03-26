@@ -1931,6 +1931,11 @@ function _ui_tct_core_registry() {
             ui_name="Hidden Files Revealer"
             ui_desc="Force all tactical radars to display hidden files (.*) by default."
             ;;
+        "TCT_NAV_RADAR")
+            show_ui="Y"
+            ui_name="Navigation Hotkey"
+            ui_desc="Bind 'Ctrl+F' to summon the Tactical HUD for the current command."
+            ;;
     esac
 
     # 回傳格式：Show(Y/N) | UI Name | Description

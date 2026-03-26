@@ -58,6 +58,7 @@ APKLIST_BACKUP_PKG="${APKLIST_BACKUP_PKG}"
 APKLIST_BACKUP_TARGET="${APKLIST_BACKUP_TARGET}"
 TCT_RADAR_JAIL="${TCT_RADAR_JAIL:-true}"
 TCT_RADAR_HIDDEN="${TCT_RADAR_HIDDEN:-false}"
+TCT_NAV_RADAR="${TCT_NAV_RADAR:-false}"
 COMMAND_UNIX="${COMMAND_UNIX:-false}"
 EOF
 }
@@ -142,6 +143,7 @@ if [ ! -f "$IDENTITY_FILE" ]; then
         # 建立預設值，並觸發存檔
         TCT_RADAR_JAIL="true"
         TCT_RADAR_HIDDEN="false"
+        TCT_NAV_RADAR="false"
         COMMAND_UNIX="false"
         _save_settings
     else
@@ -152,6 +154,7 @@ if [ ! -f "$IDENTITY_FILE" ]; then
         local setting_changed="false"
         if [ -z "$TCT_RADAR_JAIL" ]; then TCT_RADAR_JAIL="true"; setting_changed="true"; fi
         if [ -z "$TCT_RADAR_HIDDEN" ]; then TCT_RADAR_HIDDEN="false"; setting_changed="true"; fi
+        if [ -z "$TCT_NAV_RADAR" ]; then TCT_NAV_RADAR="false"; setting_changed="true"; fi
         if [ -z "$COMMAND_UNIX" ]; then COMMAND_UNIX="false"; setting_changed="true"; fi
         
         if [ "$setting_changed" == "true" ]; then
