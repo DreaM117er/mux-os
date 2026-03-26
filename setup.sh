@@ -132,6 +132,13 @@ function _mux_state_purifier() {
         fi
         sleep 0.8
     fi
+
+    C_RESET="\033[0m"
+    C_CYAN="\033[1;36m"
+    C_GREEN="\033[1;32m"
+    C_YELLOW="\033[1;33m"
+    C_RED="\033[1;31m"
+    C_BLACK="\033[1;30m"
 }
 
 # 靈魂傳輸協議
