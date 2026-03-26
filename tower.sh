@@ -1264,6 +1264,7 @@ function __core_cp() {
 # 指揮塔初始化 (Tower Initialization)
 function _tct_init() {
     _system_lock
+    _mux_state_purifier "silent"
     _safe_ui_calc
     
     clear
@@ -1446,7 +1447,7 @@ function __tct_core() {
                             if [[ "$val" == "true" || "$val" == "forever" ]]; then
                                 mod_info+=" ${C_GREEN}[ONLINE]${C_RESET}  ${C_WHITE}${key}${C_RESET}\n"
                            elif [[ "$val" == "false" ]]; then
-                                mod_info+=" ${C_RED}[OFFLINE]${C_RESET} ${C_GRAY}${key}${C_RESET}\n"
+                                mod_info+=" ${C_RED}[OFFLINE]${C_RESET} ${C_BLACK}${key}${C_RESET}\n"
                             else
                                 if [ -z "$val" ]; then
                                     mod_info+=" ${C_YELLOW}[VALUE]${C_RESET}   ${C_WHITE}${key}${C_RESET} = ${C_RED}[Empty]${C_RESET}\n"
@@ -1666,7 +1667,7 @@ function __tct_core() {
                     else
                         echo -e "${C_PINKMEOW} :: All done! ( * 'w' )✧${C_RESET}"
                     fi
-                    sleep 0.2
+                    sleep 0.5
                     break
                 else
                     if [ -n "$2" ]; then
