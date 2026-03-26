@@ -1324,35 +1324,25 @@ function __tct_core() {
     local rand_chance=$(( RANDOM % 100 ))
 
     if [ "$MUX_MODE" == "MUX" ]; then
-        if [ "$current_level" -ge 8 ]; then
-            echo -e "${C_PINKMEOW} :: Commander, are you calling me? But you're not in the Command Tower. ( • ̀ω•́ )✧"
+        if [ "$current_level" -gt 8 ] && [ "$rand_chance" -lt 60 ]; then
+            echo -e "${C_PINKMEOW} :: Commander, are you calling me? But you're not in the Command Tower. ( • ̀ω•́ )✧${C_RESET}"
         else
             if [ "$MUX_STATUS" == "DEFAULT" ]; then
-                if [ "$rand_chance" -lt 60 ]; then
-                    echo -e "${C_WHITE} :: OK, it's time to login the Command Tower gate now.${C_RESET}"
-                else
-                    echo -e "${C_PINKMEOW} :: Commander, are you calling me? But you're not in the Command Tower. ( • ̀ω•́ )✧"
-                fi
-            else
-                if [ "$rand_chance" -lt 60 ]; then
-                    echo -e "${C_WHITE} :: I need to back to Hanger first.${C_RESET}"
-                else
-                    echo -e "${C_PINKMEOW} :: Commander, are you calling me? But you're not in the Command Tower. ( • ̀ω•́ )✧"
-                fi
-            fi
-        fi
-        return 1
-    elif [ "$MUX_MODE" == "FAC" ]; then
-        if [ "$current_level" -ge 8 ]
-            if [ "$rand_chance" -lt 60 ]; then
-                echo -e "${C_PINKMEOW} :: Commander, I see you're inside the Factory. Please remember to come out of the Factory before heading to the command tower. ( • ̀ω•́ )✧"
+                echo -e "${C_WHITE} :: OK, it's time to login the Command Tower gate now.${C_RESET}"
             else
                 echo -e "${C_WHITE} :: I need to back to Hanger first.${C_RESET}"
             fi
+        fi
+        return 1
+        
+    elif [ "$MUX_MODE" == "FAC" ]; then
+        if [ "$current_level" -gt 8 ] && [ "$rand_chance" -lt 60 ]; then
+            echo -e "${C_PINKMEOW} :: Commander, I see you're inside the Factory. Please remember to come out of the Factory before heading to the command tower. ( • ̀ω•́ )✧${C_RESET}"
         else
             echo -e "${C_WHITE} :: I need to back to Hanger first.${C_RESET}"
         fi
         return 1
+        
     elif [ "$MUX_MODE" == "XUM" ]; then
         _voice_dispatch "error" "Command Tower commands disabled during the Chamber System."
         return 1
