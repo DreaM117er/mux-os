@@ -1327,16 +1327,19 @@ function __tct_core() {
         if [ "$current_level" -ge 8 ]; then
             echo -e "${C_PINKMEOW} :: Commander, are you calling me? But you're not in the Command Tower. ( • ̀ω•́ )✧"
         else
-            if [ "$MUX_STATUS" == "DEFAULT" ] && [ "$rand_chance" -lt 60 ]; then
-                echo -e "${C_WHITE} :: OK, it's time to login the Command Tower gate now.${C_RESET}"
+            if [ "$MUX_STATUS" == "DEFAULT" ]; then
+                if [ "$rand_chance" -lt 60 ]; then echo -e "${C_WHITE} :: OK, it's time to login the Command Tower gate now.${C_RESET}"
+                else echo -e "${C_PINKMEOW} :: Commander, are you calling me? But you're not in the Command Tower. ( • ̀ω•́ )✧"
             else
-                echo -e "${C_WHITE} :: I need to back to Hanger first.${C_RESET}"
+                if [ "$rand_chance" -lt 60 ]; then echo -e "${C_WHITE} :: I need to back to Hanger first.${C_RESET}"
+                else echo -e "${C_PINKMEOW} :: Commander, are you calling me? But you're not in the Command Tower. ( • ̀ω•́ )✧"
             fi
         fi
         return 1
     elif [ "$MUX_MODE" == "FAC" ]; then
-        if [ "$current_level" -ge 8 ] && [ "$rand_chance" -lt 60 ]; then
-            echo -e "${C_PINKMEOW} :: Commander, I see you're inside the Factory. Please remember to come out of the Factory before heading to the command tower. ( • ̀ω•́ )✧"
+        if [ "$current_level" -ge 8 ]
+            if [ "$rand_chance" -lt 60 ]; then echo -e "${C_PINKMEOW} :: Commander, I see you're inside the Factory. Please remember to come out of the Factory before heading to the command tower. ( • ̀ω•́ )✧"
+            else echo -e "${C_WHITE} :: I need to back to Hanger first.${C_RESET}"
         else
             echo -e "${C_WHITE} :: I need to back to Hanger first.${C_RESET}"
         fi
