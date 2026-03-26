@@ -480,6 +480,7 @@ function _fac_cmd_db() {
 # 初始化視覺效果 (Initialize Visuals)
 function _fac_init() {
     _system_lock
+    _mux_state_purifier "silent"
     _safe_ui_calc
     clear
     _draw_logo "factory"

@@ -235,6 +235,7 @@ EOF
 # 主程式初始化 (Main Initialization)
 function _mux_init() {
     _system_lock
+    _mux_state_purifier "silent"
     _safe_ui_calc
     if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
     if [ -f "$MUX_ROOT/app.csv.temp" ]; then command rm "$MUX_ROOT/app.csv.temp"; fi
@@ -314,6 +315,7 @@ function _mux_init() {
 function _mux_reload_kernel() {
     # 主函數邏輯
     _system_lock
+    _mux_state_purifier "silent"
     unset MUX_INITIALIZED
     
     if command -v _check_singularity &> /dev/null; then

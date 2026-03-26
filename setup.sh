@@ -19,7 +19,7 @@ C_CYAN="\033[1;36m"
 C_GREEN="\033[1;32m"
 C_YELLOW="\033[1;33m"
 C_RED="\033[1;31m"
-C_GRAY="\033[1;30m"
+C_BLACK="\033[1;30m"
 
 # 讀取身份檔案
 if [ -f "$MUX_ROOT/.mux_identity" ]; then
@@ -44,7 +44,7 @@ fi
 # 輔助函式：Banner
 function _banner() {
     clear
-    echo -e "${C_GRAY}"
+    echo -e "${C}"
     cat << "EOF"
   __  __                  ___  ____  
  |  \/  |_   ___  __     / _ \/ ___| 
@@ -53,16 +53,85 @@ function _banner() {
  |_|  |_|\__,_/_/\_\     \___/|____/ 
 EOF
     echo -e "${C_RESET}"
-    echo -e " ${C_GRAY}:: Lifecycle Manager :: vL.2.D ::${C_RESET}"
+    echo -e " ${C_BLACK}:: Lifecycle Manager :: vL.2.D ::${C_RESET}"
     echo ""
 }
 
 # 退出協議
 function _exit_protocol() {
     echo ""
-    echo -e "${C_GRAY}    ›› Operations complete. Returning to Core...${C_RESET}"
+    echo -e "${C_BLACK}    ›› Operations complete. Returning to Core...${C_RESET}"
     sleep 0.5
     exec bash
+}
+
+# 核心狀態淨化器 (State Purifier)
+function _mux_state_purifier() {
+    local mode="${1:-silent}" # silent 或 verbose
+    
+    # 色碼防爆
+    local c_red="\033[1;31m"
+    local c_green="\033[1;32m"
+    local c_yellow="\033[1;33m"
+    local c_black="\033[1;30m"
+    local c_reset="\033[0m"
+
+    if [ "$mode" == "verbose" ]; then
+        echo -e "${c_red} :: INITIATING STATE PURIFIER (RAM TOXICITY PROTOCOL) ::${c_reset}"
+        echo -e "${c_black}    ›› Scanning physical state machines and core colors...${c_reset}"
+    fi
+    
+    local state_files=(
+        "$HOME/mux-os/.setting"
+        "$HOME/mux-os/.mux_state"
+        "$HOME/mux-os/.mux_identity"
+    )
+    
+    local physical_keys=()
+    local polluted_count=0
+    
+    # 1. 擷取實體狀態機 (忽略註解、抓取等號前字串)
+    for file in "${state_files[@]}"; do
+        if [ -f "$file" ]; then
+            local keys=$(grep -v '^#' "$file" | grep '=' | sed 's/^export[[:space:]]*//g' | cut -d'=' -f1 | tr -d ' ')
+            for k in $keys; do physical_keys+=("$k"); done
+        fi
+    done
+    
+    # 2. 擷取 core.sh 顏色定義 (精準鎖定 export C_ 開頭，完美忽略 THEME_)
+    local core_file="$HOME/mux-os/core.sh"
+    if [ -f "$core_file" ]; then
+        local color_keys=$(grep '^export C_' "$core_file" | cut -d'=' -f1 | sed 's/^export[[:space:]]*//g' | tr -d ' ')
+        for ck in $color_keys; do physical_keys+=("$ck"); done
+    fi
+    
+    # 3. 抓取當前環境的 export 變數
+    local env_vars=($(compgen -e))
+    
+    # 4. 交叉比對並執行暴力撲殺
+    for e_var in "${env_vars[@]}"; do
+        for p_key in "${physical_keys[@]}"; do
+            if [ "$e_var" == "$p_key" ]; then
+                unset "$e_var"
+                ((polluted_count++))
+                if [ "$mode" == "verbose" ]; then
+                    echo -e "${c_black}    ›› [PURGED] ${c_red}${e_var}${c_black} has been vaporized from RAM.${c_reset}"
+                    sleep 0.05
+                fi
+                break
+            fi
+        done
+    done
+    
+    if [ "$mode" == "verbose" ]; then
+        echo ""
+        if [ "$polluted_count" -eq 0 ]; then
+            echo -e "${c_green} :: RAM is clean. No state pollution detected.${c_reset}"
+        else
+            echo -e "${c_yellow} :: Purge complete. $polluted_count contaminated variables neutralized.${c_reset}"
+        fi
+        sleep 0.8
+    fi
 }
 
 # 靈魂傳輸協議
@@ -76,7 +145,7 @@ function _restore_identity_protocol() {
     echo -ne "${C_YELLOW} :: Initiate Soul Transfer (Restore)? [Y/n]: ${C_RESET}"
     read r_choice
     if [[ "$r_choice" == "y" || "$r_choice" == "Y" || "$r_choice" == "" ]]; then
-        echo -e "${C_GRAY}    ›› Select Identity to restore:${C_RESET}"
+        echo -e "${C_BLACK}    ›› Select Identity to restore:${C_RESET}"
         local i=1
         local files=()
         # 依照時間排序，最新的在最上面
@@ -104,7 +173,7 @@ function _restore_identity_protocol() {
 function _reauth_protocol() {
     echo ""
     echo -e "${C_YELLOW} :: Identity Reset Sequence Initiated...${C_RESET}"
-    echo -e "${C_GRAY}    Current Signature: $COMMANDER_ID${C_RESET}"
+    echo -e "${C_BLACK}    Current Signature: $COMMANDER_ID${C_RESET}"
     echo ""
     
     if [ -f "$MUX_ROOT/.mux_identity" ]; then
@@ -155,9 +224,9 @@ function _backup_identity_protocol() {
         read b_choice
         if [[ "$b_choice" =~ ^[1-3]$ ]] && [ -n "${files[$b_choice]}" ]; then
             rm "${files[$b_choice]}"
-            echo -e "${C_GRAY}    ›› Old matrix purged.${C_RESET}"
+            echo -e "${C_BLACK}    ›› Old matrix purged.${C_RESET}"
         else
-            echo -e "${C_GRAY}    ›› Backup aborted.${C_RESET}"
+            echo -e "${C_BLACK}    ›› Backup aborted.${C_RESET}"
             sleep 1
             _exit_protocol
         fi
@@ -165,7 +234,7 @@ function _backup_identity_protocol() {
 
     cp "$MUX_ROOT/.mux_identity" "$target_file"
     echo -e "${C_GREEN}    ›› Identity Matrix safely cloned to Soul Vault:${C_RESET}"
-    echo -e "${C_GRAY}       $(basename "$target_file")${C_RESET}"
+    echo -e "${C_BLACK}       $(basename "$target_file")${C_RESET}"
     
     sleep 2
     _exit_protocol
@@ -175,13 +244,13 @@ function _backup_identity_protocol() {
 function _apklist_fallback_protocol() {
     echo ""
     echo -e "${C_CYAN} :: APKList Fallback Protocol ::${C_RESET}"
-    echo -e "${C_GRAY}    Enter the package name of your alternative APP for querying PKGs.${C_RESET}"
-    echo -e "${C_GRAY}    (e.g., com.example.appinspector)${C_RESET}"
+    echo -e "${C_BLACK}    Enter the package name of your alternative APP for querying PKGs.${C_RESET}"
+    echo -e "${C_BLACK}    (e.g., com.example.appinspector)${C_RESET}"
     echo -ne "${C_YELLOW} :: Fallback PKG › ${C_RESET}"
     read backup_pkg
 
-    echo -e "${C_GRAY}    Enter the TARGET Activity of your alternative APP.${C_RESET}"
-    echo -e "${C_GRAY}    (e.g., com.example.appinspector.MainActivity)${C_RESET}"
+    echo -e "${C_BLACK}    Enter the TARGET Activity of your alternative APP.${C_RESET}"
+    echo -e "${C_BLACK}    (e.g., com.example.appinspector.MainActivity)${C_RESET}"
     echo -ne "${C_YELLOW} :: Fallback TARGET › ${C_RESET}"
     read backup_target
 
@@ -220,7 +289,7 @@ function _install_protocol() {
     echo -ne "${C_GREEN} :: Proceed with installation? [Y/n]: ${C_RESET}"
     read choice
     if [[ "$choice" != "y" && "$choice" != "Y" && "$choice" != "" ]]; then
-        echo -e "${C_GRAY}    ›› Construction canceled.${C_RESET}"
+        echo -e "${C_BLACK}    ›› Construction canceled.${C_RESET}"
         if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
             _exit_protocol
         else
@@ -230,6 +299,8 @@ function _install_protocol() {
 
     echo ""
     echo -e "${C_YELLOW} :: Executing Protocol...${C_RESET}"
+
+    _mux_state_purifier "verbose"
     
     PACKAGES=(ncurses-utils git termux-api gh)
     for pkg in "${PACKAGES[@]}"; do
@@ -368,9 +439,9 @@ EOF
     if [ "${APKLIST_USED:-0}" -eq 0 ]; then
         echo ""
         echo -e "${C_YELLOW} :: INITIAL BOOT SEQUENCE CHECK ::${C_RESET}"
-        echo -e "${C_GRAY}    After login, please test if the \033[1;36m'apklist'\033[1;30m command works properly.${C_RESET}"
-        echo -e "${C_GRAY}    If not installed, please search and install \"Package Name Viewer 2.0\" from the Play Store.${C_RESET}"
-        echo -e "${C_GRAY}    If this APP is incompatible with your device, run \033[1;36m'mux setup'\033[1;30m to configure the fallback protocol.${C_RESET}"
+        echo -e "${C_BLACK}    After login, please test if the \033[1;36m'apklist'\033[1;30m command works properly.${C_RESET}"
+        echo -e "${C_BLACK}    If not installed, please search and install \"Package Name Viewer 2.0\" from the Play Store.${C_RESET}"
+        echo -e "${C_BLACK}    If this APP is incompatible with your device, run \033[1;36m'mux setup'\033[1;30m to configure the fallback protocol.${C_RESET}"
         echo ""
         echo -ne "${C_CYAN} :: Press 'Enter' to acknowledge and continue... ${C_RESET}"
         read -r  
@@ -407,7 +478,7 @@ EOF
 function _uninstall_protocol() {
     _banner
     echo -e "${C_RED} :: WARNING: Self-Destruct Sequence Requested.${C_RESET}"
-    echo -e "${C_GRAY}    This action will permanently remove Mux-OS from this terminal.${C_RESET}"
+    echo -e "${C_BLACK}    This action will permanently remove Mux-OS from this terminal.${C_RESET}"
     echo ""
 
     echo -e "${C_RED} [Destruction Manifest]${C_RESET}"
@@ -453,13 +524,13 @@ function _uninstall_protocol() {
 
     echo ""
     echo -e "${C_RED} :: System Purged. Connection Lost.${C_RESET}"
-    echo -e "${C_GRAY}    (Restart Termux to clear residual memory states)${C_RESET}"
+    echo -e "${C_BLACK}    (Restart Termux to clear residual memory states)${C_RESET}"
 
     echo ""
     echo -e "${C_CYAN} :: POST-PURGE REPORT ::${C_RESET}"
-    echo -e "${C_GRAY}    Your isolated files in '${C_YELLOW}$HOME/.trash${C_GRAY}' have been preserved.${C_RESET}"
-    echo -e "${C_GRAY}    The 30-day auto-cleanup script remains active in '${C_YELLOW}$RC_FILE${C_GRAY}'.${C_RESET}"
-    echo -e "${C_GRAY}    You may manually delete them if they are no longer required.${C_RESET}"
+    echo -e "${C_BLACK}    Your isolated files in '${C_YELLOW}$HOME/.trash${C_BLACK}' have been preserved.${C_RESET}"
+    echo -e "${C_BLACK}    The 30-day auto-cleanup script remains active in '${C_YELLOW}$RC_FILE${C_BLACK}'.${C_RESET}"
+    echo -e "${C_BLACK}    You may manually delete them if they are no longer required.${C_RESET}"
     exit 0
 }
 
@@ -467,7 +538,7 @@ _banner
 
 if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
     if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
-    echo -e "${C_CYAN} :: System Status: ${C_GREEN}ONLINE${C_RESET} ${C_GRAY}(Commander: $COMMANDER_ID)${C_RESET}"
+    echo -e "${C_CYAN} :: System Status: ${C_GREEN}ONLINE${C_RESET} ${C_BLACK}(Commander: $COMMANDER_ID)${C_RESET}"
     echo -e "${C_CYAN} :: Active Dimension: ${C_YELLOW}$CURRENT_MODE${C_RESET}"
     echo ""
     echo " [1] Repair / Reinstall (Update)"
