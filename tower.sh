@@ -1534,6 +1534,15 @@ function __tct_core() {
         # : Dynamic Core Configurator
         "core")
             local target_key="$2"
+
+            if [ -n "$target_key" ]; then
+                case "${target_key,,}" in
+                    "unix")          target_key="COMMAND_UNIX" ;;
+                    "jail")          target_key="TCT_RADAR_JAIL" ;;
+                    "hidden"|"hide") target_key="TCT_RADAR_HIDDEN" ;;
+                    "nav")   target_key="TCT_NAV_RADAR" ;;
+                esac
+            fi
             
             if [ -z "$target_key" ]; then
                 if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
@@ -1592,7 +1601,6 @@ function __tct_core() {
                 local clean_action=$(echo "$action" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
 
                 if [ -n "$clean_action" ]; then
-                    echo ""
                     local sys_logs=()
                     local new_state=""
                     local final_color=""
