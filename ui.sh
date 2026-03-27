@@ -1222,7 +1222,7 @@ function _mux_fuzzy_menu() {
         if [[ "$cmd_base" == "mux" ]]; then
             $final_cmd
         else
-            echo -e "\033[1;30m     ›› Executing: $final_cmd\033[0m"
+            echo -e "${C_BLACK}     ›› Executing: $final_cmd${C_RESET}"
             eval "$final_cmd"
         fi
     fi
@@ -1235,7 +1235,7 @@ function _factory_show_status() {
     local db_name=$(basename "$temp_file")
 
     echo -e "${THEME_MAIN} :: Neural Forge Status Report ::${C_RESET}"
-    echo -e "${THEME_DESC}    --------------------------${C_RESET}"
+    echo -e "${THEME_DESC}    ----------${C_RESET}"
 
     if [ -f "$temp_file" ]; then
         local line_count=$(wc -l < "$temp_file")
@@ -1272,7 +1272,7 @@ function _factory_show_status() {
     local atb_files=$(ls -t "$bak_dir"/${db_name}.*.atb 2>/dev/null | head -n 3)
     
     if [ -n "$atb_files" ]; then
-        [ "$found_any" -eq 1 ] && echo -e "${THEME_DESC}    --------------------------${C_RESET}"
+        [ "$found_any" -eq 1 ] && echo -e "${THEME_DESC}    ----------${C_RESET}"
         
         SAVEIFS=$IFS
         IFS=$'\n'
@@ -1294,7 +1294,7 @@ function _factory_show_status() {
         echo -e "${THEME_DESC} :: No temporal snapshots found in $bak_dir.${C_RESET}"
     fi
 
-    echo -e "${THEME_DESC}    --------------------------${C_RESET}"
+    echo -e "${THEME_DESC}    ----------${C_RESET}"
     
     if command -v _bot_say &> /dev/null; then
         _bot_say "factory" "Status report generated."
@@ -2044,7 +2044,7 @@ local theme="$1"
             color_main="${C_PINKMEOW}"
             gate_name="COMMAND TOWER"
             
-            # [修改] 擴充機率池，將卡頓門 (stalled) 加入抽籤序列
+            # 擴充機率
             local rand_door=$(( RANDOM % 100 ))
             if [ "$rand_door" -lt 15 ]; then
                 tct_mode="stalled"
@@ -2060,7 +2060,7 @@ local theme="$1"
             ;;
     esac
 
-    # 處理 XUM 模式的字元崩潰
+    # XUM 模式的字元崩潰
     if [ "$MUX_MODE" == "XUM" ] || [ "$entry_point" == "OVERCLOCK" ]; then
         local glitch_rates=(0 25 50 75 100)
         local g_rate=${glitch_rates[$((RANDOM % 5))]}
