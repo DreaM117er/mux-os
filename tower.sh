@@ -41,7 +41,7 @@ function _tct_tns_probe() {
 
     # 遇到大魔王指令：切換模式
     local parse_mode="PRECISION"
-    if [[ "$main_cmd" =~ ^(ls|tar|find|sed|grep|awk)$ ]]; then
+    if [[ "$main_cmd" =~ ^(cd|ls|tar|find|sed|grep|awk)$ ]]; then
         parse_mode="GLOBAL"
     fi
 
@@ -1285,14 +1285,11 @@ function _tct_init() {
         local setting_file="$HOME/mux-os/.setting"
         if [ -f "$setting_file" ]; then source "$setting_file"; fi
         
-        # 讀取 TCT_NAV_RADAR 狀態，如果沒設定預設為 offline (false)
+        # 讀取 NAV 狀態
         local nav_active="${TCT_NAV_RADAR:-false}"
-        
         if [ "$nav_active" == "true" ] || [ "$nav_active" == "forever" ]; then
-            # 狀態為 ONLINE，綁定熱鍵
             bind -x '"\C-f": _tct_tns_macro' 2>/dev/null
         else
-            # 狀態為 OFFLINE，確保熱鍵被解除
             bind -r '\C-f' 2>/dev/null
         fi
     fi
@@ -1334,7 +1331,6 @@ function __tct_core() {
             fi
         fi
         return 1
-        
     elif [ "$MUX_MODE" == "FAC" ]; then
         if [ "$current_level" -gt 8 ] && [ "$rand_chance" -lt 60 ]; then
             echo -e "${C_PINKMEOW} :: Commander, I see you're inside the Factory. Please remember to come out of the Factory before heading to the command tower. ( • ̀ω•́ )✧${C_RESET}"
@@ -1342,7 +1338,6 @@ function __tct_core() {
             echo -e "${C_WHITE} :: I need to back to Hanger first.${C_RESET}"
         fi
         return 1
-        
     elif [ "$MUX_MODE" == "XUM" ]; then
         _voice_dispatch "error" "Command Tower commands disabled during the Chamber System."
         return 1
@@ -1399,10 +1394,10 @@ function __tct_core() {
                 
                 if [ "$target_sub" == "hw" ]; then
                     local hw_info=""
-                    hw_info+=" ${C_CYAN}›› Kernel  :${C_RESET} $(uname -r) ($(uname -m))\n"
-                    hw_info+=" ${C_CYAN}›› Memory  :${C_RESET} $(free -h | awk '/Mem:/ {print $3 " / " $2}')\n"
-                    hw_info+=" ${C_CYAN}›› Storage :${C_RESET} $(df -h $HOME | awk 'NR==2 {print $4 " available"}')\n"
-                    hw_info+=" ${C_CYAN}›› Uptime  :${C_RESET} $(uptime -p | sed 's/up //')\n"
+                    hw_info+=" ${C_CYAN}  Kernel  :${C_RESET} $(uname -r) ($(uname -m))\n"
+                    hw_info+=" ${C_CYAN}  Memory  :${C_RESET} $(free -h | awk '/Mem:/ {print $3 " / " $2}')\n"
+                    hw_info+=" ${C_CYAN}  Storage :${C_RESET} $(df -h $HOME | awk 'NR==2 {print $4 " available"}')\n"
+                    hw_info+=" ${C_CYAN}  Uptime  :${C_RESET} $(uptime -p | sed 's/up //')\n"
                     
                     echo -e "${hw_info%\\n}" | fzf --ansi \
                         --height=8 \
@@ -1419,20 +1414,20 @@ function __tct_core() {
                         
                 elif [ "$target_sub" == "sys" ]; then
                     local sys_info=""
-                    sys_info+=" ${C_PURPLE}›› Identity  :${C_RESET} ${MUX_ID:-Unknown} / ${MUX_ROLE:-GUEST}\n"
-                    sys_info+=" ${C_PURPLE}›› Clearance :${C_RESET} Level ${MUX_LEVEL:-1} (${MUX_XP:-0} / ${MUX_NEXT_XP:-2000})\n"
-                    sys_info+=" ${C_PURPLE}›› Reborn    :${C_RESET} Iteration ${MUX_REBORN_COUNT:-0}\n"
-                    sys_info+=" ${C_PURPLE}›› Timeline  :${C_RESET} v${MUX_VERSION} / $(git symbolic-ref --short HEAD 2>/dev/null)\n"
-                    sys_info+=" ${C_PURPLE}›› Mode      :${C_RESET} ${MUX_MODE} / ${MUX_STATUS}\n"
+                    sys_info+=" ${C_PURPLE}  Identity  :${C_RESET} ${MUX_ID:-Unknown} / ${MUX_ROLE:-GUEST}\n"
+                    sys_info+=" ${C_PURPLE}  Clearance :${C_RESET} Level ${MUX_LEVEL:-1} (${MUX_XP:-0} / ${MUX_NEXT_XP:-2000})\n"
+                    sys_info+=" ${C_PURPLE}  Reborn    :${C_RESET} Iteration ${MUX_REBORN_COUNT:-0}\n"
+                    sys_info+=" ${C_PURPLE}  Timeline  :${C_RESET} v${MUX_VERSION} / $(git symbolic-ref --short HEAD 2>/dev/null)\n"
+                    sys_info+=" ${C_PURPLE}  Mode      :${C_RESET} ${MUX_MODE} / ${MUX_STATUS}\n"
                     if [ -n "$MUX_ENTRY_POINT" ]; then
-                        sys_info+=" ${C_PURPLE}›› Entry     :${C_RESET} ${MUX_ENTRY_POINT}\n"
+                        sys_info+=" ${C_PURPLE}  Entry     :${C_RESET} ${MUX_ENTRY_POINT}\n"
                     fi
                     
                     if command -v _check_active_buffs &> /dev/null; then
                         _check_active_buffs
                         local buff_tag="$MUX_BUFF_TAG"
                         if [ -n "$buff_tag" ]; then
-                            sys_info+=" ${C_PURPLE}›› Buff      :${C_RESET} ${buff_tag}\n"
+                            sys_info+=" ${C_PURPLE}  Buff      :${C_RESET} ${buff_tag}\n"
                         fi
                     fi
                     
@@ -1673,6 +1668,14 @@ function __tct_core() {
                     done
                     
                     _update_setting "$target_key" "$new_state"
+                    if [ "$target_key" == "TCT_NAV_RADAR" ] && [ -t 0 ]; then
+                        if [ "$new_state" == "forever" ]; then
+                            bind -x '"\C-f": _tct_tns_macro' 2>/dev/null
+                        else
+                            bind -r '\C-f' 2>/dev/null
+                        fi
+                    fi
+
                     echo ""
                     echo -e "${C_PINKMEOW} :: ${finish_msg}${C_RESET}"
                     sleep 0.2
