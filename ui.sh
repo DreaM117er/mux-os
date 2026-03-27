@@ -1911,7 +1911,7 @@ function _ui_tct_tactical_radar() {
 function _ui_tct_core_registry() {
     local key="$1"
     local val="$2"
-    local show_ui="N"
+    local show_ui="N"imagemagick
     local ui_name=""
     local ui_desc=""
 
@@ -1919,7 +1919,7 @@ function _ui_tct_core_registry() {
         "COMMAND_UNIX")
             show_ui="Y"
             ui_name="UNIX Tactical Radar"
-            ui_desc="Take over native commands (cd, ls, rm) and replace them with interactive HUDs."
+            ui_desc="Take over native commands (cd, ls, rm, cp, mv) and replace them with interactive HUDs."
             ;;
         "TCT_RADAR_JAIL")
             show_ui="Y"
@@ -1929,7 +1929,7 @@ function _ui_tct_core_registry() {
         "TCT_RADAR_HIDDEN")
             show_ui="Y"
             ui_name="Hidden Files Revealer"
-            ui_desc="Force all tactical radars to display hidden files (.*) by default."
+            ui_desc="Force all tactical radars to display hidden files [.*] by default."
             ;;
         "TCT_NAV_RADAR")
             show_ui="Y"
