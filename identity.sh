@@ -48,6 +48,9 @@ CMD_NANO_COUNT="${CMD_NANO_COUNT:-0}"
 CMD_CP_COUNT="${CMD_CP_COUNT:-0}"
 CMD_SED_COUNT="${CMD_SED_COUNT:-0}"
 CMD_MICRO_COUNT="${CMD_MICRO_COUNT:-0}"
+CMD_MV_COUNT="${CMD_MV_COUNT:-0}"
+CMD_RM_COUNT="${CMD_RM_COUNT:-0}"
+CMD_LS_COUNT="${CMD_LS_COUNT:-0}"
 EOF
 }
 
@@ -102,6 +105,9 @@ if [ ! -f "$IDENTITY_FILE" ]; then
         CMD_CP_COUNT=0
         CMD_SED_COUNT=0
         CMD_MICRO_COUNT=0
+        CMD_MV_COUNT=0
+        CMD_RM_COUNT=0
+        CMD_LS_COUNT=0
         
         _save_identity
     else
@@ -134,6 +140,9 @@ if [ ! -f "$IDENTITY_FILE" ]; then
             CMD_CP_COUNT=${CMD_CP_COUNT:-0}
             CMD_SED_COUNT=${CMD_SED_COUNT:-0}
             CMD_MICRO_COUNT=${CMD_MICRO_COUNT:-0}
+            CMD_MV_COUNT=${CMD_MV_COUNT:-0}
+            CMD_RM_COUNT=${CMD_RM_COUNT:-0}
+            CMD_LS_COUNT=${CMD_LS_COUNT:-0}
             
             save_required=true
         fi

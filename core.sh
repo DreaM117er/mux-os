@@ -935,7 +935,11 @@ function _mux_fs_guard() {
 }
 
 # 覆寫系統原生檔案操作指令
-function rm() { 
+function rm() {
+    if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+    CMD_RM_COUNT=$((CMD_RM_COUNT + 1))
+    _save_identity
+
     _mux_fs_guard "rm" "$@" || return 1
     if [ "$MUX_MODE" == "TCT" ] && command -v __core_rm &> /dev/null; then
         __core_rm "$@"
@@ -945,6 +949,10 @@ function rm() {
 }
 
 function cp() {
+    if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+    CMD_CP_COUNT=$((CMD_CP_COUNT + 1))
+    _save_identity
+
     _mux_fs_guard "cp" "$@" || return 1
     if [ "$MUX_MODE" == "TCT" ] && command -v __core_cp &> /dev/null; then
         __core_cp "$@"
@@ -954,6 +962,10 @@ function cp() {
 }
 
 function mv() {
+    if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+    CMD_MV_COUNT=$((CMD_MV_COUNT + 1))
+    _save_identity
+    
     _mux_fs_guard "mv" "$@" || return 1
     if [ "$MUX_MODE" == "TCT" ] && command -v __core_mv &> /dev/null; then
         __core_mv "$@"
