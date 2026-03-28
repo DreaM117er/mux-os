@@ -2012,10 +2012,10 @@ function _tower_fzf_detail_view() {
     if [ ${#file_type} -gt 35 ]; then file_type="${file_type:0:32}..."; fi
     local raw_size_kb=$(du -sk "$target_file" | awk '{print $1}')
     local file_size=$(du -sh "$target_file" | awk '{print $1}')
+    file_size=$(echo "$file_size" | sed -E 's/K$/ KB/; s/M$/ MB/; s/G$/ GB/; s/T$/ TB/')
     if [ "$raw_size_kb" -gt 1024 ]; then
-        # 使用 sed 加入千分位 (例如：8,192)
         local fmt_kb=$(echo "$raw_size_kb" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
-        file_size="${file_size} \033[1;30m(${fmt_kb} KB)\033[0m"
+        file_size="${file_size} \033[1;30m[${fmt_kb} KB]\033[0m"
     fi
     
     # 檔案權限判定
@@ -2063,15 +2063,22 @@ function _tower_fzf_detail_view() {
     # 動態伸縮欄位
     if [[ "$mime_type" == text/* || "$file_type" == *"script"* ]]; then
         local d_lines=$(wc -l < "$target_file" | awk '{print $1}')
+        d_lines=$(echo "$d_lines" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
         local d_funcs=$(grep -E -c '^(function[[:space:]]+)?[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*\(\)' "$target_file" 2>/dev/null)
         d_funcs="${d_funcs:-0}"
+        d_funcs=$(echo "$d_funcs" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
         report+="${C_LBL} Lines  :${C_RST} ${C_DYN}${d_lines}${C_RST}\n"
         report+="${C_LBL} Funcs  :${C_RST} ${C_DYN}${d_funcs} detected${C_RST}\n"
     elif [[ "$mime_type" == image/* ]]; then
         local d_resol="[N/A]"
         local d_fmt="[N/A]"
         if command -v identify &> /dev/null; then
-            d_resol=$(identify -format "%wx%h" "$target_file" 2>/dev/null)
+            local tmp_res=$(identify -format "%wx%h" "$target_file" 2>/dev/null)
+            if [ -n "$tmp_res" ]; then
+                local rw=$(echo "$tmp_res" | cut -dx -f1 | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+                local rh=$(echo "$tmp_res" | cut -dx -f2 | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+                d_resol="${rw}x${rh} px"
+            fi
             d_fmt=$(identify -format "%m" "$target_file" 2>/dev/null)
         fi
         report+="${C_LBL} Resol  :${C_RST} ${C_DYN}${d_resol}${C_RST}\n"
@@ -2087,14 +2094,17 @@ function _tower_fzf_detail_view() {
                     BEGIN {
                         m = int(t / 60);
                         s = int(t % 60);
-                        if (m > 0) printf " \\033[1;30m(%02d:%02d)\\033[0m", m, s;
+                        if (m > 0) printf " \\033[1;30m[%02d:%02d]\\033[0m", m, s;
                     }
                 ')
                 d_len="${sec_str}${fmt_time}"
             fi
             local tmp_res=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "$target_file" 2>/dev/null)
-            [ -n "$tmp_res" ] && d_resol="$tmp_res"
-        fi
+            if [ -n "$tmp_res" ]; then
+                local rw=$(echo "$tmp_res" | cut -dx -f1 | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+                local rh=$(echo "$tmp_res" | cut -dx -f2 | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+                d_resol="${rw}x${rh} px"
+            fi
         report+="${C_LBL} Resol  :${C_RST} ${C_DYN}${d_resol}${C_RST}\n"
         report+="${C_LBL} Length :${C_RST} ${C_DYN}${d_len}${C_RST}\n"
     else
