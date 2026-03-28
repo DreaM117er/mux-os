@@ -367,9 +367,6 @@ function cd() {
         menu_items+="${C_GREEN}[ls]${C_RESET} Show Files\n"
         menu_items+="${C_CYAN}[mk]${C_RESET} Make File or Directory\n"
         menu_items+="${C_PURPLE}[ip]${C_RESET} Input Command\n"
-        menu_items+="${C_GREEN}[cp]${C_RESET} Tactical Cloner\n"
-        menu_items+="${C_ORANGE}[mv]${C_RESET} Tactical Relocator\n"
-        menu_items+="${C_RED}[rm]${C_RESET} Tactical Destructor\n"
 
         local display_prompt="$PWD"
 
@@ -476,21 +473,6 @@ function cd() {
         elif [ "$target" == "[cd] Revert to Origin" ]; then
             builtin cd "$origin_pwd"
             continue
-        elif [[ "$action_sel" == "[cp]"* ]]; then
-            export CMT_COMMAND="true"
-            __core_cp
-            unset CMT_COMMAND
-            break
-        elif [[ "$action_sel" == "[mv]"* ]]; then
-            export CMT_COMMAND="true"
-            __core_mv
-            unset CMT_COMMAND
-            break
-        elif [[ "$action_sel" == "[rm]"* ]]; then
-            export CMT_COMMAND="true"
-            __core_rm
-            unset CMT_COMMAND
-            break
         elif [ "$target" == "[..] Backto" ]; then
             builtin cd ..
             _update_setting "TCT_RADAR_HIDDEN" "false"
