@@ -401,11 +401,10 @@ function cd() {
     fi
 
     local origin_pwd="$HOME"
-    local show_hidden="false"
-    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then show_hidden="true"; fi
-
+    local show_hidden="${TCT_RADAR_HIDDEN}"
     local jail_active="false"
-    local current_jail="${TCT_RADAR_JAIL:-true}"
+    local current_jail="${TCT_RADAR_JAIL}"
+    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then show_hidden="true"; fi
     if [ "$current_jail" == "forever" ] || [ "$current_jail" == "true" ]; then jail_active="true"; fi
 
     if [ "$allow_radar" == "true" ] && command -v _grant_xp &> /dev/null; then
@@ -413,6 +412,8 @@ function cd() {
     fi
 
     while true; do
+        
+
         local dirs
         if [ "$show_hidden" == "true" ]; then
             dirs=$(find -L . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sed 's|^\./||' | sort)
@@ -588,11 +589,10 @@ function ls() {
     fi
 
     local origin_pwd="$HOME"
-    local show_hidden="false"
-    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then show_hidden="true"; fi
-
+    local show_hidden="${TCT_RADAR_HIDDEN}"
     local jail_active="false"
-    local current_jail="${TCT_RADAR_JAIL:-true}"
+    local current_jail="${TCT_RADAR_JAIL}"
+    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then show_hidden="true"; fi
     if [ "$current_jail" == "forever" ] || [ "$current_jail" == "true" ]; then jail_active="true"; fi
 
     if [ "$allow_radar" == "true" ] && command -v _grant_xp &> /dev/null; then
@@ -843,11 +843,10 @@ function __core_rm() {
         return $?
     fi
 
-    local show_hidden="false"
-    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then show_hidden="true"; fi
-
+    local show_hidden="${TCT_RADAR_HIDDEN}"
     local jail_active="false"
-    local current_jail="${TCT_RADAR_JAIL:-true}"
+    local current_jail="${TCT_RADAR_JAIL}"
+    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then show_hidden="true"; fi
     if [ "$current_jail" == "forever" ] || [ "$current_jail" == "true" ]; then jail_active="true"; fi
 
     # 接收旗標
@@ -1025,7 +1024,7 @@ function __core_mv() {
         current_mv_mode="${1#-}"
     fi
 
-    local show_hidden="${TCT_RADAR_HIDDEN:-false}"
+    local show_hidden="${TCT_RADAR_HIDDEN}"
 
     while true; do
         local mode_changed="false"
@@ -1209,7 +1208,7 @@ function __core_cp() {
         current_cp_mode="${1#-}"
     fi
     
-    local show_hidden="${TCT_RADAR_HIDDEN:-false}"
+    local show_hidden="${TCT_RADAR_HIDDEN}"
 
     while true; do
         local mode_changed="false"
@@ -1406,7 +1405,7 @@ function _tct_init() {
         if [ -f "$setting_file" ]; then source "$setting_file"; fi
         
         # 讀取 NAV 狀態
-        local nav_active="${TCT_NAV_RADAR:-false}"
+        local nav_active="${TCT_NAV_RADAR}"
         if [ "$nav_active" == "true" ] || [ "$nav_active" == "forever" ]; then
             bind -x '"\C-f": _tct_tns_macro' 2>/dev/null
         else
