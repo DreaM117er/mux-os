@@ -2010,7 +2010,13 @@ function _tower_fzf_detail_view() {
     local file_name=$(basename "$target_file")
     local file_type=$(command file -b "$target_file" | awk -F, '{print $1}')
     if [ ${#file_type} -gt 35 ]; then file_type="${file_type:0:32}..."; fi
+    local raw_size_kb=$(du -sk "$target_file" | awk '{print $1}')
     local file_size=$(du -sh "$target_file" | awk '{print $1}')
+    if [ "$raw_size_kb" -gt 1024 ]; then
+        # 使用 sed 加入千分位 (例如：8,192)
+        local fmt_kb=$(echo "$raw_size_kb" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+        file_size="${file_size} \033[1;30m(${fmt_kb} KB)\033[0m"
+    fi
     
     # 檔案權限判定
     local access_str=""
@@ -2057,10 +2063,10 @@ function _tower_fzf_detail_view() {
     # 動態伸縮欄位
     if [[ "$mime_type" == text/* || "$file_type" == *"script"* ]]; then
         local d_lines=$(wc -l < "$target_file" | awk '{print $1}')
-        local d_funcs=$(grep -E -c '^(function[[:space:]]+)?[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*\(\)' "$target_file" 2>/dev/null || echo "0")
+        local d_funcs=$(grep -E -c '^(function[[:space:]]+)?[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*\(\)' "$target_file" 2>/dev/null)
+        d_funcs="${d_funcs:-0}"
         report+="${C_LBL} Lines  :${C_RST} ${C_DYN}${d_lines}${C_RST}\n"
         report+="${C_LBL} Funcs  :${C_RST} ${C_DYN}${d_funcs} detected${C_RST}\n"
-        
     elif [[ "$mime_type" == image/* ]]; then
         local d_resol="[N/A]"
         local d_fmt="[N/A]"
@@ -2070,19 +2076,27 @@ function _tower_fzf_detail_view() {
         fi
         report+="${C_LBL} Resol  :${C_RST} ${C_DYN}${d_resol}${C_RST}\n"
         report+="${C_LBL} Format :${C_RST} ${C_DYN}${d_fmt}${C_RST}\n"
-        
     elif [[ "$mime_type" == video/* || "$mime_type" == audio/* ]]; then
         local d_resol="[Audio Only]"
         local d_len="[N/A]"
         if command -v ffprobe &> /dev/null; then
             local tmp_len=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$target_file" 2>/dev/null)
-            [ -n "$tmp_len" ] && d_len=$(awk -v t="$tmp_len" 'BEGIN{printf "%.2fs", t}')
+            if [ -n "$tmp_len" ]; then
+                local sec_str=$(awk -v t="$tmp_len" 'BEGIN{printf "%.2fs", t}')
+                local fmt_time=$(awk -v t="$tmp_len" '
+                    BEGIN {
+                        m = int(t / 60);
+                        s = int(t % 60);
+                        if (m > 0) printf " \\033[1;30m(%02d:%02d)\\033[0m", m, s;
+                    }
+                ')
+                d_len="${sec_str}${fmt_time}"
+            fi
             local tmp_res=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "$target_file" 2>/dev/null)
             [ -n "$tmp_res" ] && d_resol="$tmp_res"
         fi
         report+="${C_LBL} Resol  :${C_RST} ${C_DYN}${d_resol}${C_RST}\n"
         report+="${C_LBL} Length :${C_RST} ${C_DYN}${d_len}${C_RST}\n"
-        
     else
         report+="${C_LBL} Data   :${C_RST} ${C_DYN}Binary / Object${C_RST}\n"
     fi
