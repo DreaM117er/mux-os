@@ -177,6 +177,7 @@ function _update_setting() {
     local key="$1"
     local val="$2"
     local setting_file="$HOME/mux-os/.setting"
+    if command -v _mux_hardware_unlock &> /dev/null; then _mux_hardware_unlock; fi
     
     # 確保設定檔存在
     if [ ! -f "$setting_file" ]; then touch "$setting_file"; fi
@@ -189,7 +190,8 @@ function _update_setting() {
     fi
     
     # 同步通電給當前記憶體
-    export "${key}"="${val}"
+    # export "${key}"="${val}"
+    if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
 }
 
 # 狀態機更新器 (State Machine Updater)
