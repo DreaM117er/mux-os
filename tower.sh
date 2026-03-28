@@ -785,15 +785,16 @@ function ls() {
             continue
         else
             local clean_target=$(echo "$target" | sed 's/^\[  \] //')
-            if [ -d "$clean_target" ]; then
-                builtin cd "$clean_target"
-                if [ "$TCT_RADAR_HIDDEN" != "forever" ]; then
-                    show_hidden="false"
-                    _TCT_SESSION_HIDDEN="false"
-                fi
-                continue
-            elif [ -f "$clean_target" ]; then
+            if [ -d "$clean_target" ] || [ -f "$clean_target" ]; then
                 _tct_file_action_menu "$clean_target"
+                local ret=$?
+                if [ $ret -eq 2 ]; then break; fi
+                if [ $ret -eq 3 ]; then 
+                    if [ "$TCT_RADAR_HIDDEN" != "forever" ]; then
+                        show_hidden="false"
+                        _TCT_SESSION_HIDDEN="false"
+                    fi
+                fi
                 continue
             fi
         fi
