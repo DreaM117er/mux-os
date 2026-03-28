@@ -401,10 +401,9 @@ function cd() {
     fi
 
     local origin_pwd="$HOME"
-    local show_hidden="${TCT_RADAR_HIDDEN}"
     local jail_active="false"
     local current_jail="${TCT_RADAR_JAIL}"
-    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then show_hidden="true"; fi
+    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then local show_hidden="true"; fi
     if [ "$current_jail" == "forever" ] || [ "$current_jail" == "true" ]; then jail_active="true"; fi
 
     if [ "$allow_radar" == "true" ] && command -v _grant_xp &> /dev/null; then
@@ -589,10 +588,9 @@ function ls() {
     fi
 
     local origin_pwd="$HOME"
-    local show_hidden="${TCT_RADAR_HIDDEN}"
     local jail_active="false"
     local current_jail="${TCT_RADAR_JAIL}"
-    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then show_hidden="true"; fi
+    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then local show_hidden="true"; fi
     if [ "$current_jail" == "forever" ] || [ "$current_jail" == "true" ]; then jail_active="true"; fi
 
     if [ "$allow_radar" == "true" ] && command -v _grant_xp &> /dev/null; then
@@ -843,11 +841,10 @@ function __core_rm() {
         return $?
     fi
 
-    local show_hidden="${TCT_RADAR_HIDDEN}"
     local jail_active="false"
     local current_jail="${TCT_RADAR_JAIL}"
-    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then show_hidden="true"; fi
     if [ "$current_jail" == "forever" ] || [ "$current_jail" == "true" ]; then jail_active="true"; fi
+    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then local show_hidden="true"; fi
 
     # 接收旗標
     local current_rm_mode="i" 
@@ -1024,7 +1021,7 @@ function __core_mv() {
         current_mv_mode="${1#-}"
     fi
 
-    local show_hidden="${TCT_RADAR_HIDDEN}"
+    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then local show_hidden="true"; fi
 
     while true; do
         local mode_changed="false"
@@ -1207,9 +1204,9 @@ function __core_cp() {
     if [ -n "$TCT_SINGLE_TARGET" ] && [[ "$1" == -* ]]; then
         current_cp_mode="${1#-}"
     fi
-    
-    local show_hidden="${TCT_RADAR_HIDDEN}"
 
+    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then local show_hidden="true"; fi
+    
     while true; do
         local mode_changed="false"
         local selected_targets=()
