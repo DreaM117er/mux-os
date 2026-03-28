@@ -2004,18 +2004,30 @@ function _ui_tct_core_radar() {
 function _tower_fzf_detail_view() {
     local target_file="$1"
     
-    if [ -z "$target_file" ]; then return; fi
+    if [ -z "$target_file" ] || [ ! -e "$target_file" ]; then return 1; fi
 
-    # 1. 取得檔案基礎資訊
+    # 1. 取得基礎物理屬性
     local file_name=$(basename "$target_file")
-    local file_type="Bourne-Again shell script"
-    local file_size="32.5 KB"
-    local file_access="[R] [W] [X]"
     
-    # 動態欄位假資料
-    local d_lines="1,142"
-    local d_funcs="28 detected"
-    local d_state="[Tracked]"
+    # 擷取簡略的檔案類型 (以逗號分隔取第一段，避免字串過長破壞排版)
+    local file_type=$(command file -b "$target_file" | awk -F, '{print $1}')
+    if [ ${#file_type} -gt 35 ]; then file_type="${file_type:0:32}..."; fi
+    
+    # 檔案大小
+    local file_size=$(du -sh "$target_file" | awk '{print $1}')
+    
+    # 檔案權限判定
+    local access_str=""
+    [ -r "$target_file" ] && access_str+="[R] "
+    [ -w "$target_file" ] && access_str+="[W] "
+    [ -x "$target_file" ] && access_str+="[X]"
+    local file_access="${access_str:-[None]}"
+    
+    # Git 追蹤狀態
+    local d_state="[Untracked]"
+    if command git ls-files --error-unmatch "$target_file" &>/dev/null; then
+        d_state="[Tracked]"
+    fi
 
     # 2. 定義冷冽色碼
     local C_LBL="\033[1;30m"
@@ -2023,26 +2035,65 @@ function _tower_fzf_detail_view() {
     local C_SEP="\033[1;30m"
     local C_RST="\033[0m"
 
-    # 3. 組合文字
+    # 3. 基礎排版組合
     local report=""
-    report+="${C_LBL}Name   :${C_RST} ${C_VAL}${file_name}${C_RST}\n"
-    report+="${C_LBL}Type   :${C_RST} ${C_VAL}${file_type}${C_RST}\n"
-    report+="${C_LBL}Size   :${C_RST} ${C_VAL}${file_size}${C_RST}\n"
-    report+="${C_LBL}Access :${C_RST} ${C_VAL}${file_access}${C_RST}\n"
+    report+="${C_LBL} Name   :${C_RST} ${C_VAL}${file_name}${C_RST}\n"
+    report+="${C_LBL} Type   :${C_RST} ${C_VAL}${file_type}${C_RST}\n"
+    report+="${C_LBL} Size   :${C_RST} ${C_VAL}${file_size}${C_RST}\n"
+    report+="${C_LBL} Access :${C_RST} ${C_VAL}${file_access}${C_RST}\n"
     report+="${C_SEP}----------${C_RST}\n"
-    report+="${C_LBL}Lines  :${C_RST} ${C_VAL}${d_lines}${C_RST}\n"
-    report+="${C_LBL}Funcs  :${C_RST} ${C_VAL}${d_funcs}${C_RST}\n"
-    report+="${C_LBL}State  :${C_RST} ${C_VAL}${d_state}${C_RST}"
+
+    # 4. 高階深度探測 (依據 Mime Type 伸縮欄位)
+    local mime_type=$(command file -b --mime-type "$target_file" 2>/dev/null)
+    
+    if [[ "$mime_type" == text/* || "$file_type" == *"script"* ]]; then
+        # 文本與腳本探測
+        local d_lines=$(wc -l < "$target_file" | awk '{print $1}')
+        local d_funcs=$(grep -E -c '^(function[[:space:]]+)?[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*\(\)' "$target_file" 2>/dev/null || echo "0")
+        report+="${C_LBL} Lines  :${C_RST} ${C_VAL}${d_lines}${C_RST}\n"
+        report+="${C_LBL} Funcs  :${C_RST} ${C_VAL}${d_funcs} detected${C_RST}\n"
+        
+    elif [[ "$mime_type" == image/* ]]; then
+        # 圖片光學掃描
+        local d_resol="[N/A]"
+        local d_fmt="[N/A]"
+        if command -v identify &> /dev/null; then
+            d_resol=$(identify -format "%wx%h" "$target_file" 2>/dev/null)
+            d_fmt=$(identify -format "%m" "$target_file" 2>/dev/null)
+        fi
+        report+="${C_LBL} Resol  :${C_RST} ${C_VAL}${d_resol}${C_RST}\n"
+        report+="${C_LBL} Format :${C_RST} ${C_VAL}${d_fmt}${C_RST}\n"
+        
+    elif [[ "$mime_type" == video/* || "$mime_type" == audio/* ]]; then
+        # 多媒體解析
+        local d_resol="[Audio Only]"
+        local d_len="[N/A]"
+        if command -v ffprobe &> /dev/null; then
+            local tmp_len=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$target_file" 2>/dev/null)
+            [ -n "$tmp_len" ] && d_len=$(awk -v t="$tmp_len" 'BEGIN{printf "%.2fs", t}')
+            local tmp_res=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "$target_file" 2>/dev/null)
+            [ -n "$tmp_res" ] && d_resol="$tmp_res"
+        fi
+        report+="${C_LBL} Resol  :${C_RST} ${C_VAL}${d_resol}${C_RST}\n"
+        report+="${C_LBL} Length :${C_RST} ${C_VAL}${d_len}${C_RST}\n"
+        
+    else
+        # 未知或二進位物件
+        report+="${C_LBL} Data   :${C_RST} ${C_VAL}Binary / Object${C_RST}\n"
+    fi
+    
+    # 封尾狀態
+    report+="${C_LBL} State  :${C_RST} ${C_VAL}${d_state}${C_RST}"
 
     # 4. 呼叫 FZF 渲染
     local line_count=$(echo -e "$report" | wc -l)
-    local dynamic_height=$(( line_count + 5 ))
+    local dynamic_height=$(( line_count + 4 ))
 
     local selected=$(echo -e "$report" | fzf --ansi \
         --height="$dynamic_height" \
         --layout=reverse \
-        --prompt="File Details › " \
-        --header=" :: Enter to Choose, Esc to exit :: " \
+        --prompt=" :: File Details › " \
+        --header=" :: Enter or Esc to exit :: " \
         --pointer="››" \
         --info=hidden \
         --border=bottom \

@@ -277,6 +277,9 @@ function _tct_file_action_menu() {
             builtin cd "$clean_target"
             _update_setting "TCT_RADAR_HIDDEN" "false"
             return 3
+        elif [[ "$action_sel" == "[dv]"* ]]; then
+            _tower_fzf_detail_view "$clean_target"
+            continue
         elif [[ "$action_sel" == "[ct]"* ]]; then
             echo -e "${C_CYAN} :: READING: $clean_target ${C_RESET}"
             command cat "$clean_target" | less -R -F -X
