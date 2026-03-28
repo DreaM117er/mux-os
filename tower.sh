@@ -211,7 +211,7 @@ function _tct_tns_macro() {
 
     # 展開參數雷達
     local selected
-    selected=$(echo -e "$params" | fzf --ansi \
+    selected=$(echo -ne "$params" | fzf --ansi \
             --height="$dynamic_height" \
             --layout=reverse \
             --prompt=" :: cmd › $target_cmd › " \
@@ -403,12 +403,13 @@ function cd() {
     local jail_active="false"
     local show_hidden="false" 
     
-    local current_jail="${TCT_RADAR_JAIL}"
+    local current_jail="${_TCT_SESSION_JAIL:-$TCT_RADAR_JAIL}"
     if [ "$current_jail" == "forever" ] || [ "$current_jail" == "true" ]; then 
         jail_active="true"
     fi
     
-    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then 
+    local current_hidden="${_TCT_SESSION_HIDDEN:-$TCT_RADAR_HIDDEN}"
+    if [ "$current_hidden" == "forever" ] || [ "$current_hidden" == "true" ]; then 
         show_hidden="true"
     fi
 
@@ -549,22 +550,28 @@ function cd() {
         elif [ "$target" == "[..] Backto" ]; then
             builtin cd ..
             show_hidden="false"
+            _TCT_SESSION_HIDDEN="false"
         elif [ "$target" == "[.*] Show Hidden" ]; then
             show_hidden="true"
+            _TCT_SESSION_HIDDEN="true"
             continue
         elif [ "$target" == "[.*] Hide Hidden" ]; then
             show_hidden="false"
+            _TCT_SESSION_HIDDEN="false"
             continue
         elif [ "$target" == "[-1] Unlock Jail" ]; then
             jail_active="false"
+            _TCT_SESSION_JAIL="false"
             continue
         elif [ "$target" == "[-0] Lock Jail" ]; then
             jail_active="true"
+            _TCT_SESSION_JAIL="true"
             continue
         else
             local clean_dir=$(echo "$target" | sed 's/^\[  \] //')
             builtin cd "$clean_dir"
             show_hidden="false"
+            _TCT_SESSION_HIDDEN="false" # 進入新目錄時同步重置
         fi
     done
 }
@@ -589,12 +596,13 @@ function ls() {
     local jail_active="false"
     local show_hidden="false" 
     
-    local current_jail="${TCT_RADAR_JAIL}"
+    local current_jail="${_TCT_SESSION_JAIL:-$TCT_RADAR_JAIL}"
     if [ "$current_jail" == "forever" ] || [ "$current_jail" == "true" ]; then 
         jail_active="true"
     fi
     
-    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then 
+    local current_hidden="${_TCT_SESSION_HIDDEN:-$TCT_RADAR_HIDDEN}"
+    if [ "$current_hidden" == "forever" ] || [ "$current_hidden" == "true" ]; then 
         show_hidden="true"
     fi
 
@@ -750,23 +758,28 @@ function ls() {
         elif [ "$target" == "[..] Backto" ]; then
             builtin cd ..
             show_hidden="false"
+            _TCT_SESSION_HIDDEN="false"
         elif [ "$target" == "[.*] Show Hidden" ]; then
-            show_hidden="true"; continue
+            show_hidden="true"
+            _TCT_SESSION_HIDDEN="true"
+            continue
         elif [ "$target" == "[.*] Hide Hidden" ]; then
-            show_hidden="false"; continue
+            show_hidden="false"
+            _TCT_SESSION_HIDDEN="false"
+            continue
         elif [ "$target" == "[-1] Unlock Jail" ]; then
-            jail_active="false"; continue
+            jail_active="false"
+            _TCT_SESSION_JAIL="false"
+            continue
         elif [ "$target" == "[-0] Lock Jail" ]; then
-            jail_active="true"; continue
+            jail_active="true"
+            _TCT_SESSION_JAIL="true"
+            continue
         else
-            local clean_target=$(echo "$target" | sed 's/^\[  \] //')
-            if [ -d "$clean_target" ] || [ -f "$clean_target" ]; then
-                _tct_file_action_menu "$clean_target"
-                local ret=$?
-                if [ $ret -eq 2 ]; then break; fi
-                if [ $ret -eq 3 ]; then show_hidden="false"; fi
-                continue
-            fi
+            local clean_dir=$(echo "$target" | sed 's/^\[  \] //')
+            builtin cd "$clean_dir"
+            show_hidden="false"
+            _TCT_SESSION_HIDDEN="false"
         fi
     done
 }
@@ -845,12 +858,13 @@ function __core_rm() {
     local jail_active="false"
     local show_hidden="false" 
     
-    local current_jail="${TCT_RADAR_JAIL}"
+    local current_jail="${_TCT_SESSION_JAIL:-$TCT_RADAR_JAIL}"
     if [ "$current_jail" == "forever" ] || [ "$current_jail" == "true" ]; then 
         jail_active="true"
     fi
     
-    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then 
+    local current_hidden="${_TCT_SESSION_HIDDEN:-$TCT_RADAR_HIDDEN}"
+    if [ "$current_hidden" == "forever" ] || [ "$current_hidden" == "true" ]; then 
         show_hidden="true"
     fi
 
@@ -939,10 +953,10 @@ function __core_rm() {
                 if [[ "$clean_line" == "[ls]"* ]]; then export CMT_COMMAND="true"; ls; unset CMT_COMMAND; break 2; fi
                 if [[ "$clean_line" == "[cd]"* ]]; then export CMT_COMMAND="true"; cd; unset CMT_COMMAND; break 2; fi
 
-                if [[ "$clean_line" == "[.*] Show Hidden" ]]; then show_hidden="true"; mode_changed="true"; continue; fi
-                if [[ "$clean_line" == "[.*] Hide Hidden" ]]; then show_hidden="false"; mode_changed="true"; continue; fi
-                if [[ "$clean_line" == "[-1] Unlock Jail" ]]; then jail_active="false"; mode_changed="true"; continue; fi
-                if [[ "$clean_line" == "[-0] Lock Jail" ]]; then jail_active="true"; mode_changed="true"; continue; fi
+                if [[ "$clean_line" == "[.*] Show Hidden" ]]; then show_hidden="true"; _TCT_SESSION_HIDDEN="true"; mode_changed="true"; continue; fi
+                if [[ "$clean_line" == "[.*] Hide Hidden" ]]; then show_hidden="false"; _TCT_SESSION_HIDDEN="false"; mode_changed="true"; continue; fi
+                if [[ "$clean_line" == "[-1] Unlock Jail" ]]; then jail_active="false"; _TCT_SESSION_JAIL="false"; mode_changed="true"; continue; fi
+                if [[ "$clean_line" == "[-0] Lock Jail" ]]; then jail_active="true"; _TCT_SESSION_JAIL="true"; mode_changed="true"; continue; fi
 
                 local target_item=$(echo "$clean_line" | sed 's/^\[  \] //')
                 if [ -n "$target_item" ] && [[ ! "$target_item" == \[*\]* ]]; then
@@ -1033,12 +1047,13 @@ function __core_mv() {
     local jail_active="false"
     local show_hidden="false" 
     
-    local current_jail="${TCT_RADAR_JAIL}"
+    local current_jail="${_TCT_SESSION_JAIL:-$TCT_RADAR_JAIL}"
     if [ "$current_jail" == "forever" ] || [ "$current_jail" == "true" ]; then 
         jail_active="true"
     fi
     
-    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then 
+    local current_hidden="${_TCT_SESSION_HIDDEN:-$TCT_RADAR_HIDDEN}"
+    if [ "$current_hidden" == "forever" ] || [ "$current_hidden" == "true" ]; then 
         show_hidden="true"
     fi
 
@@ -1096,6 +1111,10 @@ function __core_mv() {
                 if [[ "$clean_line" == "[-f]"* ]]; then current_mv_mode="f"; mode_changed="true"; continue; fi
                 if [[ "$clean_line" == "[ls]"* ]]; then export CMT_COMMAND="true"; ls; unset CMT_COMMAND; break 2; fi
                 if [[ "$clean_line" == "[cd]"* ]]; then export CMT_COMMAND="true"; cd; unset CMT_COMMAND; break 2; fi
+                if [[ "$clean_line" == "[.*] Show Hidden" ]]; then show_hidden="true"; _TCT_SESSION_HIDDEN="true"; mode_changed="true"; continue; fi
+                if [[ "$clean_line" == "[.*] Hide Hidden" ]]; then show_hidden="false"; _TCT_SESSION_HIDDEN="false"; mode_changed="true"; continue; fi
+                if [[ "$clean_line" == "[-1] Unlock Jail" ]]; then jail_active="false"; _TCT_SESSION_JAIL="false"; mode_changed="true"; continue; fi
+                if [[ "$clean_line" == "[-0] Lock Jail" ]]; then jail_active="true"; _TCT_SESSION_JAIL="true"; mode_changed="true"; continue; fi
 
                 local target_item=$(echo "$clean_line" | sed 's/^\[  \] //')
                 if [ -n "$target_item" ] && [[ ! "$target_item" == \[*\]* ]]; then
@@ -1228,12 +1247,13 @@ function __core_cp() {
     local jail_active="false"
     local show_hidden="false" 
     
-    local current_jail="${TCT_RADAR_JAIL}"
+    local current_jail="${_TCT_SESSION_JAIL:-$TCT_RADAR_JAIL}"
     if [ "$current_jail" == "forever" ] || [ "$current_jail" == "true" ]; then 
         jail_active="true"
     fi
     
-    if [ "$TCT_RADAR_HIDDEN" == "forever" ] || [ "$TCT_RADAR_HIDDEN" == "true" ]; then 
+    local current_hidden="${_TCT_SESSION_HIDDEN:-$TCT_RADAR_HIDDEN}"
+    if [ "$current_hidden" == "forever" ] || [ "$current_hidden" == "true" ]; then 
         show_hidden="true"
     fi
     
@@ -1295,6 +1315,10 @@ function __core_cp() {
                 if [[ "$clean_line" == "[-a]"* ]]; then current_cp_mode="a"; mode_changed="true"; continue; fi
                 if [[ "$clean_line" == "[ls]"* ]]; then export CMT_COMMAND="true"; ls; unset CMT_COMMAND; break 2; fi
                 if [[ "$clean_line" == "[cd]"* ]]; then export CMT_COMMAND="true"; cd; unset CMT_COMMAND; break 2; fi
+                if [[ "$clean_line" == "[.*] Show Hidden" ]]; then show_hidden="true"; _TCT_SESSION_HIDDEN="true"; mode_changed="true"; continue; fi
+                if [[ "$clean_line" == "[.*] Hide Hidden" ]]; then show_hidden="false"; _TCT_SESSION_HIDDEN="false"; mode_changed="true"; continue; fi
+                if [[ "$clean_line" == "[-1] Unlock Jail" ]]; then jail_active="false"; _TCT_SESSION_JAIL="false"; mode_changed="true"; continue; fi
+                if [[ "$clean_line" == "[-0] Lock Jail" ]]; then jail_active="true"; _TCT_SESSION_JAIL="true"; mode_changed="true"; continue; fi
 
                 local target_item=$(echo "$clean_line" | sed 's/^\[  \] //')
                 if [ -n "$target_item" ] && [[ ! "$target_item" == \[*\]* ]]; then
@@ -1545,7 +1569,7 @@ function __tct_core() {
                     hw_info+=" ${C_CYAN}  Storage :${C_RESET} $(df -h $HOME | awk 'NR==2 {print $4 " available"}')\n"
                     hw_info+=" ${C_CYAN}  Uptime  :${C_RESET} $(uptime -p | sed 's/up //')\n"
                     
-                    echo -e "$hw_info" | fzf --ansi \
+                    echo -ne "$hw_info" | fzf --ansi \
                         --height=8 \
                         --layout=reverse \
                         --border=bottom \
@@ -1580,7 +1604,7 @@ function __tct_core() {
                     local line_count=$(echo -ne "$sys_info" | wc -l)
                     local sys_h=$(( line_count + 4 ))
                     
-                    echo -e "$sys_info" | fzf --ansi \
+                    echo -ne "$sys_info" | fzf --ansi \
                         --height="$sys_h" \
                         --layout=reverse \
                         --border=bottom \
@@ -1618,7 +1642,7 @@ function __tct_core() {
                     local line_count=$(echo -ne "$mod_info" | wc -l)
                     local mod_h=$(( line_count + 4 ))
                     
-                    echo -e "$mod_info" | fzf --ansi \
+                    echo -ne "$mod_info" | fzf --ansi \
                         --height="$mod_h" \
                         --layout=reverse \
                         --border=bottom \
@@ -1728,7 +1752,7 @@ function __tct_core() {
                 fi
 
                 # 子選單確認
-                local action=$(echo -e "$sub_menu" | fzf --ansi \
+                local action=$(echo -ne "$sub_menu" | fzf --ansi \
                     --height=5 \
                     --layout=reverse \
                     --prompt=" :: Action › " \
