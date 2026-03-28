@@ -1867,7 +1867,7 @@ function _ui_tct_nav_radar() {
     local color_hl="$5"
     local header_txt="$6"
 
-    echo -e "${menu_items%\\n}" | fzf --ansi \
+    echo -ne "$menu_items" | fzf --ansi \
         --print-query \
         --height="$dynamic_height" \
         --layout=reverse \
@@ -1890,7 +1890,7 @@ function _ui_tct_tactical_radar() {
     local label="$4"
     local color_hl="$5"
 
-    echo -e "${menu_items%\\n}" | fzf --ansi -m \
+    echo -ne "$menu_items" | fzf --ansi -m \
         --print-query \
         --marker="‹»" \
         --height="$dynamic_height" \
@@ -1970,23 +1970,23 @@ function _ui_tct_core_radar() {
     done < "$setting_file"
 
     # 展開 fzf 選單
-    local line_count=$(echo -e "$menu_items" | wc -l)
+    local line_count=$(echo -ne "$menu_items" | wc -l)
     local dynamic_height=$(( line_count + 4 ))
     
-    local border_lbl=" :: SYSTEM CORE MODULES :: "
-    local prompt_msg=" :: cmt › core › "
+    local border_lbl="SYSTEM CORE MODULES"
+    local prompt_msg="cmt › core › "
     if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
-        border_lbl=" :: MEOW CORE MODULES :: "
-        prompt_msg=" :: meow › core › "
+        border_lbl="MEOW CORE MODULES"
+        prompt_msg="meow › core › "
     fi
 
-    local selected=$(echo -e "${menu_items%\\n}" | fzf --ansi \
+    local selected=$(echo -ne "$menu_items" | fzf --ansi \
         --height="$dynamic_height" \
         --layout=reverse \
         --border=bottom \
-        --border-label="$border_lbl" \
-        --header=" :: Enter to Choose, Esc to exit :: " \
-        --prompt="$prompt_msg" \
+        --border-label=" :: $border_lbl :: " \
+        --header=" :: Enter to Choose, Esc to exit ::" \
+        --prompt=" :: $prompt_msg" \
         --pointer="››" \
         --info=hidden \
         --color="fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:211,info:240" \
@@ -1997,6 +1997,149 @@ function _ui_tct_core_radar() {
     # 提取被選中的 KEY (在括號 [] 內)
     if [ -n "$selected" ]; then
         echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $NF}' | tr -d '[]'
+    fi
+}
+
+# 檔案詳細資料檢視器 (Tower File Detail Inspector)
+function _tower_fzf_detail_view() {
+    local target_file="$1"
+    
+    if [ -z "$target_file" ] || [ ! -e "$target_file" ]; then return 1; fi
+
+    # 取得檔案基礎屬性
+    local file_name=$(basename "$target_file")
+    local file_type=$(command file -b "$target_file" | awk -F, '{print $1}')
+    if [ ${#file_type} -gt 35 ]; then file_type="${file_type:0:32}..."; fi
+
+    # 檔案大小
+    local exact_bytes=$(command ls -nd "$target_file" | awk '{print $5}')
+    local file_size=$(du -sh "$target_file" | awk '{print $1}')
+    file_size=$(echo "$file_size" | sed -E 's/K$/ KB/; s/M$/ MB/; s/G$/ GB/; s/T$/ TB/')
+    local fmt_bytes=$(echo "$exact_bytes" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+    if [ "$exact_bytes" -eq 0 ]; then
+        file_size="\033[1;30m[Vacuum / 0 B]\033[0m"
+    else
+        file_size="${file_size} \033[1;30m[${fmt_bytes} B]\033[0m"
+    fi
+    
+    # 檔案權限判定
+    local access_str=""
+    [ -r "$target_file" ] && access_str+="\033[1;32m[R]\033[0m " # 綠色讀取
+    [ -w "$target_file" ] && access_str+="\033[1;33m[W]\033[0m " # 黃色寫入
+    [ -x "$target_file" ] && access_str+="\033[1;31m[X]\033[0m " # 紅色執行
+    local file_access="${access_str:-\033[1;30m[None]\033[0m}"
+    
+    # 追蹤 Git 狀態
+    local d_state="\033[1;30m[Untracked]\033[0m"
+    if command git ls-files --error-unmatch "$target_file" &>/dev/null; then
+        d_state="\033[1;32m[Tracked]\033[0m"
+    fi
+
+    # 定義色碼
+    local mime_type=$(command file -b --mime-type "$target_file" 2>/dev/null)
+    local C_DYN="\033[1;37m" # 預設純白
+    
+    if [[ "$mime_type" == text/* || "$file_type" == *"script"* || "$file_type" == *"CSV"* ]]; then
+        C_DYN="\033[1;36m"
+    elif [[ "$mime_type" == image/* ]]; then
+        C_DYN="\033[1;35m"
+    elif [[ "$mime_type" == video/* || "$mime_type" == audio/* ]]; then
+        C_DYN="\033[1;33m"
+    elif [[ "$mime_type" == application/x-executable || "$mime_type" == application/x-sharedlib* ]]; then
+        C_DYN="\033[1;31m"
+    else
+        C_DYN="\033[1;32m"
+    fi
+
+    local C_LBL="\033[1;30m"
+    local C_VAL="\033[1;37m"
+    local C_SEP="\033[1;30m"
+    local C_RST="\033[0m"
+
+    # 基礎排版組合
+    local report=""
+    report+="${C_LBL} Name   :${C_RST} ${C_VAL}${file_name}${C_RST}\n"
+    report+="${C_LBL} Type   :${C_RST} ${C_DYN}${file_type}${C_RST}\n"
+    report+="${C_LBL} Size   :${C_RST} ${C_VAL}${file_size}${C_RST}\n"
+    report+="${C_LBL} Access :${C_RST} ${file_access}\n"
+    report+="${C_SEP}----------${C_RST}\n"
+
+    # 動態伸縮欄位
+    if [[ "$mime_type" == text/* || "$file_type" == *"script"* ]]; then
+        local d_lines=$(wc -l < "$target_file" | awk '{print $1}')
+        d_lines=$(echo "$d_lines" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+        local d_funcs=$(grep -E -c '^(function[[:space:]]+)?[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*\(\)' "$target_file" 2>/dev/null)
+        d_funcs="${d_funcs:-0}"
+        d_funcs=$(echo "$d_funcs" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+
+        report+="${C_LBL} Lines  :${C_RST} ${C_DYN}${d_lines}${C_RST}\n"
+        report+="${C_LBL} Funcs  :${C_RST} ${C_DYN}${d_funcs} detected${C_RST}\n"
+    elif [[ "$mime_type" == image/* ]]; then
+        local d_resol="[N/A]"
+        local d_fmt="[N/A]"
+        if command -v identify &> /dev/null; then
+            local tmp_res=$(identify -format "%wx%h" "$target_file" 2>/dev/null)
+            if [ -n "$tmp_res" ]; then
+                local rw=$(echo "$tmp_res" | cut -dx -f1 | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+                local rh=$(echo "$tmp_res" | cut -dx -f2 | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+                d_resol="${rw}x${rh} px"
+            fi
+            d_fmt=$(identify -format "%m" "$target_file" 2>/dev/null)
+        fi
+        report+="${C_LBL} Resol  :${C_RST} ${C_DYN}${d_resol}${C_RST}\n"
+        report+="${C_LBL} Format :${C_RST} ${C_DYN}${d_fmt}${C_RST}\n"
+    elif [[ "$mime_type" == video/* || "$mime_type" == audio/* ]]; then
+        local d_resol="[Audio Only]"
+        local d_len="[N/A]"
+        if command -v ffprobe &> /dev/null; then
+            local tmp_len=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$target_file" 2>/dev/null)
+            if [ -n "$tmp_len" ]; then
+                local sec_str=$(awk -v t="$tmp_len" 'BEGIN{printf "%.2fs", t}')
+                local fmt_time=$(awk -v t="$tmp_len" '
+                    BEGIN {
+                        m = int(t / 60);
+                        s = int(t % 60);
+                        if (m > 0) printf " \\033[1;30m[%02d:%02d]\\033[0m", m, s;
+                    }
+                ')
+                d_len="${sec_str}${fmt_time}"
+            fi
+
+            local tmp_res=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "$target_file" 2>/dev/null)
+            if [ -n "$tmp_res" ]; then
+                local rw=$(echo "$tmp_res" | cut -dx -f1 | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+                local rh=$(echo "$tmp_res" | cut -dx -f2 | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+                d_resol="${rw}x${rh} px"
+            fi
+        fi
+        report+="${C_LBL} Resol  :${C_RST} ${C_DYN}${d_resol}${C_RST}\n"
+        report+="${C_LBL} Length :${C_RST} ${C_DYN}${d_len}${C_RST}\n"
+    else
+        report+="${C_LBL} Data   :${C_RST} ${C_DYN}Binary / Object${C_RST}\n"
+    fi
+    report+="${C_LBL} State  :${C_RST} ${d_state}"
+
+    # fzf 選單
+    local line_count=$(echo -ne "$report" | wc -l)
+    local dynamic_height=$(( line_count + 4 ))
+
+    local selected=$(echo -ne "$report" | fzf --ansi \
+        --height="$dynamic_height" \
+        --layout=reverse \
+        --prompt=" :: File Details › " \
+        --header=" :: Enter or Esc to exit :: " \
+        --pointer="››" \
+        --info=hidden \
+        --border=bottom \
+        --border-label=" :: DATA VIEWER :: " \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:46,pointer:red,border:46,header:240 \
+        --bind="resize:clear-screen"
+    )
+
+    # 將結果回傳
+    if [ -n "$selected" ]; then
+        echo "$selected"
     fi
 }
 
