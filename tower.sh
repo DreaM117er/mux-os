@@ -494,7 +494,9 @@ function cd() {
         if [ "$target" == "----------" ] || [ "$target" == "[Empty]" ]; then continue; fi
         
         if [ "$target" == "[ls] Show Files" ]; then
+            export CMT_COMMAND="true"
             ls
+            unset CMT_COMMAND
             break
         elif [ "$target" == "[mk] Make File or Directory" ]; then
             while true; do
@@ -549,8 +551,10 @@ function cd() {
             continue
         elif [ "$target" == "[..] Backto" ]; then
             builtin cd ..
-            show_hidden="false"
-            _TCT_SESSION_HIDDEN="false"
+            if [ "$TCT_RADAR_HIDDEN" != "forever" ]; then
+                show_hidden="false"
+                _TCT_SESSION_HIDDEN="false"
+            fi
         elif [ "$target" == "[.*] Show Hidden" ]; then
             show_hidden="true"
             _TCT_SESSION_HIDDEN="true"
@@ -570,8 +574,10 @@ function cd() {
         else
             local clean_dir=$(echo "$target" | sed 's/^\[  \] //')
             builtin cd "$clean_dir"
-            show_hidden="false"
-            _TCT_SESSION_HIDDEN="false" # 進入新目錄時同步重置
+            if [ "$TCT_RADAR_HIDDEN" != "forever" ]; then
+                show_hidden="false"
+                _TCT_SESSION_HIDDEN="false"
+            fi
         fi
     done
 }
@@ -757,8 +763,10 @@ function ls() {
             break
         elif [ "$target" == "[..] Backto" ]; then
             builtin cd ..
-            show_hidden="false"
-            _TCT_SESSION_HIDDEN="false"
+            if [ "$TCT_RADAR_HIDDEN" != "forever" ]; then
+                show_hidden="false"
+                _TCT_SESSION_HIDDEN="false"
+            fi
         elif [ "$target" == "[.*] Show Hidden" ]; then
             show_hidden="true"
             _TCT_SESSION_HIDDEN="true"
@@ -778,8 +786,10 @@ function ls() {
         else
             local clean_dir=$(echo "$target" | sed 's/^\[  \] //')
             builtin cd "$clean_dir"
-            show_hidden="false"
-            _TCT_SESSION_HIDDEN="false"
+            if [ "$TCT_RADAR_HIDDEN" != "forever" ]; then
+                show_hidden="false"
+                _TCT_SESSION_HIDDEN="false"
+            fi
         fi
     done
 }
