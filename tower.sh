@@ -747,7 +747,6 @@ function ls() {
         elif [ "$target" == "[-0] Lock Jail" ]; then
             jail_active="true"; continue
         else
-        else
             local clean_target=$(echo "$target" | sed 's/^\[  \] //')
             if [ -d "$clean_target" ] || [ -f "$clean_target" ]; then
                 _tct_file_action_menu "$clean_target"
