@@ -256,13 +256,13 @@ function _tct_mode_selector() {
             menu_items+="${C_YELLOW}[-i]${C_RESET} Interactive (Safe)\n"
             menu_items+="${C_RED}[-f]${C_RESET} Force Overwrite\n"
             menu_items+="${C_PINKMEOW}[-r]${C_RESET} Recursive (Folder Copy)\n"
-            menu_items+="${C_GREEN}[-a]${C_RESET} Archive (Preserve ALL)\n"
+            menu_items+="${C_GREEN}[-a]${C_RESET} Archive (Preserve ALL)"
             ;;
         "mv")
             border_lbl="RELOCATOR MODE"
             border_color="220"
             menu_items+="${C_YELLOW}[-i]${C_RESET} Interactive (Safe)\n"
-            menu_items+="${C_RED}[-f]${C_RESET} Force Overwrite\n"
+            menu_items+="${C_RED}[-f]${C_RESET} Force Overwrite"
             ;;
         "rm")
             border_lbl="DESTRUCTOR MODE"
@@ -270,7 +270,7 @@ function _tct_mode_selector() {
             menu_items+="${C_YELLOW}[-i]${C_RESET} Interactive\n"
             menu_items+="${C_YELLOW}[-f]${C_RESET} Force\n"
             menu_items+="${C_RED}[-r]${C_RESET} Recursive\n"
-            menu_items+="${C_RED}\033[5m[rf]\033[0m${C_RESET} Nuke\n"
+            menu_items+="${C_RED}\033[5m[rf]\033[0m${C_RESET} Nuke"
             ;;
     esac
 
@@ -315,7 +315,7 @@ function _tct_file_action_menu() {
         # 共用戰術兵器庫
         action_items+="${C_GREEN}[cp]${C_RESET} Tactical Cloner\n"
         action_items+="${C_ORANGE}[mv]${C_RESET} Tactical Relocator\n"
-        action_items+="${C_RED}[rm]${C_RESET} Tactical Destructor\n"
+        action_items+="${C_RED}[rm]${C_RESET} Tactical Destructor"
         
         local ui_prompt=" :: Action › $clean_target :: "
         [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › Action › $clean_target :: "
@@ -495,7 +495,7 @@ function cd() {
             while true; do
                 local mk_items=""
                 mk_items+="${C_CYAN}[touch]${C_RESET} Create Empty File\n"
-                mk_items+="${C_YELLOW}[mkdir]${C_RESET} Create Directory\n"
+                mk_items+="${C_YELLOW}[mkdir]${C_RESET} Create Directory"
                 
                 local mk_ui_prompt=" :: Make › ${PWD/#$HOME/\~} :: "
                 [ "$CMT_COMMAND" == "true" ] && mk_ui_prompt=" :: cmt › Make › ${PWD/#$HOME/\~} :: "
@@ -683,7 +683,7 @@ function ls() {
             while true; do
                 local mk_items=""
                 mk_items+="${C_CYAN}[touch]${C_RESET} Create Empty File\n"
-                mk_items+="${C_YELLOW}[mkdir]${C_RESET} Create Directory\n"
+                mk_items+="${C_YELLOW}[mkdir]${C_RESET} Create Directory"
                 
                 local mk_ui_prompt=" :: Make › ${PWD/#$HOME/\~} :: "
                 [ "$CMT_COMMAND" == "true" ] && mk_ui_prompt=" :: cmt › Make › ${PWD/#$HOME/\~} :: "
@@ -898,9 +898,9 @@ function __core_rm() {
 
             if [ "$TCT_RADAR_JAIL" != "forever" ]; then
                 if [ "$jail_active" == "true" ]; then
-                    menu_items+="${C_BLACK}[-1]${C_RESET} Unlock Jail\n"
+                    menu_items+="${C_BLACK}[-1]${C_RESET} Unlock Jail"
                 else
-                    menu_items+="${C_BLACK}[-0]${C_RESET} Lock Jail\n"
+                    menu_items+="${C_BLACK}[-0]${C_RESET} Lock Jail"
                 fi
             fi
 
@@ -1056,7 +1056,7 @@ function __core_mv() {
             menu_items+="${formatted_targets}\n"
             menu_items+="${C_BLACK}----------${C_RESET}\n"
             menu_items+="${C_GREEN}[ls]${C_RESET} File Scanner\n"
-            menu_items+="${C_PINKMEOW}[cd]${C_RESET} Navigate\n"
+            menu_items+="${C_PINKMEOW}[cd]${C_RESET} Navigate"
 
             local ui_prompt=" :: mv -$current_mv_mode › ${PWD/#$HOME/\~} :: "
             [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › mv -$current_mv_mode › ${PWD/#$HOME/\~} :: "
@@ -1242,7 +1242,7 @@ function __core_cp() {
             menu_items+="${formatted_targets}\n"
             menu_items+="${C_BLACK}----------${C_RESET}\n"
             menu_items+="${C_GREEN}[ls]${C_RESET} File Scanner\n"
-            menu_items+="${C_PINKMEOW}[cd]${C_RESET} Navigate\n"
+            menu_items+="${C_PINKMEOW}[cd]${C_RESET} Navigate"
 
             local ui_prompt=" :: cp -$current_cp_mode › ${PWD/#$HOME/\~} :: "
             [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › cp -$current_cp_mode › ${PWD/#$HOME/\~} :: "
