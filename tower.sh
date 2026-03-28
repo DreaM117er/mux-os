@@ -497,8 +497,8 @@ function cd() {
                 mk_items+="${C_CYAN}[touch]${C_RESET} Create Empty File\n"
                 mk_items+="${C_YELLOW}[mkdir]${C_RESET} Create Directory\n"
                 
-                local mk_ui_prompt=" :: Make › ${PWD/#$HOME/\~} :: "
-                [ "$CMT_COMMAND" == "true" ] && mk_ui_prompt=" :: cmt › Make › ${PWD/#$HOME/\~} :: "
+                local mk_ui_prompt=" :: Make › ${PWD/#$HOME/\~} › "
+                [ "$CMT_COMMAND" == "true" ] && mk_ui_prompt=" :: cmt › Make › ${PWD/#$HOME/\~} › "
                 
                 local mk_raw
                 mk_raw=$(_ui_tct_nav_radar "$mk_items" "$mk_ui_prompt" "7" "CREATION FORGE" "51" " :: Esc to Return ::")
@@ -508,16 +508,16 @@ function cd() {
                 if [ -z "$mk_sel" ]; then break; fi 
                 
                 if [[ "$mk_sel" == "[touch]"* ]]; then
-                    local p_touch=$(echo -e "\001${C_CYAN}\002 :: NEW FILE(S) NAME › \001${C_RESET}\002")
+                    local p_touch=$(echo -e "\001${C_CYAN}\002 :: New(s) Name › \001${C_RESET}\002")
                     read -e -p "$p_touch" new_target < /dev/tty
                     if [ -n "$new_target" ]; then
-                        echo -e "${C_RED} :: EXECUTING: touch $new_target ${C_RESET}"
+                        echo -e "${C_RED} :: Executing: touch $new_target ${C_RESET}"
                         eval "command touch $new_target"
                         if command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
                     fi
                     break
                 elif [[ "$mk_sel" == "[mkdir]"* ]]; then
-                    local p_mkdir=$(echo -e "\001${C_YELLOW}\002 :: NEW DIRECTORY(S) NAME › \001${C_RESET}\002")
+                    local p_mkdir=$(echo -e "\001${C_YELLOW}\002 :: New Directory(s) Name › \001${C_RESET}\002")
                     read -e -p "$p_mkdir" new_target < /dev/tty
                     if [ -n "$new_target" ]; then
                         echo -e "${C_RED} :: EXECUTING: mkdir -p $new_target ${C_RESET}"
@@ -529,11 +529,11 @@ function cd() {
             done
             continue
         elif [ "$target" == "[ip] Input Command" ]; then
-            local p_cmd=$(echo -e "\001${C_PURPLE}\002 :: COMMAND (Empty to abort) › \001${C_RESET}\002")
+            local p_cmd=$(echo -e "\001${C_PURPLE}\002 :: Command (Empty to abort) › \001${C_RESET}\002")
             read -e -p "$p_cmd" user_cmd < /dev/tty
             user_cmd=$(echo "$user_cmd" | sed 's/^[ \t]*//;s/[ \t]*$//')
             if [ -n "$user_cmd" ]; then
-                echo -e "${C_RED} :: EXECUTING: $user_cmd ${C_RESET}"
+                echo -e "${C_RED} :: Executing: $user_cmd ${C_RESET}"
                 eval "$user_cmd"
                 echo -ne "${C_BLACK}    ›› Press 'Enter' to return to radar...${C_RESET}"
                 read < /dev/tty
@@ -699,7 +699,7 @@ function ls() {
                     local p_touch=$(echo -e "\001${C_CYAN}\002 :: New File(s) Name › \001${C_RESET}\002")
                     read -e -p "$p_touch" new_target < /dev/tty
                     if [ -n "$new_target" ]; then
-                        echo -e "${C_RED} :: EXECUTING: touch $new_target ${C_RESET}"
+                        echo -e "${C_RED} :: Executing: touch $new_target ${C_RESET}"
                         eval "command touch $new_target"
                         if command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
                     fi
@@ -708,7 +708,7 @@ function ls() {
                     local p_mkdir=$(echo -e "\001${C_YELLOW}\002 :: New Directory(s) Name › \001${C_RESET}\002")
                     read -e -p "$p_mkdir" new_target < /dev/tty
                     if [ -n "$new_target" ]; then
-                        echo -e "${C_RED} :: EXECUTING: mkdir -p $new_target ${C_RESET}"
+                        echo -e "${C_RED} :: Executing: mkdir -p $new_target ${C_RESET}"
                         eval "command mkdir -p $new_target"
                         if command -v _grant_xp &> /dev/null; then _grant_xp 5 "SHELL"; fi
                     fi
@@ -721,7 +721,7 @@ function ls() {
             read -e -p "$p_cmd" user_cmd < /dev/tty
             user_cmd=$(echo "$user_cmd" | sed 's/^[ \t]*//;s/[ \t]*$//')
             if [ -n "$user_cmd" ]; then
-                echo -e "${C_RED} :: EXECUTING: $user_cmd ${C_RESET}"
+                echo -e "${C_RED} :: Executing: $user_cmd ${C_RESET}"
                 eval "$user_cmd"
                 echo -ne "${C_BLACK}    ›› Press Enter to return to radar...${C_RESET}"
                 read < /dev/tty
