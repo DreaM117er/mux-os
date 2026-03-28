@@ -256,13 +256,13 @@ function _tct_mode_selector() {
             menu_items+="${C_YELLOW}[-i]${C_RESET} Interactive (Safe)\n"
             menu_items+="${C_RED}[-f]${C_RESET} Force Overwrite\n"
             menu_items+="${C_PINKMEOW}[-r]${C_RESET} Recursive (Folder Copy)\n"
-            menu_items+="${C_GREEN}[-a]${C_RESET} Archive (Preserve ALL)"
+            menu_items+="${C_GREEN}[-a]${C_RESET} Archive (Preserve ALL)\n"
             ;;
         "mv")
             border_lbl="RELOCATOR MODE"
             border_color="220"
             menu_items+="${C_YELLOW}[-i]${C_RESET} Interactive (Safe)\n"
-            menu_items+="${C_RED}[-f]${C_RESET} Force Overwrite"
+            menu_items+="${C_RED}[-f]${C_RESET} Force Overwrite\n"
             ;;
         "rm")
             border_lbl="DESTRUCTOR MODE"
@@ -270,7 +270,7 @@ function _tct_mode_selector() {
             menu_items+="${C_YELLOW}[-i]${C_RESET} Interactive\n"
             menu_items+="${C_YELLOW}[-f]${C_RESET} Force\n"
             menu_items+="${C_RED}[-r]${C_RESET} Recursive\n"
-            menu_items+="${C_RED}\033[5m[rf]\033[0m${C_RESET} Nuke"
+            menu_items+="${C_RED}\033[5m[rf]\033[0m${C_RESET} Nuke\n"
             ;;
     esac
 
@@ -315,7 +315,7 @@ function _tct_file_action_menu() {
         # 共用戰術兵器庫
         action_items+="${C_GREEN}[cp]${C_RESET} Tactical Cloner\n"
         action_items+="${C_ORANGE}[mv]${C_RESET} Tactical Relocator\n"
-        action_items+="${C_RED}[rm]${C_RESET} Tactical Destructor"
+        action_items+="${C_RED}[rm]${C_RESET} Tactical Destructor\n"
         
         local ui_prompt=" :: Action › $clean_target › "
         [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › Action › $clean_target › "
@@ -463,9 +463,9 @@ function cd() {
 
         if [ "$TCT_RADAR_JAIL" != "forever" ]; then
             if [ "$jail_active" == "true" ]; then
-                menu_items+="${C_BLACK}[-1]${C_RESET} Unlock Jail"
+                menu_items+="${C_BLACK}[-1]${C_RESET} Unlock Jail\n"
             else
-                menu_items+="${C_BLACK}[-0]${C_RESET} Lock Jail"
+                menu_items+="${C_BLACK}[-0]${C_RESET} Lock Jail\n"
             fi
         fi
 
@@ -474,7 +474,7 @@ function cd() {
         [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
         local ui_prompt=" :: $display_prompt › "
-        [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › cd › $display_prompt :: "
+        [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › cd › $display_prompt › "
 
         local border_lbl="TARGET DIRECTORY"
         [ "$MUX_ENTRY_POINT" == "MEOW" ] && border_lbl="CARDBOARD BOX SCANNER"
@@ -495,7 +495,7 @@ function cd() {
             while true; do
                 local mk_items=""
                 mk_items+="${C_CYAN}[touch]${C_RESET} Create Empty File\n"
-                mk_items+="${C_YELLOW}[mkdir]${C_RESET} Create Directory"
+                mk_items+="${C_YELLOW}[mkdir]${C_RESET} Create Directory\n"
                 
                 local mk_ui_prompt=" :: Make › ${PWD/#$HOME/\~} :: "
                 [ "$CMT_COMMAND" == "true" ] && mk_ui_prompt=" :: cmt › Make › ${PWD/#$HOME/\~} :: "
@@ -652,9 +652,9 @@ function ls() {
 
         if [ "$TCT_RADAR_JAIL" != "forever" ]; then
             if [ "$jail_active" == "true" ]; then
-                menu_items+="${C_BLACK}[-1]${C_RESET} Unlock Jail"
+                menu_items+="${C_BLACK}[-1]${C_RESET} Unlock Jail\n"
             else
-                menu_items+="${C_BLACK}[-0]${C_RESET} Lock Jail"
+                menu_items+="${C_BLACK}[-0]${C_RESET} Lock Jail\n"
             fi
         fi
 
@@ -663,7 +663,7 @@ function ls() {
         [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
         local ui_prompt=" :: $display_prompt › "
-        [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › ls › $display_prompt :: "
+        [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › ls › $display_prompt › "
 
         local border_lbl="FILE SCANNER"
         [ "$MUX_ENTRY_POINT" == "MEOW" ] && border_lbl="SNIFFING AROUND"
@@ -683,7 +683,7 @@ function ls() {
             while true; do
                 local mk_items=""
                 mk_items+="${C_CYAN}[touch]${C_RESET} Create Empty File\n"
-                mk_items+="${C_YELLOW}[mkdir]${C_RESET} Create Directory"
+                mk_items+="${C_YELLOW}[mkdir]${C_RESET} Create Directory\n"
                 
                 local mk_ui_prompt=" :: Make › ${PWD/#$HOME/\~} :: "
                 [ "$CMT_COMMAND" == "true" ] && mk_ui_prompt=" :: cmt › Make › ${PWD/#$HOME/\~} :: "
@@ -696,7 +696,7 @@ function ls() {
                 if [ -z "$mk_sel" ]; then break; fi 
                 
                 if [[ "$mk_sel" == "[touch]"* ]]; then
-                    local p_touch=$(echo -e "\001${C_CYAN}\002 :: NEW FILE(S) NAME › \001${C_RESET}\002")
+                    local p_touch=$(echo -e "\001${C_CYAN}\002 :: New File(s) Name › \001${C_RESET}\002")
                     read -e -p "$p_touch" new_target < /dev/tty
                     if [ -n "$new_target" ]; then
                         echo -e "${C_RED} :: EXECUTING: touch $new_target ${C_RESET}"
@@ -705,7 +705,7 @@ function ls() {
                     fi
                     break
                 elif [[ "$mk_sel" == "[mkdir]"* ]]; then
-                    local p_mkdir=$(echo -e "\001${C_YELLOW}\002 :: NEW DIRECTORY(S) NAME › \001${C_RESET}\002")
+                    local p_mkdir=$(echo -e "\001${C_YELLOW}\002 :: New Directory(s) Name › \001${C_RESET}\002")
                     read -e -p "$p_mkdir" new_target < /dev/tty
                     if [ -n "$new_target" ]; then
                         echo -e "${C_RED} :: EXECUTING: mkdir -p $new_target ${C_RESET}"
@@ -898,16 +898,16 @@ function __core_rm() {
 
             if [ "$TCT_RADAR_JAIL" != "forever" ]; then
                 if [ "$jail_active" == "true" ]; then
-                    menu_items+="${C_BLACK}[-1]${C_RESET} Unlock Jail"
+                    menu_items+="${C_BLACK}[-1]${C_RESET} Unlock Jail\n"
                 else
-                    menu_items+="${C_BLACK}[-0]${C_RESET} Lock Jail"
+                    menu_items+="${C_BLACK}[-0]${C_RESET} Lock Jail\n"
                 fi
             fi
 
             local display_prompt="${PWD/#$HOME/\~}"
-            local ui_prompt=" :: rm -$current_rm_mode › $display_prompt :: "
+            local ui_prompt=" :: rm -$current_rm_mode › $display_prompt › "
             if [ "$CMT_COMMAND" == "true" ]; then
-                ui_prompt=" :: cmt › rm -$current_rm_mode › $display_prompt :: "
+                ui_prompt=" :: cmt › rm -$current_rm_mode › $display_prompt › "
             fi
 
             local line_count=$(echo -e "$menu_items" | wc -l)
@@ -1056,7 +1056,7 @@ function __core_mv() {
             menu_items+="${formatted_targets}\n"
             menu_items+="${C_BLACK}----------${C_RESET}\n"
             menu_items+="${C_GREEN}[ls]${C_RESET} File Scanner\n"
-            menu_items+="${C_PINKMEOW}[cd]${C_RESET} Navigate"
+            menu_items+="${C_PINKMEOW}[cd]${C_RESET} Navigate\n"
 
             local ui_prompt=" :: mv -$current_mv_mode › ${PWD/#$HOME/\~} :: "
             [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › mv -$current_mv_mode › ${PWD/#$HOME/\~} :: "
@@ -1145,7 +1145,7 @@ function __core_mv() {
                     nav_items+="${formatted_dirs}\n"
                 fi
 
-                local nav_prompt=" :: DESTINATION › ${PWD/#$HOME/\~} :: "
+                local nav_prompt=" :: Destination › ${PWD/#$HOME/\~} › "
                 local nav_line_count=$(echo -e "$nav_items" | wc -l)
                 local nav_dynamic_height=$(( nav_line_count + 4 ))
                 [ "$nav_dynamic_height" -gt 35 ] && nav_dynamic_height="80%"
@@ -1242,7 +1242,7 @@ function __core_cp() {
             menu_items+="${formatted_targets}\n"
             menu_items+="${C_BLACK}----------${C_RESET}\n"
             menu_items+="${C_GREEN}[ls]${C_RESET} File Scanner\n"
-            menu_items+="${C_PINKMEOW}[cd]${C_RESET} Navigate"
+            menu_items+="${C_PINKMEOW}[cd]${C_RESET} Navigate\n"
 
             local ui_prompt=" :: cp -$current_cp_mode › ${PWD/#$HOME/\~} :: "
             [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › cp -$current_cp_mode › ${PWD/#$HOME/\~} :: "
@@ -1695,10 +1695,10 @@ function __tct_core() {
                 local sub_menu=""
                 if [[ "$current_val" == "true" || "$current_val" == "forever" ]]; then
                     echo -e "${THEME_SUB}    ›› Status : ${C_GREEN}[ONLINE]${C_RESET}\n"
-                    sub_menu="${C_RED}[Release]${C_RESET} Disengage Module"
+                    sub_menu="${C_RED}[Release]${C_RESET} Disengage Module\n"
                 else
                     echo -e "${THEME_SUB}    ›› Status : ${C_RED}[OFFLINE]${C_RESET}\n"
-                    sub_menu="${C_GREEN}[Overwrite]${C_RESET} Engage Module"
+                    sub_menu="${C_GREEN}[Overwrite]${C_RESET} Engage Module\n"
                 fi
 
                 # 子選單確認

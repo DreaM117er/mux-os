@@ -2010,12 +2010,16 @@ function _tower_fzf_detail_view() {
     local file_name=$(basename "$target_file")
     local file_type=$(command file -b "$target_file" | awk -F, '{print $1}')
     if [ ${#file_type} -gt 35 ]; then file_type="${file_type:0:32}..."; fi
-    local raw_size_kb=$(du -sk "$target_file" | awk '{print $1}')
+
+    # 檔案大小
+    local exact_bytes=$(command ls -nd "$target_file" | awk '{print $5}')
     local file_size=$(du -sh "$target_file" | awk '{print $1}')
     file_size=$(echo "$file_size" | sed -E 's/K$/ KB/; s/M$/ MB/; s/G$/ GB/; s/T$/ TB/')
-    if [ "$raw_size_kb" -gt 1024 ]; then
-        local fmt_kb=$(echo "$raw_size_kb" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
-        file_size="${file_size} \033[1;30m[${fmt_kb} KB]\033[0m"
+    local fmt_bytes=$(echo "$exact_bytes" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+    if [ "$exact_bytes" -eq 0 ]; then
+        file_size="\033[1;30m[Vacuum / 0 B]\033[0m"
+    else
+        file_size="${file_size} \033[1;30m[${fmt_bytes} B]\033[0m"
     fi
     
     # 檔案權限判定
@@ -2067,7 +2071,7 @@ function _tower_fzf_detail_view() {
         local d_funcs=$(grep -E -c '^(function[[:space:]]+)?[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*\(\)' "$target_file" 2>/dev/null)
         d_funcs="${d_funcs:-0}"
         d_funcs=$(echo "$d_funcs" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
-        
+
         report+="${C_LBL} Lines  :${C_RST} ${C_DYN}${d_lines}${C_RST}\n"
         report+="${C_LBL} Funcs  :${C_RST} ${C_DYN}${d_funcs} detected${C_RST}\n"
     elif [[ "$mime_type" == image/* ]]; then
