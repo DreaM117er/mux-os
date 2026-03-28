@@ -191,6 +191,7 @@ function _update_setting() {
     
     # 同步通電給當前記憶體
     # export "${key}"="${val}"
+    _save_settings
     if command -v _mux_hardware_lock &> /dev/null; then _mux_hardware_lock; fi
 }
 
