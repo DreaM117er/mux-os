@@ -1607,14 +1607,14 @@ function __tct_core() {
                     sys_info+="${C_PURPLE} Timeline     :${C_WHITE} v${MUX_VERSION} @$(git symbolic-ref --short HEAD 2>/dev/null)${C_RESET}\n"
                     sys_info+="${C_PURPLE} Mode Status  :${C_WHITE} ${MUX_MODE} ${MUX_STATUS}${C_RESET}\n"
                     if [ -n "$MUX_ENTRY_POINT" ]; then
-                        sys_info+="${C_PURPLE} Entry Point :${C_WHITE} ${MUX_ENTRY_POINT}${C_RESET}\n"
+                        sys_info+="${C_PURPLE} Entry Point  :${C_WHITE} ${MUX_ENTRY_POINT}${C_RESET}\n"
                     fi
                     
                     if command -v _check_active_buffs &> /dev/null; then
                         _check_active_buffs
                         local buff_tag="$MUX_BUFF_TAG"
                         if [ -n "$buff_tag" ]; then
-                            sys_info+="${C_PURPLE} Buff Now    :${C_WHITE} ${buff_tag}${C_RESET}\n"
+                            sys_info+="${C_PURPLE} Buff Now     :${C_WHITE} ${buff_tag}${C_RESET}\n"
                         fi
                     fi
 
