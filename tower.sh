@@ -1601,44 +1601,44 @@ function __tct_core() {
                         
                 elif [ "$target_sub" == "sys" ]; then
                     local sys_info=""
-                    sys_info+="${C_PURPLE} Identity    :${C_RESET} ${MUX_ID:-Unknown} / ${MUX_ROLE:-GUEST}\n"
-                    sys_info+="${C_PURPLE} Clearance   :${C_RESET} L${MUX_LEVEL:-1} [${MUX_XP:-0} / ${MUX_NEXT_XP:-2000}]\n"
-                    sys_info+="${C_PURPLE} Reborn Count:${C_RESET} ${MUX_REBORN_COUNT:-0}\n"
-                    sys_info+="${C_PURPLE} Timeline    :${C_RESET} v${MUX_VERSION} / $(git symbolic-ref --short HEAD 2>/dev/null)\n"
-                    sys_info+="${C_PURPLE} Mode Status :${C_RESET} ${MUX_MODE} / ${MUX_STATUS}\n"
+                    sys_info+="${C_PURPLE} Identity    :${C_WHITE} ${MUX_ID:-Unknown}/${MUX_ROLE:-GUEST}${C_RESET}\n"
+                    sys_info+="${C_PURPLE} Clearance   :${C_WHITE} L${MUX_LEVEL:-1} ${C_BLACK}[${MUX_XP:-0}/${MUX_NEXT_XP:-2000}]${C_RESET}\n"
+                    sys_info+="${C_PURPLE} Reborn Count:${C_WHITE} ${MUX_REBORN_COUNT:-0}${C_RESET}\n"
+                    sys_info+="${C_PURPLE} Timeline    :${C_WHITE} v${MUX_VERSION} - @$(git symbolic-ref --short HEAD 2>/dev/null)${C_RESET}\n"
+                    sys_info+="${C_PURPLE} Mode Status :${C_WHITE} ${MUX_MODE}/${MUX_STATUS}${C_RESET}\n"
                     if [ -n "$MUX_ENTRY_POINT" ]; then
-                        sys_info+="${C_PURPLE} Entry Point :${C_RESET} ${MUX_ENTRY_POINT}\n"
+                        sys_info+="${C_PURPLE} Entry Point :${C_WHITE} ${MUX_ENTRY_POINT}${C_RESET}\n"
                     fi
                     
                     if command -v _check_active_buffs &> /dev/null; then
                         _check_active_buffs
                         local buff_tag="$MUX_BUFF_TAG"
                         if [ -n "$buff_tag" ]; then
-                            sys_info+="${C_PURPLE} Buff Now    :${C_RESET} ${buff_tag}\n"
+                            sys_info+="${C_PURPLE} Buff Now    :${C_WHITE} ${buff_tag}${C_RESET}\n"
                         fi
                     fi
 
-                    sys_info+="${C_BLACK}----------${C_RESET}\n"
+                    sys_info+="${C_BLACK}---------------${C_RESET}\n"
                     local row=""
-                    printf -v row " ${C_PURPLE}%-12s:${C_RESET} %-6s  ${C_PURPLE}%-12s:${C_RESET} %-6s\n" "Heap Alloc" "${HEAP_ALLOCATION_IDX:-0}" "I/O Writes" "${IO_WRITE_CYCLES:-0}"
+                    printf -v row " ${C_PURPLE}%-12s:${C_WHITE} %-6s  ${C_PURPLE}%-12s:${C_RESET} %-6s\n" "Heap Alloc" "${HEAP_ALLOCATION_IDX:-0}" "I/O Writes" "${IO_WRITE_CYCLES:-0}"
                     sys_info+="$row"
-                    printf -v row " ${C_PURPLE}%-12s:${C_RESET} %-6s  ${C_PURPLE}%-12s:${C_RESET} %-6s\n" "Panic Offset" "${KERNEL_PANIC_OFFSET:-0}" "Entropy" "${ENTROPY_DISCHARGE:-0}"
+                    printf -v row " ${C_PURPLE}%-12s:${C_WHITE} %-6s  ${C_PURPLE}%-12s:${C_RESET} %-6s\n" "Panic Offset" "${KERNEL_PANIC_OFFSET:-0}" "Entropy" "${ENTROPY_DISCHARGE:-0}"
                     sys_info+="$row"
-                    printf -v row " ${C_PURPLE}%-12s:${C_RESET} %-6s  ${C_PURPLE}%-12s:${C_RESET} %-6s\n" "Uplink Ms" "${UPLINK_LATENCY_MS:-0}" "Synapse Fire" "${NEURAL_SYNAPSE_FIRING:-0}"
+                    printf -v row " ${C_PURPLE}%-12s:${C_WHITE} %-6s  ${C_PURPLE}%-12s:${C_RESET} %-6s\n" "Uplink Ms" "${UPLINK_LATENCY_MS:-0}" "Synapse Fire" "${NEURAL_SYNAPSE_FIRING:-0}"
                     sys_info+="$row"
-                    printf -v row " ${C_PURPLE}%-12s:${C_RESET} %-6s  ${C_PURPLE}%-12s:${C_RESET} %-6s\n" "Test Launch" "${TEST_LAUNCH_COUNT:-0}" "Warp Jumps" "${WARP_JUMP_COUNT:-0}"
+                    printf -v row " ${C_PURPLE}%-12s:${C_WHITE} %-6s  ${C_PURPLE}%-12s:${C_RESET} %-6s\n" "Test Launch" "${TEST_LAUNCH_COUNT:-0}" "Warp Jumps" "${WARP_JUMP_COUNT:-0}"
                     sys_info+="$row"
-                    printf -v row " ${C_PURPLE}%-12s:${C_RESET} %-6s  ${C_PURPLE}%-12s:${C_RESET} %-6s\n" "Logins" "${LOGIN_COUNT:-0}" "Ejections" "${EJECTION_COUNT:-0}"
+                    printf -v row " ${C_PURPLE}%-12s:${C_WHITE} %-6s  ${C_PURPLE}%-12s:${C_RESET} %-6s\n" "Logins" "${LOGIN_COUNT:-0}" "Ejections" "${EJECTION_COUNT:-0}"
                     sys_info+="$row"
-                    printf -v row " ${C_PURPLE}%-12s:${C_RESET} %-6s  ${C_PURPLE}%-12s:${C_RESET} %-6s\n" "Sudo Attempt" "${SUDO_ATTEMPT_COUNT:-0}" "Help Access" "${HELP_ACCESS_COUNT:-0}"
+                    printf -v row " ${C_PURPLE}%-12s:${C_WHITE} %-6s  ${C_PURPLE}%-12s:${C_RESET} %-6s\n" "Sudo Attempt" "${SUDO_ATTEMPT_COUNT:-0}" "Help Access" "${HELP_ACCESS_COUNT:-0}"
                     sys_info+="$row"
-                    printf -v row " ${C_PURPLE}%-12s:${C_RESET} %-6s  ${C_PURPLE}%-12s:${C_RESET} %-6s\n" "Fac Abuse" "${FACTORY_ABUSE_COUNT:-0}" "Apklist Use" "${APKLIST_USED:-0}"
+                    printf -v row " ${C_PURPLE}%-12s:${C_WHITE} %-6s  ${C_PURPLE}%-12s:${C_RESET} %-6s\n" "Fac Abuse" "${FACTORY_ABUSE_COUNT:-0}" "Apklist Use" "${APKLIST_USED:-0}"
                     sys_info+="$row"
-                    printf -v row " ${C_PURPLE}%-12s:${C_RESET} %-6s  ${C_PURPLE}%-12s:${C_RESET} %-6s\n" "cmd:cd" "${CMD_CD_COUNT:-0}" "cmd:cp" "${CMD_CP_COUNT:-0}"
+                    printf -v row " ${C_PURPLE}%-12s:${C_WHITE} %-6s  ${C_PURPLE}%-12s:${C_RESET} %-6s\n" "cmd:cd" "${CMD_CD_COUNT:-0}" "cmd:cp" "${CMD_CP_COUNT:-0}"
                     sys_info+="$row"
-                    printf -v row " ${C_PURPLE}%-12s:${C_RESET} %-6s  ${C_PURPLE}%-12s:${C_RESET} %-6s\n" "cmd:nano" "${CMD_NANO_COUNT:-0}" "cmd:micro" "${CMD_MICRO_COUNT:-0}"
+                    printf -v row " ${C_PURPLE}%-12s:${C_WHITE} %-6s  ${C_PURPLE}%-12s:${C_RESET} %-6s\n" "cmd:nano" "${CMD_NANO_COUNT:-0}" "cmd:micro" "${CMD_MICRO_COUNT:-0}"
                     sys_info+="$row"
-                    printf -v row " ${C_PURPLE}%-12s:${C_RESET} %-6s\n" "cmd:sed" "${CMD_SED_COUNT:-0}"
+                    printf -v row " ${C_PURPLE}%-12s:${C_WHITE} %-6s\n" "cmd:sed" "${CMD_SED_COUNT:-0}"
                     sys_info+="$row"
                     
                     local line_count=$(echo -ne "$sys_info" | wc -l)
