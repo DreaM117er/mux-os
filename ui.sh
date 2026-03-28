@@ -2035,16 +2035,16 @@ function _tower_fzf_detail_view() {
     local mime_type=$(command file -b --mime-type "$target_file" 2>/dev/null)
     local C_DYN="\033[1;37m" # 預設純白
     
-    if [[ "$mime_type" == text/* || "$file_type" == *"script"* ]]; then
-        C_DYN="\033[1;36m" # 指令碼/純文字
+    if [[ "$mime_type" == text/* || "$file_type" == *"script"* || "$file_type" == *"CSV"* ]]; then
+        C_DYN="\033[1;36m"
     elif [[ "$mime_type" == image/* ]]; then
-        C_DYN="\033[1;35m" # 靜態影像
+        C_DYN="\033[1;35m"
     elif [[ "$mime_type" == video/* || "$mime_type" == audio/* ]]; then
-        C_DYN="\033[1;33m" # 多媒體
+        C_DYN="\033[1;33m"
     elif [[ "$mime_type" == application/x-executable || "$mime_type" == application/x-sharedlib* ]]; then
-        C_DYN="\033[1;31m" # 危險二進位/動態庫
+        C_DYN="\033[1;31m"
     else
-        C_DYN="\033[1;32m" # 其他常規資料
+        C_DYN="\033[1;32m"
     fi
 
     local C_LBL="\033[1;30m"
@@ -2067,6 +2067,7 @@ function _tower_fzf_detail_view() {
         local d_funcs=$(grep -E -c '^(function[[:space:]]+)?[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*\(\)' "$target_file" 2>/dev/null)
         d_funcs="${d_funcs:-0}"
         d_funcs=$(echo "$d_funcs" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+        
         report+="${C_LBL} Lines  :${C_RST} ${C_DYN}${d_lines}${C_RST}\n"
         report+="${C_LBL} Funcs  :${C_RST} ${C_DYN}${d_funcs} detected${C_RST}\n"
     elif [[ "$mime_type" == image/* ]]; then
@@ -2099,12 +2100,14 @@ function _tower_fzf_detail_view() {
                 ')
                 d_len="${sec_str}${fmt_time}"
             fi
+
             local tmp_res=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "$target_file" 2>/dev/null)
             if [ -n "$tmp_res" ]; then
                 local rw=$(echo "$tmp_res" | cut -dx -f1 | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
                 local rh=$(echo "$tmp_res" | cut -dx -f2 | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
                 d_resol="${rw}x${rh} px"
             fi
+        fi
         report+="${C_LBL} Resol  :${C_RST} ${C_DYN}${d_resol}${C_RST}\n"
         report+="${C_LBL} Length :${C_RST} ${C_DYN}${d_len}${C_RST}\n"
     else
