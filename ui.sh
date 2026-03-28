@@ -2043,7 +2043,7 @@ function _tower_fzf_detail_view() {
         --layout=reverse \
         --prompt="File Details › " \
         --header=" :: Enter to Choose, Esc to exit :: " \
-        --pointer="›› " \
+        --pointer="››" \
         --info=hidden \
         --border=bottom \
         --border-label=" :: DATA VIEWER :: " \
