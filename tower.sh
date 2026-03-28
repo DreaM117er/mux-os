@@ -253,6 +253,7 @@ function _tct_file_action_menu() {
         if [ -d "$clean_target" ]; then
             action_items+="${C_PINKMEOW}[cd]${C_RESET} Enter Directory '$clean_target'\n"
         elif [ -f "$clean_target" ]; then
+            action_items+="${C_GREEN}[dv]${C_RESET} Open Data Viewer\n"
             action_items+="${C_CYAN}[ct]${C_RESET} View Content '$clean_target'\n"
             action_items+="${C_YELLOW}[nn]${C_RESET} Edit File '$clean_target'\n"
         fi
