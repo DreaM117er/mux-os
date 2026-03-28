@@ -205,7 +205,7 @@ function _tct_tns_macro() {
     fi
 
     # 動態高度計算
-    local line_count=$(echo -e "$params" | wc -l)
+    local line_count=$(echo -ne "$params" | wc -l)
     local dynamic_height=$(( line_count + 4 ))
     if [ "$dynamic_height" -gt 12 ]; then dynamic_height=12; fi
 
@@ -274,10 +274,10 @@ function _tct_mode_selector() {
             ;;
     esac
 
-    local line_count=$(echo -e "$menu_items" | wc -l)
+    local line_count=$(echo -ne "$menu_items" | wc -l)
     local dynamic_height=$(( line_count + 4 ))
 
-    local selected=$(echo -e "$menu_items" | fzf --ansi \
+    local selected=$(echo -ne "$menu_items" | fzf --ansi \
         --height="$dynamic_height" \
         --layout=reverse \
         --prompt=" :: Select Mode › " \
@@ -469,7 +469,7 @@ function cd() {
             fi
         fi
 
-        local line_count=$(echo -e "$menu_items" | wc -l)
+        local line_count=$(echo -ne "$menu_items" | wc -l)
         local dynamic_height=$(( line_count + 4 ))
         [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
@@ -658,7 +658,7 @@ function ls() {
             fi
         fi
 
-        local line_count=$(echo -e "$menu_items" | wc -l)
+        local line_count=$(echo -ne "$menu_items" | wc -l)
         local dynamic_height=$(( line_count + 4 ))
         [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
@@ -910,7 +910,7 @@ function __core_rm() {
                 ui_prompt=" :: cmt › rm -$current_rm_mode › $display_prompt › "
             fi
 
-            local line_count=$(echo -e "$menu_items" | wc -l)
+            local line_count=$(echo -ne "$menu_items" | wc -l)
             local dynamic_height=$(( line_count + 4 ))
             [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
@@ -1061,7 +1061,7 @@ function __core_mv() {
             local ui_prompt=" :: mv -$current_mv_mode › ${PWD/#$HOME/\~} :: "
             [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › mv -$current_mv_mode › ${PWD/#$HOME/\~} :: "
 
-            local line_count=$(echo -e "$menu_items" | wc -l)
+            local line_count=$(echo -ne "$menu_items" | wc -l)
             local dynamic_height=$(( line_count + 4 ))
             [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
@@ -1146,7 +1146,7 @@ function __core_mv() {
                 fi
 
                 local nav_prompt=" :: Destination › ${PWD/#$HOME/\~} › "
-                local nav_line_count=$(echo -e "$nav_items" | wc -l)
+                local nav_line_count=$(echo -ne "$nav_items" | wc -l)
                 local nav_dynamic_height=$(( nav_line_count + 4 ))
                 [ "$nav_dynamic_height" -gt 35 ] && nav_dynamic_height="80%"
 
@@ -1247,7 +1247,7 @@ function __core_cp() {
             local ui_prompt=" :: cp -$current_cp_mode › ${PWD/#$HOME/\~} :: "
             [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › cp -$current_cp_mode › ${PWD/#$HOME/\~} :: "
 
-            local line_count=$(echo -e "$menu_items" | wc -l)
+            local line_count=$(echo -ne "$menu_items" | wc -l)
             local dynamic_height=$(( line_count + 4 ))
             [ "$dynamic_height" -gt 35 ] && dynamic_height="80%"
 
@@ -1334,7 +1334,7 @@ function __core_cp() {
                 fi
 
                 local nav_prompt=" :: DESTINATION › ${PWD/#$HOME/\~} :: "
-                local nav_line_count=$(echo -e "$nav_items" | wc -l)
+                local nav_line_count=$(echo -ne "$nav_items" | wc -l)
                 local nav_dynamic_height=$(( nav_line_count + 4 ))
                 [ "$nav_dynamic_height" -gt 35 ] && nav_dynamic_height="80%"
 
@@ -1494,7 +1494,7 @@ function __tct_core() {
                     menu_items+="${C_PURPLE}[sys]${C_RESET}\tSystem Core Status\n"
                     menu_items+="${C_GREEN}[mod]${C_RESET}\tModule Configurations\n"
                     
-                    local action=$(echo -e "${menu_items%\\n}" | fzf --ansi \
+                    local action=$(echo -ne "$menu_items" | fzf --ansi \
                         --height=7 \
                         --layout=reverse \
                         --border=bottom \
@@ -1519,7 +1519,7 @@ function __tct_core() {
                     hw_info+=" ${C_CYAN}  Storage :${C_RESET} $(df -h $HOME | awk 'NR==2 {print $4 " available"}')\n"
                     hw_info+=" ${C_CYAN}  Uptime  :${C_RESET} $(uptime -p | sed 's/up //')\n"
                     
-                    echo -e "${hw_info%\\n}" | fzf --ansi \
+                    echo -e "$hw_info" | fzf --ansi \
                         --height=8 \
                         --layout=reverse \
                         --border=bottom \
@@ -1551,10 +1551,10 @@ function __tct_core() {
                         fi
                     fi
                     
-                    local line_count=$(echo -e "$sys_info" | wc -l)
+                    local line_count=$(echo -ne "$sys_info" | wc -l)
                     local sys_h=$(( line_count + 4 ))
                     
-                    echo -e "${sys_info%\\n}" | fzf --ansi \
+                    echo -e "$sys_info" | fzf --ansi \
                         --height="$sys_h" \
                         --layout=reverse \
                         --border=bottom \
@@ -1589,10 +1589,10 @@ function __tct_core() {
                         mod_info="${C_RED} [Error] .setting file not found.${C_RESET}\n"
                     fi
                     
-                    local line_count=$(echo -e "$mod_info" | wc -l)
+                    local line_count=$(echo -ne "$mod_info" | wc -l)
                     local mod_h=$(( line_count + 4 ))
                     
-                    echo -e "${mod_info%\\n}" | fzf --ansi \
+                    echo -e "$mod_info" | fzf --ansi \
                         --height="$mod_h" \
                         --layout=reverse \
                         --border=bottom \
@@ -1702,7 +1702,7 @@ function __tct_core() {
                 fi
 
                 # 子選單確認
-                local action=$(echo -e "${sub_menu%\\n}" | fzf --ansi \
+                local action=$(echo -e "$sub_menu" | fzf --ansi \
                     --height=5 \
                     --layout=reverse \
                     --prompt=" :: Action › " \

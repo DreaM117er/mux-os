@@ -1867,7 +1867,7 @@ function _ui_tct_nav_radar() {
     local color_hl="$5"
     local header_txt="$6"
 
-    echo -e "${menu_items%\\n}" | fzf --ansi \
+    echo -ne "$menu_items" | fzf --ansi \
         --print-query \
         --height="$dynamic_height" \
         --layout=reverse \
@@ -1890,7 +1890,7 @@ function _ui_tct_tactical_radar() {
     local label="$4"
     local color_hl="$5"
 
-    echo -e "${menu_items%\\n}" | fzf --ansi -m \
+    echo -ne "$menu_items" | fzf --ansi -m \
         --print-query \
         --marker="‹»" \
         --height="$dynamic_height" \
@@ -1970,7 +1970,7 @@ function _ui_tct_core_radar() {
     done < "$setting_file"
 
     # 展開 fzf 選單
-    local line_count=$(echo -e "$menu_items" | wc -l)
+    local line_count=$(echo -ne "$menu_items" | wc -l)
     local dynamic_height=$(( line_count + 4 ))
     
     local border_lbl="SYSTEM CORE MODULES"
@@ -1980,7 +1980,7 @@ function _ui_tct_core_radar() {
         prompt_msg="meow › core › "
     fi
 
-    local selected=$(echo -e "${menu_items%\\n}" | fzf --ansi \
+    local selected=$(echo -ne "$menu_items" | fzf --ansi \
         --height="$dynamic_height" \
         --layout=reverse \
         --border=bottom \
@@ -2120,10 +2120,10 @@ function _tower_fzf_detail_view() {
     report+="${C_LBL} State  :${C_RST} ${d_state}"
 
     # fzf 選單
-    local line_count=$(echo -e "$report" | wc -l)
+    local line_count=$(echo -ne "$report" | wc -l)
     local dynamic_height=$(( line_count + 4 ))
 
-    local selected=$(echo -e "$report" | fzf --ansi \
+    local selected=$(echo -ne "$report" | fzf --ansi \
         --height="$dynamic_height" \
         --layout=reverse \
         --prompt=" :: File Details › " \
