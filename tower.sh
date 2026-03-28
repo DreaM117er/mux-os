@@ -317,8 +317,8 @@ function _tct_file_action_menu() {
         action_items+="${C_ORANGE}[mv]${C_RESET} Tactical Relocator\n"
         action_items+="${C_RED}[rm]${C_RESET} Tactical Destructor"
         
-        local ui_prompt=" :: Action › $clean_target :: "
-        [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › Action › $clean_target :: "
+        local ui_prompt=" :: Action › $clean_target › "
+        [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › Action › $clean_target › "
         
         # 呼叫TCT模組
         local action_raw=$(_ui_tct_nav_radar "$action_items" "$ui_prompt" "10" "TARGET OPERATIONS" "220" " :: Esc to Return ::")
