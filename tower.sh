@@ -660,17 +660,17 @@ function ls() {
             continue
         elif [ "$target" == "[cd] Revert to Origin" ]; then
             builtin cd "$origin_pwd"; continue
-        elif [[ "$action_sel" == "[cp]"* ]]; then
+        elif [[ "$target" == "[cp]"* ]]; then
             export CMT_COMMAND="true"
             __core_cp
             unset CMT_COMMAND
             break
-        elif [[ "$action_sel" == "[mv]"* ]]; then
+        elif [[ "$target" == "[mv]"* ]]; then
             export CMT_COMMAND="true"
             __core_mv
             unset CMT_COMMAND
             break
-        elif [[ "$action_sel" == "[rm]"* ]]; then
+        elif [[ "$target" == "[rm]"* ]]; then
             export CMT_COMMAND="true"
             __core_rm
             unset CMT_COMMAND
