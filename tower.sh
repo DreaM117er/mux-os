@@ -206,7 +206,7 @@ function _tct_tns_macro() {
 
     # 動態高度計算
     local line_count=$(echo -ne "$params" | wc -l)
-    local dynamic_height=$(( line_count + 4 ))
+    local dynamic_height=$(( line_count + 5 ))
     if [ "$dynamic_height" -gt 12 ]; then dynamic_height=12; fi
 
     # 展開參數雷達
