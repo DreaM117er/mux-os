@@ -290,7 +290,7 @@ function _install_protocol() {
     echo -e "  ${C_GREEN}[+]${C_RESET} Neural Link     : $MUX_ROOT/bot.sh"
     echo -e "  ${C_GREEN}[+]${C_RESET} System Apps     : $MUX_ROOT/app.sh"
     echo -e "  ${C_GREEN}[+]${C_RESET} Bootloader      : $RC_FILE (Append)"
-    echo -e "  ${C_GREEN}[+]${C_RESET} Dependencies    : git, ncurses-utils, termux-api, gh"
+    echo -e "  ${C_GREEN}[+]${C_RESET} Dependencies    : git, gh, ncurses-utils, termux-api, ffmpeg, imagemagick, file"
     echo ""
 
     echo -ne "${C_GREEN} :: Proceed with installation? [Y/n]: ${C_RESET}"
@@ -309,7 +309,7 @@ function _install_protocol() {
 
     _mux_state_purifier "verbose"
     
-    PACKAGES=(ncurses-utils git termux-api gh)
+    PACKAGES=(ncurses-utils git termux-api gh ffmpeg imagemagick file)
     for pkg in "${PACKAGES[@]}"; do
         if ! command -v "$pkg" &> /dev/null; then
             echo "    ›› Installing missing gear: $pkg"
@@ -449,6 +449,10 @@ EOF
         echo -e "${C_BLACK}    After login, please test if the \033[1;36m'apklist'\033[1;30m command works properly.${C_RESET}"
         echo -e "${C_BLACK}    If not installed, please search and install \"Package Name Viewer 2.0\" from the Play Store.${C_RESET}"
         echo -e "${C_BLACK}    If this APP is incompatible with your device, run \033[1;36m'mux setup'\033[1;30m to configure the fallback protocol.${C_RESET}"
+        echo ""
+        echo -e "${C_YELLOW} :: SYSTEM RECOVERY NOTICE ::${C_RESET}"
+        echo -e "${C_BLACK}    If you experience matrix anomalies or state machine issues,${C_RESET}"
+        echo -e "${C_BLACK}    please run \033[1;36m'mux setup'\033[1;30m and select Repair/Reinstall to refresh the system.${C_RESET}"
         echo ""
         echo -ne "${C_CYAN} :: Press 'Enter' to acknowledge and continue... ${C_RESET}"
         read -r  

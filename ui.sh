@@ -1973,20 +1973,20 @@ function _ui_tct_core_radar() {
     local line_count=$(echo -e "$menu_items" | wc -l)
     local dynamic_height=$(( line_count + 4 ))
     
-    local border_lbl=" :: SYSTEM CORE MODULES :: "
-    local prompt_msg=" :: cmt › core › "
+    local border_lbl="SYSTEM CORE MODULES"
+    local prompt_msg="cmt › core › "
     if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
-        border_lbl=" :: MEOW CORE MODULES :: "
-        prompt_msg=" :: meow › core › "
+        border_lbl="MEOW CORE MODULES"
+        prompt_msg="meow › core › "
     fi
 
     local selected=$(echo -e "${menu_items%\\n}" | fzf --ansi \
         --height="$dynamic_height" \
         --layout=reverse \
         --border=bottom \
-        --border-label="$border_lbl" \
-        --header=" :: Enter to Choose, Esc to exit :: " \
-        --prompt="$prompt_msg" \
+        --border-label=" :: $border_lbl :: " \
+        --header=" :: Enter to Choose, Esc to exit ::" \
+        --prompt=" :: $prompt_msg" \
         --pointer="››" \
         --info=hidden \
         --color="fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:211,info:240" \
@@ -1997,6 +1997,64 @@ function _ui_tct_core_radar() {
     # 提取被選中的 KEY (在括號 [] 內)
     if [ -n "$selected" ]; then
         echo "$selected" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $NF}' | tr -d '[]'
+    fi
+}
+
+# 檔案詳細資料檢視器 (Tower File Detail Inspector)
+function _tower_fzf_detail_view() {
+    local target_file="$1"
+    
+    if [ -z "$target_file" ]; then return; fi
+
+    # 1. 取得檔案基礎資訊
+    local file_name=$(basename "$target_file")
+    local file_type="Bourne-Again shell script"
+    local file_size="32.5 KB"
+    local file_access="[R] [W] [X]"
+    
+    # 動態欄位假資料
+    local d_lines="1,142"
+    local d_funcs="28 detected"
+    local d_state="[Tracked]"
+
+    # 2. 定義冷冽色碼
+    local C_LBL="\033[1;30m"
+    local C_VAL="\033[1;37m"
+    local C_SEP="\033[1;30m"
+    local C_RST="\033[0m"
+
+    # 3. 組合文字
+    local report=""
+    report+="${C_LBL}Name   :${C_RST} ${C_VAL}${file_name}${C_RST}\n"
+    report+="${C_LBL}Type   :${C_RST} ${C_VAL}${file_type}${C_RST}\n"
+    report+="${C_LBL}Size   :${C_RST} ${C_VAL}${file_size}${C_RST}\n"
+    report+="${C_LBL}Access :${C_RST} ${C_VAL}${file_access}${C_RST}\n"
+    report+="${C_SEP}----------${C_RST}\n"
+    report+="${C_LBL}Lines  :${C_RST} ${C_VAL}${d_lines}${C_RST}\n"
+    report+="${C_LBL}Funcs  :${C_RST} ${C_VAL}${d_funcs}${C_RST}\n"
+    report+="${C_LBL}State  :${C_RST} ${C_VAL}${d_state}${C_RST}"
+
+    # 4. 呼叫 FZF 渲染
+    local line_count=$(echo -e "$report" | wc -l)
+    local dynamic_height=$(( line_count + 5 ))
+
+    local selected=$(echo -e "$report" | fzf --ansi \
+        --height="$dynamic_height" \
+        --layout=reverse \
+        --prompt="File Details › " \
+        --header=" :: Enter to Choose, Esc to exit :: " \
+        --pointer="›› " \
+        --info=hidden \
+        --border=bottom \
+        --border-label=" :: DATA VIEWER :: " \
+        --color=fg:white,bg:-1,hl:240,fg+:white,bg+:235,hl+:240 \
+        --color=info:240,prompt:46,pointer:red,border:46,header:240 \
+        --bind="resize:clear-screen"
+    )
+
+    # 測試階段，將結果回傳
+    if [ -n "$selected" ]; then
+        echo "$selected"
     fi
 }
 
