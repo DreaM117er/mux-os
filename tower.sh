@@ -1601,11 +1601,11 @@ function __tct_core() {
                         
                 elif [ "$target_sub" == "sys" ]; then
                     local sys_info=""
-                    sys_info+="${C_PURPLE} Identity    :${C_WHITE} ${MUX_ID:-Unknown}/${MUX_ROLE:-GUEST}${C_RESET}\n"
+                    sys_info+="${C_PURPLE} Identity    :${C_WHITE} ${MUX_ID:-Unknown}${C_RESET}\n"
                     sys_info+="${C_PURPLE} Clearance   :${C_WHITE} L${MUX_LEVEL:-1} ${C_BLACK}[${MUX_XP:-0}/${MUX_NEXT_XP:-2000}]${C_RESET}\n"
                     sys_info+="${C_PURPLE} Reborn Count:${C_WHITE} ${MUX_REBORN_COUNT:-0}${C_RESET}\n"
-                    sys_info+="${C_PURPLE} Timeline    :${C_WHITE} v${MUX_VERSION} - @$(git symbolic-ref --short HEAD 2>/dev/null)${C_RESET}\n"
-                    sys_info+="${C_PURPLE} Mode Status :${C_WHITE} ${MUX_MODE}/${MUX_STATUS}${C_RESET}\n"
+                    sys_info+="${C_PURPLE} Timeline    :${C_WHITE} v${MUX_VERSION} @$(git symbolic-ref --short HEAD 2>/dev/null)${C_RESET}\n"
+                    sys_info+="${C_PURPLE} Mode Status :${C_WHITE} ${MUX_MODE} ${MUX_STATUS}${C_RESET}\n"
                     if [ -n "$MUX_ENTRY_POINT" ]; then
                         sys_info+="${C_PURPLE} Entry Point :${C_WHITE} ${MUX_ENTRY_POINT}${C_RESET}\n"
                     fi
