@@ -1581,10 +1581,10 @@ function __tct_core() {
                 
                 if [ "$target_sub" == "hws" ]; then
                     local hw_info=""
-                    hw_info+=" ${C_CYAN}  Kernel  :${C_RESET} $(uname -r) ($(uname -m))\n"
-                    hw_info+=" ${C_CYAN}  Memory  :${C_RESET} $(free -h | awk '/Mem:/ {print $3 " / " $2}')\n"
-                    hw_info+=" ${C_CYAN}  Storage :${C_RESET} $(df -h $HOME | awk 'NR==2 {print $4 " available"}')\n"
-                    hw_info+=" ${C_CYAN}  Uptime  :${C_RESET} $(uptime -p | sed 's/up //')\n"
+                    hw_info+=" ${C_CYAN} Kernel  :${C_RESET} $(uname -r) ($(uname -m))\n"
+                    hw_info+=" ${C_CYAN} Memory  :${C_RESET} $(free -h | awk '/Mem:/ {print $3 " / " $2}')\n"
+                    hw_info+=" ${C_CYAN} Storage :${C_RESET} $(df -h $HOME | awk 'NR==2 {print $4 " available"}')\n"
+                    hw_info+=" ${C_CYAN} Uptime  :${C_RESET} $(uptime -p | sed 's/up //')\n"
                     
                     echo -ne "$hw_info" | fzf --ansi \
                         --height=8 \
@@ -1601,20 +1601,20 @@ function __tct_core() {
                         
                 elif [ "$target_sub" == "sys" ]; then
                     local sys_info=""
-                    sys_info+=" ${C_PURPLE}  Identity  :${C_RESET} ${MUX_ID:-Unknown} / ${MUX_ROLE:-GUEST}\n"
-                    sys_info+=" ${C_PURPLE}  Clearance :${C_RESET} Level ${MUX_LEVEL:-1} (${MUX_XP:-0} / ${MUX_NEXT_XP:-2000})\n"
-                    sys_info+=" ${C_PURPLE}  Reborn    :${C_RESET} Iteration ${MUX_REBORN_COUNT:-0}\n"
-                    sys_info+=" ${C_PURPLE}  Timeline  :${C_RESET} v${MUX_VERSION} / $(git symbolic-ref --short HEAD 2>/dev/null)\n"
-                    sys_info+=" ${C_PURPLE}  Mode      :${C_RESET} ${MUX_MODE} / ${MUX_STATUS}\n"
+                    sys_info+=" ${C_PURPLE} Identity  :${C_RESET} ${MUX_ID:-Unknown} / ${MUX_ROLE:-GUEST}\n"
+                    sys_info+=" ${C_PURPLE} Clearance :${C_RESET} L${MUX_LEVEL:-1} [${MUX_XP:-0} / ${MUX_NEXT_XP:-2000}]\n"
+                    sys_info+=" ${C_PURPLE} Reborn    :${C_RESET} Iteration ${MUX_REBORN_COUNT:-0}\n"
+                    sys_info+=" ${C_PURPLE} Timeline  :${C_RESET} v${MUX_VERSION} / $(git symbolic-ref --short HEAD 2>/dev/null)\n"
+                    sys_info+=" ${C_PURPLE} Mode      :${C_RESET} ${MUX_MODE} / ${MUX_STATUS}\n"
                     if [ -n "$MUX_ENTRY_POINT" ]; then
-                        sys_info+=" ${C_PURPLE}  Entry     :${C_RESET} ${MUX_ENTRY_POINT}\n"
+                        sys_info+=" ${C_PURPLE} Entry     :${C_RESET} ${MUX_ENTRY_POINT}\n"
                     fi
                     
                     if command -v _check_active_buffs &> /dev/null; then
                         _check_active_buffs
                         local buff_tag="$MUX_BUFF_TAG"
                         if [ -n "$buff_tag" ]; then
-                            sys_info+=" ${C_PURPLE}  Buff      :${C_RESET} ${buff_tag}\n"
+                            sys_info+=" ${C_PURPLE} Buff      :${C_RESET} ${buff_tag}\n"
                         fi
                     fi
                     
@@ -1628,7 +1628,7 @@ function __tct_core() {
                         --border-label=" :: SYSTEM CORE STATUS :: " \
                         --prompt=" :: sys › " \
                         --header=" :: Esc to Return :: " \
-                        --pointer=" " \
+                        --pointer="››" \
                         --info=hidden \
                         --color="fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:211" \
                         --color="prompt:211,border:211,header:240" \
@@ -1666,7 +1666,7 @@ function __tct_core() {
                         --border-label=" :: MODULE CONFIGURATIONS :: " \
                         --prompt=" :: mod › " \
                         --header=" :: Esc to Return :: " \
-                        --pointer=" " \
+                        --pointer="››" \
                         --info=hidden \
                         --color="fg:white,bg:-1,hl:211,fg+:white,bg+:235,hl+:211" \
                         --color="prompt:211,border:211,header:240" \
