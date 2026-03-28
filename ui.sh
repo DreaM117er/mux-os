@@ -2058,10 +2058,10 @@ function _tower_fzf_detail_view() {
 
     # 基礎排版組合
     local report=""
-    report+="${C_LBL} Name   :${C_RST} ${C_VAL}${file_name}${C_RST}\n"
-    report+="${C_LBL} Type   :${C_RST} ${C_DYN}${file_type}${C_RST}\n"
-    report+="${C_LBL} Size   :${C_RST} ${C_VAL}${file_size}${C_RST}\n"
-    report+="${C_LBL} Access :${C_RST} ${file_access}\n"
+    report+="${C_LBL} Name    :${C_RST} ${C_VAL}${file_name}${C_RST}\n"
+    report+="${C_LBL} Type    :${C_RST} ${C_DYN}${file_type}${C_RST}\n"
+    report+="${C_LBL} Size    :${C_RST} ${C_VAL}${file_size}${C_RST}\n"
+    report+="${C_LBL} Access  :${C_RST} ${file_access}\n"
     report+="${C_SEP}----------${C_RST}\n"
 
     # 動態伸縮欄位
@@ -2072,8 +2072,8 @@ function _tower_fzf_detail_view() {
         d_funcs="${d_funcs:-0}"
         d_funcs=$(echo "$d_funcs" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
 
-        report+="${C_LBL} Lines  :${C_RST} ${C_DYN}${d_lines}${C_RST}\n"
-        report+="${C_LBL} Funcs  :${C_RST} ${C_DYN}${d_funcs} detected${C_RST}\n"
+        report+="${C_LBL} Lines   :${C_RST} ${C_DYN}${d_lines}${C_RST}\n"
+        report+="${C_LBL} Funcs   :${C_RST} ${C_DYN}${d_funcs} detected${C_RST}\n"
     elif [[ "$mime_type" == image/* ]]; then
         local d_resol="[N/A]"
         local d_fmt="[N/A]"
@@ -2086,8 +2086,8 @@ function _tower_fzf_detail_view() {
             fi
             d_fmt=$(identify -format "%m" "$target_file" 2>/dev/null)
         fi
-        report+="${C_LBL} Resol  :${C_RST} ${C_DYN}${d_resol}${C_RST}\n"
-        report+="${C_LBL} Format :${C_RST} ${C_DYN}${d_fmt}${C_RST}\n"
+        report+="${C_LBL} Resol   :${C_RST} ${C_DYN}${d_resol}${C_RST}\n"
+        report+="${C_LBL} Format  :${C_RST} ${C_DYN}${d_fmt}${C_RST}\n"
     elif [[ "$mime_type" == video/* || "$mime_type" == audio/* ]]; then
         local d_resol="[Audio Only]"
         local d_len="[N/A]"
@@ -2112,16 +2112,16 @@ function _tower_fzf_detail_view() {
                 d_resol="${rw}x${rh} px"
             fi
         fi
-        report+="${C_LBL} Resol  :${C_RST} ${C_DYN}${d_resol}${C_RST}\n"
-        report+="${C_LBL} Length :${C_RST} ${C_DYN}${d_len}${C_RST}\n"
+        report+="${C_LBL} Resol   :${C_RST} ${C_DYN}${d_resol}${C_RST}\n"
+        report+="${C_LBL} Length  :${C_RST} ${C_DYN}${d_len}${C_RST}\n"
     else
-        report+="${C_LBL} Data   :${C_RST} ${C_DYN}Binary / Object${C_RST}\n"
+        report+="${C_LBL} Data    :${C_RST} ${C_DYN}Binary / Object${C_RST}\n"
     fi
-    report+="${C_LBL} State  :${C_RST} ${d_state}"
+    report+="${C_LBL} State   :${C_RST} ${d_state}"
 
     # fzf 選單
     local line_count=$(echo -ne "$report" | wc -l)
-    local dynamic_height=$(( line_count + 4 ))
+    local dynamic_height=$(( line_count + 5 ))
 
     local selected=$(echo -ne "$report" | fzf --ansi \
         --height="$dynamic_height" \
