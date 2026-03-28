@@ -1646,9 +1646,11 @@ function __tct_core() {
                     sys_info+="$row"
                     printf -v row " ${C_PURPLE}%-12s :${C_WHITE} %-6s  ${C_PURPLE}%-12s :${C_RESET} %-6s\n" "cmd:cd" "${CMD_CD_COUNT:-0}" "cmd:cp" "${CMD_CP_COUNT:-0}"
                     sys_info+="$row"
-                    printf -v row " ${C_PURPLE}%-12s :${C_WHITE} %-6s  ${C_PURPLE}%-12s :${C_RESET} %-6s\n" "cmd:nano" "${CMD_NANO_COUNT:-0}" "cmd:micro" "${CMD_MICRO_COUNT:-0}"
+                    printf -v row " ${C_PURPLE}%-12s :${C_WHITE} %-6s  ${C_PURPLE}%-12s :${C_RESET} %-6s\n" "cmd:mv" "${CMD_MV_COUNT:-0}" "cmd:rm" "${CMD_RM_COUNT:-0}"
                     sys_info+="$row"
-                    printf -v row " ${C_PURPLE}%-12s :${C_WHITE} %-6s\n" "cmd:sed" "${CMD_SED_COUNT:-0}"
+                    printf -v row " ${C_PURPLE}%-12s :${C_WHITE} %-6s  ${C_PURPLE}%-12s :${C_RESET} %-6s\n" "cmd:ls" "${CMD_LS_COUNT:-0}" "cmd:nano" "${CMD_NANO_COUNT:-0}"
+                    sys_info+="$row"
+                    printf -v row " ${C_PURPLE}%-12s :${C_WHITE} %-6s  ${C_PURPLE}%-12s :${C_RESET} %-6s\n" "cmd:sed" "${CMD_SED_COUNT:-0}" "cmd:micro" "${CMD_MICRO_COUNT:-0}"
                     sys_info+="$row"
                     
                     local line_count=$(echo -ne "$sys_info" | wc -l)
