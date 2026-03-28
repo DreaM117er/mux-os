@@ -784,11 +784,17 @@ function ls() {
             _TCT_SESSION_JAIL="true"
             continue
         else
-            local clean_dir=$(echo "$target" | sed 's/^\[  \] //')
-            builtin cd "$clean_dir"
-            if [ "$TCT_RADAR_HIDDEN" != "forever" ]; then
-                show_hidden="false"
-                _TCT_SESSION_HIDDEN="false"
+            local clean_target=$(echo "$target" | sed 's/^\[  \] //')
+            if [ -d "$clean_target" ]; then
+                builtin cd "$clean_target"
+                if [ "$TCT_RADAR_HIDDEN" != "forever" ]; then
+                    show_hidden="false"
+                    _TCT_SESSION_HIDDEN="false"
+                fi
+                continue
+            elif [ -f "$clean_target" ]; then
+                _tct_file_action_menu "$clean_target"
+                continue
             fi
         fi
     done
