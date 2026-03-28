@@ -378,6 +378,11 @@ function _tct_file_action_menu() {
 
 # 原生指令劫持: cd (Command cd for TCT)
 function cd() {
+    # 操作計數器
+    if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+    CMD_CD_COUNT=$((CMD_CD_COUNT + 1))
+    _save_identity
+
     # 狀態機讀取
     local setting_file="$HOME/mux-os/.setting"
     if [ -f "$setting_file" ]; then source "$setting_file"; fi
@@ -584,6 +589,11 @@ function cd() {
 
 # 原生指令劫持: ls (Command ls for TCT)
 function ls() {
+    # 操作計數器
+    if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
+    CMD_LS_COUNT=$((CMD_LS_COUNT + 1))
+    _save_identity
+
     local setting_file="$HOME/mux-os/.setting"
     if [ -f "$setting_file" ]; then source "$setting_file"; fi
 
