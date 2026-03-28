@@ -1581,10 +1581,10 @@ function __tct_core() {
                 
                 if [ "$target_sub" == "hws" ]; then
                     local hw_info=""
-                    hw_info+=" ${C_CYAN} Kernel  :${C_RESET} $(uname -r) ($(uname -m))\n"
-                    hw_info+=" ${C_CYAN} Memory  :${C_RESET} $(free -h | awk '/Mem:/ {print $3 " / " $2}')\n"
-                    hw_info+=" ${C_CYAN} Storage :${C_RESET} $(df -h $HOME | awk 'NR==2 {print $4 " available"}')\n"
-                    hw_info+=" ${C_CYAN} Uptime  :${C_RESET} $(uptime -p | sed 's/up //')\n"
+                    hw_info+="${C_CYAN} Kernel  :${C_RESET} $(uname -r) ($(uname -m))\n"
+                    hw_info+="${C_CYAN} Memory  :${C_RESET} $(free -h | awk '/Mem:/ {print $3 " / " $2}')\n"
+                    hw_info+="${C_CYAN} Storage :${C_RESET} $(df -h $HOME | awk 'NR==2 {print $4 " available"}')\n"
+                    hw_info+="${C_CYAN} Uptime  :${C_RESET} $(uptime -p | sed 's/up //')\n"
                     
                     echo -ne "$hw_info" | fzf --ansi \
                         --height=8 \
@@ -1601,22 +1601,45 @@ function __tct_core() {
                         
                 elif [ "$target_sub" == "sys" ]; then
                     local sys_info=""
-                    sys_info+=" ${C_PURPLE} Identity  :${C_RESET} ${MUX_ID:-Unknown} / ${MUX_ROLE:-GUEST}\n"
-                    sys_info+=" ${C_PURPLE} Clearance :${C_RESET} L${MUX_LEVEL:-1} [${MUX_XP:-0} / ${MUX_NEXT_XP:-2000}]\n"
-                    sys_info+=" ${C_PURPLE} Reborn    :${C_RESET} Iteration ${MUX_REBORN_COUNT:-0}\n"
-                    sys_info+=" ${C_PURPLE} Timeline  :${C_RESET} v${MUX_VERSION} / $(git symbolic-ref --short HEAD 2>/dev/null)\n"
-                    sys_info+=" ${C_PURPLE} Mode      :${C_RESET} ${MUX_MODE} / ${MUX_STATUS}\n"
+                    sys_info+="${C_PURPLE} Identity  :${C_RESET} ${MUX_ID:-Unknown} / ${MUX_ROLE:-GUEST}\n"
+                    sys_info+="${C_PURPLE} Clearance :${C_RESET} L${MUX_LEVEL:-1} [${MUX_XP:-0} / ${MUX_NEXT_XP:-2000}]\n"
+                    sys_info+="${C_PURPLE} Reborn    :${C_RESET} Iteration ${MUX_REBORN_COUNT:-0}\n"
+                    sys_info+="${C_PURPLE} Timeline  :${C_RESET} v${MUX_VERSION} / $(git symbolic-ref --short HEAD 2>/dev/null)\n"
+                    sys_info+="${C_PURPLE} Mode      :${C_RESET} ${MUX_MODE} / ${MUX_STATUS}\n"
                     if [ -n "$MUX_ENTRY_POINT" ]; then
-                        sys_info+=" ${C_PURPLE} Entry     :${C_RESET} ${MUX_ENTRY_POINT}\n"
+                        sys_info+="${C_PURPLE} Entry     :${C_RESET} ${MUX_ENTRY_POINT}\n"
                     fi
                     
                     if command -v _check_active_buffs &> /dev/null; then
                         _check_active_buffs
                         local buff_tag="$MUX_BUFF_TAG"
                         if [ -n "$buff_tag" ]; then
-                            sys_info+=" ${C_PURPLE} Buff      :${C_RESET} ${buff_tag}\n"
+                            sys_info+="${C_PURPLE} Buff      :${C_RESET} ${buff_tag}\n"
                         fi
                     fi
+
+                    sys_info+="${C_BLACK}----------${C_RESET}\n"
+                    local row=""
+                    printf -v row " ${C_CYAN}%-12s:${C_RESET} %-6s  ${C_CYAN}%-12s:${C_RESET} %-6s\n" "Heap Alloc" "${HEAP_ALLOCATION_IDX:-0}" "I/O Writes" "${IO_WRITE_CYCLES:-0}"
+                    sys_info+="$row"
+                    printf -v row " ${C_CYAN}%-12s:${C_RESET} %-6s  ${C_CYAN}%-12s:${C_RESET} %-6s\n" "Panic Offset" "${KERNEL_PANIC_OFFSET:-0}" "Entropy" "${ENTROPY_DISCHARGE:-0}"
+                    sys_info+="$row"
+                    printf -v row " ${C_CYAN}%-12s:${C_RESET} %-6s  ${C_CYAN}%-12s:${C_RESET} %-6s\n" "Uplink Ms" "${UPLINK_LATENCY_MS:-0}" "Synapse Fire" "${NEURAL_SYNAPSE_FIRING:-0}"
+                    sys_info+="$row"
+                    printf -v row " ${C_CYAN}%-12s:${C_RESET} %-6s  ${C_CYAN}%-12s:${C_RESET} %-6s\n" "Test Launch" "${TEST_LAUNCH_COUNT:-0}" "Warp Jumps" "${WARP_JUMP_COUNT:-0}"
+                    sys_info+="$row"
+                    printf -v row " ${C_CYAN}%-12s:${C_RESET} %-6s  ${C_CYAN}%-12s:${C_RESET} %-6s\n" "Logins" "${LOGIN_COUNT:-0}" "Ejections" "${EJECTION_COUNT:-0}"
+                    sys_info+="$row"
+                    printf -v row " ${C_CYAN}%-12s:${C_RESET} %-6s  ${C_CYAN}%-12s:${C_RESET} %-6s\n" "Sudo Attempt" "${SUDO_ATTEMPT_COUNT:-0}" "Help Access" "${HELP_ACCESS_COUNT:-0}"
+                    sys_info+="$row"
+                    printf -v row " ${C_CYAN}%-12s:${C_RESET} %-6s  ${C_CYAN}%-12s:${C_RESET} %-6s\n" "Fac Abuse" "${FACTORY_ABUSE_COUNT:-0}" "Apklist Use" "${APKLIST_USED:-0}"
+                    sys_info+="$row"
+                    printf -v row " ${C_CYAN}%-12s:${C_RESET} %-6s  ${C_CYAN}%-12s:${C_RESET} %-6s\n" "cmd:cd" "${CMD_CD_COUNT:-0}" "cmd:cp" "${CMD_CP_COUNT:-0}"
+                    sys_info+="$row"
+                    printf -v row " ${C_CYAN}%-12s:${C_RESET} %-6s  ${C_CYAN}%-12s:${C_RESET} %-6s\n" "cmd:nano" "${CMD_NANO_COUNT:-0}" "cmd:micro" "${CMD_MICRO_COUNT:-0}"
+                    sys_info+="$row"
+                    printf -v row " ${C_CYAN}%-12s:${C_RESET} %-6s\n" "cmd:sed" "${CMD_SED_COUNT:-0}"
+                    sys_info+="$row"
                     
                     local line_count=$(echo -ne "$sys_info" | wc -l)
                     local sys_h=$(( line_count + 4 ))
@@ -1641,19 +1664,19 @@ function __tct_core() {
                         while IFS='=' read -r key val; do
                             val=$(echo "$val" | tr -d '"')
                             if [[ "$val" == "true" || "$val" == "forever" ]]; then
-                                mod_info+=" ${C_GREEN}[ONLINE]${C_RESET}  ${C_WHITE}${key}${C_RESET}\n"
-                           elif [[ "$val" == "false" ]]; then
-                                mod_info+=" ${C_RED}[OFFLINE]${C_RESET} ${C_BLACK}${key}${C_RESET}\n"
+                                mod_info+="${C_GREEN}[ONLINE]${C_RESET}  ${C_WHITE}${key}${C_RESET}\n"
+                            elif [[ "$val" == "false" ]]; then
+                                mod_info+="${C_RED}[OFFLINE]${C_RESET} ${C_BLACK}${key}${C_RESET}\n"
                             else
                                 if [ -z "$val" ]; then
-                                    mod_info+=" ${C_YELLOW}[VALUE]${C_RESET}   ${C_WHITE}${key}${C_RESET} = ${C_RED}[Empty]${C_RESET}\n"
+                                    mod_info+="${C_YELLOW}[VALUE]${C_RESET}   ${C_WHITE}${key}${C_RESET} = ${C_RED}[Empty]${C_RESET}\n"
                                 else
-                                    mod_info+=" ${C_YELLOW}[VALUE]${C_RESET}   ${C_WHITE}${key}${C_RESET} = ${C_CYAN}${val}${C_RESET}\n"
+                                    mod_info+="${C_YELLOW}[VALUE]${C_RESET}   ${C_WHITE}${key}${C_RESET} = ${C_CYAN}${val}${C_RESET}\n"
                                 fi
                             fi
                         done < "$setting_file"
                     else
-                        mod_info="${C_RED} [Error] .setting file not found.${C_RESET}\n"
+                        mod_info="${C_RED}[Error]   .setting file not found.${C_RESET}\n"
                     fi
                     
                     local line_count=$(echo -ne "$mod_info" | wc -l)
