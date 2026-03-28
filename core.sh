@@ -218,6 +218,7 @@ function _update_mux_state() {
     cat > "$MUX_ROOT/.mux_state" <<EOF
 MUX_MODE="$new_mode"
 MUX_STATUS="$new_status"
+MUX_ENTRY_POINT="$new_entry"
 EOF
 
     # 4. 如果有 Entry Point 則寫入
@@ -965,7 +966,7 @@ function mv() {
     if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
     CMD_MV_COUNT=$((CMD_MV_COUNT + 1))
     _save_identity
-    
+
     _mux_fs_guard "mv" "$@" || return 1
     if [ "$MUX_MODE" == "TCT" ] && command -v __core_mv &> /dev/null; then
         __core_mv "$@"
