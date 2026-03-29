@@ -49,7 +49,11 @@ function _tct_tns_probe() {
     case "$main_cmd" in
         pkg)
             # pkg 只吃 help，且必須繞過任何子指令干涉
-            help_text=$(command pkg help 2>&1)
+            if [ -n "$sub_cmd" ]; then
+                help_text=""
+            else
+                help_text=$(command pkg help 2>&1)
+            fi
             ;;
         git)
             # git 必須使用 -h，並精準抓取子指令
@@ -61,7 +65,11 @@ function _tct_tns_probe() {
             ;;
         cd)
             # help $main_cmd
-            help_text=$(help cd 2>&1)
+            if [ -n "$sub_cmd" ]; then
+                help_text=""
+            else
+                help_text=$(help cd 2>&1)
+            fi
             ;;
 
         *)
@@ -110,6 +118,9 @@ function _tct_tns_probe() {
             # 實體消毒
             gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
             gsub(/.\x08/, "")
+            gsub(/<[^>]+>/, "")
+            gsub(/\[[^\]]+\]/, "")
+
             
             # 指令過濾
             match($0, /^[ \t]+/)
