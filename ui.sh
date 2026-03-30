@@ -410,9 +410,6 @@ function _system_check() {
             "E\$t4bl!\$h!ng XUM Upl!nk..."
         )
     elif [ "$mode" == "tct" ] || [ "$mode" == "tower" ]; then
-        C_PROC="${C_PINKMEOW}⟳\033[0m"
-        C_CHECK="${C_PINKMEOW}✓\033[0m"
-        
         if [ "$MUX_ENTRY_POINT" == "MEOW" ]; then
             # 貓咪模式
             export __MUX_CLUMSY_STATE=0
@@ -424,6 +421,7 @@ function _system_check() {
                 
                 _run_step "Initializing Command Tower..." 0
                 _run_step "Bypassing Fire Control Systems..." 0
+                _run_step "Mounting Native Physical Engine..." 0
                 
                 echo -ne " $C_PROC Waking up Assistant AI...\r"; sleep 0.6
                 echo -e " ${C_FAIL} Waking up Assistant AI... \033[1;31m[INTERRUPTED]\033[0m"
