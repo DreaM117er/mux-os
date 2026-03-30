@@ -194,7 +194,6 @@ function _tct_tns_probe() {
 # 戰術指令導航 (Single-Stage HUD & Zone Isolation Catch)
 function _tct_tns_macro() {
     # 截取輸入
-    _mux_internal_guard || return 1
     local target_cmd=""
     target_cmd=$(echo "${READLINE_LINE:0:$READLINE_POINT}" | awk -F'[;|&]+' '{print $NF}' | awk '{
         cmd = ""
