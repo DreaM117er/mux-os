@@ -657,6 +657,7 @@ function _grant_xp() {
 
 # Git/GitHub 連結設定 (Uplink Setup)
 function _setup_git_auth() {
+    if command -v _mux_internal_guard &> /dev/null; then _mux_internal_guard || return 1; fi
     echo ""
     echo -e "\033[1;33m :: Initializing GitHub Neural Uplink... ::\033[0m"
     
@@ -709,6 +710,7 @@ function _setup_git_auth() {
 
 # 註冊指揮官身份 (Interactive Mode)
 function _register_commander_interactive() {
+    if command -v _mux_internal_guard &> /dev/null; then _mux_internal_guard || return 1; fi
     echo -e "\033[1;33m :: Mux-OS Identity Registration ::\033[0m"
     echo ""
     
