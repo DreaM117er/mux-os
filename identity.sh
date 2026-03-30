@@ -529,7 +529,8 @@ function _grant_xp() {
 
     _check_active_buffs
 
-    local final_amount=$(awk "BEGIN {print int($base_amount * $MUX_CURRENT_MULT)}")
+    local current_mult="${MUX_CURRENT_MULT:-1}"
+    local final_amount=$(awk "BEGIN {print int($base_amount * $current_mult)}")
 
     # 如果有加成且數值大於 0，顯示加成特效 (可選)
     # if [ "$MUX_CURRENT_MULT" != "1" ] && [ "$final_amount" -gt 0 ]; then
