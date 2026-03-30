@@ -119,6 +119,9 @@ function _init_identity() {
             MUX_DATE=${MUX_DATE:-$(date +%s)}
             MUX_LF=${MUX_BF:-$now_ts}
             MUX_BF=$now_ts
+            MUX_LEVEL=${MUX_LEVEL:-1}
+            MUX_XP=${MUX_XP:-0}
+            MUX_NEXT_XP=${MUX_NEXT_XP:-2000}
             MUX_FIRECOUNT=0
             MUX_OCDATE=0
             MUX_CDDATE=0
@@ -147,6 +150,10 @@ function _init_identity() {
             CMD_LS_COUNT=${CMD_LS_COUNT:-0}
             
             save_required=true
+        fi
+        
+        if [ "$save_required" == "true" ]; then
+            _save_identity
         fi
     fi
     
