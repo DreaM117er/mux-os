@@ -71,16 +71,27 @@ export SEARCH_GITHUB="https://github.com/search?q="
 export __GO_TARGET=""
 export __GO_MODE=""
 
+# 內部防爆閘門 (Internal Organ Security Guard)
+function _mux_internal_guard() {
+    if [ "${#FUNCNAME[@]}" -le 2 ]; then
+        echo -e "\033[1;31m :: SECURITY ALERT :: Direct execution of internal protocol denied.\033[0m"
+        return 1
+    fi
+    return 0
+}
+
 # 系統輸入鎖定與解鎖 (System Input Lock/Unlock)
 function _system_lock() {
-if [ -t 0 ]; then 
+    _mux_internal_guard || return 1
+    if [ -t 0 ]; then 
         stty -echo
         tput civis
     fi
 }
 
 function _system_unlock() {
-if [ -t 0 ]; then 
+    _mux_internal_guard || return 1
+    if [ -t 0 ]; then 
         while read -r -s -t 0.01 -n 10000 garbage; do :; done 2>/dev/null
         stty echo
         tput cnorm
@@ -89,12 +100,14 @@ if [ -t 0 ]; then
 
 # 實體防寫鎖 (Write-Protect Interlock)
 function _mux_hardware_lock() {
+    _mux_internal_guard || return 1
     chmod 555 "$MUX_ROOT"/*.sh 2>/dev/null
     chmod 555 "$MUX_ROOT"/.core 2>/dev/null
     chmod 444 "$MUX_ROOT"/*.csv 2>/dev/null
 }
 
 function _mux_hardware_unlock() {
+    _mux_internal_guard || return 1
     chmod 755 "$MUX_ROOT"/*.sh 2>/dev/null
     chmod 755 "$MUX_ROOT"/.core 2>/dev/null
     chmod 644 "$MUX_ROOT"/*.csv 2>/dev/null
@@ -102,12 +115,14 @@ function _mux_hardware_unlock() {
 
 # 安全介面寬度計算 (Safe UI Width Calculation)
 function _safe_ui_calc() {
+    _mux_internal_guard || return 1
     local width=$(tput cols)
     content_limit=$(( width > 10 ? width - 10 : 2 ))
 }
 
 # 無參數檢測輔助函式 (Require No Args)
 function _require_no_args() {
+    _mux_internal_guard || return 1
     if [ -n "$1" ]; then
         _bot_say "no_args" "Unexpected input: $*"
         return 1
@@ -164,6 +179,7 @@ function _voice_dispatch() {
 
 # 啟動序列邏輯 (Boot Sequence)
 function _mux_boot_sequence() {
+    _mux_internal_guard || return 1
     if [ "$MUX_STATUS" == "LOGIN" ]; then
         return 0
     else
@@ -174,6 +190,7 @@ function _mux_boot_sequence() {
 
 # 實體狀態機刻印引擎 (Physical State Writer)
 function _update_setting() {
+    _mux_internal_guard || return 1
     local key="$1"
     local val="$2"
     local setting_file="$HOME/mux-os/.setting"
@@ -194,6 +211,7 @@ function _update_setting() {
 
 # 狀態機更新器 (State Machine Updater)
 function _update_mux_state() {
+    _mux_internal_guard || return 1
     local new_mode="$1"
     local new_status="$2"
     local new_entry="$3"
@@ -235,6 +253,7 @@ EOF
 
 # 主程式初始化 (Main Initialization)
 function _mux_init() {
+    _mux_internal_guard || return 1
     _system_lock
     _mux_state_purifier "silent"
     _safe_ui_calc
@@ -314,6 +333,7 @@ function _mux_init() {
 
 # 重新載入核心模組
 function _mux_reload_kernel() {
+    _mux_internal_guard || return 1
     # 主函數邏輯
     _system_lock
     _mux_state_purifier "silent"
@@ -362,6 +382,7 @@ function _mux_reload_kernel() {
 
 # 強制同步系統狀態
 function _mux_force_reset() {
+    _mux_internal_guard || return 1
     _system_lock
     if command -v _check_singularity &> /dev/null; then
         _check_singularity
@@ -402,6 +423,7 @@ function _mux_force_reset() {
 
 # 系統更新檢測與執行
 function _mux_update_system() {
+    _mux_internal_guard || return 1
     _system_lock
     if command -v _check_singularity &> /dev/null; then
         _check_singularity
@@ -447,6 +469,7 @@ function _mux_integrity_scan() {
 
 # 系統目錄淨化協議 (System Directory Purge)
 function _mux_system_purge() {
+    _mux_internal_guard || return 1
     _system_lock
     if command -v _check_singularity &> /dev/null; then
         _check_singularity
@@ -506,6 +529,7 @@ function _mux_system_purge() {
 
 # 神經連結部署協議
 function _neural_link_deploy() {
+    _mux_internal_guard || return 1
     if [ -z "$(git config user.name)" ]; then
          _bot_say "error" "Identity missing. Run 'git config --global user.name \"YourName\"' first."
          return 1
@@ -532,6 +556,7 @@ function _neural_link_deploy() {
 
 # 神經資料解析器 (Neural Data Parser)
 function _mux_neural_data() {
+    _mux_internal_guard || return 1
     unset _VAL_CATNO _VAL_COMNO _VAL_CATNAME _VAL_TYPE _VAL_COM \
           _VAL_COM2 _VAL_COM3 _VAL_HUDNAME _VAL_UINAME _VAL_PKG \
           _VAL_TARGET _VAL_IHEAD _VAL_IBODY _VAL_URI _VAL_MIME \
@@ -610,6 +635,7 @@ function _mux_neural_data() {
 
 # 智慧網址解析器 (Smart URL Resolver)
 function _resolve_smart_url() {
+    _mux_internal_guard || return 1
     local engine_url="$1"
     local user_query="$2"
 
@@ -652,6 +678,7 @@ function _resolve_smart_url() {
 
 # 核心指令項
 function _launch_android_app() {
+    _mux_internal_guard || return 1
     local name="${1:-$_VAL_UINAME}"
     local pkg="${2:-$_VAL_PKG}"
     
@@ -707,6 +734,7 @@ function _launch_android_app() {
 
 # 發射結果驗證器 (Launch Result Validator)
 function _mux_launch_validator() {
+    _mux_internal_guard || return 1
     local output="$1"
     local pkg="$2"
 
@@ -732,6 +760,7 @@ function _mux_launch_validator() {
 
 # 安全過濾層 (Security Layer)
 function _mux_security_gate() {
+    _mux_internal_guard || return 1
     local cmd="$1"
     local all_args="$@"
     
@@ -776,6 +805,7 @@ function _mux_security_gate() {
 
 # 實時發射載荷消毒器 (Real-time Payload Sanitizer)
 function _mux_payload_sanitizer() {
+    _mux_internal_guard || return 1
     local payload="$1"
     
     # 1. 檢測 Shell 注入危險字元 
@@ -799,6 +829,7 @@ function _mux_payload_sanitizer() {
 
 # 潘朵拉之盒 (Pandora's Box)
 function _check_pandoras_box() {
+    _mux_internal_guard || return 1
     local cmd="$1"
     shift
     local args="$*"
@@ -864,6 +895,7 @@ function vi()    { _check_pandoras_box "vi" "$@" || return 1; command vi "$@"; }
 
 # 檔案系統物理裝甲 (File System Guard)
 function _mux_fs_guard() {
+    _mux_internal_guard || return 1
     local cmd="$1"
     shift
     local args="$*"
@@ -980,6 +1012,7 @@ function tar()    { _mux_fs_guard "tar" "$@" || return 1; command tar "$@"; }
 
 # 神經火控系統 (Neural Fire Control)
 function _mux_neural_fire_control() {
+    _mux_internal_guard || return 1
     # 0. 狀態檢查
     if [ "$MUX_STATUS" != "LOGIN" ]; then return 127; fi
 
@@ -1451,6 +1484,7 @@ function pm() {
 
 # 機體狀態掃描儀 (System Integrity Scanner)
 function _core_system_scan() {
+    _mux_internal_guard || return 1
     local mode="${1:-silent}"
     local error_count=0
     local warn_count=0
@@ -1604,6 +1638,7 @@ function _core_system_scan() {
 
 # 登入系統 - Commander Login
 function _mux_pre_login() {
+    _mux_internal_guard || return 1
     if [ -d "$MUX_ROOT" ]; then cd "$MUX_ROOT"; fi
     if [ "$MUX_STATUS" != "DEFAULT" ]; then
         echo -e "${F_BLE} :: System already active, Commander.${C_RESET}"
@@ -1716,6 +1751,7 @@ function _mux_pre_login() {
 
 # 登出系統 - Commander Logout
 function _mux_set_logout() {
+    _mux_internal_guard || return 1
     echo ""
     echo -e "${THEME_WARN} :: WARNING: NEURAL DISCONNECT SEQUENCE ::${C_RESET}"
     echo -e "${THEME_DESC}    This will terminate your current session and seal the cockpit.${C_RESET}"
@@ -1760,6 +1796,7 @@ function _mux_set_logout() {
 
 # 工廠前置驗證協議 (Pre-Flight Auth)
 function _core_pre_factory_auth() {
+    _mux_internal_guard || return 1
     if [ -d "$MUX_ROOT" ]; then cd "$MUX_ROOT"; fi
     local origin_status="$MUX_STATUS"
     clear
@@ -1893,6 +1930,7 @@ function _core_pre_factory_auth() {
 
 # 彈射序列 (The Ejection - Core Simulation)
 function _core_eject_sequence() {
+    _mux_internal_guard || return 1
     local reason="$1"
 
     if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
@@ -1962,6 +2000,7 @@ function _core_eject_sequence() {
 
 # 指揮塔登入協議 - Command Tower Login
 function _tct_login_protocol() {
+    _mux_internal_guard || return 1
     if [ -d "$MUX_ROOT" ]; then cd "$MUX_ROOT"; fi
 
     clear

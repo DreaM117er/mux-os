@@ -9,6 +9,7 @@ fi
 # 指令劫持器 (Bypass Guard)
 function _bypass_guard() {
     # 接收傳入的完整指令
+    _mux_internal_guard || return 1
     local raw_input="$*"
     if [ -z "$raw_input" ]; then return 1; fi
 
@@ -24,6 +25,7 @@ function _bypass_guard() {
 
 # 高精密文本切割機 (The High-Precision Text Cutter)
 function _tct_tns_probe() {
+    _mux_internal_guard || return 1 # 測試時需要隱藏它
     local input_cmd="$1"
     if [ -z "$input_cmd" ]; then return 1; fi
 
@@ -192,6 +194,7 @@ function _tct_tns_probe() {
 # 戰術指令導航 (Single-Stage HUD & Zone Isolation Catch)
 function _tct_tns_macro() {
     # 截取輸入
+    _mux_internal_guard || return 1
     local target_cmd=""
     target_cmd=$(echo "${READLINE_LINE:0:$READLINE_POINT}" | awk -F'[;|&]+' '{print $NF}' | awk '{
         cmd = ""
@@ -255,6 +258,7 @@ function _tct_tns_macro() {
 
 # 戰術兵器模式選擇器 (Tactical Weapon Mode Selector)
 function _tct_mode_selector() {
+    _mux_internal_guard || return 1
     local weapon_type="$1"
     local menu_items=""
     local border_lbl=""
@@ -309,6 +313,7 @@ function _tct_mode_selector() {
 
 # 戰術操作艙子模組 (Action Menu Sub-Module)
 function _tct_file_action_menu() {
+    _mux_internal_guard || return 1
     local clean_target="$1"
     
     while true; do

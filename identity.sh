@@ -12,6 +12,7 @@ fi
 
 # 身份存檔核心 (Identity Save Protocol)
 function _save_identity() {
+    _mux_internal_guard || return 1
     cat > "$IDENTITY_FILE" <<EOF
 MUX_ID="$MUX_ID"
 MUX_ROLE="$MUX_ROLE"
@@ -56,6 +57,7 @@ EOF
 
 # 設定存檔核心 (Setting Save Protocol)
 function _save_settings() {
+    _mux_internal_guard || return 1
     cat > "$SETTING_FILE" <<EOF
 APKLIST_BACKUP_PKG="${APKLIST_BACKUP_PKG}"
 APKLIST_BACKUP_TARGET="${APKLIST_BACKUP_TARGET}"
@@ -68,7 +70,8 @@ EOF
 
 # 初始化身份文件 (Default to Unknown)
 function _init_identity() {
-if [ ! -f "$IDENTITY_FILE" ]; then
+    _mux_internal_guard || return 1
+    if [ ! -f "$IDENTITY_FILE" ]; then
         # 全新用戶
         MUX_ID="Unknown"
         MUX_ROLE="GUEST"
@@ -174,6 +177,7 @@ if [ ! -f "$IDENTITY_FILE" ]; then
 
 # 行為記錄器 (Behavior Recorder)
 function _record_behavior() {
+    _mux_internal_guard || return 1
     local action_type="$1"
     
     # 確保變數已載入
@@ -213,6 +217,7 @@ function _record_behavior() {
 # 隱藏成就解鎖器 (Hidden Achievement Unlocker)
 # 用法: _unlock_badge "TAG_NAME" "Badge Name"
 function _unlock_badge() {
+    _mux_internal_guard || return 1
     local tag="$1"
     local name="$2"
     
@@ -250,6 +255,7 @@ function _unlock_badge() {
 
 # 狀態加成計算核心 (Buff Calculation Engine)
 function _check_active_buffs() {
+    _mux_internal_guard || return 1
     # 預設：無加成
     export MUX_CURRENT_MULT=1
     export MUX_BUFF_TAG=""
@@ -310,6 +316,7 @@ function _check_active_buffs() {
 
 # 奇點審判庭 (Singularity Tribunal)
 function _check_singularity() {
+    _mux_internal_guard || return 1
     # 1. 計算理論 XP
     local calc_req=2000
     if [ "${MUX_REBORN_COUNT:-0}" -gt 0 ]; then
@@ -393,6 +400,7 @@ function _check_singularity() {
 
 # 飛昇轉生協議 (Ascension / Reborn Protocol)
 function _trigger_reborn() {
+    _mux_internal_guard || return 1
     echo ""
     echo -e "\033[1;36m :: INITIATING ARCHITECT ASCENSION ::\033[0m"
     sleep 1
@@ -439,9 +447,9 @@ function _trigger_reborn() {
 
 # XP 以及 Level 升級系統 (Experience and Leveling System)
 function _grant_xp() {
+    _mux_internal_guard || return 1
     local base_amount=$1
     local source_type=$2
-
     local whitelist=(
                         "mux"
                         "fac"
@@ -645,51 +653,6 @@ function _grant_xp() {
         fi
     fi
     _save_identity
-}
-
-# 飛昇轉生協議 (Ascension / Reborn Protocol)
-function _trigger_reborn() {
-    echo ""
-    echo -e "\033[1;36m :: INITIATING ARCHITECT ASCENSION ::\033[0m"
-    sleep 1
-    echo -e "\033[1;30m    ›› Collapsing current reality matrix...\033[0m"
-    sleep 1
-    
-    # 給予降維打擊的榮耀印記
-    if command -v _unlock_badge &> /dev/null; then
-        _unlock_badge "DSTRIKE" "Dimensional Strike"
-    fi
-    
-    sleep 1
-    echo -e "\033[1;31;5m :: DUAL VECTOR FOIL DEPLOYED :: \033[0m"
-    sleep 1.8
-    
-    # 1. 更新轉生次數
-    MUX_REBORN_COUNT=$((MUX_REBORN_COUNT + 1))
-    
-    # 2. 保留勳章，重置等級與 XP
-    MUX_LEVEL=1
-    MUX_XP=0
-    
-    # 3. 核心公式：2000 * 1.5^N (每次轉生基礎需求 * 1.5)
-    local new_base=$(awk -v r="$MUX_REBORN_COUNT" 'BEGIN { print int(2000 * (1.5 ^ r)) }')
-    MUX_NEXT_XP=$new_base
-    
-    MUX_DATE=$(date +%s)
-    MUX_LF=$MUX_DATE
-    MUX_BF=$MUX_DATE
-    
-    _save_identity
-    
-    echo -e "\033[1;35m :: UNIVERSE REBOOTING (ITERATION ${MUX_REBORN_COUNT}) :: \033[0m"
-    echo -e "\033[1;30m    ›› Gravity adjusted. XP curve increased by 1.5x.\033[0m"
-    sleep 2.4
-    
-    if command -v _mux_reload_kernel &> /dev/null; then
-        _mux_reload_kernel
-    else
-        exec bash
-    fi
 }
 
 # Git/GitHub 連結設定 (Uplink Setup)

@@ -18,6 +18,7 @@ fi
 # 神經資料讀取器 - Neural Data Reader
 # 用法: _fac_neural_read "chrome" 或 _fac_neural_read "chrome 'incognito'"
 function _fac_neural_read() {
+    _mux_internal_guard || return 1
     unset _VAL_CATNO _VAL_COMNO _VAL_CATNAME _VAL_TYPE _VAL_COM \
           _VAL_COM2 _VAL_COM3 _VAL_HUDNAME _VAL_UINAME _VAL_PKG \
           _VAL_TARGET _VAL_IHEAD _VAL_IBODY _VAL_URI _VAL_MIME \
@@ -103,6 +104,7 @@ function _fac_neural_read() {
 # 神經資料寫入器 - Neural Data Writer (Atomic)
 # 用法: _fac_neural_write "chrome" 10 "com.android.chrome"
 function _fac_neural_write() {
+    _mux_internal_guard || return 1
     local target_key="$1"
     local col_idx="$2"
     local new_val="$3"
@@ -181,8 +183,9 @@ function _fac_neural_write() {
 }
 
 # 原子寫入函數 (Atomic Node Updater)
+# 用法: _fac_update_node "TARGET_KEY" "COL_INDEX" "NEW_VALUE"
 function _fac_update_node() {
-    # 用法: _fac_update_node "TARGET_KEY" "COL_INDEX" "NEW_VALUE"
+    _mux_internal_guard || return 1
     local target_key="$1"
     local col_idx="$2"
     local new_val="$3"
@@ -225,6 +228,7 @@ function _fac_update_node() {
 
 # 原子刪除函數 (Atomic Node Deleter)
 function _fac_delete_node() {
+    _mux_internal_guard || return 1
     local target_key="$1"
     local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
     
@@ -271,6 +275,7 @@ function _fac_delete_node() {
 
 # 複合鍵偵測器 (Private Logic)
 function _fac_check_composite_exists() {
+    _mux_internal_guard || return 1
     local c1="$1"
     local c2="$2"
     local csv_path="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
@@ -295,6 +300,7 @@ function _fac_check_composite_exists() {
 
 # 兵工廠快速列表 - List all commands
 function _fac_list() {
+    _mux_internal_guard || return 1
     local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
     local width=$(tput cols)
     
@@ -321,6 +327,7 @@ function _fac_list() {
 
 # 兵工廠系統啟動 (Factory System Boot)
 function _factory_system_boot() {
+    _mux_internal_guard || return 1
     MUX_MODE="FAC"
     export PS1="\[${THEME_MAIN}\]Fac\[${C_RESET}\] \w › "
 
@@ -414,6 +421,7 @@ function _factory_system_boot() {
 
 # 兵工廠資料庫離合器 (Database Switcher)
 function _fac_cmd_db() {
+    _mux_internal_guard || return 1
     local has_reborn=0
     if [ "${MUX_REBORN_COUNT:-0}" -gt 0 ]; then has_reborn=1; fi
     local current_lv=${MUX_LEVEL:-1}
@@ -479,6 +487,7 @@ function _fac_cmd_db() {
 
 # 初始化視覺效果 (Initialize Visuals)
 function _fac_init() {
+    _mux_internal_guard || return 1
     _system_lock
     _mux_state_purifier "silent"
     _safe_ui_calc
@@ -503,6 +512,7 @@ function _fac_init() {
 
 # 自動備份 - Auto Backup
 function _factory_auto_backup() {
+    _mux_internal_guard || return 1
     local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
     local ts=$(date +%Y%m%d%H%M%S)
     local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
@@ -514,6 +524,7 @@ function _factory_auto_backup() {
 
 # 災難復原精靈 - Recovery Wizard
 function _fac_rebak_wizard() {
+    _mux_internal_guard || return 1
     local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
     
     if [ ! -d "$bak_dir" ]; then
@@ -594,6 +605,7 @@ function _fac_rebak_wizard() {
 
 # 兵工廠廢料清理 (Factory Waste Purge)
 function _fac_clear_backups() {
+    _mux_internal_guard || return 1
     local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
     local db_name=$(basename "${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}" .temp)
     
@@ -625,6 +637,7 @@ function _fac_clear_backups() {
 
 # 機體維護工具 (Mechanism Maintenance)
 function _fac_maintenance() {
+    _mux_internal_guard || return 1
     echo -e "${THEME_DESC} :: Scanning Neural Integrity...${C_RESET}"
     
     local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
@@ -703,6 +716,7 @@ function _fac_maintenance() {
 
 # 系統序列重整與優化 - System Sort Optimization
 function _fac_sort_optimization() {
+    _mux_internal_guard || return 1
     echo -e "${THEME_DESC} :: Optimizing Neural Sequence...${C_RESET}"
 
     local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
@@ -728,6 +742,7 @@ function _fac_sort_optimization() {
 
 # 安全合併與繼承系統 - Safe Merge & Inheritance Protocol
 function _fac_safe_merge() {
+    _mux_internal_guard || return 1
     local target_id="$1"
     local source_id="$2"
     local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
@@ -802,6 +817,7 @@ function _fac_safe_merge() {
 
 # 矩陣重組與格式化 - Matrix Defragmentation & Sanitizer
 function _fac_matrix_defrag() {
+    _mux_internal_guard || return 1
     local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
     local temp_file="${target_file}.defrag"
 
@@ -853,6 +869,7 @@ function _fac_matrix_defrag() {
 
 # 兵工廠重置 (Factory Reset - Phoenix Protocol)
 function _factory_reset() {
+    _mux_internal_guard || return 1
     local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
     local db_name=$(basename "${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}" .temp)
     local target_bak=$(ls -t "$bak_dir"/${db_name}.*.bak 2>/dev/null | head -n 1)
@@ -897,6 +914,7 @@ function _factory_reset() {
 # 部署序列 (Deploy Sequence)
 function _factory_deploy_sequence() {
     # 讀取環境參數
+    _mux_internal_guard || return 1
     if [ -f "$IDENTITY_FILE" ]; then source "$IDENTITY_FILE"; fi
     local abuse_lv="${FACTORY_ABUSE_COUNT:-0}"
 
@@ -1321,6 +1339,7 @@ function _fac_fzf_edit() {
 
 # 分類名稱批量更新器 (Batch Category Renamer)
 function _fac_update_category_name() {
+    _mux_internal_guard || return 1
     local target_id="$1"
     local new_name="$2"
     local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
@@ -1347,6 +1366,7 @@ function _fac_update_category_name() {
 
 # 分類名稱衝突檢測器 (Category Conflict Scanner)
 function _fac_check_category_conflict() {
+    _mux_internal_guard || return 1
     local check_name="$1"
     local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
 
@@ -1366,6 +1386,7 @@ function _fac_check_category_conflict() {
 
 # 核心編輯路由器 (The Logic Router)
 function _fac_edit_router() {
+    _mux_internal_guard || return 1
     local raw_selection="$1"
     local target_key="$2"
     local view_mode="${3:-EDIT}"
@@ -1993,6 +2014,7 @@ function _fac_edit_router() {
 
 # 安全沙盒編輯協議 - Safe Edit Protocol
 function _fac_safe_edit_protocol() {
+    _mux_internal_guard || return 1
     local target_key="$1"
     local init_mode="${2:-EDIT}"
 
@@ -2104,6 +2126,7 @@ function _fac_safe_edit_protocol() {
 
 # 函式攔截器 (Function Interceptor)
 function _factory_mask_apps() {
+    _mux_internal_guard || return 1
     local input_com="$1"
     local input_sub="$2"
     
@@ -2151,6 +2174,7 @@ function _factory_mask_apps() {
 
 # 兵工廠測試發射台 (Factory Fire Control Test)
 function _fac_launch_test() {
+    _mux_internal_guard || return 1
     local input_key="$1"
     local input_args="${*:2}"
 
