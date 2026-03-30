@@ -12,6 +12,7 @@ fi
 
 # 身份存檔核心 (Identity Save Protocol)
 function _save_identity() {
+    if command -v _mux_internal_guard &> /dev/null; then _mux_internal_guard || return 1; fi
     cat > "$IDENTITY_FILE" <<EOF
 MUX_ID="$MUX_ID"
 MUX_ROLE="$MUX_ROLE"
@@ -56,6 +57,7 @@ EOF
 
 # 設定存檔核心 (Setting Save Protocol)
 function _save_settings() {
+    if command -v _mux_internal_guard &> /dev/null; then _mux_internal_guard || return 1; fi
     cat > "$SETTING_FILE" <<EOF
 APKLIST_BACKUP_PKG="${APKLIST_BACKUP_PKG}"
 APKLIST_BACKUP_TARGET="${APKLIST_BACKUP_TARGET}"
@@ -174,7 +176,7 @@ function _init_identity() {
 
 # 行為記錄器 (Behavior Recorder)
 function _record_behavior() {
-    _mux_internal_guard || return 1
+    if command -v _mux_internal_guard &> /dev/null; then _mux_internal_guard || return 1; fi
     local action_type="$1"
     
     # 確保變數已載入
@@ -214,7 +216,7 @@ function _record_behavior() {
 # 隱藏成就解鎖器 (Hidden Achievement Unlocker)
 # 用法: _unlock_badge "TAG_NAME" "Badge Name"
 function _unlock_badge() {
-    _mux_internal_guard || return 1
+    if command -v _mux_internal_guard &> /dev/null; then _mux_internal_guard || return 1; fi
     local tag="$1"
     local name="$2"
     
@@ -252,7 +254,7 @@ function _unlock_badge() {
 
 # 狀態加成計算核心 (Buff Calculation Engine)
 function _check_active_buffs() {
-    _mux_internal_guard || return 1
+    if command -v _mux_internal_guard &> /dev/null; then _mux_internal_guard || return 1; fi
     # 預設：無加成
     export MUX_CURRENT_MULT=1
     export MUX_BUFF_TAG=""
@@ -313,7 +315,7 @@ function _check_active_buffs() {
 
 # 奇點審判庭 (Singularity Tribunal)
 function _check_singularity() {
-    _mux_internal_guard || return 1
+    if command -v _mux_internal_guard &> /dev/null; then _mux_internal_guard || return 1; fi
     # 1. 計算理論 XP
     local calc_req=2000
     if [ "${MUX_REBORN_COUNT:-0}" -gt 0 ]; then
@@ -397,7 +399,7 @@ function _check_singularity() {
 
 # 飛昇轉生協議 (Ascension / Reborn Protocol)
 function _trigger_reborn() {
-    _mux_internal_guard || return 1
+    if command -v _mux_internal_guard &> /dev/null; then _mux_internal_guard || return 1; fi
     echo ""
     echo -e "\033[1;36m :: INITIATING ARCHITECT ASCENSION ::\033[0m"
     sleep 1
@@ -444,7 +446,7 @@ function _trigger_reborn() {
 
 # XP 以及 Level 升級系統 (Experience and Leveling System)
 function _grant_xp() {
-    _mux_internal_guard || return 1
+    if command -v _mux_internal_guard &> /dev/null; then _mux_internal_guard || return 1; fi
     local base_amount=$1
     local source_type=$2
     local whitelist=(
