@@ -829,6 +829,7 @@ function ls() {
 
 # 原生指令劫持: rm (Command rm for TCT)
 function __core_rm() {
+    _mux_internal_guard || return 1
     # 軌道直通
     if [ -z "$TCT_SINGLE_TARGET" ] && [ "$#" -gt 0 ]; then
         local current_rm_mode=""
@@ -1072,6 +1073,7 @@ function __core_rm() {
 
 # 原生指令劫持: mv (Command mv for TCT)
 function __core_mv() {
+    _mux_internal_guard || return 1
     # 軌道直通
     if [ -z "$TCT_SINGLE_TARGET" ] && [ "$#" -gt 0 ]; then
         command mv "$@"
@@ -1272,6 +1274,7 @@ function __core_mv() {
 
 # 原生指令劫持: cp (Command cp for TCT)
 function __core_cp() {
+    _mux_internal_guard || return 1
     # 軌道直通
     if [ -z "$TCT_SINGLE_TARGET" ] && [ "$#" -gt 0 ]; then
         command cp "$@"
@@ -1476,6 +1479,7 @@ function __core_cp() {
 
 # 指揮塔初始化 (Tower Initialization)
 function _tct_init() {
+    _mux_internal_guard || return 1
     _system_lock
     _mux_state_purifier "silent"
     _safe_ui_calc
@@ -1529,6 +1533,7 @@ function _tct_init() {
 
 # : Tower Command Entry
 function __tct_core() {
+    _mux_internal_guard || return 1
     local cmd="$1"
     local current_level="${MUX_LEVEL:-1}"
     local rand_chance=$(( RANDOM % 100 ))

@@ -2485,6 +2485,7 @@ function _fac_launch_test() {
 
 # : Factory Command Entry
 function __fac_core() {
+    _mux_internal_guard || return 1
     local cmd="$1"
 
     if [[ "$MUX_MODE" == "MUX" || "$MUX_MODE" == "XUM" ]]; then
