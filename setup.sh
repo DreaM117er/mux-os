@@ -44,7 +44,7 @@ fi
 # 輔助函式：Banner
 function _banner() {
     clear
-    echo -e "${C}"
+    echo -e "${C_BLACK}"
     cat << "EOF"
   __  __                  ___  ____  
  |  \/  |_   ___  __     / _ \/ ___| 
