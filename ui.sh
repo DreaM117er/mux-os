@@ -7,6 +7,7 @@ fi
 
 # 等級進度條繪製 (Level Progress Bar Rendering)
 function _draw_level_bar() {
+    _mux_internal_guard || return 1
     local lvl="${MUX_LEVEL:-1}"
     local xp="${MUX_XP:-0}"
     local next="${MUX_NEXT_XP:-2000}"
@@ -88,6 +89,7 @@ function _draw_level_bar() {
 
 # 常規獎牌渲染 (Standard Medal Render)
 function _render_badge() {
+    _mux_internal_guard || return 1
     local abbr="$1"
     local name="$2"
     local current="${3:-0}"
@@ -130,6 +132,7 @@ function _render_badge() {
 
 # 特殊獎牌渲染 (Special Medal Render - with Obfuscation)
 function _render_special() {
+    _mux_internal_guard || return 1
     local tag="$1"
     local abbr="$2"
     local name="$3"
@@ -183,6 +186,7 @@ function _render_special() {
 
 # 顯示勳章牆 (Medal Wall)
 function _show_badges() {
+    _mux_internal_guard || return 1
     local mode="$1"
 
     if [ -f "$HOME/mux-os/identity.sh" ]; then source "$HOME/mux-os/identity.sh"; fi
@@ -277,6 +281,7 @@ function _show_badges() {
 
 # 繪製 Mux-OS Logo標誌
 function _draw_logo() {
+    _mux_internal_guard || return 1
     local mode="${1:-core}"
     local color_primary=""
     local color_sub="$C_BLACK"
@@ -356,6 +361,7 @@ function _draw_logo() {
 
 # 系統檢測動畫顯示 - System Check Animation Display
 function _system_check() {
+    _mux_internal_guard || return 1
     local mode="${1:-core}"
     
     local C_CHECK="\033[1;32m✓\033[0m"
@@ -486,6 +492,7 @@ function _system_check() {
 
 # 顯示系統資訊 HUD - Display System Info HUD
 function _show_hud() {
+    _mux_internal_guard || return 1
     local mode="${1:-core}"
     local screen_width=$(tput cols)
     local box_width=$(( screen_width < 22 ? 22 : screen_width - 2 ))
@@ -602,6 +609,7 @@ function _show_hud() {
 
 # 安全文字亂碼濾鏡 (Safe Glitch Filter)
 function _mux_glitch_filter() {
+    _mux_internal_guard || return 1
     local rate="$1"
     awk -v rate="$rate" '
         BEGIN { srand() }
@@ -632,6 +640,7 @@ function _mux_glitch_filter() {
 
 # 系統核心覺醒問卷 (System Core Awakening Questionnaire)
 function _mux_awakening_questionnaire() {
+    _mux_internal_guard || return 1
     clear
     _draw_logo "awake"
     echo -e "${C_YELLOW} :: Answers are case-insensitive. No punctuation required.${C_RESET}"
@@ -670,6 +679,7 @@ EOF
 
 # 系統審判儀式 (System Protocol)
 function _mux_awakening_protocol() {
+    _mux_internal_guard || return 1
     local a1=$(sed -n '2p' "$MUX_ROOT/.passcode" | tr '[:upper:]' '[:lower:]' | tr -d '[:punct:]' | xargs)
     local a2=$(sed -n '3p' "$MUX_ROOT/.passcode" | tr '[:upper:]' '[:lower:]' | tr -d '[:punct:]' | xargs)
     local a3=$(sed -n '4p' "$MUX_ROOT/.passcode" | tr '[:upper:]' '[:lower:]' | tr -d '[:punct:]' | xargs)
@@ -762,6 +772,7 @@ function _mux_awakening_protocol() {
 
 # 顯示系統資訊詳情 - Display System Info Details
 function _mux_show_info() {
+    _mux_internal_guard || return 1
     clear
     
     local header_color="$THEME_DESC"
@@ -848,6 +859,7 @@ function _mux_show_info() {
 
 # 顯示指揮塔資訊 - Display Command Tower Info Manifest
 function _tct_show_info() {
+    _mux_internal_guard || return 1
     clear
     _draw_logo "tct"
     
@@ -913,6 +925,7 @@ function _tct_show_info() {
 
 # 動態Help Core選單檢測 - Dynamic Help Core Detection
 function _mux_dynamic_help_core() {
+    _mux_internal_guard || return 1
     local C_CMD=""
     
     if [ "$MUX_MODE" == "XUM" ]; then
@@ -952,6 +965,7 @@ function _mux_dynamic_help_core() {
 
 # 動態Help Factory選單檢測 - Dynamic Help Factory Detection
 function _mux_dynamic_help_factory() {
+    _mux_internal_guard || return 1
     local current_lv=${MUX_LEVEL:-1}
     local has_reborn=${MUX_REBORN_COUNT:-0}
 
@@ -991,6 +1005,7 @@ function _mux_dynamic_help_factory() {
 
 # 動態Help Command Tower選單檢測 - Dynamic Help Tower Detection
 function _mux_dynamic_help_tower() {
+    _mux_internal_guard || return 1
     local C_CMD="$C_PINKMEOW"
     
     echo -e "${C_PURPLE} :: Mux-OS Command Tower Protocols ::${C_RESET}"
@@ -1018,6 +1033,7 @@ function _mux_dynamic_help_tower() {
 
 # 顯示指令選單儀表板 - Display Command Menu Dashboard
 function _show_menu_dashboard() {
+    _mux_internal_guard || return 1
     local search_filter="$1"
     
     local target_app_file="$APP_MOD"
@@ -1153,6 +1169,7 @@ function _show_menu_dashboard() {
 
 # 模糊指令選單介面 - Fuzzy Command Menu Interface
 function _mux_fuzzy_menu() {
+    _mux_internal_guard || return 1
     if ! command -v fzf &> /dev/null; then
         echo -e "\n\033[1;31m :: Neural Module (fzf) missing.\033[0m"
         return 1
@@ -1228,6 +1245,7 @@ function _mux_fuzzy_menu() {
 
 # 顯示兵工廠狀態 - Display Factory Status
 function _factory_show_status() {
+    _mux_internal_guard || return 1
     local temp_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
     local bak_dir="${MUX_BAK:-$MUX_ROOT/bak}"
     local db_name=$(basename "$temp_file")
@@ -1301,6 +1319,7 @@ function _factory_show_status() {
 
 # 顯示兵工廠資訊 - Display Factory Info Manifest
 function _factory_show_info() {
+    _mux_internal_guard || return 1
     local db_name=$(basename "${__FAC_ACTIVE_DB:-app.csv.temp}")
     clear
     _draw_logo "factory"
@@ -1329,6 +1348,7 @@ function _factory_show_info() {
 
 # 兵工廠指令選擇器 - Factory Command Scanner
 function _factory_fzf_menu() {
+    _mux_internal_guard || return 1
     local prompt_msg="${1:-Select Target}"
     local mode="${2:-VIEW}"
     local cat_filter="$3" 
@@ -1420,6 +1440,7 @@ function _factory_fzf_menu() {
 
 # 兵工廠指令選擇器 - Factory Category Scanner
 function _factory_fzf_cat_selector() {
+    _mux_internal_guard || return 1
     local mode="${1:-VIEW}"
     local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
     
@@ -1500,6 +1521,7 @@ function _factory_fzf_cat_selector() {
 
 # 兵工廠指令選擇器 - Factory inCommand Scanner
 function _factory_fzf_cmd_in_cat() {
+    _mux_internal_guard || return 1
     local target_cat_name="$1"
     local mode="${2:-VIEW}"
     local target_file="${__FAC_ACTIVE_DB:-$MUX_ROOT/app.csv.temp}"
@@ -1568,6 +1590,7 @@ function _factory_fzf_cmd_in_cat() {
 
 # 詳細資料檢視器 - Detail Inspector
 function _factory_fzf_detail_view() {
+    _mux_internal_guard || return 1
     local target_key="$1"
     local view_mode="${2:-VIEW}"
 
@@ -1750,6 +1773,7 @@ function _factory_fzf_detail_view() {
 
 # 類別編輯子選單 - Category Edit Submenu
 function _factory_fzf_catedit_submenu() {
+    _mux_internal_guard || return 1
     local cat_id="$1"
     local cat_name="${2:-Unknown}"
     local view_mode="${3:-EDIT}"
@@ -1822,6 +1846,7 @@ function _factory_fzf_catedit_submenu() {
 
 # 新增類型選擇器 - Add Type Selector
 function _factory_fzf_add_type_menu() {
+    _mux_internal_guard || return 1
     local has_reborn=0
     if [ "${MUX_REBORN_COUNT:-0}" -gt 0 ]; then has_reborn=1; fi
     local current_lv=${MUX_LEVEL:-1}
@@ -1858,6 +1883,7 @@ function _factory_fzf_add_type_menu() {
 
 # TCT模組：戰術導航雷達 (適用 cd, ls)
 function _ui_tct_nav_radar() {
+    _mux_internal_guard || return 1
     local menu_items="$1"
     local ui_prompt="$2"
     local dynamic_height="$3"
@@ -1882,6 +1908,7 @@ function _ui_tct_nav_radar() {
 
 # TCT模組：戰術武裝雷達 (適用 rm, mv, cp 共用)
 function _ui_tct_tactical_radar() {
+    _mux_internal_guard || return 1
     local menu_items="$1"
     local ui_prompt="$2"
     local dynamic_height="$3"
@@ -1907,6 +1934,7 @@ function _ui_tct_tactical_radar() {
 # 指揮塔狀態機字典 (TCT State Registry)
 # 接收 $1(key) $2(val)，回傳 $3(Y/N) 與 $4(UI Name) 與 描述
 function _ui_tct_core_registry() {
+    _mux_internal_guard || return 1
     local key="$1"
     local val="$2"
     local show_ui="N"imagemagick
@@ -1942,6 +1970,7 @@ function _ui_tct_core_registry() {
 
 # 指揮塔動態選單生成器 (TCT Dynamic Radar Builder)
 function _ui_tct_core_radar() {
+    _mux_internal_guard || return 1
     local setting_file="$HOME/mux-os/.setting"
     if [ ! -f "$setting_file" ]; then return 1; fi
 
@@ -2000,6 +2029,7 @@ function _ui_tct_core_radar() {
 
 # 檔案詳細資料檢視器 (Tower File Detail Inspector)
 function _tower_fzf_detail_view() {
+    _mux_internal_guard || return 1
     local target_file="$1"
     
     if [ -z "$target_file" ] || [ ! -e "$target_file" ]; then return 1; fi
@@ -2143,7 +2173,8 @@ function _tower_fzf_detail_view() {
 
 # 星門 - UI Mask / Fake Gate
 function _ui_fake_gate() {
-local theme="$1"
+    _mux_internal_guard || return 1
+    local theme="$1"
     local entry_point="$2"
 
     local bar_total=25
