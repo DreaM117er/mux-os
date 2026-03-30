@@ -12,7 +12,6 @@ fi
 
 # 身份存檔核心 (Identity Save Protocol)
 function _save_identity() {
-    _mux_internal_guard || return 1
     cat > "$IDENTITY_FILE" <<EOF
 MUX_ID="$MUX_ID"
 MUX_ROLE="$MUX_ROLE"
@@ -57,7 +56,6 @@ EOF
 
 # 設定存檔核心 (Setting Save Protocol)
 function _save_settings() {
-    _mux_internal_guard || return 1
     cat > "$SETTING_FILE" <<EOF
 APKLIST_BACKUP_PKG="${APKLIST_BACKUP_PKG}"
 APKLIST_BACKUP_TARGET="${APKLIST_BACKUP_TARGET}"
@@ -70,7 +68,6 @@ EOF
 
 # 初始化身份文件 (Default to Unknown)
 function _init_identity() {
-    _mux_internal_guard || return 1
     if [ ! -f "$IDENTITY_FILE" ]; then
         # 全新用戶
         MUX_ID="Unknown"
