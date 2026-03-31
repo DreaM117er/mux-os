@@ -121,9 +121,7 @@ function _tct_tns_probe() {
             gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
             gsub(/.\x08/, "")
             gsub(/<[^>]+>/, "")
-            gsub(/\[[^\]]+\]/, "")
 
-            
             # 指令過濾
             match($0, /^[ \t]+/)
             indent_len = RLENGTH
@@ -161,6 +159,8 @@ function _tct_tns_probe() {
                         if (temp_line ~ /^-+/) {
                             match(temp_line, /^-+[^ \t,]+/)
                             if (RLENGTH > 0) {
+                                item = substr(temp_line, RSTART, RLENGTH)
+
                                 sub(/=.*/, "", item)
                                 sub(/[,;:.)]$/, "", item)
                                 gsub(/[\047"‘’`]/, "", item)
