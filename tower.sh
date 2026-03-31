@@ -288,7 +288,7 @@ function _tct_file_action_menu() {
         [ "$CMT_COMMAND" == "true" ] && ui_prompt=" :: cmt › Action › $clean_target › "
         
         # 呼叫TCT模組
-        local action_raw=$(_ui_tct_nav_radar "$action_items" "$ui_prompt" "8" "TARGET OPERATIONS" "220" " :: Esc to Return ::")
+        local action_raw=$(_ui_tct_nav_radar "$action_items" "$ui_prompt" "10" "TARGET OPERATIONS" "220" " :: Esc to Return ::")
         
         local action_sel=$(echo "$action_raw" | tail -n +2 | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
         
