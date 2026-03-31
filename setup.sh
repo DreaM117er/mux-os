@@ -559,7 +559,7 @@ if [ "$SYSTEM_STATUS" == "ONLINE" ]; then
     echo " [5] Configure 'apklist' Fallback"
     echo " [6] Cancel (Reload Core)"
     echo ""
-    echo -ne "${C_CYAN} :: Select Protocol [1-5]: ${C_RESET}"
+    echo -ne "${C_CYAN} :: Select Protocol: ${C_RESET}"
     read choice
 
     case "$choice" in
@@ -579,7 +579,7 @@ else
     echo " [2] Delete (All Mux-OS Data)"
     echo " [3] Cancel"
     echo ""
-    echo -ne "${C_CYAN} :: Select Protocol [1-3]: ${C_RESET}"
+    echo -ne "${C_CYAN} :: Select Protocol: ${C_RESET}"
     read choice
 
     case "$choice" in
