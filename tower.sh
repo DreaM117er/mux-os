@@ -25,7 +25,7 @@ function _bypass_guard() {
 
 # 高精密文本切割機 (The High-Precision Text Cutter)
 function _tct_tns_probe() {
-    _mux_internal_guard || return 1 # 測試時需要隱藏它
+    _mux_internal_guard || return 1
     local input_cmd="$1"
     if [ -z "$input_cmd" ]; then return 1; fi
 
@@ -38,69 +38,36 @@ function _tct_tns_probe() {
     local cmd_type=""
     export COLUMNS=200
     
-    # 探測主指令的底層物理型態
     cmd_type=$(type -t "$main_cmd" 2>/dev/null)
-
-    # 遇到大魔王指令：切換模式
-    local parse_mode="PRECISION"
-    if [[ "$main_cmd" =~ ^(cd|ls|tar|find|sed|grep|awk)$ ]]; then
-        parse_mode="GLOBAL"
-    fi
 
     # 前置分類路由器
     case "$main_cmd" in
         pkg)
-            # pkg 只吃 help，且必須繞過任何子指令干涉
-            if [ -n "$sub_cmd" ]; then
-                help_text=""
-            else
-                help_text=$(command pkg help 2>&1)
-            fi
+            if [ -n "$sub_cmd" ]; then help_text=""; else help_text=$(command pkg help 2>&1); fi
             ;;
         git)
-            # git 必須使用 -h，並精準抓取子指令
-            if [ -n "$sub_cmd" ]; then
-                help_text=$(command git $sub_cmd -h 2>&1)
-            else
-                help_text=$(command git -h 2>&1)
-            fi
+            if [ -n "$sub_cmd" ]; then help_text=$(command git $sub_cmd -h 2>&1); else help_text=$(command git -h 2>&1); fi
             ;;
         cd)
-            # help $main_cmd
-            if [ -n "$sub_cmd" ]; then
-                help_text=""
-            else
-                help_text=$(help cd 2>&1)
-            fi
+            if [ -n "$sub_cmd" ]; then help_text=""; else help_text=$(help cd 2>&1); fi
             ;;
-
         *)
-            # 泛用型探針
             if [ "$cmd_type" == "builtin" ]; then
-                # Bash 內建指令專線
                 help_text=$(help "$input_cmd" 2>&1)
             else
-                # 外部指令或被劫持的 function (強制使用 command 穿透)
                 help_text=$(command $input_cmd --help 2>&1)
-                
-                # 錯誤檢閱機制 (Error Checking Fallback)
                 if [ ${#help_text} -lt 150 ]; then
                     if [[ "$help_text" =~ (illegal|invalid|unrecognized|not\ found|unknown) ]] || [ ${#help_text} -lt 50 ]; then
                         local alt_help=$(command $input_cmd help 2>&1 < /dev/null)
-                        
                         if [ ${#alt_help} -gt 50 ] && [[ ! "$alt_help" =~ (illegal|invalid|unrecognized|unknown) ]]; then
                             help_text="$alt_help"
                         else
-                            # 最後的波紋：嘗試 -h
                             local alt_help2=$(command $input_cmd -h 2>&1 < /dev/null)
-                            if [ ${#alt_help2} -gt 50 ]; then
-                                help_text="$alt_help2"
-                            fi
+                            if [ ${#alt_help2} -gt 50 ]; then help_text="$alt_help2"; fi
                         fi
                     fi
                 fi
             fi
-
             if [ -z "$help_text" ] || [[ "$help_text" == *"not found"* ]]; then
                 echo -e " \033[1;30m[Empty]\033[0m   No parameters found."
                 return
@@ -108,23 +75,21 @@ function _tct_tns_probe() {
             ;;
     esac
     
-    # 切割刀法邏輯
+    # 全域智慧切割引擎 (Universal Smart Cutter)
     local parsed_params
-    parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" -v p_mode="$parse_mode" '
+    parsed_params=$(echo "$help_text" | awk -v c_flag="\033[1;33m" -v c_rst="\033[0m" '
         BEGIN {
             idx_long = 0
             idx_short = 0
             idx_cmd = 0
         }
         {
-            # 實體消毒
+            # 實體消毒：去除 ANSI 色碼、退格字元與 <角括號> 包裝
             gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
             gsub(/.\x08/, "")
             gsub(/<[^>]+>/, "")
-            gsub(/\[[^\]]+\]/, "")
-
             
-            # 指令過濾
+            # 1. 核心子指令擷取 (保留原有邏輯，抓取 git clone 等子指令)
             match($0, /^[ \t]+/)
             indent_len = RLENGTH
             if (indent_len > 0 && indent_len <= 3 && match($0, /^[ \t]+[a-zA-Z0-9_:-]+[ \t][ \t]+/)) {
@@ -136,46 +101,33 @@ function _tct_tns_probe() {
                 }
             }
             
-            # 軌道分流
-            if (p_mode == "GLOBAL") {
-                # 全域無差別切割機
-                n = split($0, arr, "[ \t]+|,[ \t]+")
+            # 2. 全域智慧參數擷取 (取代舊的雙軌模式)
+            if (tolower($0) !~ /^(usage|用法)/) {
+                # 將整行文字用「空白、等號、逗號、管線、角括號」物理碎裂成基本粒子
+                n = split($0, arr, "[ \t=,|<>()]+")
+                
                 for (i=1; i<=n; i++) {
                     item = arr[i]
-                    sub(/[,;:.)]$/, "", item)
-                    gsub(/[\047"‘’`]/, "", item)
                     
-                    if (item ~ /^-+[a-zA-Z0-9@]/) {
-                        if (!seen[item]) {
-                            seen[item] = 1
-                            if (item ~ /^--/) { buf_long[++idx_long] = item } else { buf_short[++idx_short] = item }
+                    # 鎖定疑似參數 (只要是以 - 開頭的粒子)
+                    if (item ~ /^-+/) {
+                        
+                        # 針對 Git 的 [no-] 雙向裝甲進行精準爆破，保留正向指令
+                        gsub(/\[no-\]/, "", item)
+                        
+                        # 物理拆除任何殘留的方括號與引號
+                        gsub(/\[|\]|[\047"‘’`]/, "", item)
+                        
+                        # 清除結尾的標點符號
+                        sub(/[:;.)]$/, "", item)
+                        
+                        # 最終規格驗證 (必須是純淨的參數結構：- 或 -- 開頭，後接字母/數字/符號)
+                        if (item ~ /^-+[a-zA-Z0-9@_-]+$/) {
+                            if (!seen[item]) {
+                                seen[item] = 1
+                                if (item ~ /^--/) { buf_long[++idx_long] = item } else { buf_short[++idx_short] = item }
+                            }
                         }
-                    }
-                }
-            } else {
-                # 高精密鍊式切割機
-                if ($0 ~ /^[ \t][ \t]+-+/) {
-                    temp_line = $0
-                    while (temp_line != "") {
-                        sub(/^[ \t]+/, "", temp_line)
-                        if (temp_line ~ /^-+/) {
-                            match(temp_line, /^-+[^ \t,]+/)
-                            if (RLENGTH > 0) {
-                                sub(/=.*/, "", item)
-                                sub(/[,;:.)]$/, "", item)
-                                gsub(/[\047"‘’`]/, "", item)
-                                
-                                if (item ~ /^-+[a-zA-Z0-9@]/) {
-                                    if (!seen[item]) {
-                                        seen[item] = 1
-                                        if (item ~ /^--/) { buf_long[++idx_long] = item } else { buf_short[++idx_short] = item }
-                                    }
-                                }
-                                temp_line = substr(temp_line, RLENGTH + 1)
-                                sub(/^[ \t]+/, "", temp_line)
-                                if (temp_line ~ /^,/) { sub(/^,[ \t]*/, "", temp_line) } else { break }
-                            } else { break }
-                        } else { break }
                     }
                 }
             }
