@@ -2164,11 +2164,6 @@ function _tower_fzf_detail_view() {
         --color=info:240,prompt:46,pointer:red,border:46,header:240 \
         --bind="resize:clear-screen"
     )
-
-    # 將結果回傳
-    if [ -n "$selected" ]; then
-        echo "$selected"
-    fi
 }
 
 # 星門 - UI Mask / Fake Gate
