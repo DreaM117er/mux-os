@@ -53,7 +53,7 @@
 12,3,"Services","NA","nhi",,"P","NHI Express (健保快易通)","NHI Express","com.nhiApp.v1",".features.StartActivity",,,,,,,,,,,,,,,,,,,,,,,,
 12,4,"Services","NA","fire",,"P","Readiness TW (防災e點通)","Readiness","com.nfa.report",".BearInitActivity",,,,,,,,,,,,,,,,,,,,,,,,
 12,5,"Services","NA","hospay",,"P","醫指付+","醫指付+","com.dghc.ehpayplus","com.dghc.ehpayplus.MainActivity",,,,,,,,,,,,,,,,,,,,,,,,
-12,6,"Services","NA","id","check","P","行動自然人憑證","行動自然人憑證","tw.gov.moi.tfido","tw.gov.moi.tfido.ui.splash.SplashActivity",,,,,,,,,,,,,,,,,,,,,,,,
+12,6,"Services","NA","idcard",,"P","行動自然人憑證","行動自然人憑證","tw.gov.moi.tfido","tw.gov.moi.tfido.ui.splash.SplashActivity",,,,,,,,,,,,,,,,,,,,,,,,
 13,1,"Transport & Travel","NA","bus",,"P","Bus+","Bus+","hearsilent.busplus",".activity.SplashActivity",,,,,,,,,,,,,,,,,,,,,,,,
 13,2,"Transport & Travel","NA","rail",,"P","TwRailway","TwRailway","com.diousk.railjourney tw",".ui.main.RailMainActivity",,,,,,,,,,,,,,,,,,,,,,,,
 13,3,"Transport & Travel","NA","thsr",,"P","T-EX","T-EX","tw.com.thsrc.texpress",".ei.ov",,,,,,,,,,,,,,,,,,,,,,,,
